@@ -89,6 +89,8 @@ FW_DIRS := $(dir $(shell which qemu-system-$(ARCH) 2>/dev/null))../share/qemu /u
            /usr/share/edk2/aarch64 /usr/share/qemu-efi-aarch64 /usr/share/AAVMF /usr/share/edk2-ovmf /usr/lib/u-boot/qemu-riscv64_smode
 FW_NAMES_riscv64 := edk2-riscv-code.fd RISCV_VIRT_CODE.fd
 FW_NAMES_aarch64 := edk2-aarch64-code.fd QEMU_EFI.fd AAVMF_CODE.fd
+FW_SIZE_riscv64 := 33554432
+FW_SIZE_aarch64 := 67108864
 FW_CODE ?= $(firstword $(wildcard $(foreach d,$(FW_DIRS),$(foreach n,$(FW_NAMES_$(ARCH)),$(d)/$(n)))))
 QEMU_x86_64 := qemu-system-x86_64 -M q35 -m 512M -serial stdio -no-reboot -cdrom $(ISO)
 QEMU_riscv64 := qemu-system-riscv64 -M virt -m 512M -serial stdio -no-reboot \
@@ -105,7 +107,8 @@ firmware:
 ifneq ($(ARCH),x86_64)
 	@test -n "$(FW_CODE)" || { echo "no UEFI firmware for $(ARCH) found; install edk2/qemu-efi or set FW_CODE=" >&2; exit 1; }
 	@mkdir -p $(BUILD)
-	@test -f $(BUILD)/fw-code.fd || { cp $(FW_CODE) $(BUILD)/fw-code.fd; truncate -s 32M $(BUILD)/fw-code.fd 2>/dev/null || true; }
+	@test -f $(BUILD)/fw-code.fd || { cp $(FW_CODE) $(BUILD)/fw-code.fd; \
+	    [ $$(stat -c %s $(BUILD)/fw-code.fd) -ge $(FW_SIZE_$(ARCH)) ] || truncate -s $(FW_SIZE_$(ARCH)) $(BUILD)/fw-code.fd; }
 	@test -f $(BUILD)/fw-vars.fd || truncate -s $$(stat -c %s $(BUILD)/fw-code.fd) $(BUILD)/fw-vars.fd
 endif
 

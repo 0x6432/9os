@@ -42,7 +42,7 @@ struct limine_executable_address_response *boot_kernel_address(void) { return ka
 void *boot_rsdp(void) {
     if (!rsdp_req.response) return nullptr;
     /* physical in base revision 3 only, HHDM-virtual from revision 4 on */
-    uint64_t a = rsdp_req.response->address;
+    uint64_t a = (uint64_t)rsdp_req.response->address;
     return (void *)(boot_revision() >= 4 && a >= hhdm_offset ? a - hhdm_offset : a);
 }
 struct limine_file *boot_module(const char *cmdline) {
