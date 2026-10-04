@@ -35,6 +35,10 @@ struct process {
     uint64_t sig_pending;
     struct tty *ctty;
     char name[32];
+    char *cmdline;                    /* NUL-separated argv for /proc/pid/cmdline */
+    size_t cmdline_len;
+    char *exe;
+    uint64_t start_ticks;
     uint64_t utime_ticks, stime_ticks;
     uint64_t alarm_ns;
     struct vfork_done { bool done; struct wait_queue wq; } *vfork;

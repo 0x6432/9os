@@ -9,6 +9,7 @@
 #include <kernel/tty.h>
 #include <kernel/exec.h>
 #include <kernel/arch.h>
+#include <kernel/time.h>
 #include <arch/syscall.h>
 
 #define CLONE_VM 0x100
@@ -115,6 +116,9 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
         p->umask = parent->umask;
         p->uid = parent->uid; p->gid = parent->gid; p->euid = parent->euid; p->egid = parent->egid;
         strlcpy(p->name, parent->name, sizeof p->name);
+        if (parent->cmdline) { p->cmdline = kmalloc(parent->cmdline_len + 1); memcpy(p->cmdline, parent->cmdline, parent->cmdline_len); p->cmdline_len = parent->cmdline_len; }
+        if (parent->exe) p->exe = strdup(parent->exe);
+        p->start_ticks = jiffies;
         memcpy(p->sigactions, parent->sigactions, sizeof p->sigactions);
         if (flags & CLONE_VM) { p->mm = parent->mm; p->mm->refcount++; }
         else {
@@ -244,6 +248,7 @@ int64_t do_wait(int pid, int *ustatus, int options, int *out_pid) {
                 int cpid = c->pid;
                 list_del(&c->sibling);
                 list_del(&c->all_node);
+                kfree(c->cmdline); kfree(c->exe);
                 kfree(c);
                 ret = cpid;
                 if (ustatus && copy_to_user(ustatus, &status, sizeof status)) ret = -EFAULT;

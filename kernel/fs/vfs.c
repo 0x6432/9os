@@ -6,6 +6,7 @@
 #include <kernel/errno.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
+#include <kernel/printk.h>
 
 struct inode *vfs_root;
 struct wait_queue poll_wq = WAIT_QUEUE_INIT(poll_wq);
@@ -86,7 +87,13 @@ static int walk(struct inode *base, const char *path, bool follow_last, int dept
         struct inode *child;
         int r = lookup_child(cur, name, &child);
         if (r) { iput(cur); return r; }
-        if (S_ISLNK(child->mode) && (!last || follow_last || *e == '/')) {
+        if (S_ISLNK(child->mode) && (!last || follow_last || *e == '/') && child->iops->follow_link) {
+            struct inode *res;
+            r = child->iops->follow_link(child, &res);
+            iput(child);
+            if (r) { iput(cur); return r; }
+            child = res;
+        } else if (S_ISLNK(child->mode) && (!last || follow_last || *e == '/')) {
             char *target = kmalloc(4096);
             r = child->iops->readlink(child, target, 4095);
             iput(child);
@@ -172,6 +179,18 @@ int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, 
     struct file *f = file_open_inode(ino, flags);
     iput(ino);
     if (!f) return -ENOMEM;
+    if (path[0] == '/') f->path = strdup(path);
+    else {
+        char *cwd = kmalloc(4096);
+        int l = vfs_getcwd(base ? base : proc_cwd(), cwd, 4096);
+        if (l > 0) {
+            size_t pl = strlen(path);
+            char *full = kmalloc(l + pl + 2);
+            snprintf(full, l + pl + 2, "%s%s%s", cwd, strcmp(cwd, "/") ? "/" : "", path);
+            f->path = full;
+        }
+        kfree(cwd);
+    }
     if (S_ISCHR(ino->mode) && !f->fops) { vfs_close(f); return -ENXIO; }
     if (f->fops && f->fops->open && !(flags & O_PATH)) {
         r = f->fops->open(ino, f);
@@ -188,6 +207,7 @@ void vfs_close(struct file *f) {
     if (--f->refcount > 0) return;
     if (f->fops && f->fops->release) f->fops->release(f);
     iput(f->inode);
+    kfree(f->path);
     kfree(f);
 }
 

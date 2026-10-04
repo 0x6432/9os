@@ -406,3 +406,6 @@ int64_t sys_arch_prctl_wrap(int code, uint64_t addr) {
     return -EINVAL;
 #endif
 }
+
+int64_t sys_socket(int domain, int type, int proto) { return -97; /* EAFNOSUPPORT */ }
+int64_t sys_connect(int fd, void *addr, int len) { return -EBADF; }

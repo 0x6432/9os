@@ -19,10 +19,10 @@ ok = lambda fn: fn in defs
 rows, names, decls = [], [], set()
 for n in nrs:
     fn = alias.get(n, 'sys_' + n)
+    names.append(f'#ifdef __NR_{n}\n    [__NR_{n}] = "{n}",\n#endif')
     if not ok(fn): continue
     decls.add(f'int64_t {fn}();')
     rows.append(f'#ifdef __NR_{n}\n    [__NR_{n}] = (syscall_fn){fn},\n#endif')
-    names.append(f'#ifdef __NR_{n}\n    [__NR_{n}] = "{n}",\n#endif')
 tmpl = open('core/syscall.c.in').read()
 out = tmpl.replace('@DECLS@', '\n'.join(sorted(decls))).replace('@TABLE@', '\n'.join(rows)).replace('@NAMES@', '\n'.join(names))
 open('core/syscall.c', 'w').write(out)

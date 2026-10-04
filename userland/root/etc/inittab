@@ -1,0 +1,4 @@
+::sysinit:/etc/init.d/rcS
+::respawn:-/bin/sh
+::ctrlaltdel:/sbin/reboot
+::shutdown:/bin/echo "9os shutting down"

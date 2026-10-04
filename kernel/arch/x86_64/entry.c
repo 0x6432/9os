@@ -9,6 +9,7 @@ void gdt_init(void);
 void idt_init(void);
 void apic_init(void);
 void syscall_init(void);
+void rtc_init(void);
 
 uint8_t fpu_initial_state[512] __attribute__((aligned(16)));
 
@@ -35,6 +36,7 @@ void arch_early_init(void) {
 
 void arch_init(void) {
     apic_init();
+    rtc_init();
 }
 
 /* Limine jumps here with a valid stack, interrupts disabled, in long mode. */

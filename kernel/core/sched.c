@@ -8,6 +8,7 @@
 #include <kernel/printk.h>
 #include <kernel/time.h>
 #include <kernel/errno.h>
+#include <kernel/process.h>
 
 struct thread *current;
 volatile bool need_resched;
@@ -112,6 +113,7 @@ void sched_tick(void) {
         }
     }
     if (!current) return;
+    if (current->proc) current->proc->utime_ticks++;
     if (current == idle_thread) { if (!list_empty(&run_queue)) need_resched = true; }
     else if (--current->quantum <= 0) need_resched = true;
 }

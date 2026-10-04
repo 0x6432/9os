@@ -73,6 +73,8 @@ void kmain(void) {
     vfs_init();
     devices_init();
     initramfs_load();
+    vfs_mkdir_at(nullptr, "/proc", 0555);
+    vfs_mount("/proc", procfs_create_root());
     input_init();
     syscall_trace = strstr_simple(boot_cmdline(), "strace") != nullptr;
     static char init_path[128];

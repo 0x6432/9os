@@ -62,10 +62,10 @@ void devices_init(void) {
     for (size_t i = 0; i < ARRAY_SIZE(nodes); i++)
         vfs_mknod_at(nullptr, nodes[i].name, S_IFCHR | nodes[i].mode, MKDEV(nodes[i].ma, nodes[i].mi));
     vfs_mkdir_at(nullptr, "/dev/pts", 0755);
-    vfs_mkdir_at(nullptr, "/dev/shm", 01777);
+    vfs_mknod_at(nullptr, "/dev/shm", S_IFDIR | 01777, 0);
     vfs_symlink_at(nullptr, "/proc/self/fd", "/dev/fd");
     vfs_symlink_at(nullptr, "/proc/self/fd/0", "/dev/stdin");
     vfs_symlink_at(nullptr, "/proc/self/fd/1", "/dev/stdout");
     vfs_symlink_at(nullptr, "/proc/self/fd/2", "/dev/stderr");
-    vfs_mkdir_at(nullptr, "/tmp", 01777);
+    vfs_mknod_at(nullptr, "/tmp", S_IFDIR | 01777, 0);
 }

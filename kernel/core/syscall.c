@@ -22,6 +22,7 @@ int64_t sys_clock_nanosleep();
 int64_t sys_clone();
 int64_t sys_close();
 int64_t sys_close_range();
+int64_t sys_connect();
 int64_t sys_creat();
 int64_t sys_dup();
 int64_t sys_dup2();
@@ -112,6 +113,7 @@ int64_t sys_rt_sigpending();
 int64_t sys_rt_sigprocmask();
 int64_t sys_rt_sigreturn();
 int64_t sys_rt_sigsuspend();
+int64_t sys_rt_sigtimedwait();
 int64_t sys_sched_getaffinity();
 int64_t sys_sched_yield();
 int64_t sys_select();
@@ -134,6 +136,7 @@ int64_t sys_setrlimit();
 int64_t sys_setsid();
 int64_t sys_setuid();
 int64_t sys_sigaltstack();
+int64_t sys_socket();
 int64_t sys_stat();
 int64_t sys_statfs();
 int64_t sys_statx();
@@ -270,6 +273,12 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_sendfile
     [__NR_sendfile] = (syscall_fn)sys_sendfile,
+#endif
+#ifdef __NR_socket
+    [__NR_socket] = (syscall_fn)sys_socket,
+#endif
+#ifdef __NR_connect
+    [__NR_connect] = (syscall_fn)sys_connect,
 #endif
 #ifdef __NR_clone
     [__NR_clone] = (syscall_fn)sys_clone,
@@ -459,6 +468,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_rt_sigpending
     [__NR_rt_sigpending] = (syscall_fn)sys_rt_sigpending,
+#endif
+#ifdef __NR_rt_sigtimedwait
+    [__NR_rt_sigtimedwait] = (syscall_fn)sys_rt_sigtimedwait,
 #endif
 #ifdef __NR_rt_sigsuspend
     [__NR_rt_sigsuspend] = (syscall_fn)sys_rt_sigsuspend,
@@ -748,6 +760,9 @@ static const char *const syscall_names[NR_SYSCALLS] = {
 #ifdef __NR_msync
     [__NR_msync] = "msync",
 #endif
+#ifdef __NR_mincore
+    [__NR_mincore] = "mincore",
+#endif
 #ifdef __NR_madvise
     [__NR_madvise] = "madvise",
 #endif
@@ -778,6 +793,51 @@ static const char *const syscall_names[NR_SYSCALLS] = {
 #ifdef __NR_sendfile
     [__NR_sendfile] = "sendfile",
 #endif
+#ifdef __NR_socket
+    [__NR_socket] = "socket",
+#endif
+#ifdef __NR_connect
+    [__NR_connect] = "connect",
+#endif
+#ifdef __NR_accept
+    [__NR_accept] = "accept",
+#endif
+#ifdef __NR_sendto
+    [__NR_sendto] = "sendto",
+#endif
+#ifdef __NR_recvfrom
+    [__NR_recvfrom] = "recvfrom",
+#endif
+#ifdef __NR_sendmsg
+    [__NR_sendmsg] = "sendmsg",
+#endif
+#ifdef __NR_recvmsg
+    [__NR_recvmsg] = "recvmsg",
+#endif
+#ifdef __NR_shutdown
+    [__NR_shutdown] = "shutdown",
+#endif
+#ifdef __NR_bind
+    [__NR_bind] = "bind",
+#endif
+#ifdef __NR_listen
+    [__NR_listen] = "listen",
+#endif
+#ifdef __NR_getsockname
+    [__NR_getsockname] = "getsockname",
+#endif
+#ifdef __NR_getpeername
+    [__NR_getpeername] = "getpeername",
+#endif
+#ifdef __NR_socketpair
+    [__NR_socketpair] = "socketpair",
+#endif
+#ifdef __NR_setsockopt
+    [__NR_setsockopt] = "setsockopt",
+#endif
+#ifdef __NR_getsockopt
+    [__NR_getsockopt] = "getsockopt",
+#endif
 #ifdef __NR_clone
     [__NR_clone] = "clone",
 #endif
@@ -798,6 +858,15 @@ static const char *const syscall_names[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_kill
     [__NR_kill] = "kill",
+#endif
+#ifdef __NR_semget
+    [__NR_semget] = "semget",
+#endif
+#ifdef __NR_shmget
+    [__NR_shmget] = "shmget",
+#endif
+#ifdef __NR_msgget
+    [__NR_msgget] = "msgget",
 #endif
 #ifdef __NR_uname
     [__NR_uname] = "uname",
@@ -967,6 +1036,12 @@ static const char *const syscall_names[NR_SYSCALLS] = {
 #ifdef __NR_rt_sigpending
     [__NR_rt_sigpending] = "rt_sigpending",
 #endif
+#ifdef __NR_rt_sigtimedwait
+    [__NR_rt_sigtimedwait] = "rt_sigtimedwait",
+#endif
+#ifdef __NR_rt_sigqueueinfo
+    [__NR_rt_sigqueueinfo] = "rt_sigqueueinfo",
+#endif
 #ifdef __NR_rt_sigsuspend
     [__NR_rt_sigsuspend] = "rt_sigsuspend",
 #endif
@@ -1020,6 +1095,9 @@ static const char *const syscall_names[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_sync
     [__NR_sync] = "sync",
+#endif
+#ifdef __NR_mount
+    [__NR_mount] = "mount",
 #endif
 #ifdef __NR_umount2
     [__NR_umount2] = "umount2",
@@ -1132,8 +1210,17 @@ static const char *const syscall_names[NR_SYSCALLS] = {
 #ifdef __NR_get_robust_list
     [__NR_get_robust_list] = "get_robust_list",
 #endif
+#ifdef __NR_splice
+    [__NR_splice] = "splice",
+#endif
 #ifdef __NR_utimensat
     [__NR_utimensat] = "utimensat",
+#endif
+#ifdef __NR_epoll_pwait
+    [__NR_epoll_pwait] = "epoll_pwait",
+#endif
+#ifdef __NR_eventfd
+    [__NR_eventfd] = "eventfd",
 #endif
 #ifdef __NR_fallocate
     [__NR_fallocate] = "fallocate",
@@ -1159,11 +1246,17 @@ static const char *const syscall_names[NR_SYSCALLS] = {
 #ifdef __NR_getrandom
     [__NR_getrandom] = "getrandom",
 #endif
+#ifdef __NR_memfd_create
+    [__NR_memfd_create] = "memfd_create",
+#endif
 #ifdef __NR_statx
     [__NR_statx] = "statx",
 #endif
 #ifdef __NR_rseq
     [__NR_rseq] = "rseq",
+#endif
+#ifdef __NR_clone3
+    [__NR_clone3] = "clone3",
 #endif
 #ifdef __NR_close_range
     [__NR_close_range] = "close_range",

@@ -81,6 +81,8 @@ struct inode_ops {
     /* iterate directory entries starting at *pos; stop when filldir returns non-zero */
     int (*iterate)(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx);
     void (*evict)(struct inode *ino);
+    /* magic links (procfs): resolve directly to an inode */
+    int (*follow_link)(struct inode *ino, struct inode **out);
 };
 
 struct file_ops {
@@ -112,6 +114,7 @@ struct file {
     uint32_t flags;
     int refcount;
     void *priv;
+    char *path;               /* path used at open (for /proc/pid/fd) */
 };
 
 struct kstat {

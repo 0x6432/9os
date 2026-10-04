@@ -179,6 +179,14 @@ int do_execve(const char *path, char *const argv[], char *const envp[], struct t
     const char *base = strrchr(path, '/');
     strlcpy(p->name, base ? base + 1 : path, sizeof p->name);
     strlcpy(current->name, p->name, sizeof current->name);
+    kfree(p->cmdline);
+    size_t cl = 0;
+    for (int i = 0; argv && argv[i]; i++) cl += strlen(argv[i]) + 1;
+    p->cmdline = kmalloc(cl ? cl : 1);
+    p->cmdline_len = cl;
+    for (int i = 0, o = 0; argv && argv[i]; i++) { size_t l = strlen(argv[i]) + 1; memcpy(p->cmdline + o, argv[i], l); o += l; }
+    kfree(p->exe);
+    p->exe = strdup(path);
     files_close_on_exec(p);
     signals_reset_on_exec(p);
     arch_reset_fpu(current);

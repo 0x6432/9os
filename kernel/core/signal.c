@@ -7,6 +7,8 @@
 #include <kernel/mm.h>
 #include <arch/syscall.h>
 #include <arch/unistd.h>
+#include <kernel/time.h>
+#include <kernel/vfs.h>
 
 static bool no_restart(uint64_t nr) {
     return nr == __NR_nanosleep || nr == __NR_clock_nanosleep || nr == __NR_ppoll || nr == __NR_pselect6 ||
@@ -279,3 +281,47 @@ int64_t sys_tgkill(int tgid, int tid, int sig) {
     return 0;
 }
 int64_t sys_tkill(int tid, int sig) { return sys_tgkill(tid, tid, sig); }
+
+int64_t sys_rt_sigtimedwait(const uint64_t *uset, void *uinfo, const struct timespec *uts, size_t sz) {
+    uint64_t set;
+    if (copy_from_user(&set, uset, 8)) return -EFAULT;
+    uint64_t ns = UINT64_MAX;
+    if (uts) {
+        struct timespec ts;
+        if (copy_from_user(&ts, uts, sizeof ts)) return -EFAULT;
+        ns = ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+    }
+    struct thread *t = current;
+    struct process *p = t->proc;
+    static struct wait_queue never = WAIT_QUEUE_INIT(never);
+    /* temporarily unblock the waited-for signals so that senders wake us */
+    uint64_t oldmask = t->sig_mask;
+    uint64_t deadline = ns == UINT64_MAX ? UINT64_MAX : time_ns() + ns;
+    for (;;) {
+        uint64_t f = arch_irq_save();
+        uint64_t pend = (t->sig_pending | p->sig_pending) & set;
+        if (pend) {
+            int sig = __builtin_ctzll(pend) + 1;
+            uint64_t bit = SIGBIT(sig);
+            if (t->sig_pending & bit) t->sig_pending &= ~bit; else p->sig_pending &= ~bit;
+            arch_irq_restore(f);
+            t->sig_mask = oldmask;
+            if (uinfo) {
+                int32_t si[32] = {0};
+                si[0] = sig;
+                copy_to_user(uinfo, si, sizeof si);
+            }
+            return sig;
+        }
+        uint64_t now = time_ns();
+        if (now >= deadline) { arch_irq_restore(f); t->sig_mask = oldmask; return -EAGAIN; }
+        t->sig_mask = oldmask & ~set;
+        int r = wait_event_timeout(&never, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        t->sig_mask = oldmask;
+        arch_irq_restore(f);
+        if (r == -EINTR) {
+            /* woken by a signal: loop to see if it is one we wait for */
+            if (!((t->sig_pending | p->sig_pending) & set) && signal_pending(t)) return -EINTR;
+        }
+    }
+}
