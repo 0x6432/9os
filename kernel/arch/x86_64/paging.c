@@ -62,7 +62,7 @@ int vmm_map(pagetable_t pt, vaddr_t va, paddr_t pa, unsigned flags) {
     uint64_t *pte = walk(pt.root, va, true, flags & VM_USER);
     if (!pte) { spin_unlock_irqrestore(&pt_lock, f); return -ENOMEM; }
     *pte = to_pte(pa, flags);
-    invlpg(va);
+    if (!tlb_batched(va)) invlpg(va);
     spin_unlock_irqrestore(&pt_lock, f);
     return 0;
 }
@@ -103,7 +103,7 @@ paddr_t vmm_unmap(pagetable_t pt, vaddr_t va) {
     uint64_t f = spin_lock_irqsave(&pt_lock);
     uint64_t *pte = walk(pt.root, va, false, false);
     paddr_t old = 0;
-    if (pte && (*pte & PTE_P)) { old = *pte & PTE_ADDR; *pte = 0; invlpg(va); if (va < USER_TOP) tlb_shootdown(pt.root, va); }
+    if (pte && (*pte & PTE_P)) { old = *pte & PTE_ADDR; *pte = 0; if (!tlb_batched(va)) { invlpg(va); if (va < USER_TOP) tlb_shootdown(pt.root, va); } }
     spin_unlock_irqrestore(&pt_lock, f);
     return old;
 }
@@ -126,6 +126,7 @@ int vmm_protect(pagetable_t pt, vaddr_t va, unsigned flags) {
     uint64_t *pte = walk(pt.root, va, false, false);
     if (!pte || !(*pte & PTE_P)) return -EFAULT;
     *pte = to_pte(*pte & PTE_ADDR, flags);
+    if (tlb_batched(va)) return 0;
     invlpg(va);
     if (va < USER_TOP) tlb_shootdown(pt.root, va);
     return 0;

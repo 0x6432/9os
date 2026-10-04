@@ -178,3 +178,17 @@ void smp_init(void) {
     }
     pr_info("smp: %d CPUs online (%d APs started in %lu us)\n", ncpus, started, (time_ns() - t0) / 1000);
 }
+
+/* ---------------------------------------------------------------- TLB batching */
+int tlb_batch_depth;
+static bool tlb_batch_dirty;
+void vmm_batch_begin(void) { tlb_batch_depth++; }
+void vmm_batch_end(void) {
+    if (--tlb_batch_depth > 0) return;
+    arch_tlb_flush_local();
+    uint64_t mask = 0;
+    struct cpu *self = this_cpu();
+    for (int i = 0; i < ncpus; i++) if (&cpus[i] != self && cpus[i].online) mask |= 1ULL << i;
+    if (mask) arch_tlb_remote(mask, ~0UL);             /* ~0: flush everything */
+    tlb_batch_dirty = false;
+}

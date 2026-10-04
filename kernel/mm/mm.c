@@ -48,12 +48,14 @@ static void free_pages_in(struct mm *mm, vaddr_t s, vaddr_t e, unsigned vflags) 
 
 void mm_put(struct mm *mm) {
     if (--mm->refcount > 0) return;
+    vmm_batch_begin();
     list_for_each_safe(it, tmp, &mm->vmas) {
         struct vma *v = list_entry(it, struct vma, node);
         free_pages_in(mm, v->start, v->end, v->flags);
         list_del(&v->node);
         kfree(v);
     }
+    vmm_batch_end();
     vmm_free_user_pagetable(mm->pt);
     kfree(mm);
 }
@@ -67,6 +69,7 @@ struct mm *mm_clone(struct mm *src) {
     if (!mm) return nullptr;
     mm->brk_start = src->brk_start; mm->brk = src->brk; mm->mmap_hint = src->mmap_hint;
     mm->sigtramp = src->sigtramp;
+    vmm_batch_begin();
     list_for_each(it, &src->vmas) {
         struct vma *v = list_entry(it, struct vma, node);
         struct vma *n = vma_new(v->start, v->end, v->prot, v->flags);
@@ -89,8 +92,10 @@ struct mm *mm_clone(struct mm *src) {
             cow_stats.shared++;
         }
     }
+    vmm_batch_end();
     return mm;
 fail:
+    vmm_batch_end();
     mm_put(mm);
     return nullptr;
 }
@@ -161,6 +166,8 @@ int mm_unmap(struct mm *mm, vaddr_t addr, size_t len) {
     if (addr & (PAGE_SIZE - 1)) return -EINVAL;
     vaddr_t end = ALIGN_UP(addr + len, PAGE_SIZE);
     if (vma_split(mm, addr) || vma_split(mm, end)) return -ENOMEM;
+    bool batch = end - addr > 16 * PAGE_SIZE;
+    if (batch) vmm_batch_begin();
     list_for_each_safe(it, tmp, &mm->vmas) {
         struct vma *v = list_entry(it, struct vma, node);
         if (v->start >= addr && v->end <= end) {
@@ -169,6 +176,7 @@ int mm_unmap(struct mm *mm, vaddr_t addr, size_t len) {
             kfree(v);
         }
     }
+    if (batch) vmm_batch_end();
     return 0;
 }
 

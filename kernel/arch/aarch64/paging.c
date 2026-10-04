@@ -71,7 +71,7 @@ int vmm_map(pagetable_t pt, vaddr_t va, paddr_t pa, unsigned flags) {
     uint64_t *pte = walk(pt.root, va, true);
     if (!pte) { spin_unlock_irqrestore(&pt_lock, f); return -ENOMEM; }
     *pte = to_pte(pa, flags);
-    tlb_flush_va(va);
+    if (!tlb_batched(va)) tlb_flush_va(va);
     spin_unlock_irqrestore(&pt_lock, f);
     return 0;
 }
@@ -111,7 +111,7 @@ paddr_t vmm_unmap(pagetable_t pt, vaddr_t va) {
     uint64_t f = spin_lock_irqsave(&pt_lock);
     uint64_t *pte = walk(pt.root, va, false);
     paddr_t old = 0;
-    if (pte && (*pte & D_VALID)) { old = *pte & D_ADDR; *pte = 0; tlb_flush_va(va); }
+    if (pte && (*pte & D_VALID)) { old = *pte & D_ADDR; *pte = 0; if (!tlb_batched(va)) tlb_flush_va(va); }
     spin_unlock_irqrestore(&pt_lock, f);
     return old;
 }
@@ -134,7 +134,7 @@ int vmm_protect(pagetable_t pt, vaddr_t va, unsigned flags) {
     uint64_t *pte = walk(pt.root, va, false);
     if (!pte || !(*pte & D_VALID)) return -EFAULT;
     *pte = to_pte(*pte & D_ADDR, flags);
-    tlb_flush_va(va);
+    if (!tlb_batched(va)) tlb_flush_va(va);
     return 0;
 }
 
@@ -163,8 +163,10 @@ static void free_level(paddr_t table, int level) {
 void vmm_free_user_pagetable(pagetable_t pt) { free_level(pt.root, 0); }
 
 void arch_tlb_flush_local(void) { __asm__ volatile("dsb ishst; tlbi vmalle1; dsb ish; isb" ::: "memory"); }
+/* batched flush: one broadcast invalidation covers every CPU */
+void arch_tlb_flush_all_cpus(void) { tlb_flush_all(); }
 /* TLBI ...IS instructions already broadcast to every CPU in the inner-shareable domain */
-void arch_tlb_remote(uint64_t mask, vaddr_t va) {}
+void arch_tlb_remote(uint64_t mask, vaddr_t va) { if (va == ~0UL) tlb_flush_all(); }
 
 static uint64_t bsp_mair, bsp_tcr;
 /* AP: adopt the boot CPU's translation setup */

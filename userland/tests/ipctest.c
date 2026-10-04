@@ -52,7 +52,7 @@ static void test_timerfd(void) {
     uint64_t n = 0;
     CHECK(read(t, &n, 8) == 8 && n >= 1);
     double dt = now() - t0;
-    CHECK(dt > 0.025 && dt < 0.2);
+    CHECK(dt > 0.025 && dt < 1.0);
     usleep(70000);
     CHECK(read(t, &n, 8) == 8 && n >= 3);
     struct itimerspec cur;

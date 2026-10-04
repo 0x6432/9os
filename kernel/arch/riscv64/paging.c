@@ -61,7 +61,7 @@ int vmm_map(pagetable_t pt, vaddr_t va, paddr_t pa, unsigned flags) {
     uint64_t *pte = walk(pt.root, va, true);
     if (!pte) { spin_unlock_irqrestore(&pt_lock, f); return -ENOMEM; }
     *pte = to_pte(pa, flags);
-    sfence_vma(va);
+    if (!tlb_batched(va)) sfence_vma(va);
     spin_unlock_irqrestore(&pt_lock, f);
     return 0;
 }
@@ -101,7 +101,7 @@ paddr_t vmm_unmap(pagetable_t pt, vaddr_t va) {
     uint64_t f = spin_lock_irqsave(&pt_lock);
     uint64_t *pte = walk(pt.root, va, false);
     paddr_t old = 0;
-    if (pte && (*pte & PTE_V)) { old = PTE_PA(*pte); *pte = 0; sfence_vma(va); if (va < USER_TOP) tlb_shootdown(pt.root, va); }
+    if (pte && (*pte & PTE_V)) { old = PTE_PA(*pte); *pte = 0; if (!tlb_batched(va)) { sfence_vma(va); if (va < USER_TOP) tlb_shootdown(pt.root, va); } }
     spin_unlock_irqrestore(&pt_lock, f);
     return old;
 }
@@ -164,7 +164,10 @@ void arch_tlb_flush_local(void) { sfence_vma_all(); }
 /* remote fences through the SBI RFENCE extension (synchronous, no IPI handler needed) */
 void arch_tlb_remote(uint64_t mask, vaddr_t va) {
     for (int i = 0; i < ncpus; i++)
-        if (mask & (1ULL << i)) sbi_call4(0x52464E43, 1, 1, (long)cpus[i].hwid, (long)ALIGN_DOWN(va, PAGE_SIZE), PAGE_SIZE);
+        if (mask & (1ULL << i)) {
+            if (va == ~0UL) sbi_call4(0x52464E43, 1, 1, (long)cpus[i].hwid, 0, -1L);   /* whole address space */
+            else sbi_call4(0x52464E43, 1, 1, (long)cpus[i].hwid, (long)ALIGN_DOWN(va, PAGE_SIZE), PAGE_SIZE);
+        }
 }
 
 void vmm_switch(pagetable_t pt) {
