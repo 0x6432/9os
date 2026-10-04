@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M5 complete (x86_64)
+## Current state: M6 complete (x86_64)
 
 | Milestone | Status |
 |-----------|--------|
@@ -12,7 +12,8 @@ _Updated after every milestone. Read this first when picking up the project._
 | M3 Physical memory | ✅ buddy allocator (orders 0..10), self-test |
 | M4 Virtual memory & heap | ✅ own PML4, NX/WP, PAT WC for framebuffer, slab + kmalloc, self-test |
 | M5 ACPI & timers | ✅ uACPI 6.1.1 (tables + namespace, power button → S5), LAPIC/IOAPIC, TSC via PIT, 1 kHz LAPIC timer |
-| M6 Threads & scheduler | ⏳ next |
+| M6 Threads & scheduler | ✅ kernel threads, fxsave/fxrstor + FS base per thread, round robin (10 ms quantum), sleep list, wait queues, zombie reaping in idle |
+| M7 User mode & syscalls | ⏳ next |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -49,8 +50,16 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 2. Parse MADT → LAPIC + IOAPIC; mask legacy PIC.
 3. Calibrate LAPIC timer against HPET (or PIT fallback) and run it at 1000 Hz.
 
-## Next steps (M6)
-1. Replace `kernel/core/sched.c` placeholder: `struct thread` (kernel stack, saved context, state), `thread_create`.
-2. `arch/x86_64/switch.S`: callee-saved register context switch.
-3. Round robin run queue; `sched_tick()` decrements the quantum (10 ms) and sets need_resched; reschedule in `trap_exit_hook`.
-4. Sleep queues / `wait_queue`, idle thread, `thread_exit` + reaper.
+## Scheduler notes (M6)
+- `kernel/core/sched.c`: single FIFO run queue; `__schedule()` must run with IRQs off.
+- Preemption: `sched_tick()` (from `timer_tick`) sets `need_resched`; `trap_exit_hook` → `trap_exit_hook_sched()` switches before `iretq`.
+- `wait_event(q)` / `wake_up(q)`; `wait_until(q, cond)` macro; `sleep_ns()`.
+- `thread_exit()` → zombie list, freed by idle thread. Boot context becomes thread "kmain" (tid 0).
+- x86: `switch.S` saves callee-saved regs; new threads start in `x86_thread_trampoline` (r12=fn, r13=arg).
+- `arch_switch_mm()` is a weak hook for address-space switching (M7).
+
+## Next steps (M7)
+1. `syscall`/`sysret` entry (STAR/LSTAR/FMASK MSRs, swapgs, per-CPU block with kernel/user rsp).
+2. `struct process` with its own page table; user mappings tracked by a simple VMA list.
+3. ELF64 loader (static, ET_EXEC + ET_DYN/PIE) with System V initial stack (argc/argv/envp/auxv).
+4. `write(1/2)`, `exit`, `exit_group`; load `/init` straight from the cpio module.

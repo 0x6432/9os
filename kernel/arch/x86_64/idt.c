@@ -70,7 +70,8 @@ void dump_frame(struct trap_frame *f) {
 /* weak hooks, overridden by later subsystems */
 [[gnu::weak]] bool page_fault_handler(struct trap_frame *f) { return false; }
 [[gnu::weak]] bool user_exception(struct trap_frame *f) { return false; }
-[[gnu::weak]] void trap_exit_hook(struct trap_frame *f) {}
+void trap_exit_hook_sched(void);
+[[gnu::weak]] void trap_exit_hook(struct trap_frame *f) { trap_exit_hook_sched(); }
 
 void trap_dispatch(struct trap_frame *f) {
     uint64_t v = f->vector;

@@ -7,6 +7,26 @@
 #include <kernel/slab.h>
 #include <kernel/acpi.h>
 #include <kernel/time.h>
+#include <kernel/sched.h>
+
+static volatile int counters[3];
+static void spinner(void *arg) {
+    int id = (int)(uintptr_t)arg;
+    uint64_t end = time_ns() + 300000000ULL;
+    while (time_ns() < end) counters[id]++;   /* busy: forces preemption */
+}
+static void sleeper(void *arg) {
+    for (int i = 0; i < 3; i++) { sleep_ns(50000000ULL); printk("  sleeper woke #%d at %lu ms\n", i, time_ns() / 1000000); }
+}
+static void sched_selftest(void) {
+    struct thread *t[3];
+    for (int i = 0; i < 3; i++) t[i] = thread_create("spin", spinner, (void *)(uintptr_t)i);
+    thread_create("sleeper", sleeper, nullptr);
+    sleep_ns(500000000ULL);
+    pr_info("sched: spinner iterations %d / %d / %d (all should be non-zero)\n", counters[0], counters[1], counters[2]);
+    assert(counters[0] && counters[1] && counters[2]);
+    (void)t;
+}
 
 void kmain(void) {
     arch_early_init();
@@ -33,12 +53,11 @@ void kmain(void) {
     slab_init();
     slab_selftest();
     acpi_early_init();
+    sched_init();
     arch_init();
     arch_irq_enable();
     acpi_late_init();
-    uint64_t j = jiffies;
-    udelay(100000);
-    pr_info("timer: %lu ticks in 100 ms\n", jiffies - j);
-    pr_info("nothing left to do, halting\n");
-    for (;;) arch_wait_for_interrupt();
+    sched_selftest();
+    pr_info("nothing left to do, idling\n");
+    for (;;) sleep_ns(1000000000ULL);
 }
