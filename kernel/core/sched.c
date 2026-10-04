@@ -140,9 +140,14 @@ void thread_start(struct thread *t) {
     arch_irq_restore(f);
 }
 
+/* Kernel threads draw TIDs from a range above PID_MAX so user PIDs (init = 1) are unaffected. */
+static int next_ktid = 1 << 22;
 struct thread *thread_create(const char *name, void (*fn)(void *), void *arg) {
+    int saved = next_tid;
     struct thread *t = thread_alloc(name);
+    next_tid = saved;
     if (!t) return nullptr;
+    t->tid = next_ktid++;
     arch_thread_init(t, fn, arg);
     thread_start(t);
     return t;

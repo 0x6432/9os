@@ -28,8 +28,9 @@ struct virtio_common {
     uint16_t msix_config, num_queues;
     uint8_t device_status, config_generation;
     uint16_t queue_select, queue_size, queue_msix_vector, queue_enable, queue_notify_off;
-    uint64_t queue_desc, queue_driver, queue_device;
-} __attribute__((packed));
+    uint32_t queue_desc_lo, queue_desc_hi, queue_driver_lo, queue_driver_hi, queue_device_lo, queue_device_hi;
+};   /* naturally aligned; not packed so every field is a single MMIO access of its own width */
+_Static_assert(sizeof(struct virtio_common) == 56, "virtio common cfg layout");
 
 struct vq_desc { uint64_t addr; uint32_t len; uint16_t flags, next; };
 #define VQ_NEXT 1
@@ -67,7 +68,7 @@ static bool gpu_cmd(size_t req_len, size_t resp_len) {
     __atomic_thread_fence(__ATOMIC_SEQ_CST);
     *notify = 0;
     for (uint64_t spins = 0; used[1] == used_seen; spins++) {
-        if (spins > 200000000ull) { pr_err("virtio-gpu: command timeout\n"); return false; }
+        if (spins > 50000000ull) { pr_err("virtio-gpu: command timeout\n"); return false; }
         arch_cpu_relax();
     }
     used_seen = used[1];
@@ -145,7 +146,9 @@ void virtio_gpu_init(void) {
     common->queue_select = 0;
     if (common->queue_size < QSIZE) { pr_err("virtio-gpu: queue too small\n"); return; }
     common->queue_size = QSIZE;
-    common->queue_desc = qpa; common->queue_driver = qpa + 1024; common->queue_device = qpa + 2048;
+    common->queue_desc_lo = (uint32_t)qpa; common->queue_desc_hi = qpa >> 32;
+    common->queue_driver_lo = (uint32_t)(qpa + 1024); common->queue_driver_hi = (qpa + 1024) >> 32;
+    common->queue_device_lo = (uint32_t)(qpa + 2048); common->queue_device_hi = (qpa + 2048) >> 32;
     common->queue_enable = 1;
     common->device_status = 1 | 2 | 8 | 4;              /* DRIVER_OK */
     cmdbuf_pa = pmm_alloc_zeroed(0); cmdbuf = PHYS_TO_VIRT(cmdbuf_pa);
