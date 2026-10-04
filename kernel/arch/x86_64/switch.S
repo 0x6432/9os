@@ -32,3 +32,14 @@ arch_enter_user:
     cli
     movq %rdi, %rsp
     jmp trap_return
+
+/* Limine MP entry for application processors: rdi = struct limine_mp_info * */
+.global x86_ap_trampoline
+x86_ap_trampoline:
+    movq 24(%rdi), %rax        /* extra_argument = struct cpu * */
+    movq 8(%rax), %rsp         /* cpu->kernel_sp */
+    xorl %ebp, %ebp
+    call x86_ap_entry
+1:  cli
+    hlt
+    jmp 1b

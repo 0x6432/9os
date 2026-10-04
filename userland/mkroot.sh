@@ -16,6 +16,12 @@ for a in $LIST; do
     [ -e "$a" ] || ln -s /bin/busybox "$a"
 done
 if [ -x "$TOP/build/bash-$ARCH/bash" ]; then cp "$TOP/build/bash-$ARCH/bash" bin/bash && llvm-strip bin/bash; fi
-"$TOP/musl-cc" -O2 -o bin/libctest "$TOP/tests/libctest.c"
+# test programs and demos: every userland/{tests,demos}/*.c becomes /bin/<name>
+for src in "$TOP"/tests/*.c "$TOP"/demos/*.c; do
+    [ -f "$src" ] || continue
+    n=$(basename "$src" .c)
+    [ "$n" = hello ] && continue
+    "$TOP/musl-cc" -O2 -o "bin/$n" "$src" -lm
+done
 cp -r "$TOP/skel/." "$R/"
 echo "root populated: $(find . -type f | wc -l) files, $(du -sk . | cut -f1) KiB"

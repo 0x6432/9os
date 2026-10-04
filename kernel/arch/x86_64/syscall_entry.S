@@ -39,5 +39,5 @@ syscall_entry:
 x86_user_return:
     cli
     movq %rsp, %rdi
-    call user_return_work
+    call thread_first_return
     jmp trap_return

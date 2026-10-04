@@ -68,6 +68,7 @@ void kmain(void) {
     sched_init();
     arch_init();
     arch_irq_enable();
+    smp_init();
     acpi_late_init();
     if (strstr_simple(boot_cmdline(), "selftest")) sched_selftest();
     vfs_init();

@@ -1,6 +1,7 @@
 #include <kernel/types.h>
 #include <kernel/printk.h>
 #include <kernel/irq.h>
+#include <kernel/sched.h>
 #include <arch/trapframe.h>
 #include <arch/gdt.h>
 #include <arch/cpu.h>
@@ -72,8 +73,16 @@ void dump_frame(struct trap_frame *f) {
 [[gnu::weak]] bool user_exception(struct trap_frame *f) { return false; }
 void user_return_work(struct trap_frame *f);
 
+void irq_eoi(void);
+
 void trap_dispatch(struct trap_frame *f) {
     uint64_t v = f->vector;
+    if (v == 0xf0) {            /* IPI: handled without the big kernel lock */
+        irq_eoi();
+        ipi_handle();
+        return;
+    }
+    bkl_enter();
     if (v < 32) {
         if (v == 14 && page_fault_handler(f)) goto out;
         if (trap_from_user(f) && user_exception(f)) goto out;
@@ -85,4 +94,5 @@ void trap_dispatch(struct trap_frame *f) {
     else printk("spurious interrupt vector %lu\n", v);
 out:
     user_return_work(f);
+    bkl_exit();
 }

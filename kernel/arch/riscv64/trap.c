@@ -50,17 +50,24 @@ static bool handle_page_fault(struct trap_frame *f) {
 
 void trap_dispatch(struct trap_frame *f) {
     uint64_t c = f->scause;
+    if (c == (1ULL << 63 | 1)) {      /* supervisor software interrupt = IPI, no BKL */
+        csr_clear(sip, SIE_SSIE);
+        ipi_handle();
+        return;
+    }
+    if (c == 8) {
+        f->sepc += 4;
+        f->orig_a0 = f->regs[10];
+        arch_irq_enable();
+        syscall_dispatch(f);        /* takes the BKL; also runs user_return_work */
+        return;
+    }
+    bkl_enter();
     if ((int64_t)c < 0) {
         switch (c & 0xff) {
         case 5: riscv_timer_irq(); break;
         default: printk("spurious interrupt %lu\n", c & 0xff);
         }
-    } else if (c == 8) {
-        f->sepc += 4;
-        f->orig_a0 = f->regs[10];
-        arch_irq_enable();
-        syscall_dispatch(f);        /* also runs user_return_work */
-        return;
     } else {
         if ((c == 12 || c == 13 || c == 15) && handle_page_fault(f)) goto out;
         if (trap_from_user(f)) {
@@ -77,4 +84,5 @@ void trap_dispatch(struct trap_frame *f) {
     }
 out:
     user_return_work(f);
+    bkl_exit();
 }

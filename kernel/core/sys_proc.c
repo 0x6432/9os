@@ -302,13 +302,13 @@ int64_t sys_getpriority(int which, int who) { return 20; }
 int64_t sys_setpriority(int which, int who, int prio) { return 0; }
 int64_t sys_sched_getaffinity(int pid, size_t len, uint64_t *mask) {
     if (len < 8) return -EINVAL;
-    uint64_t m = 1;
+    uint64_t m = ncpus >= 64 ? ~0ULL : (1ULL << ncpus) - 1;
     if (copy_to_user(mask, &m, 8)) return -EFAULT;
     return 8;
 }
 int64_t sys_getcpu(unsigned *cpu, unsigned *node) {
-    unsigned z = 0;
-    if (cpu) copy_to_user(cpu, &z, 4);
+    unsigned z = 0, id = this_cpu()->id;
+    if (cpu) copy_to_user(cpu, &id, 4);
     if (node) copy_to_user(node, &z, 4);
     return 0;
 }

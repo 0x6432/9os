@@ -41,8 +41,10 @@ static bool handle_abort(struct trap_frame *f, bool exec) {
 
 void trap_dispatch(struct trap_frame *f, int kind) {
     if (kind == 1 || kind == 3) {
-        a64_irq(f);
-    } else if (kind == 0 || kind == 2) {
+        a64_irq(f);                 /* takes the BKL itself (IPIs run without it) */
+        return;
+    }
+    if (kind == 0 || kind == 2) {
         uint32_t ec = f->esr >> 26;
         if (ec == 0x15 && kind == 2) {
             f->orig_x0 = f->regs[0];
@@ -50,6 +52,7 @@ void trap_dispatch(struct trap_frame *f, int kind) {
             syscall_dispatch(f);
             return;
         }
+        bkl_enter();
         if ((ec == 0x24 || ec == 0x25) && handle_abort(f, false)) goto out;
         if ((ec == 0x20 || ec == 0x21) && handle_abort(f, true)) goto out;
         if (kind == 2) {
@@ -71,4 +74,5 @@ void trap_dispatch(struct trap_frame *f, int kind) {
     }
 out:
     user_return_work(f);
+    bkl_exit();
 }

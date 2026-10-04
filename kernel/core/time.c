@@ -1,13 +1,15 @@
 #include <kernel/time.h>
 #include <kernel/arch.h>
+#include <kernel/sched.h>
 
 volatile uint64_t jiffies;
 int64_t boot_epoch;
 
 [[gnu::weak]] void sched_tick(void) {}
 
+/* every CPU's local timer calls this; only the boot CPU advances jiffies */
 void timer_tick(void) {
-    jiffies++;
+    if (this_cpu()->id == 0) jiffies++;
     sched_tick();
 }
 

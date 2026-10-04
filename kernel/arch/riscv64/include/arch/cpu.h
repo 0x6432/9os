@@ -44,3 +44,9 @@ static inline struct sbiret sbi_call(long ext, long fid, long a0, long a1, long 
     __asm__ volatile("ecall" : "+r"(r0), "+r"(r1) : "r"(r2), "r"(r6), "r"(r7) : "memory");
     return (struct sbiret){ r0, r1 };
 }
+static inline struct sbiret sbi_call4(long ext, long fid, long a0, long a1, long a2, long a3) {
+    register long r0 __asm__("a0") = a0, r1 __asm__("a1") = a1, r2 __asm__("a2") = a2, r3 __asm__("a3") = a3;
+    register long r6 __asm__("a6") = fid, r7 __asm__("a7") = ext;
+    __asm__ volatile("ecall" : "+r"(r0), "+r"(r1) : "r"(r2), "r"(r3), "r"(r6), "r"(r7) : "memory");
+    return (struct sbiret){ r0, r1 };
+}

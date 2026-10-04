@@ -9,10 +9,12 @@
 #include <kernel/pmm.h>
 #include <kernel/mm.h>
 #include <kernel/tty.h>
+#include <kernel/sched.h>
+#include <arch/syscall.h>
 
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS };
+             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
 static const struct inode_ops proc_iops;
@@ -33,7 +35,7 @@ static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum 
 
 static const struct { const char *name; enum pfile f; } global_files[] = {
     { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cpuinfo", G_CPUINFO },
-    { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS },
+    { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS }, { "sched", G_SCHED },
 };
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
@@ -203,10 +205,28 @@ static void gen(struct pinfo *pi, struct buf *b) {
         break;
     case G_UPTIME: { uint64_t ms = time_ns() / 1000000; bprintf(b, "%lu.%02lu %lu.%02lu\n", ms / 1000, (ms % 1000) / 10, ms / 1000, (ms % 1000) / 10); break; }
     case G_VERSION: bprintf(b, "Linux version 6.1.0-9os (9os hobby kernel) #1\n"); break;
-    case G_CPUINFO: bprintf(b, "processor\t: 0\nvendor_id\t: 9os\nmodel name\t: 9os virtual CPU\nflags\t\t: fpu sse sse2\n\n"); break;
+    case G_CPUINFO:
+        for (int i = 0; i < ncpus; i++)
+            bprintf(b, "processor\t: %d\nvendor_id\t: 9os\nmodel name\t: 9os virtual CPU (%s)\nhwid\t\t: 0x%lx\nflags\t\t: fpu sse sse2\n\n",
+                    i, ARCH_PLATFORM, cpus[i].hwid);
+        break;
     case G_MOUNTS: bprintf(b, "rootfs / tmpfs rw 0 0\nproc /proc proc rw 0 0\ndevtmpfs /dev devtmpfs rw 0 0\n"); break;
-    case G_LOADAVG: bprintf(b, "0.00 0.00 0.00 1/1 1\n"); break;
-    case G_STAT: { uint64_t j = jiffies / 10; bprintf(b, "cpu  %lu 0 0 %lu 0 0 0 0 0 0\ncpu0 %lu 0 0 %lu 0 0 0 0 0 0\nbtime %ld\n", j / 2, j / 2, j / 2, j / 2, (long)boot_epoch); break; }
+    case G_LOADAVG: bprintf(b, "0.00 0.00 0.00 %d/%d 1\n", sched_runnable_count() + 1, sched_runnable_count() + 1); break;
+    case G_STAT: {
+        uint64_t tb = 0, ti = 0, cs = 0;
+        for (int i = 0; i < ncpus; i++) { tb += cpus[i].ticks - cpus[i].idle_ticks; ti += cpus[i].idle_ticks; cs += cpus[i].ctx_switches; }
+        bprintf(b, "cpu  %lu 0 0 %lu 0 0 0 0 0 0\n", tb / 10, ti / 10);
+        for (int i = 0; i < ncpus; i++)
+            bprintf(b, "cpu%d %lu 0 0 %lu 0 0 0 0 0 0\n", i, (cpus[i].ticks - cpus[i].idle_ticks) / 10, cpus[i].idle_ticks / 10);
+        bprintf(b, "ctxt %lu\nbtime %ld\nprocs_running %d\n", cs, (long)boot_epoch, sched_runnable_count() + 1);
+        break;
+    }
+    case G_SCHED:
+        bprintf(b, "policy: %s\ncpus: %d\nrunnable: %d\n", sched_policy_name(), ncpus, sched_runnable_count());
+        for (int i = 0; i < ncpus; i++)
+            bprintf(b, "cpu%d: hwid 0x%lx ticks %lu idle %lu switches %lu running %s\n", i, cpus[i].hwid, cpus[i].ticks,
+                    cpus[i].idle_ticks, cpus[i].ctx_switches, cpus[i].cur ? cpus[i].cur->name : "-");
+        break;
     case G_FILESYSTEMS: bprintf(b, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n"); break;
     case F_STAT:
         bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 0 0 0 0 %lu %lu 0 0 20 0 1 0 %lu %lu %lu\n",

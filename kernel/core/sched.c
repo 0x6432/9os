@@ -1,4 +1,11 @@
-/* Preemptive round-robin scheduler (uniprocessor). */
+/*
+ * Preemptive scheduler with a compile-time policy:
+ *   CONFIG_SCHED_RR   (default) round robin, fixed 10 ms quantum
+ *   CONFIG_SCHED_MLFQ multilevel feedback queue: MLFQ_LEVELS levels, quantum doubles per level,
+ *                     demotion after using a level's allotment, periodic boost to the top level.
+ * SMP: one global run queue shared by all CPUs; scheduler state is protected by the big kernel
+ * lock (see core/smp.c) plus disabled interrupts. Each CPU has its own idle thread.
+ */
 #include <kernel/sched.h>
 #include <kernel/arch.h>
 #include <kernel/pmm.h>
@@ -10,19 +17,99 @@
 #include <kernel/errno.h>
 #include <kernel/process.h>
 
-struct thread *current;
-volatile bool need_resched;
-static struct list_node run_queue = LIST_INIT(run_queue);
+#if !defined(CONFIG_SCHED_RR) && !defined(CONFIG_SCHED_MLFQ)
+#define CONFIG_SCHED_RR 1
+#endif
+
 static struct list_node sleep_list = LIST_INIT(sleep_list);
 static struct list_node zombies = LIST_INIT(zombies);
 static struct list_node all_threads = LIST_INIT(all_threads);
-static struct thread *idle_thread;
 static struct kmem_cache *thread_cache;
 static int next_tid = 1;
+static int nr_runnable;
 
+/* ---------------------------------------------------------------- policy */
+#ifdef CONFIG_SCHED_MLFQ
+static struct list_node queues[MLFQ_LEVELS];
+static uint64_t last_boost;
+
+const char *sched_policy_name(void) { return "mlfq"; }
+static int quantum_for(struct thread *t) { return MLFQ_BASE_QUANTUM << t->level; }
+static void rq_init(void) { for (int i = 0; i < MLFQ_LEVELS; i++) list_init(&queues[i]); }
+static void rq_add(struct thread *t) { list_add_tail(&queues[t->level], &t->run_node); }
+static struct thread *rq_pick(void) {
+    for (int i = 0; i < MLFQ_LEVELS; i++)
+        if (!list_empty(&queues[i])) {
+            struct thread *t = list_first(&queues[i], struct thread, run_node);
+            list_del(&t->run_node);
+            return t;
+        }
+    return nullptr;
+}
+/* the running thread used up its allotment at this level */
+static void quantum_expired(struct thread *t) {
+    if (t->level < MLFQ_LEVELS - 1) t->level++;
+    t->quantum = quantum_for(t);
+}
+/* should a newly woken thread preempt the running one? */
+static bool wake_preempts(struct thread *woken, struct thread *running) { return woken->level <= running->level; }
+/* rule 5: every MLFQ_BOOST_MS move everything back to the top queue */
+static void policy_tick(void) {
+    if (jiffies - last_boost < MLFQ_BOOST_MS) return;
+    last_boost = jiffies;
+    for (int i = 1; i < MLFQ_LEVELS; i++)
+        list_for_each_safe(it, tmp, &queues[i]) { list_del(it); list_add_tail(&queues[0], it); }
+    list_for_each(it, &all_threads) {
+        struct thread *t = list_entry(it, struct thread, all_node);
+        if (t->level) { t->level = 0; t->quantum = quantum_for(t); }
+    }
+}
+static void pick_reset_quantum(struct thread *t) { if (t->quantum <= 0) t->quantum = quantum_for(t); }
+#else
+static struct list_node run_queue;
+
+const char *sched_policy_name(void) { return "round-robin"; }
+static int quantum_for(struct thread *t) { return SCHED_QUANTUM; }
+static void rq_init(void) { list_init(&run_queue); }
+static void rq_add(struct thread *t) { list_add_tail(&run_queue, &t->run_node); }
+static struct thread *rq_pick(void) {
+    if (list_empty(&run_queue)) return nullptr;
+    struct thread *t = list_first(&run_queue, struct thread, run_node);
+    list_del(&t->run_node);
+    return t;
+}
+static void quantum_expired(struct thread *t) {}
+static bool wake_preempts(struct thread *woken, struct thread *running) { return true; }
+static void policy_tick(void) {}
+static void pick_reset_quantum(struct thread *t) { t->quantum = quantum_for(t); }
+#endif
+
+/* ---------------------------------------------------------------- run queue */
 static void enqueue(struct thread *t) {
     t->state = T_RUNNABLE;
-    list_add_tail(&run_queue, &t->run_node);
+    rq_add(t);
+    nr_runnable++;
+}
+
+static struct thread *dequeue(void) {
+    struct thread *t = rq_pick();
+    if (t) nr_runnable--;
+    return t;
+}
+
+int sched_runnable_count(void) { return nr_runnable; }
+
+/* A thread became runnable: wake an idle CPU, or preempt this one if the policy says so. */
+static void kick_after_wake(struct thread *t) {
+    struct cpu *self = this_cpu();
+    for (int i = 0; i < ncpus; i++) {
+        struct cpu *c = &cpus[i];
+        if (c != self && c->online && c->cur == c->idle && !(c->ipi_pending & IPI_RESCHED)) {
+            smp_send_resched(c);
+            return;
+        }
+    }
+    if (self->cur == self->idle || !self->cur || wake_preempts(t, self->cur)) self->resched = true;
 }
 
 struct thread *thread_alloc(const char *name) {
@@ -34,7 +121,10 @@ struct thread *thread_alloc(const char *name) {
     t->kstack = PHYS_TO_VIRT(page_to_phys(stk));
     t->tid = next_tid++;
     strlcpy(t->name, name, sizeof t->name);
-    t->quantum = SCHED_QUANTUM;
+    t->level = 0;
+    t->quantum = quantum_for(t);
+    t->bkl_depth = 1;        /* new threads start in kernel mode, holding the BKL of whoever switches to them */
+    t->cpu = this_cpu();
     list_init(&t->run_node);
     list_init(&t->timer_node);
     list_init(&t->proc_node);
@@ -46,6 +136,7 @@ struct thread *thread_alloc(const char *name) {
 void thread_start(struct thread *t) {
     uint64_t f = arch_irq_save();
     enqueue(t);
+    kick_after_wake(t);
     arch_irq_restore(f);
 }
 
@@ -71,20 +162,21 @@ static void reap_zombies(void) {
     }
 }
 
-/* Must be called with interrupts disabled. */
+/* Must be called with interrupts disabled and the BKL held. */
 static void __schedule(void) {
-    struct thread *prev = current, *next;
-    need_resched = false;
-    if (prev->state == T_RUNNING && prev != idle_thread) enqueue(prev);
-    if (list_empty(&run_queue)) next = idle_thread;
-    else {
-        next = list_first(&run_queue, struct thread, run_node);
-        list_del(&next->run_node);
-    }
+    struct cpu *c = this_cpu();
+    struct thread *prev = c->cur, *next;
+    c->resched = false;
+    if (prev->state == T_RUNNING && prev != c->idle) enqueue(prev);
+    next = dequeue();
+    if (!next) next = c->idle;
     next->state = T_RUNNING;
-    next->quantum = SCHED_QUANTUM;
+    pick_reset_quantum(next);
     if (next == prev) return;
-    current = next;
+    next->cpu = c;
+    c->cur = next;
+    c->ctx_switches++;
+    arch_set_current(next);
     arch_switch_to(prev, next);
 }
 
@@ -100,22 +192,36 @@ void sched_yield(void) {
 }
 
 void sched_tick(void) {
-    uint64_t now = time_ns();
-    list_for_each_safe(it, tmp, &sleep_list) {
-        struct thread *t = list_entry(it, struct thread, timer_node);
-        if (t->wake_ns <= now) {
-            list_del(&t->timer_node);
-            t->timer_active = false;
-            t->timed_out = true;
-            list_del(&t->run_node);
-            enqueue(t);
-            need_resched = true;
+    struct cpu *c = this_cpu();
+    c->ticks++;
+    if (c->id == 0) {
+        uint64_t now = time_ns();
+        list_for_each_safe(it, tmp, &sleep_list) {
+            struct thread *t = list_entry(it, struct thread, timer_node);
+            if (t->wake_ns <= now) {
+                list_del(&t->timer_node);
+                t->timer_active = false;
+                t->timed_out = true;
+                list_del(&t->run_node);
+                enqueue(t);
+                kick_after_wake(t);
+            }
         }
+        policy_tick();
     }
-    if (!current) return;
-    if (current->proc) current->proc->utime_ticks++;
-    if (current == idle_thread) { if (!list_empty(&run_queue)) need_resched = true; }
-    else if (--current->quantum <= 0) need_resched = true;
+    struct thread *cur = c->cur;
+    if (!cur) return;
+    if (cur == c->idle) {
+        c->idle_ticks++;
+        if (nr_runnable) c->resched = true;
+        return;
+    }
+    cur->run_ticks++;
+    if (cur->proc) cur->proc->utime_ticks++;
+    if (--cur->quantum <= 0) {
+        quantum_expired(cur);
+        c->resched = true;
+    }
 }
 
 void thread_wake(struct thread *t) {
@@ -124,7 +230,7 @@ void thread_wake(struct thread *t) {
         list_del(&t->run_node);
         if (t->timer_active) { list_del(&t->timer_node); t->timer_active = false; }
         enqueue(t);
-        need_resched = true;
+        kick_after_wake(t);
     }
     arch_irq_restore(f);
 }
@@ -174,6 +280,7 @@ static void wake_thread_locked(struct thread *t) {
     list_del(&t->run_node);
     if (t->timer_active) { list_del(&t->timer_node); t->timer_active = false; }
     enqueue(t);
+    kick_after_wake(t);
 }
 
 void wake_up(struct wait_queue *q) {
@@ -182,7 +289,6 @@ void wake_up(struct wait_queue *q) {
         struct thread *t = list_entry(it, struct thread, run_node);
         wake_thread_locked(t);
     }
-    need_resched = true;
     arch_irq_restore(f);
 }
 
@@ -191,7 +297,6 @@ void wake_up_one(struct wait_queue *q) {
     if (!list_empty(&q->head)) {
         struct thread *t = list_first(&q->head, struct thread, run_node);
         wake_thread_locked(t);
-        need_resched = true;
     }
     arch_irq_restore(f);
 }
@@ -208,31 +313,77 @@ static void idle_loop(void *arg) {
     for (;;) {
         arch_irq_disable();
         reap_zombies();
-        if (!list_empty(&run_queue)) { __schedule(); arch_irq_enable(); continue; }
+        if (nr_runnable) { __schedule(); arch_irq_enable(); continue; }
+        /* let other CPUs into the kernel while we sleep */
+        bkl_release_idle();
         arch_wait_for_interrupt();
+        arch_irq_disable();
+        bkl_acquire_idle();
+        arch_irq_enable();
     }
+}
+
+static struct thread *make_idle(struct cpu *c) {
+    struct thread *t = thread_alloc("idle");
+    t->tid = 0;
+    t->cpu = c;
+    arch_thread_init(t, idle_loop, nullptr);
+    t->state = T_RUNNABLE;
+    return t;
 }
 
 /* The boot context becomes the first thread ("kmain"); an idle thread is created. */
 void sched_init(void) {
     thread_cache = kmem_cache_create("thread", sizeof(struct thread), 64);
+    rq_init();
+    struct cpu *c = &cpus[0];
     struct thread *boot = kmem_cache_alloc(thread_cache);
     memset(boot, 0, sizeof *boot);
     boot->tid = 0;
     strlcpy(boot->name, "kmain", sizeof boot->name);
     boot->state = T_RUNNING;
-    boot->quantum = SCHED_QUANTUM;
+    boot->quantum = quantum_for(boot);
+    boot->cpu = c;
     list_init(&boot->run_node);
     list_init(&boot->timer_node);
     list_init(&boot->proc_node);
     list_add_tail(&all_threads, &boot->all_node);
-    current = boot;
-    idle_thread = thread_alloc("idle");
-    idle_thread->tid = 0;
-    next_tid = 1;          /* first user process (init) gets pid 1 */
-    arch_thread_init(idle_thread, idle_loop, nullptr);
-    idle_thread->state = T_RUNNABLE;
+    c->cur = boot;
+    arch_set_current(boot);
+    boot->bkl_depth = 0;
+    bkl_enter();               /* the boot CPU owns the kernel from here on */
+    c->idle = make_idle(c);
+    next_tid = 1;              /* first user process (init) gets pid 1 */
+#ifdef CONFIG_SCHED_MLFQ
+    pr_info("sched: MLFQ, %d levels, quantum %d..%d ms, boost every %d ms\n", MLFQ_LEVELS,
+            MLFQ_BASE_QUANTUM, MLFQ_BASE_QUANTUM << (MLFQ_LEVELS - 1), MLFQ_BOOST_MS);
+#else
     pr_info("sched: round robin, quantum %d ms\n", SCHED_QUANTUM);
+#endif
+}
+
+/* Called on the boot CPU (BKL held) before an AP is started. */
+void sched_init_ap(struct cpu *c) {
+    int tid = next_tid;
+    c->idle = make_idle(c);
+    next_tid = tid;
+}
+
+/* Called on the AP itself with interrupts disabled: become the idle thread. */
+__noreturn void sched_start_ap(struct cpu *c) {
+    static struct thread dummy[MAX_CPUS];   /* the bootloader stack context, never resumed */
+    struct thread *d = &dummy[c->id];
+    d->cpu = c;
+    d->state = T_ZOMBIE;
+    c->cur = d;
+    arch_set_current(d);
+    bkl_acquire_idle();        /* idle starts with bkl_depth 1 */
+    c->online = true;
+    c->cur = c->idle;
+    c->idle->state = T_RUNNING;
+    arch_set_current(c->idle);
+    arch_switch_to(d, c->idle);
+    panic("AP boot context resumed");
 }
 
 void trap_exit_hook_sched(void) {

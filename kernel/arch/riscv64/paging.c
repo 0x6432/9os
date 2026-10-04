@@ -1,4 +1,6 @@
 /* riscv64 Sv48 paging. */
+#include <kernel/mm.h>
+#include <kernel/sched.h>
 #include <kernel/vmm.h>
 #include <kernel/pmm.h>
 #include <kernel/boot.h>
@@ -99,7 +101,7 @@ paddr_t vmm_unmap(pagetable_t pt, vaddr_t va) {
     uint64_t f = spin_lock_irqsave(&pt_lock);
     uint64_t *pte = walk(pt.root, va, false);
     paddr_t old = 0;
-    if (pte && (*pte & PTE_V)) { old = PTE_PA(*pte); *pte = 0; sfence_vma(va); }
+    if (pte && (*pte & PTE_V)) { old = PTE_PA(*pte); *pte = 0; sfence_vma(va); if (va < USER_TOP) tlb_shootdown(pt.root, va); }
     spin_unlock_irqrestore(&pt_lock, f);
     return old;
 }
@@ -123,6 +125,7 @@ int vmm_protect(pagetable_t pt, vaddr_t va, unsigned flags) {
     if (!pte || !(*pte & PTE_V)) return -EFAULT;
     *pte = to_pte(PTE_PA(*pte), flags);
     sfence_vma(va);
+    if (va < USER_TOP) tlb_shootdown(pt.root, va);
     return 0;
 }
 
@@ -156,7 +159,16 @@ static void free_level(paddr_t table, int level) {
 
 void vmm_free_user_pagetable(pagetable_t pt) { free_level(pt.root, 3); }
 
+void arch_tlb_flush_local(void) { sfence_vma_all(); }
+
+/* remote fences through the SBI RFENCE extension (synchronous, no IPI handler needed) */
+void arch_tlb_remote(uint64_t mask, vaddr_t va) {
+    for (int i = 0; i < ncpus; i++)
+        if (mask & (1ULL << i)) sbi_call4(0x52464E43, 1, 1, (long)cpus[i].hwid, (long)ALIGN_DOWN(va, PAGE_SIZE), PAGE_SIZE);
+}
+
 void vmm_switch(pagetable_t pt) {
+    this_cpu()->active_root = pt.root;
     uint64_t satp = SATP_SV48 | (pt.root >> 12);
     if (csr_read(satp) != satp) { csr_write(satp, satp); sfence_vma_all(); }
 }

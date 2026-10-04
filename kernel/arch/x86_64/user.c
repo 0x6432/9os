@@ -9,16 +9,18 @@
 #include <arch/gdt.h>
 #include <arch/trapframe.h>
 
-struct percpu { uint64_t self, kernel_rsp, user_rsp; };
-static struct percpu cpu0;
 
 void syscall_entry(void);
 void x86_user_return(void);
 extern uint8_t fpu_initial_state[512];
 
+/* per-CPU block: GS base while in kernel mode (see arch/percpu.h) */
+void x86_set_cpu_base(struct cpu *c) {
+    c->self = c;
+    wrmsr(0xC0000101, (uint64_t)c);         /* GS base (kernel) */
+}
+
 void syscall_init(void) {
-    cpu0.self = (uint64_t)&cpu0;
-    wrmsr(0xC0000101, (uint64_t)&cpu0);     /* GS base (kernel) */
     wrmsr(0xC0000102, 0);                   /* kernel GS base (= user GS while in kernel) */
     wrmsr(0xC0000080, rdmsr(0xC0000080) | 1);   /* EFER.SCE */
     wrmsr(0xC0000081, ((uint64_t)0x10 << 48) | ((uint64_t)KERNEL_CS << 32));
@@ -27,8 +29,9 @@ void syscall_init(void) {
 }
 
 void arch_set_kernel_stack(uint64_t top) {
-    cpu0.kernel_rsp = top;
-    tss_set_kernel_stack(top);
+    struct cpu *c = this_cpu();
+    c->kernel_sp = top;
+    tss_set_kernel_stack(c->id, top);
 }
 
 struct trap_frame *thread_user_frame(struct thread *t) {

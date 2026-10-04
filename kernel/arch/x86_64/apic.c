@@ -6,6 +6,7 @@
 #include <kernel/vmm.h>
 #include <kernel/time.h>
 #include <kernel/boot.h>
+#include <kernel/cpu.h>
 #include <arch/cpu.h>
 #include <arch/trapframe.h>
 
@@ -16,12 +17,18 @@
 #define LAPIC_TMR_INIT 0x380
 #define LAPIC_TMR_CUR 0x390
 #define LAPIC_TMR_DIV 0x3e0
+#define LAPIC_ICR_LO  0x300
+#define LAPIC_ICR_HI  0x310
+#define LAPIC_TPR     0x080
 
 #define VEC_TIMER    32
 #define VEC_IRQ_BASE 48
 #define VEC_SPURIOUS 0xff
+#define VEC_IPI      0xf0
 
 static volatile uint32_t *lapic;
+static uint32_t lapic_per_tick;
+static uint32_t bsp_lapic_id;
 static uint64_t tsc_khz;
 static uint64_t tsc_boot;
 
@@ -118,7 +125,7 @@ int irq_install(int irq, irq_handler_t h, void *ctx) {
         bool level = isa ? (((flags >> 2) & 3) == 3) : true;
         if (active_low) ent |= 1 << 13;
         if (level) ent |= 1 << 15;
-        uint32_t dest = lapic_read(LAPIC_ID) >> 24;
+        uint32_t dest = bsp_lapic_id;      /* device interrupts go to the boot CPU */
         ent |= (uint64_t)dest << 56;
         uint32_t idx = gsi - io->gsi_base;
         ioapic_write(io, 0x10 + idx * 2 + 1, ent >> 32);
@@ -134,6 +141,24 @@ static void timer_irq(struct trap_frame *f, void *ctx) {
     timer_tick();
 }
 static void spurious_irq(struct trap_frame *f, void *ctx) {}
+
+uint32_t lapic_id(void) { return lapic_read(LAPIC_ID) >> 24; }
+
+void arch_send_ipi(struct cpu *c) {
+    while (lapic_read(LAPIC_ICR_LO) & (1 << 12)) arch_cpu_relax();   /* delivery pending */
+    lapic_write(LAPIC_ICR_HI, (uint32_t)c->hwid << 24);
+    lapic_write(LAPIC_ICR_LO, VEC_IPI);                                /* fixed, physical */
+}
+
+/* Called on every CPU: enable the LAPIC and start its periodic tick. */
+void lapic_cpu_init(void) {
+    wrmsr(0x1b, rdmsr(0x1b) | (1 << 11));
+    lapic_write(LAPIC_TPR, 0);
+    lapic_write(LAPIC_SVR, VEC_SPURIOUS | 0x100);
+    lapic_write(LAPIC_TMR_DIV, 0x3);
+    lapic_write(LAPIC_LVT_TMR, VEC_TIMER | (1 << 17));  /* periodic */
+    lapic_write(LAPIC_TMR_INIT, lapic_per_tick);
+}
 
 void apic_init(void) {
     calibrate_tsc();
@@ -151,7 +176,8 @@ void apic_init(void) {
     uint32_t ticks = 0xffffffff - lapic_read(LAPIC_TMR_CUR);
     uint32_t per_tick = ticks / 10 * 1000 / TIMER_HZ;
     irq_register_vector(VEC_TIMER, timer_irq, nullptr);
-    lapic_write(LAPIC_LVT_TMR, VEC_TIMER | (1 << 17));  /* periodic */
-    lapic_write(LAPIC_TMR_INIT, per_tick);
+    lapic_per_tick = per_tick;
+    bsp_lapic_id = lapic_id();
+    lapic_cpu_init();
     pr_info("apic: lapic timer %u ticks per %d Hz period\n", per_tick, TIMER_HZ);
 }

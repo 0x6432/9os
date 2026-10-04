@@ -173,7 +173,7 @@ a64_thread_trampoline:
 a64_user_return:
     msr daifset, #2
     mov x0, sp
-    bl user_return_work
+    bl thread_first_return
     b trap_return
 
 .global arch_enter_user
@@ -234,6 +234,7 @@ fp_restore:
 /* Limine entry: enable FP/SIMD (CPACR_EL1 is 0 at entry with base revision 6), use SP_EL1, enter C. */
 .global kmain_entry
 kmain_entry:
+    msr tpidr_el1, xzr
     mrs x9, cpacr_el1
     orr x9, x9, #(3 << 20)
     msr cpacr_el1, x9
@@ -246,3 +247,21 @@ kmain_entry:
     bl kmain
 2:  wfi
     b 2b
+
+/* Limine MP entry for application processors: x0 = struct limine_mp_info *.
+ * Switch to the kernel-allocated boot stack (cpu->kernel_sp) before touching the MMU. */
+.global a64_ap_trampoline
+a64_ap_trampoline:
+    mrs x9, cpacr_el1
+    orr x9, x9, #(3 << 20)
+    msr cpacr_el1, x9
+    isb
+    ldr x9, [x0, #32]          /* extra_argument = struct cpu * */
+    ldr x9, [x9, #8]           /* cpu->kernel_sp */
+    msr spsel, #1
+    mov sp, x9
+    mov x29, xzr
+    mov x30, xzr
+    bl a64_ap_entry
+1:  wfi
+    b 1b

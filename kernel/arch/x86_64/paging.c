@@ -1,5 +1,7 @@
 /* x86_64 4-level paging. */
+#include <kernel/sched.h>
 #include <kernel/vmm.h>
+#include <kernel/mm.h>
 #include <kernel/pmm.h>
 #include <kernel/boot.h>
 #include <kernel/printk.h>
@@ -101,7 +103,7 @@ paddr_t vmm_unmap(pagetable_t pt, vaddr_t va) {
     uint64_t f = spin_lock_irqsave(&pt_lock);
     uint64_t *pte = walk(pt.root, va, false, false);
     paddr_t old = 0;
-    if (pte && (*pte & PTE_P)) { old = *pte & PTE_ADDR; *pte = 0; invlpg(va); }
+    if (pte && (*pte & PTE_P)) { old = *pte & PTE_ADDR; *pte = 0; invlpg(va); if (va < USER_TOP) tlb_shootdown(pt.root, va); }
     spin_unlock_irqrestore(&pt_lock, f);
     return old;
 }
@@ -125,6 +127,7 @@ int vmm_protect(pagetable_t pt, vaddr_t va, unsigned flags) {
     if (!pte || !(*pte & PTE_P)) return -EFAULT;
     *pte = to_pte(*pte & PTE_ADDR, flags);
     invlpg(va);
+    if (va < USER_TOP) tlb_shootdown(pt.root, va);
     return 0;
 }
 
@@ -160,7 +163,20 @@ static void free_level(paddr_t table, int level) {
 void vmm_free_user_pagetable(pagetable_t pt) { free_level(pt.root, 3); }
 
 void vmm_switch(pagetable_t pt) {
+    this_cpu()->active_root = pt.root;
     if (read_cr3() != pt.root) write_cr3(pt.root);
+}
+
+void arch_tlb_flush_local(void) { write_cr3(read_cr3()); }
+
+/* the AP loads the same CR0/EFER/PAT setup as the boot CPU did in vmm_init */
+void x86_ap_paging_init(void) {
+    wrmsr(0xC0000080, rdmsr(0xC0000080) | (1 << 11));
+    write_cr0(read_cr0() | (1 << 16));
+    uint64_t pat = rdmsr(0x277);
+    pat = (pat & ~(0xffULL << 8)) | (0x01ULL << 8);
+    wrmsr(0x277, pat);
+    vmm_switch(kernel_pt);
 }
 
 extern char __kernel_start[], __text_start[], __text_end[], __rodata_start[], __rodata_end[],

@@ -1801,6 +1801,7 @@ void user_return_work(struct trap_frame *f) {
 }
 
 void syscall_dispatch(struct trap_frame *f) {
+    bkl_enter();
     uint64_t nr = SC_NR(f);
     current->last_syscall = nr;
     int64_t ret;
@@ -1819,4 +1820,11 @@ void syscall_dispatch(struct trap_frame *f) {
     SC_SET_RET(f, ret);
     arch_irq_disable();
     user_return_work(f);
+    bkl_exit();
+}
+
+/* first return to user mode of a new thread (fork/clone): leaves the kernel */
+void thread_first_return(struct trap_frame *f) {
+    user_return_work(f);
+    bkl_exit();
 }

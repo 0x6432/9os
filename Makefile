@@ -13,6 +13,14 @@ CFLAGS := -std=$(CSTD) -ffreestanding -fno-builtin -nostdlib -fno-stack-protecto
           -Ikernel/include -Ithird_party/limine -Ikernel/arch/$(ARCH)/include \
           -D__9OS_ARCH_$(ARCH)__
 
+# Build configuration: scheduler policy (rr | mlfq) and CPU count for 'make run'
+SCHED ?= rr
+SMP ?= 4
+CONFIG_FLAGS := -DCONFIG_SCHED_$(shell echo $(SCHED) | tr a-z A-Z)=1
+CFLAGS += $(CONFIG_FLAGS)
+CONFIG_STAMP := $(BUILD)/config.stamp
+$(shell mkdir -p $(BUILD); echo '$(CONFIG_FLAGS)' | cmp -s - $(CONFIG_STAMP) 2>/dev/null || echo '$(CONFIG_FLAGS)' > $(CONFIG_STAMP))
+
 ifeq ($(ARCH),x86_64)
 CFLAGS += --target=x86_64-unknown-none-elf -march=x86-64 -mno-red-zone -mcmodel=kernel \
           -mgeneral-regs-only -mno-mmx -mno-sse -mno-sse2 -mno-80387
@@ -55,12 +63,12 @@ iso: $(ISO)
 $(KERNEL): $(KOBJ) kernel/arch/$(ARCH)/linker.ld
 	$(LD) $(LDFLAGS) $(KOBJ) -o $@
 
-$(BUILD)/%.c.o: %.c
+$(BUILD)/%.c.o: %.c $(CONFIG_STAMP)
 	@mkdir -p $(dir $@)
 	@echo "  CC  $<"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/%.S.o: %.S
+$(BUILD)/%.S.o: %.S $(CONFIG_STAMP)
 	@mkdir -p $(dir $@)
 	@echo "  AS  $<"
 	@$(CC) $(CFLAGS) $(ASFLAGS_ARCH) -c $< -o $@
@@ -92,12 +100,12 @@ FW_NAMES_aarch64 := edk2-aarch64-code.fd QEMU_EFI.fd AAVMF_CODE.fd
 FW_SIZE_riscv64 := 33554432
 FW_SIZE_aarch64 := 67108864
 FW_CODE ?= $(firstword $(wildcard $(foreach d,$(FW_DIRS),$(foreach n,$(FW_NAMES_$(ARCH)),$(d)/$(n)))))
-QEMU_x86_64 := qemu-system-x86_64 -M q35 -m 512M -serial stdio -no-reboot -cdrom $(ISO)
-QEMU_riscv64 := qemu-system-riscv64 -M virt -m 512M -serial stdio -no-reboot \
+QEMU_x86_64 := qemu-system-x86_64 -M q35 -m 512M -smp $(SMP) -serial stdio -no-reboot -cdrom $(ISO)
+QEMU_riscv64 := qemu-system-riscv64 -M virt -m 512M -smp $(SMP) -serial stdio -no-reboot \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd
-QEMU_aarch64 := qemu-system-aarch64 -M virt -cpu cortex-a72 -m 512M -serial stdio -no-reboot \
+QEMU_aarch64 := qemu-system-aarch64 -M virt -cpu cortex-a72 -m 512M -smp $(SMP) -serial stdio -no-reboot \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd

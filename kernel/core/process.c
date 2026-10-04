@@ -75,6 +75,7 @@ static void init_thread_entry(void *arg) {
         if (!r) {
             pr_info("init: started %s (pid %d)\n", candidates[i], p->pid);
             arch_irq_disable();
+            bkl_exit();          /* leaving the kernel for user mode */
             __asm__ volatile("" ::: "memory");
             extern void arch_enter_user(struct trap_frame *f) __attribute__((noreturn));
             arch_enter_user(f);

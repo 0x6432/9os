@@ -1,4 +1,5 @@
 /* aarch64 4-level, 4 KiB-granule paging. Kernel half in TTBR1 (kernel_pt), user half in TTBR0. */
+#include <kernel/sched.h>
 #include <kernel/vmm.h>
 #include <kernel/pmm.h>
 #include <kernel/boot.h>
@@ -161,7 +162,26 @@ static void free_level(paddr_t table, int level) {
 }
 void vmm_free_user_pagetable(pagetable_t pt) { free_level(pt.root, 0); }
 
+void arch_tlb_flush_local(void) { __asm__ volatile("dsb ishst; tlbi vmalle1; dsb ish; isb" ::: "memory"); }
+/* TLBI ...IS instructions already broadcast to every CPU in the inner-shareable domain */
+void arch_tlb_remote(uint64_t mask, vaddr_t va) {}
+
+static uint64_t bsp_mair, bsp_tcr;
+/* AP: adopt the boot CPU's translation setup */
+void a64_ap_mmu_init(void) {
+    sysreg_write(mair_el1, bsp_mair);
+    sysreg_write(tcr_el1, bsp_tcr);
+    isb();
+    __asm__ volatile("dsb ishst" ::: "memory");
+    sysreg_write(ttbr1_el1, kernel_pt.root);
+    sysreg_write(ttbr0_el1, empty_root);
+    isb();
+    __asm__ volatile("tlbi vmalle1; dsb nsh; isb" ::: "memory");
+    this_cpu()->active_root = kernel_pt.root;
+}
+
 void vmm_switch(pagetable_t pt) {
+    this_cpu()->active_root = pt.root;
     paddr_t root = pt.root == kernel_pt.root ? empty_root : pt.root;
     if ((sysreg_read(ttbr0_el1) & D_ADDR) != root) {
         sysreg_write(ttbr0_el1, root);
@@ -222,5 +242,7 @@ void vmm_init(void) {
     sysreg_write(ttbr0_el1, empty_root);
     isb();
     tlb_flush_all();
+    bsp_mair = sysreg_read(mair_el1);
+    bsp_tcr = sysreg_read(tcr_el1);
     pr_info("vmm: TTBR1 kernel tables active (root %lx), MAIR %lx\n", kernel_pt.root, mair);
 }

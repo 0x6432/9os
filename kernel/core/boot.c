@@ -16,6 +16,7 @@ REQ struct limine_rsdp_request rsdp_req = { .id = LIMINE_RSDP_REQUEST_ID, .revis
 REQ struct limine_module_request module_req = { .id = LIMINE_MODULE_REQUEST_ID, .revision = 0 };
 REQ struct limine_executable_cmdline_request cmdline_req = { .id = LIMINE_EXECUTABLE_CMDLINE_REQUEST_ID, .revision = 0 };
 REQ struct limine_dtb_request dtb_req = { .id = LIMINE_DTB_REQUEST_ID, .revision = 0 };
+REQ struct limine_mp_request mp_req = { .id = LIMINE_MP_REQUEST_ID, .revision = 0, .flags = 0 };
 REQ struct limine_stack_size_request stack_req = { .id = LIMINE_STACK_SIZE_REQUEST_ID, .revision = 0, .stack_size = 65536 };
 __attribute__((used, section(".limine_requests_end")))
 static volatile uint64_t requests_end[2] = LIMINE_REQUESTS_END_MARKER;
@@ -57,3 +58,4 @@ const char *boot_cmdline(void) {
     return cmdline_req.response ? cmdline_req.response->cmdline : "";
 }
 void *boot_dtb(void) { return dtb_req.response ? dtb_req.response->dtb_ptr : nullptr; }
+struct limine_mp_response *boot_mp(void) { return mp_req.response; }

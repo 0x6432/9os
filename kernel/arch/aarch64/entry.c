@@ -56,7 +56,7 @@ uint64_t time_ns(void) {
 static struct tty *input_tty;
 static void timer_irq(void) {
     sysreg_write(cntv_tval_el0, tick_delta);
-    if (input_tty && uart)
+    if (input_tty && uart && this_cpu()->id == 0)
         while (!(uart[UART_FR] & (1 << 4))) tty_input(input_tty, (char)uart[UART_DR]);
     timer_tick();
 }
@@ -88,23 +88,77 @@ int irq_install(int gsi, irq_handler_t h, void *ctx) {
 static uint32_t cur_irq;
 void irq_eoi(void) { /* EOI is written by the dispatcher */ }
 
+void ipi_handle(void);
+void user_return_work(struct trap_frame *f);
+
 void a64_irq(struct trap_frame *f) {
     uint32_t iar = gicc[GICC_IAR];
     uint32_t id = iar & 0x3ff;
     if (id >= 1020) return;                                     /* spurious */
+    if (id < 16) {                                              /* SGI = IPI, no BKL */
+        gicc[GICC_EOIR] = iar;
+        ipi_handle();
+        return;
+    }
+    bkl_enter();
     cur_irq = id;
     if (id == 27) timer_irq();
     else if (handlers[id]) handlers[id](f, handler_ctx[id]);
     else printk("spurious irq %u\n", id);
     gicc[GICC_EOIR] = iar;
+    user_return_work(f);
+    bkl_exit();
+}
+
+/* per-CPU GIC interface, SGIs and the timer PPI (banked registers) */
+static void gic_cpu_init(void) {
+    gicc[GICC_PMR] = 0xff;
+    gicc[GICC_CTLR] = 1;
+    for (int i = 0; i < 16; i++) ((volatile uint8_t *)gicd)[0x400 + i] = 0x80;
+    ((volatile uint8_t *)gicd)[0x400 + 27] = 0xa0;
+    gicd[GICD_ISENABLER] = 0xffffu | (1u << 27);
+    this_cpu()->arch_data[0] = ((volatile uint8_t *)gicd)[0x800] & 0xff;   /* own target mask */
+}
+
+static void timer_cpu_init(void) {
+    sysreg_write(cntv_tval_el0, tick_delta);
+    sysreg_write(cntv_ctl_el0, 1);
+}
+
+int arch_cpu_hw_index(void) { return 0; }
+
+void arch_send_ipi(struct cpu *c) {
+    uint32_t mask = c->arch_data[0] ? (uint32_t)c->arch_data[0] : 1u << c->id;
+    __asm__ volatile("dsb ishst" ::: "memory");
+    gicd[0xf00 / 4] = (mask << 16) | 0;                         /* GICD_SGIR: SGI 0 */
+}
+
+void a64_ap_mmu_init(void);
+void a64_ap_trampoline(void);
+extern char exception_vectors[];
+
+__noreturn void a64_ap_entry(struct limine_mp_info *info) {
+    struct cpu *c = (struct cpu *)info->extra_argument;
+    arch_set_current(c->idle);
+    sysreg_write(vbar_el1, (uint64_t)exception_vectors);
+    isb();
+    a64_ap_mmu_init();
+    gic_cpu_init();
+    timer_cpu_init();
+    smp_ap_main(c);
+}
+
+void arch_ap_boot(struct cpu *c, void *mp_info) {
+    struct limine_mp_info *info = mp_info;
+    info->extra_argument = (uint64_t)c;
+    __atomic_store_n(&info->goto_address, (limine_goto_address)a64_ap_trampoline, __ATOMIC_SEQ_CST);
 }
 
 static void gic_init(void) {
     gicd = vmm_map_mmio(gicd_phys, 0x10000);
     gicc = vmm_map_mmio(gicc_phys, 0x2000);
     gicd[GICD_CTLR] = 1;
-    gicc[GICC_PMR] = 0xff;
-    gicc[GICC_CTLR] = 1;
+    gic_cpu_init();
 }
 
 void input_init(void) {
@@ -150,10 +204,7 @@ void arch_init(void) {
     gic_init();
     cnt_freq = sysreg_read(cntfrq_el0);
     tick_delta = cnt_freq / TIMER_HZ;
-    ((volatile uint8_t *)gicd)[0x400 + 27] = 0xa0;
-    gicd[GICD_ISENABLER] = 1u << 27;
-    sysreg_write(cntv_tval_el0, tick_delta);
-    sysreg_write(cntv_ctl_el0, 1);
+    timer_cpu_init();
     pr_info("gic: v2 dist %lx cpu %lx; timer %lu Hz; uart %lx\n", gicd_phys, gicc_phys, cnt_freq, uart_phys);
     volatile uint32_t *rtc = vmm_map_mmio(rtc_phys, 0x1000);
     boot_epoch = (int64_t)rtc[0] - (int64_t)(time_ns() / 1000000000ULL);

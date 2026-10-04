@@ -8,6 +8,7 @@
 #include <kernel/boot.h>
 #include <kernel/fdt.h>
 #include <kernel/errno.h>
+#include <kernel/sched.h>
 #include <arch/cpu.h>
 
 void kmain(void);
@@ -66,7 +67,7 @@ static void set_timer(uint64_t when) {
 static struct tty *input_tty;
 void riscv_timer_irq(void) {
     set_timer(rdtime() + tick_delta);
-    if (input_tty) for (int c; (c = sbi_getc()) >= 0;) tty_input(input_tty, (char)c);
+    if (input_tty && this_cpu()->id == 0) for (int c; (c = sbi_getc()) >= 0;) tty_input(input_tty, (char)c);
     timer_tick();
 }
 
@@ -110,12 +111,39 @@ void arch_init(void) {
     pr_info("timer: timebase %lu Hz, SBI%s%s%s\n", timebase_hz, have_time ? " TIME" : "",
             have_dbcn ? " DBCN" : "", have_legacy_getc ? " legacy-getchar" : "");
     set_timer(rdtime() + tick_delta);
-    csr_set(sie, SIE_STIE);
+    csr_set(sie, SIE_STIE | SIE_SSIE);
     rtc_init();
+}
+
+/* ---- SMP ---- */
+#define SBI_EXT_IPI 0x735049
+int arch_cpu_hw_index(void) { return 0; }
+
+void riscv_ap_trampoline(void);
+void arch_send_ipi(struct cpu *c) { sbi_call(SBI_EXT_IPI, 0, 1, (long)c->hwid, 0); }
+
+__noreturn void riscv_ap_entry(struct limine_mp_info *info) {
+    struct cpu *c = (struct cpu *)info->extra_argument;
+    arch_set_current(c->idle);        /* so this_cpu() works before the idle thread runs */
+    csr_write(sscratch, 0);
+    csr_write(stvec, (uint64_t)trap_entry);
+    csr_write(sie, 0);
+    csr_set(sstatus, SSTATUS_SUM | SSTATUS_FS_INITIAL);
+    vmm_switch(kernel_pt);
+    set_timer(rdtime() + tick_delta);
+    csr_set(sie, SIE_STIE | SIE_SSIE);
+    smp_ap_main(c);
+}
+
+void arch_ap_boot(struct cpu *c, void *mp_info) {
+    struct limine_mp_info *info = mp_info;
+    info->extra_argument = (uint64_t)c;
+    __atomic_store_n(&info->goto_address, (limine_goto_address)riscv_ap_trampoline, __ATOMIC_SEQ_CST);
 }
 
 /* Limine enters here in S-mode with a valid stack and interrupts disabled. */
 __noreturn void kmain_entry(void) {
+    arch_set_current(nullptr);
     kmain();
     arch_halt_forever();
 }

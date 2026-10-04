@@ -5,23 +5,28 @@
 .balign 4
 .global trap_entry
 trap_entry:
-    csrrw sp, sscratch, sp          /* sscratch = kernel stack top while in user mode, 0 in kernel */
-    bnez sp, 1f
-    csrrw sp, sscratch, sp          /* trap from kernel: undo the swap, sscratch stays 0 */
+    /* user mode: sscratch = current thread; kernel mode: sscratch = 0, tp = current thread */
+    csrrw tp, sscratch, tp
+    bnez tp, 1f
+    csrrw tp, sscratch, tp          /* trap from kernel: restore tp, sscratch stays 0 */
     addi sp, sp, -FRAME
     sd t0, 40(sp)
     addi t0, sp, FRAME
     sd t0, 16(sp)
+    sd tp, 32(sp)
     j 2f
-1:  addi sp, sp, -FRAME             /* trap from user: frame sits at the top of the kernel stack */
+1:  sd sp, 16(tp)                   /* trap from user: frame sits at the top of the kernel stack */
+    ld sp, 8(tp)
+    addi sp, sp, -FRAME
     sd t0, 40(sp)
-    csrr t0, sscratch
+    ld t0, 16(tp)
     sd t0, 16(sp)
+    csrr t0, sscratch               /* user tp */
+    sd t0, 32(sp)
     csrw sscratch, zero
 2:
     sd x1, 8(sp)
     sd x3, 24(sp)
-    sd x4, 32(sp)
     sd x6, 48(sp)
     sd x7, 56(sp)
     sd x8, 64(sp)
@@ -68,8 +73,7 @@ trap_return:
     ld t0, 264(sp)
     andi t1, t0, 0x100              /* SPP: returning to kernel? */
     bnez t1, 3f
-    addi t1, sp, FRAME
-    csrw sscratch, t1
+    csrw sscratch, tp               /* current thread, for the next trap from user mode */
     fence.i
 3:  csrw sstatus, t0
     ld t0, 256(sp)
@@ -155,7 +159,7 @@ riscv_thread_trampoline:
 riscv_user_return:
     csrci sstatus, 2
     mv a0, sp
-    call user_return_work
+    call thread_first_return
     j trap_return
 
 /* void arch_enter_user(struct trap_frame *f) */
@@ -241,3 +245,14 @@ fp_restore:
     lw t0, 256(a0)
     fscsr t0
     ret
+
+/* Limine MP entry for application harts: a0 = struct limine_mp_info * */
+.global riscv_ap_trampoline
+riscv_ap_trampoline:
+    ld t0, 32(a0)              /* extra_argument = struct cpu * */
+    ld sp, 8(t0)               /* cpu->kernel_sp */
+    mv s0, zero
+    mv tp, zero
+    call riscv_ap_entry
+1:  wfi
+    j 1b

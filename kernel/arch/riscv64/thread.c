@@ -26,6 +26,7 @@ void arch_thread_init(struct thread *t, void (*entry)(void *), void *arg) {
     sp[2] = (uint64_t)entry;      /* s1 */
     sp[3] = (uint64_t)arg;        /* s2 */
     t->arch.sp = (uint64_t)sp;
+    t->arch.ktop = (uint64_t)t->kstack + KSTACK_SIZE;
     memset(t->arch.fpu, 0, sizeof t->arch.fpu);
 }
 
@@ -34,6 +35,7 @@ void arch_thread_init_user(struct thread *t) {
     memset(sp, 0, SWITCH_WORDS * 8);
     sp[0] = (uint64_t)riscv_user_return;
     t->arch.sp = (uint64_t)sp;
+    t->arch.ktop = (uint64_t)t->kstack + KSTACK_SIZE;
     memset(t->arch.fpu, 0, sizeof t->arch.fpu);
 }
 

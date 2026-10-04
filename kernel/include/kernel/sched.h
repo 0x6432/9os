@@ -3,10 +3,15 @@
 #include <kernel/list.h>
 #include <arch/thread.h>
 #include <kernel/arch.h>
+#include <kernel/cpu.h>
+#include <arch/percpu.h>
 
 #define KSTACK_ORDER 2                         /* 16 KiB kernel stacks */
 #define KSTACK_SIZE (PAGE_SIZE << KSTACK_ORDER)
-#define SCHED_QUANTUM 10                       /* ticks (ms) per time slice */
+#define SCHED_QUANTUM 10                       /* ticks (ms) per time slice (round robin) */
+#define MLFQ_LEVELS 4                          /* MLFQ: level i has quantum MLFQ_BASE_QUANTUM << i */
+#define MLFQ_BASE_QUANTUM 5
+#define MLFQ_BOOST_MS 500                      /* MLFQ: periodic priority boost */
 
 enum thread_state { T_RUNNABLE, T_RUNNING, T_BLOCKED, T_SLEEPING, T_ZOMBIE };
 
@@ -35,14 +40,26 @@ struct thread {
     int altstack_flags;
     uint64_t last_syscall;
     bool killed;
+    /* SMP / scheduling */
+    struct cpu *cpu;               /* CPU this thread last ran on */
+    int bkl_depth;                 /* big kernel lock nesting */
+    int level;                     /* MLFQ priority level (0 = highest) */
+    uint64_t run_ticks;            /* total ticks on CPU */
 };
 
 struct wait_queue { struct list_node head; };
 #define WAIT_QUEUE_INIT(n) { LIST_INIT((n).head) }
 static inline void wait_queue_init(struct wait_queue *q) { list_init(&q->head); }
 
-extern struct thread *current;
-extern volatile bool need_resched;
+#define current (arch_current())
+#ifndef ARCH_HAS_THIS_CPU
+static inline struct cpu *this_cpu(void) { struct thread *t = arch_current(); return t ? t->cpu : &cpus[0]; }
+#endif
+#define need_resched (this_cpu()->resched)
+const char *sched_policy_name(void);
+void sched_init_ap(struct cpu *c);     /* create the idle thread for an AP */
+__noreturn void sched_start_ap(struct cpu *c);
+int sched_runnable_count(void);
 
 void sched_init(void);
 struct thread *thread_create(const char *name, void (*fn)(void *), void *arg);
