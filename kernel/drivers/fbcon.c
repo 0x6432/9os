@@ -125,8 +125,16 @@ static void putc_fb(char ch) {
     c.cx++;
 }
 
+static bool graphics;     /* a client owns the framebuffer (/dev/fb0 open) */
+
+void fbcon_set_graphics(bool on) {
+    if (!c.ready || graphics == on) return;
+    graphics = on;
+    if (!on) { clear_cells(0, 0, c.cols, c.rows); c.cx = c.cy = 0; }
+}
+
 void fbcon_write(const char *s, size_t n) {
-    if (!c.ready) return;
+    if (!c.ready || graphics) return;
     for (size_t i = 0; i < n; i++) putc_fb(s[i]);
 }
 

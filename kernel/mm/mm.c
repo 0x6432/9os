@@ -34,10 +34,10 @@ struct mm *mm_create(void) {
     return mm;
 }
 
-static void free_pages_in(struct mm *mm, vaddr_t s, vaddr_t e) {
+static void free_pages_in(struct mm *mm, vaddr_t s, vaddr_t e, unsigned vflags) {
     for (vaddr_t va = s; va < e; va += PAGE_SIZE) {
         paddr_t pa = vmm_unmap(mm->pt, va);
-        if (pa) {
+        if (pa && !(vflags & VMA_PHYS)) {
             struct page *pg = phys_to_page(pa);
             if (--pg->refcount <= 0) page_free(pg, 0);
         }
@@ -48,7 +48,7 @@ void mm_put(struct mm *mm) {
     if (--mm->refcount > 0) return;
     list_for_each_safe(it, tmp, &mm->vmas) {
         struct vma *v = list_entry(it, struct vma, node);
-        free_pages_in(mm, v->start, v->end);
+        free_pages_in(mm, v->start, v->end, v->flags);
         list_del(&v->node);
         kfree(v);
     }
@@ -70,6 +70,10 @@ struct mm *mm_clone(struct mm *src) {
         for (vaddr_t va = v->start; va < v->end; va += PAGE_SIZE) {
             paddr_t pa; unsigned fl;
             if (!vmm_query(src->pt, va, &pa, &fl)) continue;
+            if (v->flags & VMA_PHYS) {
+                if (vmm_map(mm->pt, va, ALIGN_DOWN(pa, PAGE_SIZE), fl | VM_WC)) goto fail;
+                continue;
+            }
             paddr_t np = pmm_alloc_pages(0);
             if (!np) goto fail;
             memcpy(PHYS_TO_VIRT(np), PHYS_TO_VIRT(ALIGN_DOWN(pa, PAGE_SIZE)), PAGE_SIZE);
@@ -109,7 +113,7 @@ int mm_unmap(struct mm *mm, vaddr_t addr, size_t len) {
     list_for_each_safe(it, tmp, &mm->vmas) {
         struct vma *v = list_entry(it, struct vma, node);
         if (v->start >= addr && v->end <= end) {
-            free_pages_in(mm, v->start, v->end);
+            free_pages_in(mm, v->start, v->end, v->flags);
             list_del(&v->node);
             kfree(v);
         }
@@ -189,6 +193,7 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
     if (exec && !(v->prot & VM_EXEC)) return false;
     if (!(v->prot & (VM_READ | VM_WRITE | VM_EXEC))) return false;
     if (vmm_query(mm->pt, addr, nullptr, nullptr)) return false;   /* present: protection fault */
+    if (v->flags & VMA_PHYS) return false;                         /* device mappings are prefaulted */
     return fault_in(mm, v, ALIGN_DOWN(addr, PAGE_SIZE)) != 0;
 }
 

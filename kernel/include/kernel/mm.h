@@ -9,7 +9,7 @@
 #define USER_MMAP_BASE  0x00007f0000000000ULL
 #define USER_MIN        0x10000ULL
 
-enum { VMA_ANON = 1, VMA_SHARED = 2, VMA_STACK = 4 };
+enum { VMA_ANON = 1, VMA_SHARED = 2, VMA_STACK = 4, VMA_PHYS = 8 /* device memory: never freed, shared on fork */ };
 
 struct vma {
     struct list_node node;

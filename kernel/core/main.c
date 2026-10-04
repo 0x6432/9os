@@ -14,6 +14,7 @@
 #include <kernel/syscall.h>
 
 void input_init(void);
+void fbdev_init(void);
 
 static const char *strstr_simple(const char *h, const char *n) {
     size_t l = strlen(n);
@@ -73,6 +74,7 @@ void kmain(void) {
     if (strstr_simple(boot_cmdline(), "selftest")) sched_selftest();
     vfs_init();
     devices_init();
+    fbdev_init();
     initramfs_load();
     vfs_mkdir_at(nullptr, "/proc", 0555);
     vfs_mount("/proc", procfs_create_root());

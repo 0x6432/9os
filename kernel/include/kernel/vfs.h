@@ -92,6 +92,8 @@ struct file_ops {
     int (*ioctl)(struct file *f, uint64_t cmd, uint64_t arg);
     unsigned (*poll)(struct file *f);
     void (*release)(struct file *f);
+    /* device memory mapping: physical address backing [off, off+len), or -errno */
+    int (*mmap)(struct file *f, uint64_t off, size_t len, paddr_t *pa);
 };
 
 struct inode {

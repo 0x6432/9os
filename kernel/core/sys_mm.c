@@ -40,6 +40,17 @@ int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t o
     if (!(flags & MAP_ANONYMOUS)) {
         f = fd_get(fd);
         if (!f) return -EBADF;
+        if (f->fops && f->fops->mmap) {          /* device memory (e.g. /dev/fb0) */
+            paddr_t pa;
+            int e = f->fops->mmap(f, off, ALIGN_UP(len, PAGE_SIZE), &pa);
+            if (e) return e;
+            bool fx = flags & (MAP_FIXED | MAP_FIXED_NOREPLACE);
+            int64_t r = mm_map(curproc->mm, addr, len, prot_to_vm(prot), VMA_PHYS | VMA_SHARED, fx);
+            if (r < 0) return r;
+            for (size_t o = 0; o < ALIGN_UP(len, PAGE_SIZE); o += PAGE_SIZE)
+                vmm_map(mm->pt, r + o, pa + o, prot_to_vm(prot) | VM_USER | VM_WC);
+            return r;
+        }
         if (!f->fops || !f->fops->read) return -ENODEV;
     }
     bool fixed = flags & (MAP_FIXED | MAP_FIXED_NOREPLACE);
