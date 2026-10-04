@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M15 complete — SMP + MLFQ/RR, framebuffer graphics (fbdev, virtio-gpu) on all three arches
+## Current state: M16 complete — COW fork + Wayland-style IPC (AF_UNIX/SCM_RIGHTS, epoll, eventfd, timerfd, signalfd, memfd) on all three arches
 
 | Milestone | Status |
 |-----------|--------|
@@ -22,6 +22,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M13 aarch64 | ✅ EL1, TTBR0 (user) / TTBR1 (kernel) 4-level paging, GICv2, virtual generic timer, PL011 (polled input), PL031 RTC, PSCI poweroff, svc syscalls, rt_sigframe with fpsimd_context, TPIDR_EL0 TLS; BusyBox, libctest, Bash all pass |
 | M14 SMP | ✅ up to 16 CPUs on all arches: big kernel lock (ticket), IPIs, TLB shootdown, per-CPU current/idle/timers, lock-free tick on secondary CPUs; `make SCHED=rr\|mlfq` |
 | M15 Graphics base | ✅ `/dev/fb0` (Linux fbdev ABI + mmap), PCI ECAM enumeration, virtio-gpu 2D driver (riscv64/aarch64 display), `fbdemo`, `schedtest` |
+| M16 POSIX IPC base | ✅ COW fork, shared mappings across fork, memfd/tmpfs `MAP_SHARED`, AF_UNIX (stream/seqpacket/dgram, SCM_RIGHTS, SO_PEERCRED), epoll, eventfd, timerfd, signalfd, batched TLB flushes; `cowtest`, `ipctest` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -144,7 +145,16 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - Screenshots in tests: add `QEMUEXTRA="-monitor unix:/tmp/mon.sock,server,nowait"` and send `screendump /tmp/x.ppm` to the socket.
 - To run a test with the MLFQ build, pass `SCHED=mlfq` in the environment of `scripts/smoke-test.sh` (otherwise `make run` rebuilds with the default).
 
+## M16: COW fork and event-loop IPC
+- **COW** (`kernel/mm/mm.c`): `mm_clone` shares every present page and write-protects private writable ones in both address spaces (page `refcount`++). `mm_handle_fault` on a present page + write → `cow_break` (copy if refcount > 1, else just re-enable write). `user_range_ok(write)` and `mm_write` break COW before the kernel writes, so kernel stores never hit a shared page. `mm_protect` keeps shared private pages read-only. `MAP_SHARED` anonymous memory is now really shared after fork. Counters: `/proc/vmstat` (`cow_shared/copied/reused`).
+- **TLB batching** (`vmm_batch_begin/end`, `tlb_batched(va)` in every arch's map/unmap/protect): fork, exit and big munmaps skip per-page invalidations and do one full flush on all CPUs at the end (x86 IPI → CR3 reload, riscv SBI RFENCE whole space, aarch64 `tlbi vmalle1is`). Fork of a 32 MiB process: aarch64 777 → 25 ms.
+- **memfd / shared files**: `file_ops.mmap_page(f, pgoff, &pa)` (tmpfs implements it): `MAP_SHARED` file mappings map the tmpfs pages themselves (extra page ref per mapping; tmpfs frees with `page_put_pa`). `memfd_create` makes an unlinked tmpfs inode. `MAP_PRIVATE` file mappings are still snapshots.
+- **`kernel/fs/anonfd.c`**: eventfd(2) (semaphore mode), timerfd (MONOTONIC/REALTIME/BOOTTIME, ABSTIME, intervals; checked from the cpu0 tick via `timerfd_tick`), signalfd(4) (dequeues from thread/process pending; signals blocked by the first thread are now queued even when their default action is "ignore", and SIGCHLD with SIG_DFL is sent so signalfd/sigwait can see it), epoll (create/create1/ctl/wait/pwait/pwait2, ONESHOT, nesting, EPOLLET = level-triggered input + edge-triggered EPOLLOUT; items hold no file reference and vanish when the fd no longer refers to the same file).
+- **`kernel/net/unix.c`**: AF_UNIX stream/seqpacket/dgram; filesystem names (S_IFSOCK inode created by bind) and abstract names; listen/accept4/connect (connect completes when queued, like Linux); socketpair; sendmsg/recvmsg with SCM_RIGHTS (fds ride on the chunk that starts the message; stream reads never merge across such a chunk) and SCM_CREDENTIALS with SO_PASSCRED; SO_PEERCRED/SO_TYPE/SO_ERROR/...; shutdown; MSG_PEEK/DONTWAIT/NOSIGNAL/CMSG_CLOEXEC/TRUNC; FIONREAD. 256 KiB per-socket receive limit. AF_INET is still EAFNOSUPPORT.
+- Syscall plumbing: x86_64 `unistd.h` now carries the full musl syscall number list; `scripts/gen-syscalls.py` also scans `fs/anonfd.c` and `net/*.c`. **Edit `kernel/core/syscall.c.in`, never the generated `syscall.c`** (`thread_first_return` had been lost that way and is now in the template).
+- Tests (all pass on x86_64, riscv64, aarch64 with -smp 4): `cowtest`, `ipctest` (72 checks; `ipctest unix` runs one group, `V=1` prints steps), plus `libctest`, `smptest`.
+
 ## Next steps (see docs/ROADMAP.md)
-1. Phase B basics that ported software needs: COW fork, `MAP_SHARED`, AF_UNIX sockets + `SCM_RIGHTS`, `epoll`, `eventfd`/`timerfd`/`signalfd`, `memfd_create`, ptys.
+1. ptys (`/dev/ptmx` + devpts) for terminal emulators; `inotify` stubs; `MAP_PRIVATE` file mappings via page cache.
 2. evdev (`/dev/input/event*`) from PS/2 and virtio-input; then DRM/KMS-lite dumb buffers on top of the fb/virtio-gpu backend.
 3. Fine-grained locking + per-CPU run queues (M16 in the roadmap); interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2.

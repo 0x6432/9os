@@ -14,7 +14,10 @@ push, and back up on its own. **Bold** items are the current focus.
 | M15 | Fine-grained locking | Shrink the BKL: give the scheduler run queue, pmm/slab, page tables, VFS inodes, pipes and tty their own spinlocks or mutexes. Add per-CPU run queues with work stealing, plus CPU affinity (`sched_setaffinity`). |
 | M16 | Interrupt controllers | riscv PLIC + virtio-mmio IRQs, aarch64 GICv3, x86 MSI. Remove polled input. |
 
-## Phase B: A "real" POSIX base (M17–M22)
+## Phase B: A "real" POSIX base (M16–M22)
+
+Done in M16: COW fork, `MAP_SHARED` (anonymous + tmpfs/memfd), AF_UNIX with `SCM_RIGHTS`, `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`. Still open below: ptys, dynamic linking, storage, networking.
+
 These features are what most ported software needs, in rough order of value:
 
 1. **mm**: copy-on-write fork, `MAP_SHARED` file and anonymous mappings, `mprotect`, `madvise`, `mremap`, page cache.
