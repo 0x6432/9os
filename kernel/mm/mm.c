@@ -34,6 +34,8 @@ struct mm *mm_create(void) {
     return mm;
 }
 
+struct cow_stats cow_stats;
+
 static void free_pages_in(struct mm *mm, vaddr_t s, vaddr_t e, unsigned vflags) {
     for (vaddr_t va = s; va < e; va += PAGE_SIZE) {
         paddr_t pa = vmm_unmap(mm->pt, va);
@@ -56,7 +58,10 @@ void mm_put(struct mm *mm) {
     kfree(mm);
 }
 
-/* Eager copy of every present page (simple and robust; COW is a future optimisation). */
+/*
+ * fork: private writable pages become copy-on-write (read-only in both address spaces,
+ * page refcount raised); MAP_SHARED and device mappings are shared outright.
+ */
 struct mm *mm_clone(struct mm *src) {
     struct mm *mm = mm_create();
     if (!mm) return nullptr;
@@ -70,20 +75,66 @@ struct mm *mm_clone(struct mm *src) {
         for (vaddr_t va = v->start; va < v->end; va += PAGE_SIZE) {
             paddr_t pa; unsigned fl;
             if (!vmm_query(src->pt, va, &pa, &fl)) continue;
+            pa = ALIGN_DOWN(pa, PAGE_SIZE);
             if (v->flags & VMA_PHYS) {
-                if (vmm_map(mm->pt, va, ALIGN_DOWN(pa, PAGE_SIZE), fl | VM_WC)) goto fail;
+                if (vmm_map(mm->pt, va, pa, fl | VM_WC)) goto fail;
                 continue;
             }
-            paddr_t np = pmm_alloc_pages(0);
-            if (!np) goto fail;
-            memcpy(PHYS_TO_VIRT(np), PHYS_TO_VIRT(ALIGN_DOWN(pa, PAGE_SIZE)), PAGE_SIZE);
-            if (vmm_map(mm->pt, va, np, fl)) { pmm_free_pages(np, 0); goto fail; }
+            if (!(v->flags & VMA_SHARED) && (fl & VM_WRITE)) {
+                fl &= ~VM_WRITE;
+                vmm_protect(src->pt, va, fl);
+            }
+            if (vmm_map(mm->pt, va, pa, fl)) goto fail;
+            phys_to_page(pa)->refcount++;
+            cow_stats.shared++;
         }
     }
     return mm;
 fail:
     mm_put(mm);
     return nullptr;
+}
+
+/* Kernel writes that ignore VMA protection (mm_write): never scribble on a shared COW page. */
+static paddr_t cow_break(struct mm *mm, struct vma *v, vaddr_t va);
+static paddr_t cow_break_any(struct mm *mm, struct vma *v, vaddr_t va) {
+    if (v->prot & VM_WRITE) return cow_break(mm, v, va);
+    paddr_t pa; unsigned fl;
+    if (!vmm_query(mm->pt, va, &pa, &fl)) return 0;
+    pa = ALIGN_DOWN(pa, PAGE_SIZE);
+    struct page *pg = phys_to_page(pa);
+    if ((v->flags & (VMA_SHARED | VMA_PHYS)) || pg->refcount <= 1) return pa;
+    paddr_t np = pmm_alloc_pages(0);
+    if (!np) return 0;
+    memcpy(PHYS_TO_VIRT(np), PHYS_TO_VIRT(pa), PAGE_SIZE);
+    vmm_unmap(mm->pt, va);
+    if (vmm_map(mm->pt, va, np, fl)) { pmm_free_pages(np, 0); return 0; }
+    if (--pg->refcount <= 0) page_free(pg, 0);
+    cow_stats.copied++;
+    return np;
+}
+
+/* Make a present page writable, copying it first if another address space shares it. */
+static paddr_t cow_break(struct mm *mm, struct vma *v, vaddr_t va) {
+    paddr_t pa; unsigned fl;
+    if (!vmm_query(mm->pt, va, &pa, &fl)) return 0;
+    pa = ALIGN_DOWN(pa, PAGE_SIZE);
+    if (fl & VM_WRITE) return pa;
+    if (!(v->prot & VM_WRITE) || (v->flags & VMA_PHYS)) return 0;
+    struct page *pg = phys_to_page(pa);
+    if (pg->refcount <= 1 || (v->flags & VMA_SHARED)) {        /* sole owner: just re-enable writes */
+        vmm_protect(mm->pt, va, v->prot | VM_USER);
+        cow_stats.reused++;
+        return pa;
+    }
+    paddr_t np = pmm_alloc_pages(0);
+    if (!np) return 0;
+    memcpy(PHYS_TO_VIRT(np), PHYS_TO_VIRT(pa), PAGE_SIZE);
+    vmm_unmap(mm->pt, va);
+    if (vmm_map(mm->pt, va, np, v->prot | VM_USER)) { pmm_free_pages(np, 0); return 0; }
+    if (--pg->refcount <= 0) page_free(pg, 0);
+    cow_stats.copied++;
+    return np;
 }
 
 struct vma *vma_find(struct mm *mm, vaddr_t addr) {
@@ -169,9 +220,15 @@ int mm_protect(struct mm *mm, vaddr_t addr, size_t len, unsigned prot) {
         struct vma *v = list_entry(it, struct vma, node);
         if (v->start >= addr && v->end <= end) {
             v->prot = prot;
-            for (vaddr_t va = v->start; va < v->end; va += PAGE_SIZE)
-                if (vmm_query(mm->pt, va, nullptr, nullptr))
-                    vmm_protect(mm->pt, va, prot | VM_USER);
+            for (vaddr_t va = v->start; va < v->end; va += PAGE_SIZE) {
+                paddr_t pa;
+                if (!vmm_query(mm->pt, va, &pa, nullptr)) continue;
+                unsigned p = prot | VM_USER;
+                if (!(v->flags & (VMA_SHARED | VMA_PHYS)) && phys_to_page(ALIGN_DOWN(pa, PAGE_SIZE))->refcount > 1)
+                    p &= ~VM_WRITE;            /* still copy-on-write */
+                if (v->flags & VMA_PHYS) p |= VM_WC;
+                vmm_protect(mm->pt, va, p);
+            }
         }
     }
     return 0;
@@ -192,7 +249,8 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
     if (write && !(v->prot & VM_WRITE)) return false;
     if (exec && !(v->prot & VM_EXEC)) return false;
     if (!(v->prot & (VM_READ | VM_WRITE | VM_EXEC))) return false;
-    if (vmm_query(mm->pt, addr, nullptr, nullptr)) return false;   /* present: protection fault */
+    if (vmm_query(mm->pt, addr, nullptr, nullptr))                  /* present: protection fault */
+        return write && cow_break(mm, v, ALIGN_DOWN(addr, PAGE_SIZE)) != 0;
     if (v->flags & VMA_PHYS) return false;                         /* device mappings are prefaulted */
     return fault_in(mm, v, ALIGN_DOWN(addr, PAGE_SIZE)) != 0;
 }
@@ -204,6 +262,7 @@ int mm_write(struct mm *mm, vaddr_t dst, const void *src, size_t n) {
         struct vma *v = vma_find(mm, dst);
         if (!v) return -EFAULT;
         paddr_t pa = fault_in(mm, v, ALIGN_DOWN(dst, PAGE_SIZE));
+        if (pa) { paddr_t w = cow_break_any(mm, v, ALIGN_DOWN(dst, PAGE_SIZE)); if (w) pa = w; }
         if (!pa) return -ENOMEM;
         size_t off = dst & (PAGE_SIZE - 1), chunk = MIN(n, PAGE_SIZE - off);
         if (s) { memcpy((uint8_t *)PHYS_TO_VIRT(pa) + off, s, chunk); s += chunk; }
@@ -228,6 +287,7 @@ bool user_range_ok(const void *uaddr, size_t n, bool write) {
         if (write && !(v->prot & VM_WRITE)) return false;
         if (!write && !(v->prot & (VM_READ | VM_WRITE))) return false;
         if (!fault_in(mm, v, p)) return false;
+        if (write && !cow_break(mm, v, p)) return false;
     }
     return true;
 }

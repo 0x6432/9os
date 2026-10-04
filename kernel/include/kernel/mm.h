@@ -27,6 +27,9 @@ struct mm {
     vaddr_t sigtramp;       /* user sigreturn trampoline (archs without SA_RESTORER) */
 };
 
+struct cow_stats { uint64_t shared, copied, reused; };   /* fork COW counters (/proc/vmstat) */
+extern struct cow_stats cow_stats;
+
 struct mm *mm_create(void);
 void mm_put(struct mm *mm);
 struct mm *mm_clone(struct mm *mm);

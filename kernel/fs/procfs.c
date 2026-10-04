@@ -14,7 +14,7 @@
 
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED };
+             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
 static const struct inode_ops proc_iops;
@@ -36,6 +36,7 @@ static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum 
 static const struct { const char *name; enum pfile f; } global_files[] = {
     { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cpuinfo", G_CPUINFO },
     { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS }, { "sched", G_SCHED },
+    { "vmstat", G_VMSTAT },
 };
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
@@ -219,6 +220,12 @@ static void gen(struct pinfo *pi, struct buf *b) {
         for (int i = 0; i < ncpus; i++)
             bprintf(b, "cpu%d %lu 0 0 %lu 0 0 0 0 0 0\n", i, (cpus[i].ticks - cpus[i].idle_ticks) / 10, cpus[i].idle_ticks / 10);
         bprintf(b, "ctxt %lu\nbtime %ld\nprocs_running %d\n", cs, (long)boot_epoch, sched_runnable_count() + 1);
+        break;
+    }
+    case G_VMSTAT: {
+        uint64_t fr, tot; pmm_stats(&fr, &tot);
+        bprintf(b, "nr_free_pages %lu\nnr_total_pages %lu\ncow_shared %lu\ncow_copied %lu\ncow_reused %lu\n",
+                fr, tot, cow_stats.shared, cow_stats.copied, cow_stats.reused);
         break;
     }
     case G_SCHED:
