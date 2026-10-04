@@ -17,20 +17,27 @@
 #include <kernel/pmm.h>
 #include <kernel/vmm.h>
 
+extern volatile bool panicking;
 struct cpu cpus[MAX_CPUS];
 int ncpus = 1;
 
-static volatile int bkl_locked;
+/* ticket lock: FIFO fairness so a CPU that keeps re-entering the kernel cannot starve others */
+static volatile uint32_t bkl_next, bkl_serving;
+volatile int bkl_owner = -1;
+void *bkl_last_ra[MAX_CPUS];
+struct thread *bkl_last_thr[MAX_CPUS];
 
 static void bkl_lock(void) {
-    while (__atomic_exchange_n(&bkl_locked, 1, __ATOMIC_ACQUIRE)) {
-        while (__atomic_load_n(&bkl_locked, __ATOMIC_RELAXED)) {
-            if (this_cpu()->ipi_pending) ipi_handle();
-            arch_cpu_relax();
-        }
+    uint32_t me = __atomic_fetch_add(&bkl_next, 1, __ATOMIC_RELAXED);
+    while (__atomic_load_n(&bkl_serving, __ATOMIC_ACQUIRE) != me) {
+        if (this_cpu()->ipi_pending || panicking) ipi_handle();
+        arch_cpu_relax();
     }
+    bkl_owner = this_cpu()->id;
 }
-static void bkl_unlock(void) { __atomic_store_n(&bkl_locked, 0, __ATOMIC_RELEASE); }
+static void bkl_unlock(void) {
+    if (bkl_owner != this_cpu()->id) panic("bkl_unlock: owner cpu%d, unlocking on cpu%d (%s)", bkl_owner, this_cpu()->id, current ? current->name : "?");
+    bkl_owner = -1; __atomic_store_n(&bkl_serving, bkl_serving + 1, __ATOMIC_RELEASE); }
 
 void bkl_enter(void) {
     struct thread *t = current;
@@ -42,10 +49,12 @@ void bkl_exit(void) {
     struct thread *t = current;
     if (!t) return;
     if (t->bkl_depth <= 0) panic("bkl_exit: depth %d in %s", t->bkl_depth, t->name);
-    if (--t->bkl_depth == 0) bkl_unlock();
+    if (--t->bkl_depth == 0) { bkl_last_ra[this_cpu()->id] = __builtin_return_address(0); bkl_last_thr[this_cpu()->id] = t; bkl_unlock(); }
 }
 
 void bkl_release_idle(void) {
+    if (current->bkl_depth != 1) panic("bkl_release_idle: depth %d", current->bkl_depth);
+    bkl_last_ra[this_cpu()->id] = __builtin_return_address(0); bkl_last_thr[this_cpu()->id] = current;
     current->bkl_depth = 0;
     bkl_unlock();
 }
@@ -57,8 +66,13 @@ void bkl_acquire_idle(void) {
 
 bool bkl_held(void) { return current && current->bkl_depth > 0; }
 
+void smp_stop_others(void) {
+    for (int i = 0; i < ncpus; i++) if (&cpus[i] != this_cpu() && cpus[i].online) arch_send_ipi(&cpus[i]);
+}
+
 void ipi_handle(void) {
     struct cpu *c = this_cpu();
+    if (panicking) arch_halt_forever();
     uint32_t p = __atomic_load_n(&c->ipi_pending, __ATOMIC_ACQUIRE);
     if (p & IPI_TLB_FLUSH) {
         arch_tlb_flush_local();
@@ -142,10 +156,10 @@ void smp_init(void) {
         while (!__atomic_load_n(&c->online, __ATOMIC_ACQUIRE) && time_ns() < deadline) {
             /* the AP needs the BKL briefly to start its idle thread */
             bkl_release_idle();
-            arch_cpu_relax();
+            udelay(20);
             bkl_acquire_idle();
         }
-        if (!c->online) { pr_warn("smp: cpu %d (hw %lx) did not come up\n", c->id, hw); ncpus--; break; }
+        if (!c->online) { pr_warn("smp: cpu %d (hw %lx) did not come up (stage %lx)\n", c->id, hw, c->arch_data[1]); ncpus--; break; }
         started++;
     }
     pr_info("smp: %d CPUs online (%d APs started in %lu us)\n", ncpus, started, (time_ns() - t0) / 1000);

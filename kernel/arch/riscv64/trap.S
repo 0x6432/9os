@@ -149,6 +149,7 @@ riscv_switch_stack:
 /* first return target of a new kernel thread: s1 = fn, s2 = arg */
 .global riscv_thread_trampoline
 riscv_thread_trampoline:
+    call sched_finish_switch
     csrsi sstatus, 2
     mv a0, s2
     jalr s1

@@ -163,6 +163,7 @@ a64_switch_stack:
 /* first return target of a new kernel thread: x19 = fn, x20 = arg */
 .global a64_thread_trampoline
 a64_thread_trampoline:
+    bl sched_finish_switch
     msr daifclr, #2
     mov x0, x20
     blr x19
@@ -257,6 +258,8 @@ a64_ap_trampoline:
     msr cpacr_el1, x9
     isb
     ldr x9, [x0, #32]          /* extra_argument = struct cpu * */
+    mov x10, #0xaa
+    str x10, [x9, #104]
     ldr x9, [x9, #8]           /* cpu->kernel_sp */
     msr spsel, #1
     mov sp, x9

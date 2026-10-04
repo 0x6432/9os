@@ -20,6 +20,7 @@ struct cpu {
     volatile uint32_t ipi_pending; /* IPI_* bits */
     paddr_t active_root;           /* page table root loaded on this CPU */
     uint64_t ticks, idle_ticks, ctx_switches;
+    struct thread *prev;           /* thread switched away from (cleared by the next thread) */
     uint64_t arch_data[4];         /* arch private (e.g. GIC cpu mask) */
 };
 

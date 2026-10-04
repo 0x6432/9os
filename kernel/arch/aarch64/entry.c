@@ -139,12 +139,16 @@ extern char exception_vectors[];
 
 __noreturn void a64_ap_entry(struct limine_mp_info *info) {
     struct cpu *c = (struct cpu *)info->extra_argument;
+    c->arch_data[1] = 1;
     arch_set_current(c->idle);
     sysreg_write(vbar_el1, (uint64_t)exception_vectors);
     isb();
+    c->arch_data[1] = 2;
     a64_ap_mmu_init();
+    c->arch_data[1] = 3;
     gic_cpu_init();
     timer_cpu_init();
+    c->arch_data[1] = 4;
     smp_ap_main(c);
 }
 
@@ -152,6 +156,7 @@ void arch_ap_boot(struct cpu *c, void *mp_info) {
     struct limine_mp_info *info = mp_info;
     info->extra_argument = (uint64_t)c;
     __atomic_store_n(&info->goto_address, (limine_goto_address)a64_ap_trampoline, __ATOMIC_SEQ_CST);
+    __asm__ volatile("dsb sy; sev" ::: "memory");      /* parked APs may be waiting in WFE */
 }
 
 static void gic_init(void) {

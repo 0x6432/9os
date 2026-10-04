@@ -1,3 +1,4 @@
+#include <kernel/sched.h>
 #include <kernel/printk.h>
 #include <kernel/arch.h>
 #include <kernel/spinlock.h>
@@ -58,9 +59,13 @@ void printk(const char *fmt, ...) {
     va_end(ap);
 }
 
+volatile bool panicking;
+void smp_stop_others(void);
 void panic(const char *fmt, ...) {
     arch_irq_disable();
-    printk("\n\x1b[41;97m KERNEL PANIC \x1b[0m ");
+    panicking = true;
+    smp_stop_others();
+    printk("\n\x1b[41;97m KERNEL PANIC \x1b[0m (cpu %d) ", this_cpu()->id);
     va_list ap; va_start(ap, fmt);
     vprintk(fmt, ap);
     va_end(ap);

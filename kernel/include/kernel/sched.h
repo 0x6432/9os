@@ -45,6 +45,7 @@ struct thread {
     int bkl_depth;                 /* big kernel lock nesting */
     int level;                     /* MLFQ priority level (0 = highest) */
     uint64_t run_ticks;            /* total ticks on CPU */
+    volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
 };
 
 struct wait_queue { struct list_node head; };
@@ -62,6 +63,7 @@ __noreturn void sched_start_ap(struct cpu *c);
 int sched_runnable_count(void);
 
 void sched_init(void);
+void sched_finish_switch(void);    /* new threads call this first */
 struct thread *thread_create(const char *name, void (*fn)(void *), void *arg);
 struct thread *thread_alloc(const char *name);   /* allocated but not runnable */
 void thread_start(struct thread *t);

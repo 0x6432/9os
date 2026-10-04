@@ -21,6 +21,7 @@ x86_switch_stack:
 /* First return target of a new thread: r12 = fn, r13 = arg */
 .global x86_thread_trampoline
 x86_thread_trampoline:
+    call sched_finish_switch
     sti
     movq %r13, %rdi
     callq *%r12

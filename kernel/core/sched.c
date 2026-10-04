@@ -163,9 +163,14 @@ static void reap_zombies(void) {
 }
 
 /* Must be called with interrupts disabled and the BKL held. */
-static void __schedule(void) {
+[[gnu::noinline]] static void __schedule(void) {
     struct cpu *c = this_cpu();
     struct thread *prev = c->cur, *next;
+    extern volatile int bkl_owner; extern void *bkl_last_ra[]; extern struct thread *bkl_last_thr[];
+    if (bkl_owner != c->id || prev != current)
+        panic("__schedule: cpu%d bkl owner %d prev %s current %s depth %d from %p %p last unlock %p by %s", c->id, bkl_owner, prev->name, current->name,
+              current->bkl_depth, __builtin_return_address(0), __builtin_return_address(1),
+              ((void **)bkl_last_ra)[c->id], ((struct thread **)bkl_last_thr)[c->id]->name);
     c->resched = false;
     if (prev->state == T_RUNNING && prev != c->idle) enqueue(prev);
     next = dequeue();
@@ -173,11 +178,24 @@ static void __schedule(void) {
     next->state = T_RUNNING;
     pick_reset_quantum(next);
     if (next == prev) return;
+    if (next->on_cpu) {
+        printk("sched: cpu%d: %s (tid %d) still live on cpu%d!\n", c->id, next->name, next->tid, next->cpu->id);
+        while (__atomic_load_n(&next->on_cpu, __ATOMIC_ACQUIRE)) arch_cpu_relax();
+    }
+    next->on_cpu = 1;
     next->cpu = c;
     c->cur = next;
     c->ctx_switches++;
+    c->prev = prev;
     arch_set_current(next);
     arch_switch_to(prev, next);
+    sched_finish_switch();
+}
+
+/* runs on the new thread right after a switch: the previous thread's context is now saved */
+void sched_finish_switch(void) {
+    struct cpu *c = this_cpu();
+    if (c->prev) { __atomic_store_n(&c->prev->on_cpu, 0, __ATOMIC_RELEASE); c->prev = nullptr; }
 }
 
 void schedule(void) {
@@ -349,6 +367,7 @@ void sched_init(void) {
     list_init(&boot->proc_node);
     list_add_tail(&all_threads, &boot->all_node);
     c->cur = boot;
+    boot->on_cpu = 1;
     arch_set_current(boot);
     boot->bkl_depth = 0;
     bkl_enter();               /* the boot CPU owns the kernel from here on */
@@ -380,6 +399,8 @@ __noreturn void sched_start_ap(struct cpu *c) {
     bkl_acquire_idle();        /* idle starts with bkl_depth 1 */
     c->online = true;
     c->cur = c->idle;
+    c->prev = d;
+    c->idle->on_cpu = 1;
     c->idle->state = T_RUNNING;
     arch_set_current(c->idle);
     arch_switch_to(d, c->idle);

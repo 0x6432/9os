@@ -1825,6 +1825,7 @@ void syscall_dispatch(struct trap_frame *f) {
 
 /* first return to user mode of a new thread (fork/clone): leaves the kernel */
 void thread_first_return(struct trap_frame *f) {
+    sched_finish_switch();
     user_return_work(f);
     bkl_exit();
 }
