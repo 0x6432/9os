@@ -14,7 +14,7 @@ void chrdev_register(unsigned major, unsigned minor, const struct file_ops *ops)
 }
 const struct file_ops *chrdev_get(uint64_t rdev) {
     for (int i = 0; i < nchrdevs; i++)
-        if (chrdevs[i].major == MAJOR(rdev) && chrdevs[i].minor == MINOR(rdev)) return chrdevs[i].ops;
+        if (chrdevs[i].major == MAJOR(rdev) && (chrdevs[i].minor == MINOR(rdev) || chrdevs[i].minor == CHRDEV_ANY_MINOR)) return chrdevs[i].ops;
     return nullptr;
 }
 
@@ -57,7 +57,7 @@ void devices_init(void) {
     static const struct { const char *name; unsigned ma, mi; uint32_t mode; } nodes[] = {
         { "/dev/null", 1, 3, 0666 }, { "/dev/zero", 1, 5, 0666 }, { "/dev/random", 1, 8, 0666 },
         { "/dev/urandom", 1, 9, 0666 }, { "/dev/tty", 5, 0, 0666 }, { "/dev/console", 5, 1, 0620 },
-        { "/dev/tty0", 4, 0, 0620 }, { "/dev/tty1", 4, 1, 0620 }, { "/dev/ttyS0", 4, 64, 0660 },
+        { "/dev/tty0", 4, 0, 0620 }, { "/dev/ptmx", 5, 2, 0666 }, { "/dev/tty1", 4, 1, 0620 }, { "/dev/ttyS0", 4, 64, 0660 },
     };
     for (size_t i = 0; i < ARRAY_SIZE(nodes); i++)
         vfs_mknod_at(nullptr, nodes[i].name, S_IFCHR | nodes[i].mode, MKDEV(nodes[i].ma, nodes[i].mi));

@@ -148,6 +148,7 @@ int vfs_lookup_parent_at(struct inode *base, const char *path, struct inode **di
 int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, struct file **out);
 int vfs_open(const char *path, int flags, uint32_t mode, struct file **out);
 struct file *file_open_inode(struct inode *ino, int flags);
+#define CHRDEV_ANY_MINOR 0xffffffffu
 void vfs_close(struct file *f);
 static inline struct file *file_get(struct file *f) { f->refcount++; return f; }
 ssize_t vfs_read(struct file *f, void *buf, size_t n);

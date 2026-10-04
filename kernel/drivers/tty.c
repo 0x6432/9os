@@ -8,6 +8,8 @@
 #include <kernel/string.h>
 #include <kernel/errno.h>
 #include <kernel/time.h>
+#include <kernel/kmalloc.h>
+#include <kernel/syscall.h>
 
 #define ISIG 0000001
 #define ICANON 0000002
@@ -41,10 +43,16 @@ static void rb_put(struct tty *t, char c) {
     if (rb_count(t) < sizeof t->rbuf) t->rbuf[t->rtail++ % sizeof t->rbuf] = c;
 }
 
-static void tty_echo(struct tty *t, const char *s, size_t n) { console_write(s, n); }
+static void tty_echo(struct tty *t, const char *s, size_t n) { t->output(t, s, n, false); }
+static ssize_t console_out(struct tty *t, const char *s, size_t n, bool may_block) { console_write(s, n); return n; }
+static struct tty *tty_of(struct file *f) { return f->priv ? f->priv : &console_tty; }
 
 void tty_init(void) {
-    struct tty *t = &console_tty;
+    tty_init_struct(&console_tty);
+    console_tty.output = console_out;
+}
+
+void tty_init_struct(struct tty *t) {
     memset(t, 0, sizeof *t);
     t->t.c_iflag = ICRNL | IXON;
     t->t.c_oflag = OPOST | ONLCR;
@@ -127,8 +135,9 @@ void tty_input(struct tty *t, char c) {
 void tty_input_str(struct tty *t, const char *s) { while (*s) tty_input(t, *s++); }
 
 static ssize_t tty_read(struct file *f, void *buf, size_t n, off_t *off) {
-    struct tty *t = &console_tty;
+    struct tty *t = tty_of(f);
     if (!n) return 0;
+    if (t->hup && !rb_count(t)) return 0;
     bool canon = t->t.c_lflag & ICANON;
     uint8_t vmin = t->t.c_cc[VMIN], vtime = t->t.c_cc[VTIME];
     if (!rb_count(t)) {
@@ -142,7 +151,7 @@ static ssize_t tty_read(struct file *f, void *buf, size_t n, off_t *off) {
             }
             if (!rb_count(t)) return 0;
         } else {
-            int r = wait_until(&t->rq, rb_count(t) || (canon && t->eof));
+            int r = wait_until(&t->rq, rb_count(t) || (canon && t->eof) || t->hup);
             if (r) return r;
             if (!rb_count(t)) { t->eof = false; return 0; }
         }
@@ -160,19 +169,22 @@ static ssize_t tty_read(struct file *f, void *buf, size_t n, off_t *off) {
 }
 
 static ssize_t tty_write(struct file *f, const void *buf, size_t n, off_t *off) {
-    console_write(buf, n);
-    return n;
+    struct tty *t = tty_of(f);
+    if (t->hup) return -EIO;
+    return t->output(t, buf, n, !(f->flags & O_NONBLOCK));
 }
 
 static unsigned tty_poll(struct file *f) {
-    struct tty *t = &console_tty;
+    struct tty *t = tty_of(f);
     unsigned r = POLLOUT | POLLWRNORM;
     if (rb_count(t) || t->eof) r |= POLLIN | POLLRDNORM;
+    if (t->hup) r |= POLLHUP | POLLIN;
     return r;
 }
 
-static int tty_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
-    struct tty *t = &console_tty;
+static int tty_ioctl_t(struct tty *t, struct file *f, uint64_t cmd, uint64_t arg);
+static int tty_ioctl(struct file *f, uint64_t cmd, uint64_t arg) { return tty_ioctl_t(tty_of(f), f, cmd, arg); }
+static int tty_ioctl_t(struct tty *t, struct file *f, uint64_t cmd, uint64_t arg) {
     struct process *p = curproc;
     switch (cmd) {
     case 0x5401: /* TCGETS */
@@ -189,12 +201,21 @@ static int tty_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
         return 0;
     }
     case 0x5413: { /* TIOCGWINSZ */
-        int cols = 80, rows = 25;
-        fbcon_get_size(&cols, &rows);
-        t->ws.ws_col = cols; t->ws.ws_row = rows;
+        if (t == &console_tty) {
+            int cols = 80, rows = 25;
+            fbcon_get_size(&cols, &rows);
+            t->ws.ws_col = cols; t->ws.ws_row = rows;
+        }
         return copy_to_user((void *)arg, &t->ws, sizeof t->ws);
     }
-    case 0x5414: return copy_from_user(&t->ws, (void *)arg, sizeof t->ws);
+    case 0x5414: { /* TIOCSWINSZ */
+        struct winsize w;
+        if (copy_from_user(&w, (void *)arg, sizeof w)) return -EFAULT;
+        bool changed = memcmp(&w, &t->ws, sizeof w) != 0;
+        t->ws = w;
+        if (changed && t->pgrp > 0) signal_send_pgrp(t->pgrp, SIGWINCH);
+        return 0;
+    }
     case 0x540F: /* TIOCGPGRP */
         return copy_to_user((void *)arg, &t->pgrp, sizeof(int));
     case 0x5410: { /* TIOCSPGRP */
@@ -223,13 +244,20 @@ static int tty_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
     }
 }
 
+/* a session leader without a controlling terminal acquires the tty it opens */
+static void maybe_acquire_ctty(struct tty *t, struct file *f) {
+    struct process *p = curproc;
+    if (p && !(f->flags & O_NOCTTY) && p->pid == p->sid && !p->ctty && t->sid == 0) {
+        p->ctty = t;
+        t->sid = p->sid;
+        t->pgrp = p->pgid;
+    }
+}
+
 static int tty_open(struct inode *ino, struct file *f) {
     struct process *p = curproc;
-    if (p && !(f->flags & O_NOCTTY) && p->pid == p->sid && !p->ctty && console_tty.sid == 0) {
-        p->ctty = &console_tty;
-        console_tty.sid = p->sid;
-        console_tty.pgrp = p->pgid;
-    }
+    if (ino->rdev == MKDEV(5, 0) && p && p->ctty) { f->priv = p->ctty; return 0; }   /* /dev/tty */
+    maybe_acquire_ctty(&console_tty, f);
     return 0;
 }
 
@@ -237,8 +265,11 @@ static const struct file_ops tty_ops = {
     .open = tty_open, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll,
 };
 
+#include "pty.inc"
+
 void tty_register_devices(void) {
     tty_init();
+    pty_register();
     chrdev_register(5, 0, &tty_ops);
     chrdev_register(5, 1, &tty_ops);
     chrdev_register(4, 0, &tty_ops);
