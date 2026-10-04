@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M13 complete — x86_64, riscv64 and aarch64 all boot BusyBox + Bash
+## Current state: M15 complete — SMP + MLFQ/RR, framebuffer graphics (fbdev, virtio-gpu) on all three arches
 
 | Milestone | Status |
 |-----------|--------|
@@ -20,7 +20,8 @@ _Updated after every milestone. Read this first when picking up the project._
 | M11 Bash | ✅ static Bash 5.2.37: loops, $(...), <(...) via /dev/fd, here-docs, jobs/wait, indexed+assoc arrays, recursion, Ctrl-C, exit back to ash |
 | M12 riscv64 | ✅ Limine/UEFI (edk2) boot, Sv48, SBI timer+console (polled input), goldfish RTC, uACPI tables, ecall syscalls (asm-generic numbers), sigreturn trampoline page, FPU (D) context; BusyBox, libctest, Bash all pass |
 | M13 aarch64 | ✅ EL1, TTBR0 (user) / TTBR1 (kernel) 4-level paging, GICv2, virtual generic timer, PL011 (polled input), PL031 RTC, PSCI poweroff, svc syscalls, rt_sigframe with fpsimd_context, TPIDR_EL0 TLS; BusyBox, libctest, Bash all pass |
-| M14 SMP | ⏳ next |
+| M14 SMP | ✅ up to 16 CPUs on all arches: big kernel lock (ticket), IPIs, TLB shootdown, per-CPU current/idle/timers, lock-free tick on secondary CPUs; `make SCHED=rr\|mlfq` |
+| M15 Graphics base | ✅ `/dev/fb0` (Linux fbdev ABI + mmap), PCI ECAM enumeration, virtio-gpu 2D driver (riscv64/aarch64 display), `fbdemo`, `schedtest` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -115,7 +116,8 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - QEMU comes from the distro package manager (`scripts/setup-env.sh` handles apt/pacman/dnf/brew) — no source build.
   UEFI firmware (edk2) is located automatically for riscv64/aarch64 (`FW_CODE=` overrides) and padded to the pflash size.
 - `make iso` refuses to build with an empty `userland/root-<arch>`: run `ARCH=<arch> userland/build-all.sh` first.
-- The agent sandbox has been wiped twice; push WIP often. (There, QEMU 11 comes from Alpine packages via apk.static.)
+- The agent sandbox has been wiped three times; push WIP often. (There, QEMU 11.1 comes from Alpine edge packages via apk.static,
+  plus `qemu-hw-display-virtio-gpu{,-pci}`; the wrappers in /data/tools/bin set `QEMU_MODULE_DIR`.)
 
 ## Next steps
 1. M14 SMP (Limine MP request; per-CPU data, run queues, IPIs, TLB shootdown).
@@ -130,3 +132,19 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - Scheduler (`core/sched.c`): one global run queue. The policy is chosen at build time: `make SCHED=rr` (default) or `make SCHED=mlfq` (4 levels with 5/10/20/40 ms quanta, demotion on allotment use, boost every 500 ms). The `on_cpu`/`sched_finish_switch` handoff guards against running a thread whose context is still live. `/proc/sched`, per-CPU `/proc/stat`, `/proc/cpuinfo`, `sched_getaffinity`, and `getcpu` are implemented.
 - `make run SMP=N` (default 4) and `scripts/smoke-test.sh ARCH WAIT cmd...` (env STEP, TIMEOUT, SMP).
 - **Next steps:** (1) Handle the timer tick on non-boot CPUs without the BKL. Idle CPUs ticking at 1 kHz contend for the lock, so the riscv/aarch64 TCG speed-up is poor. Plan: split `sched_tick` into a lock-free per-CPU part and a cpu0 global part. (2) Framebuffer: `/dev/fb0` (FBIOGET_V/FSCREENINFO + mmap) and `userland/demos/fbdemo.c` (lines, Mandelbrot, Julia, plasma); mkroot already builds `userland/demos/*.c`. (3) Test MLFQ behaviour. (4) Continue with docs/ROADMAP.md.
+
+## M15: framebuffer graphics, PCI, virtio-gpu, MLFQ check
+- `kernel/drivers/fbdev.c`: `/dev/fb0` (char 29:0) with `FBIOGET_VSCREENINFO`/`FBIOPUT_VSCREENINFO` (fixed mode)/`FBIOGET_FSCREENINFO`/`FBIOPAN_DISPLAY`/`FBIOBLANK`, read/write and `mmap`. `file_ops.mmap(f, off, len, &pa)` returns physical pages; `sys_mmap` maps them as a `VMA_PHYS` VMA (write-combining, never freed, shared across fork). fbcon pauses while fb0 is open and repaints on the last close.
+- `kernel/drivers/pci.c`: ECAM from ACPI MCFG (first 8 buses), device table, BAR decode/sizing, `pci_enable`. Logged at boot (`dmesg | grep pci`).
+- `kernel/drivers/virtio_gpu.c`: virtio-pci modern transport (common/notify caps), one polled control queue, GET_DISPLAY_INFO → RESOURCE_CREATE_2D (B8G8R8X8) → ATTACH_BACKING (one contiguous buddy block, max 4 MiB, so up to 1280x800) → SET_SCANOUT. A `vgpu-flush` kernel thread does TRANSFER_TO_HOST_2D + RESOURCE_FLUSH every 16 ms while the fb is dirty (`fb_damage()` from fbcon/fbdev write) or a client has fb0 open. It replaces the boot framebuffer via `boot_set_framebuffer()` and fbcon re-attaches. Used only when there is no firmware framebuffer, or with `virtiogpu` on the command line.
+- Why: on riscv64/aarch64 Limine refuses QEMU `ramfb` ("Framebuffer page-level overlap") and edk2 has no GOP for virtio-gpu/bochs. The Makefile now adds `QEMU_GPU=-device virtio-gpu-pci` there (override with `QEMU_GPU=`). NOTE: changing PCI devices renumbers edk2 boot entries; delete `build/<arch>/fw-vars.fd` if the firmware falls into the EFI shell.
+- MMIO structs must not be `packed` (on riscv clang splits packed stores into byte accesses, which virtio ignores).
+- Bugs fixed: `bkl_acquire_idle()` spun with IRQs enabled → a timer IRQ took a second ticket → whole-system deadlock (seen as a hang during AP bring-up on aarch64 -smp 4). Kernel threads now take TIDs from 1<<22 so init stays PID 1 (busybox init exits otherwise).
+- `userland/demos/fbdemo.c`: scenes `lines circles mandel julia plasma fern sierpinski` (`-d secs`, `-j threads`; fractals are rendered by one pthread per CPU). `userland/tests/schedtest.c`: wake-up latency of a sleeper vs N hogs. Results with -smp 1 and 3 hogs: RR avg 21 ms, MLFQ avg 0.86 ms.
+- Screenshots in tests: add `QEMUEXTRA="-monitor unix:/tmp/mon.sock,server,nowait"` and send `screendump /tmp/x.ppm` to the socket.
+- To run a test with the MLFQ build, pass `SCHED=mlfq` in the environment of `scripts/smoke-test.sh` (otherwise `make run` rebuilds with the default).
+
+## Next steps (see docs/ROADMAP.md)
+1. Phase B basics that ported software needs: COW fork, `MAP_SHARED`, AF_UNIX sockets + `SCM_RIGHTS`, `epoll`, `eventfd`/`timerfd`/`signalfd`, `memfd_create`, ptys.
+2. evdev (`/dev/input/event*`) from PS/2 and virtio-input; then DRM/KMS-lite dumb buffers on top of the fb/virtio-gpu backend.
+3. Fine-grained locking + per-CPU run queues (M16 in the roadmap); interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2.
