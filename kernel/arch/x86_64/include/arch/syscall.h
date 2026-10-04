@@ -9,6 +9,9 @@
 #define SC_ARG3(f)  ((f)->r10)
 #define SC_ARG4(f)  ((f)->r8)
 #define SC_ARG5(f)  ((f)->r9)
+#define SC_RET(f) ((f)->rax)
+#define FRAME_IS_SYSCALL(f) ((f)->vector == SYSCALL_VECTOR_MARK)
+#define ARCH_PLATFORM "x86_64"
 #define SC_SET_RET(f, v) ((f)->rax = (uint64_t)(v))
 #define FRAME_PC(f) ((f)->rip)
 #define FRAME_SP(f) ((f)->rsp)

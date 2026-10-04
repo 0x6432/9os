@@ -24,6 +24,7 @@ struct mm {
     vaddr_t brk_start, brk;
     vaddr_t mmap_hint;
     int refcount;
+    vaddr_t sigtramp;       /* user sigreturn trampoline (archs without SA_RESTORER) */
 };
 
 struct mm *mm_create(void);

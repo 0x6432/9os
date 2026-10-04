@@ -87,6 +87,15 @@ static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], ui
                        VMA_ANON | VMA_STACK, true);
     if (r < 0) return (int)r;
     uint64_t sp = USER_TOP;
+#ifdef ARCH_SIGTRAMP_CODE
+    {   /* tiny "vDSO": rt_sigreturn trampoline used as the signal handler return address */
+        static const uint32_t code[] = { ARCH_SIGTRAMP_CODE };
+        vaddr_t va = USER_TOP - USER_STACK_SIZE - 0x10000;
+        if (mm_map(mm, va, PAGE_SIZE, VM_READ | VM_EXEC, VMA_ANON, true) == (int64_t)va &&
+            !mm_write(mm, va, code, sizeof code))
+            mm->sigtramp = va;
+    }
+#endif
     int argc = 0, envc = 0;
     while (argv && argv[argc]) argc++;
     while (envp && envp[envc]) envc++;
@@ -101,8 +110,8 @@ static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], ui
     sp &= ~15ULL;
     push(mm, &sp, rnd, 16);
     uint64_t random_va = sp;
-    const char *plat = "x86_64";
-    push(mm, &sp, plat, 7);
+    const char *plat = ARCH_PLATFORM;
+    push(mm, &sp, plat, strlen(plat) + 1);
     uint64_t plat_va = sp;
     uint64_t auxv[] = {
         AT_PHDR, phdr, AT_PHENT, sizeof(Elf64_Phdr), AT_PHNUM, phnum, AT_PAGESZ, PAGE_SIZE,

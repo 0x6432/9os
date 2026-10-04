@@ -124,8 +124,8 @@ void signal_deliver(struct trap_frame *f) {
     struct k_sigaction *ka = &p->sigactions[sig];
 
     /* syscall restart handling */
-    bool in_syscall = f->vector == SYSCALL_VECTOR_MARK;
-    int64_t ret = (int64_t)SC_NR(f);
+    bool in_syscall = FRAME_IS_SYSCALL(f);
+    int64_t ret = (int64_t)SC_RET(f);
     if (in_syscall && ret == -EINTR && ka->handler != SIG_DFL && ka->handler != SIG_IGN &&
         (ka->flags & SA_RESTART)) {
         uint64_t nr = t->last_syscall;
@@ -226,7 +226,7 @@ int64_t sys_rt_sigreturn(void) {
     uint64_t mask;
     if (arch_sigreturn(f, &mask)) process_exit(SIGSEGV);
     current->sig_mask = mask & ~UNBLOCKABLE;
-    return (int64_t)SC_NR(f);       /* keep restored rax / a0 / x0 */
+    return (int64_t)SC_RET(f);      /* keep restored rax / a0 / x0 */
 }
 
 int64_t sys_sigaltstack(const uint64_t *ss, uint64_t *old) {

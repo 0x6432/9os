@@ -1,0 +1,74 @@
+/* aarch64 trap dispatch. */
+#include <kernel/printk.h>
+#include <kernel/process.h>
+#include <kernel/signal.h>
+#include <kernel/mm.h>
+#include <kernel/sched.h>
+#include <arch/trapframe.h>
+#include <arch/cpu.h>
+
+void syscall_dispatch(struct trap_frame *f);
+void user_return_work(struct trap_frame *f);
+void a64_irq(struct trap_frame *f);
+
+void dump_frame(struct trap_frame *f) {
+    printk("  pc=%016lx pstate=%08lx esr=%08lx far=%016lx sp_el0=%016lx\n", f->pc, f->pstate, f->esr, f->far, f->sp);
+    for (int i = 0; i < 31; i++) printk("  x%-2d=%016lx%s", i, f->regs[i], i % 4 == 3 ? "\n" : "");
+    printk("\n");
+    if (!trap_from_user(f)) {
+        uint64_t *fp = (uint64_t *)f->regs[29];
+        printk("  backtrace: %lx", f->regs[30]);
+        for (int i = 0; i < 12 && fp && (uint64_t)fp >= 0xffff000000000000ULL; i++) {
+            printk(" %lx", fp[1]);
+            fp = (uint64_t *)fp[0];
+        }
+        printk("\n");
+    }
+}
+
+static bool handle_abort(struct trap_frame *f, bool exec) {
+    uint64_t addr = f->far;
+    bool write = !exec && (f->esr & (1 << 6));
+    if (addr >= USER_TOP || !current || !current->proc) return false;
+    if (mm_handle_fault(current->proc->mm, addr, write, exec)) return true;
+    if (trap_from_user(f)) {
+        pr_debug("segfault pid %d at %lx pc %lx\n", current->proc->pid, addr, f->pc);
+        signal_force(current, SIGSEGV);
+        return true;
+    }
+    return false;
+}
+
+void trap_dispatch(struct trap_frame *f, int kind) {
+    if (kind == 1 || kind == 3) {
+        a64_irq(f);
+    } else if (kind == 0 || kind == 2) {
+        uint32_t ec = f->esr >> 26;
+        if (ec == 0x15 && kind == 2) {
+            f->orig_x0 = f->regs[0];
+            arch_irq_enable();
+            syscall_dispatch(f);
+            return;
+        }
+        if ((ec == 0x24 || ec == 0x25) && handle_abort(f, false)) goto out;
+        if ((ec == 0x20 || ec == 0x21) && handle_abort(f, true)) goto out;
+        if (kind == 2) {
+            int sig = SIGILL;
+            if (ec == 0x24 || ec == 0x20) sig = SIGSEGV;
+            else if (ec == 0x22 || ec == 0x26) sig = SIGBUS;
+            else if (ec == 0x3c || ec == 0x30 || ec == 0x32) sig = SIGTRAP;
+            else if (ec == 0x2c) sig = SIGFPE;
+            signal_force(current, sig);
+            goto out;
+        }
+        printk("\nexception: EC %#x\n", ec);
+        dump_frame(f);
+        panic("unhandled exception in kernel mode");
+    } else {
+        printk("\nunexpected exception vector\n");
+        dump_frame(f);
+        panic("bad vector");
+    }
+out:
+    user_return_work(f);
+}

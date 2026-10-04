@@ -13,6 +13,8 @@
 struct trap_frame *thread_user_frame(struct thread *t);
 uint64_t random_u64(void);
 int64_t sys_arch_prctl(int code, uint64_t addr);
+[[gnu::weak]] void arch_poweroff(void) {}
+[[gnu::weak]] void arch_reboot(void) {}
 
 int64_t sys_exit(int code) {
     struct process *p = curproc;
@@ -310,7 +312,18 @@ int64_t sys_getcpu(unsigned *cpu, unsigned *node) {
     if (node) copy_to_user(node, &z, 4);
     return 0;
 }
-int64_t sys_syslog(int type, char *buf, int len) { return 0; }
+int64_t sys_syslog(int type, char *buf, int len) {
+    extern size_t log_read(char *buf, size_t len);
+    if (type == 10) return 32768;                    /* SYSLOG_ACTION_SIZE_BUFFER */
+    if (type != 3 && type != 4) return 0;            /* READ_ALL / READ_CLEAR */
+    if (len < 0) return -EINVAL;
+    char *k = kmalloc(32768);
+    if (!k) return -ENOMEM;
+    size_t n = log_read(k, MIN((size_t)len, (size_t)32768));
+    int r = copy_to_user(buf, k, n);
+    kfree(k);
+    return r ? r : (int64_t)n;
+}
 int64_t sys_madvise(void) { return 0; }
 int64_t sys_zero(void) { return 0; }
 
@@ -340,8 +353,8 @@ int64_t sys_getitimer(int which, int64_t *ucur) {
 }
 
 int64_t sys_reboot(int m1, int m2, unsigned cmd, void *arg) {
-    if (cmd == 0x4321fedc || cmd == 0xcdef0123) { pr_info("system halted\n"); acpi_poweroff(); arch_halt_forever(); }
-    if (cmd == 0x01234567) { pr_info("rebooting\n"); acpi_reboot(); arch_halt_forever(); }
+    if (cmd == 0x4321fedc || cmd == 0xcdef0123) { pr_info("system halted\n"); acpi_poweroff(); arch_poweroff(); arch_halt_forever(); }
+    if (cmd == 0x01234567) { pr_info("rebooting\n"); acpi_reboot(); arch_reboot(); arch_halt_forever(); }
     return 0;
 }
 

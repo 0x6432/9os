@@ -13,4 +13,5 @@ struct limine_executable_address_response *boot_kernel_address(void);
 void *boot_rsdp(void);           /* physical address or nullptr */
 struct limine_file *boot_module(const char *cmdline);
 const char *boot_cmdline(void);
+void *boot_dtb(void);             /* flattened device tree (virtual) or nullptr */
 void boot_check(void);

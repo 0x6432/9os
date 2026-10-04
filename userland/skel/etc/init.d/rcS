@@ -1,0 +1,8 @@
+#!/bin/sh
+# 9os early userspace init (run by busybox init as sysinit)
+hostname -F /etc/hostname 2>/dev/null
+mkdir -p /tmp /var/log /home
+chmod 1777 /tmp
+echo
+echo "Welcome to 9os!  ($(uname -m), busybox $(busybox | head -1 | cut -d' ' -f2))"
+echo

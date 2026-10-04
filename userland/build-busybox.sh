@@ -8,12 +8,27 @@ SYSROOT=$TOP/sysroot/$ARCH
 # Linux UAPI headers (BusyBox needs <linux/*.h>); copy from the host for x86_64.
 if [ ! -d "$SYSROOT/include/linux" ]; then
     cp -r /usr/include/linux /usr/include/asm-generic /usr/include/mtd "$SYSROOT/include/" 2>/dev/null || true
-    [ "$ARCH" = x86_64 ] && cp -r /usr/include/asm "$SYSROOT/include/"
+    if [ "$ARCH" = x86_64 ]; then cp -r /usr/include/asm "$SYSROOT/include/"
+    else
+        # generic architectures: <asm/X.h> is <asm-generic/X.h>
+        mkdir -p "$SYSROOT/include/asm"
+        for h in /usr/include/asm-generic/*.h; do
+            n=$(basename "$h"); echo "#include <asm-generic/$n>" > "$SYSROOT/include/asm/$n"
+        done
+        echo '#include <linux/byteorder/little_endian.h>' > "$SYSROOT/include/asm/byteorder.h"
+        printf '#define __BITS_PER_LONG 64\n#include <asm-generic/bitsperlong.h>\n' > "$SYSROOT/include/asm/bitsperlong.h"
+    fi
 fi
 mkdir -p "$TOP/build"
 SRC=$TOP/build/busybox-$BB_VER
-[ -d "$SRC" ] || (cd "$TOP/build" && curl -sL https://busybox.net/downloads/busybox-$BB_VER.tar.bz2 | tar xj)
-cd "$SRC"
+B=$TOP/build/busybox-$ARCH
+if [ ! -d "$B" ]; then
+    T=/data/tools/busybox-$BB_VER.tar.bz2
+    [ -f "$T" ] || { T=$TOP/build/busybox.tar.bz2; curl -sL -o "$T" https://busybox.net/downloads/busybox-$BB_VER.tar.bz2; }
+    (cd "$TOP/build" && tar xjf "$T" && mv busybox-$BB_VER "$B")
+fi
+export ARCH
+cd "$B"
 make distclean >/dev/null 2>&1 || true
 make defconfig >/dev/null
 # static, no features that need missing kernel pieces
@@ -25,7 +40,4 @@ yes "" | make oldconfig >/dev/null 2>&1
 make -j"$(nproc)" CC="$TOP/musl-cc" HOSTCC=gcc AR=llvm-ar STRIP=llvm-strip \
      CFLAGS="-Wno-error -Wno-ignored-optimization-argument -Wno-unused-command-line-argument" busybox 2>&1 | grep -E "error|Error" | head -20 || true
 ls -la busybox
-mkdir -p "$TOP/root/bin"
-cp busybox "$TOP/root/bin/busybox"
-llvm-strip "$TOP/root/bin/busybox"
 echo "busybox installed"

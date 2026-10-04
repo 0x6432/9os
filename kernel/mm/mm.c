@@ -61,6 +61,7 @@ struct mm *mm_clone(struct mm *src) {
     struct mm *mm = mm_create();
     if (!mm) return nullptr;
     mm->brk_start = src->brk_start; mm->brk = src->brk; mm->mmap_hint = src->mmap_hint;
+    mm->sigtramp = src->sigtramp;
     list_for_each(it, &src->vmas) {
         struct vma *v = list_entry(it, struct vma, node);
         struct vma *n = vma_new(v->start, v->end, v->prot, v->flags);
