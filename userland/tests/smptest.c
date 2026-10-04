@@ -28,19 +28,23 @@ static void *worker(void *arg) {
             if (c >= 0 && c < 64) __atomic_store_n(&seen_cpu[c], 1, __ATOMIC_RELAXED);
         }
     }
+    return (void *)x;
+}
+
+static void *locker(void *arg) {
     for (int i = 0; i < 20000; i++) {
         pthread_mutex_lock(&lock);
         shared_counter++;
         pthread_mutex_unlock(&lock);
         __atomic_fetch_add(&atomic_counter, 1, __ATOMIC_RELAXED);
     }
-    return (void *)x;
+    return NULL;
 }
 
-static double run(int n) {
+static double run(int n, void *(*fn)(void *)) {
     pthread_t t[64];
     double t0 = now();
-    for (int i = 0; i < n; i++) pthread_create(&t[i], NULL, worker, NULL);
+    for (int i = 0; i < n; i++) pthread_create(&t[i], NULL, fn, NULL);
     for (int i = 0; i < n; i++) pthread_join(t[i], NULL);
     return now() - t0;
 }
@@ -50,14 +54,14 @@ int main(int argc, char **argv) {
     if (n < 1) n = 1;
     if (n > 64) n = 64;
     printf("smptest: %ld CPUs online, running %d threads\n", sysconf(_SC_NPROCESSORS_ONLN), n);
-    double t1 = run(1);
-    shared_counter = atomic_counter = 0;
+    double t1 = run(1, worker);
     for (int i = 0; i < 64; i++) seen_cpu[i] = 0;
-    double tn = run(n);
+    double tn = run(n, worker);
+    double tl = run(n, locker);
     int cpus = 0;
     for (int i = 0; i < 64; i++) cpus += seen_cpu[i];
     printf("  1 thread: %.3f s   %d threads: %.3f s   speed-up %.2fx (ideal %d)\n", t1, n, tn, n * t1 / tn, n);
-    printf("  threads ran on %d distinct CPUs\n", cpus);
+    printf("  threads ran on %d distinct CPUs; contended mutex phase %.3f s\n", cpus, tl);
     long want = 20000L * n;
     printf("  mutex counter %ld, atomic counter %ld (expected %ld)\n", shared_counter, atomic_counter, want);
     int ok = shared_counter == want && atomic_counter == want;

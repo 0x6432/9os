@@ -65,8 +65,8 @@ static void set_timer(uint64_t when) {
 }
 
 static struct tty *input_tty;
+void riscv_timer_rearm(void) { set_timer(rdtime() + tick_delta); }
 void riscv_timer_irq(void) {
-    set_timer(rdtime() + tick_delta);
     if (input_tty && this_cpu()->id == 0) for (int c; (c = sbi_getc()) >= 0;) tty_input(input_tty, (char)c);
     timer_tick();
 }

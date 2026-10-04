@@ -2,6 +2,7 @@
 #include <kernel/printk.h>
 #include <kernel/irq.h>
 #include <kernel/sched.h>
+#include <kernel/time.h>
 #include <arch/trapframe.h>
 #include <arch/gdt.h>
 #include <arch/cpu.h>
@@ -81,6 +82,13 @@ void trap_dispatch(struct trap_frame *f) {
         irq_eoi();
         ipi_handle();
         return;
+    }
+    if (v == 32) {              /* local timer: secondary CPUs usually need no lock */
+        irq_eoi();
+        if (sched_tick_fast(trap_from_user(f))) return;
+        bkl_enter();
+        timer_tick();
+        goto out;
     }
     bkl_enter();
     if (v < 32) {

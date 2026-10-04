@@ -72,6 +72,7 @@ __noreturn void thread_exit(void);
 void schedule(void);
 void sched_yield(void);
 void sched_tick(void);
+bool sched_tick_fast(bool from_user);   /* secondary CPUs: tick without the BKL */
 void thread_wake(struct thread *t);
 void sleep_ns(uint64_t ns);
 /* Block on a queue. Returns 0, or -EINTR if interrupted by a signal. */

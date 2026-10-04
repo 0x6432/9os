@@ -10,6 +10,7 @@
 #include <kernel/acpi.h>
 #include <kernel/errno.h>
 #include <arch/cpu.h>
+#include <arch/trapframe.h>
 
 extern char exception_vectors[];
 
@@ -55,7 +56,6 @@ uint64_t time_ns(void) {
 
 static struct tty *input_tty;
 static void timer_irq(void) {
-    sysreg_write(cntv_tval_el0, tick_delta);
     if (input_tty && uart && this_cpu()->id == 0)
         while (!(uart[UART_FR] & (1 << 4))) tty_input(input_tty, (char)uart[UART_DR]);
     timer_tick();
@@ -99,6 +99,10 @@ void a64_irq(struct trap_frame *f) {
         gicc[GICC_EOIR] = iar;
         ipi_handle();
         return;
+    }
+    if (id == 27) {                                             /* timer: usually lock-free on APs */
+        sysreg_write(cntv_tval_el0, tick_delta);
+        if (sched_tick_fast(trap_from_user(f))) { gicc[GICC_EOIR] = iar; return; }
     }
     bkl_enter();
     cur_irq = id;

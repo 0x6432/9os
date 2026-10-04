@@ -10,6 +10,7 @@
 void syscall_dispatch(struct trap_frame *f);
 void user_return_work(struct trap_frame *f);
 void riscv_timer_irq(void);
+void riscv_timer_rearm(void);
 
 static const char *exc_names[16] = {
     "instruction misaligned", "instruction access fault", "illegal instruction", "breakpoint",
@@ -54,6 +55,10 @@ void trap_dispatch(struct trap_frame *f) {
         csr_clear(sip, SIE_SSIE);
         ipi_handle();
         return;
+    }
+    if (c == (1ULL << 63 | 5)) {      /* timer: secondary harts usually need no lock */
+        riscv_timer_rearm();
+        if (sched_tick_fast(trap_from_user(f))) return;
     }
     if (c == 8) {
         f->sepc += 4;

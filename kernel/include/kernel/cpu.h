@@ -17,6 +17,7 @@ struct cpu {
     struct thread *idle;
     volatile bool resched;          /* need_resched flag */
     volatile bool online;
+    bool tick_accounted;           /* sched_tick_fast already did this tick's accounting */
     volatile uint32_t ipi_pending; /* IPI_* bits */
     paddr_t active_root;           /* page table root loaded on this CPU */
     uint64_t ticks, idle_ticks, ctx_switches;
