@@ -53,7 +53,7 @@ void kmain(void) {
            "riscv64"
 #endif
            ", C%ld)\n", __STDC_VERSION__);
-    pr_info("HHDM offset %p, cmdline '%s'\n", (void *)hhdm_offset, boot_cmdline());
+    pr_info("Limine base revision %lu, HHDM offset %p, cmdline '%s'\n", boot_revision(), (void *)hhdm_offset, boot_cmdline());
     struct limine_memmap_response *mm = boot_memmap();
     uint64_t usable = 0;
     for (uint64_t i = 0; i < mm->entry_count; i++)

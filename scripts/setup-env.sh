@@ -1,21 +1,27 @@
 #!/bin/sh
-# Recreate the 9os build environment from scratch (Amazon Linux 2023 / Fedora-like hosts).
-# Installs host tools, builds QEMU 9.2.3 (x86_64, riscv64, aarch64) into /data/tools/qemu,
-# fetches Limine + uACPI, then builds the userland for the requested arches.
+# Set up the 9os build environment using the distro package manager (no QEMU compile),
+# fetch Limine 11 (binary) + uACPI, then build the userland for the requested arches.
 set -e
-TOOLS=${TOOLS:-/data/tools}
+TOOLS=${TOOLS:-$HOME/.cache/9os-tools}
 cd "$(dirname "$0")/.."
-sudo dnf install -y clang lld llvm xorriso cpio mtools ninja-build glib2-devel pixman-devel \
-    flex bison bzip2 patch diffutils perl glibc-static gcc make git
-mkdir -p "$TOOLS"
-if [ ! -x "$TOOLS/qemu/bin/qemu-system-riscv64" ]; then
-    (cd "$TOOLS" && curl -sL https://download.qemu.org/qemu-9.2.3.tar.xz | tar xJ && cd qemu-9.2.3 &&
-     ./configure --prefix="$TOOLS/qemu" --target-list=x86_64-softmmu,riscv64-softmmu,aarch64-softmmu \
-         --disable-docs --disable-werror >/dev/null && make -j"$(nproc)" >/dev/null && make install >/dev/null)
+if command -v apt-get >/dev/null; then
+    sudo apt-get install -y clang lld llvm xorriso cpio mtools make gcc git curl bzip2 xz-utils \
+        qemu-system-x86 qemu-system-misc qemu-system-arm qemu-efi-aarch64 qemu-efi-riscv64 || true
+elif command -v pacman >/dev/null; then
+    sudo pacman -S --needed --noconfirm clang lld llvm libisoburn cpio mtools make gcc git curl \
+        qemu-system-x86 qemu-system-riscv qemu-system-aarch64 edk2-ovmf edk2-aarch64 edk2-riscv64 || true
+elif command -v dnf >/dev/null; then
+    sudo dnf install -y clang lld llvm xorriso cpio mtools make gcc git curl bzip2 glibc-static \
+        qemu-system-x86 qemu-system-riscv qemu-system-aarch64 edk2-aarch64 edk2-riscv64 || true
+elif command -v brew >/dev/null; then
+    brew install llvm lld xorriso cpio mtools qemu
 fi
-[ -d "$TOOLS/limine-bin" ] || { git clone -q --depth 1 --branch v9.x-binary https://github.com/limine-bootloader/limine.git "$TOOLS/limine-bin"; make -C "$TOOLS/limine-bin" >/dev/null; }
+command -v qemu-system-x86_64 >/dev/null || echo "warning: QEMU not found in PATH - install it with your package manager"
+mkdir -p "$TOOLS"
+LIMINE_TAG=v11.4.1-binary
+[ -d "$TOOLS/limine-bin" ] || { git clone -q --depth 1 --branch $LIMINE_TAG https://github.com/limine-bootloader/limine.git "$TOOLS/limine-bin"; make -C "$TOOLS/limine-bin" >/dev/null; }
 [ -d "$TOOLS/uACPI" ] || { git clone -q https://github.com/uACPI/uACPI.git "$TOOLS/uACPI"; (cd "$TOOLS/uACPI" && git checkout -q fd92d3f); }
 ln -sfn "$TOOLS/limine-bin" third_party/limine-bin
 ln -sfn "$TOOLS/uACPI" third_party/uACPI
 for a in ${ARCHES:-x86_64 riscv64 aarch64}; do ARCH=$a userland/build-all.sh; done
-echo "environment ready: export PATH=$TOOLS/qemu/bin:\$PATH"
+echo "environment ready"

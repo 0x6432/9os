@@ -2,7 +2,7 @@
 # Fetch pinned third-party dependencies (not committed to the repo).
 set -e
 cd "$(dirname "$0")/.."
-LIMINE_BRANCH=v9.x-binary
+LIMINE_BRANCH=v11.4.1-binary
 UACPI_REF=${UACPI_REF:-fd92d3f}   # uACPI 6.1.1
 if [ ! -d third_party/limine-bin ]; then
     git clone --depth 1 --branch "$LIMINE_BRANCH" https://github.com/limine-bootloader/limine.git third_party/limine-bin

@@ -11,7 +11,7 @@ CFLAGS := -std=$(CSTD) -ffreestanding -fno-builtin -nostdlib -fno-stack-protecto
           -fno-stack-check -fno-lto -fno-pic -fno-omit-frame-pointer \
           -Wall -Wextra -Wno-unused-parameter -O2 -g -MMD -MP \
           -Ikernel/include -Ithird_party/limine -Ikernel/arch/$(ARCH)/include \
-          -DLIMINE_API_REVISION=3 -D__9OS_ARCH_$(ARCH)__
+          -D__9OS_ARCH_$(ARCH)__
 
 ifeq ($(ARCH),x86_64)
 CFLAGS += --target=x86_64-unknown-none-elf -march=x86-64 -mno-red-zone -mcmodel=kernel \
@@ -72,6 +72,7 @@ $(INITRAMFS): $(shell find $(ROOTFS) -type f 2>/dev/null)
 
 LIMINE := third_party/limine-bin
 $(ISO): $(KERNEL) $(INITRAMFS) limine.conf
+	@test -x $(ROOTFS)/bin/busybox || { echo "error: $(ROOTFS) is empty - run 'ARCH=$(ARCH) userland/build-all.sh' first" >&2; exit 1; }
 	rm -rf $(BUILD)/iso && mkdir -p $(BUILD)/iso/boot/limine $(BUILD)/iso/EFI/BOOT
 	cp $(KERNEL) $(INITRAMFS) $(BUILD)/iso/boot/
 	cp limine.conf $(BUILD)/iso/boot/limine/
@@ -83,7 +84,12 @@ $(ISO): $(KERNEL) $(INITRAMFS) limine.conf
 	    --protective-msdos-label $(BUILD)/iso -o $@ 2>/dev/null
 	if [ $(ARCH) = x86_64 ]; then $(LIMINE)/limine bios-install $@ 2>/dev/null; fi
 
-QEMU_SHARE ?= $(dir $(shell which qemu-system-$(ARCH) 2>/dev/null))../share/qemu
+# UEFI firmware for riscv64/aarch64: searched in the usual distro locations (override with FW_CODE=...)
+FW_DIRS := $(dir $(shell which qemu-system-$(ARCH) 2>/dev/null))../share/qemu /usr/share/qemu /usr/share/edk2/riscv \
+           /usr/share/edk2/aarch64 /usr/share/qemu-efi-aarch64 /usr/share/AAVMF /usr/share/edk2-ovmf /usr/lib/u-boot/qemu-riscv64_smode
+FW_NAMES_riscv64 := edk2-riscv-code.fd RISCV_VIRT_CODE.fd
+FW_NAMES_aarch64 := edk2-aarch64-code.fd QEMU_EFI.fd AAVMF_CODE.fd
+FW_CODE ?= $(firstword $(wildcard $(foreach d,$(FW_DIRS),$(foreach n,$(FW_NAMES_$(ARCH)),$(d)/$(n)))))
 QEMU_x86_64 := qemu-system-x86_64 -M q35 -m 512M -serial stdio -no-reboot -cdrom $(ISO)
 QEMU_riscv64 := qemu-system-riscv64 -M virt -m 512M -serial stdio -no-reboot \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
@@ -93,14 +99,14 @@ QEMU_aarch64 := qemu-system-aarch64 -M virt -cpu cortex-a72 -m 512M -serial stdi
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd
-FW_riscv64 := edk2-riscv-code.fd
-FW_aarch64 := edk2-aarch64-code.fd
 
 .PHONY: firmware
 firmware:
 ifneq ($(ARCH),x86_64)
-	@test -f $(BUILD)/fw-code.fd || cp $(QEMU_SHARE)/$(FW_$(ARCH)) $(BUILD)/fw-code.fd
-	@test -f $(BUILD)/fw-vars.fd || (dd if=/dev/zero of=$(BUILD)/fw-vars.fd bs=1M count=$$(( $$(stat -c %s $(BUILD)/fw-code.fd) / 1048576 )) 2>/dev/null)
+	@test -n "$(FW_CODE)" || { echo "no UEFI firmware for $(ARCH) found; install edk2/qemu-efi or set FW_CODE=" >&2; exit 1; }
+	@mkdir -p $(BUILD)
+	@test -f $(BUILD)/fw-code.fd || { cp $(FW_CODE) $(BUILD)/fw-code.fd; truncate -s 32M $(BUILD)/fw-code.fd 2>/dev/null || true; }
+	@test -f $(BUILD)/fw-vars.fd || truncate -s $$(stat -c %s $(BUILD)/fw-code.fd) $(BUILD)/fw-vars.fd
 endif
 
 run: $(ISO) firmware

@@ -203,7 +203,8 @@ fp_save:
     stp q30, q31, [x0, #480]
     mrs x9, fpsr
     mrs x10, fpcr
-    stp x9, x10, [x0, #512]
+    add x11, x0, #512
+    stp x9, x10, [x11]
     ret
 
 .global fp_restore
@@ -224,14 +225,19 @@ fp_restore:
     ldp q26, q27, [x0, #416]
     ldp q28, q29, [x0, #448]
     ldp q30, q31, [x0, #480]
-    ldp x9, x10, [x0, #512]
+    add x11, x0, #512
+    ldp x9, x10, [x11]
     msr fpsr, x9
     msr fpcr, x10
     ret
 
-/* Limine entry: make sure we run on SP_EL1 (EL1h), then enter C. */
+/* Limine entry: enable FP/SIMD (CPACR_EL1 is 0 at entry with base revision 6), use SP_EL1, enter C. */
 .global kmain_entry
 kmain_entry:
+    mrs x9, cpacr_el1
+    orr x9, x9, #(3 << 20)
+    msr cpacr_el1, x9
+    isb
     mov x9, sp
     msr spsel, #1
     mov sp, x9
