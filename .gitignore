@@ -7,3 +7,4 @@ third_party/limine-bin/
 backup_m*.zip
 userland/build/
 userland/sysroot/
+userland/root/

@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M10 complete (x86_64) — BusyBox runs
+## Current state: M11 complete (x86_64) — BusyBox + Bash run
 
 | Milestone | Status |
 |-----------|--------|
@@ -17,7 +17,8 @@ _Updated after every milestone. Read this first when picking up the project._
 | M8 VFS & initramfs | ✅ VFS (path walk, symlinks, mounts), tmpfs, newc cpio initramfs, /dev nodes (null, zero, random, console/tty), pipes, TTY line discipline, PS/2 + serial input |
 | M9 Linux ABI core (musl) | ✅ musl 1.2.5 built with clang (`userland/build-musl.sh`), `userland/musl-cc` wrapper, `tests/libctest.c` passes (malloc/mmap, stdio, dirs, symlinks, pipes, fork/wait, signals, clocks) |
 | M10 BusyBox | ✅ static BusyBox 1.36.1: busybox init + inittab, ash with job control, Ctrl-C, vi, pipes, tar/gzip, awk, ps/free (procfs), RTC wall clock |
-| M11 Bash | ⏳ next |
+| M11 Bash | ✅ static Bash 5.2.37: loops, $(...), <(...) via /dev/fd, here-docs, jobs/wait, indexed+assoc arrays, recursion, Ctrl-C, exit back to ash |
+| M12 riscv64 | ⏳ next |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -90,7 +91,13 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
   fd/cwd/exe are "magic links" (`inode_ops.follow_link`).
 - RTC (`arch/x86_64/rtc.c`) sets `boot_epoch` for CLOCK_REALTIME.
 
-## Next steps (M11)
-1. Build Bash 5.2 statically against musl (`userland/build-bash.sh`, `--without-bash-malloc --enable-static-link`).
-2. Boot with `init=/bin/bash` or run `bash` from ash; exercise job control, `$(...)`, `<(...)` (needs /dev/fd), here-docs.
-3. Known gaps: no COW fork (eager copy), single CPU, no sockets, tmpfs only, PS/2 + serial input only.
+## Bash notes (M11)
+- `userland/build-bash.sh` builds `userland/build/bash/bash` (static, `--without-bash-malloc --enable-static-link`, musl-cc).
+- `userland/mkroot.sh` copies it to `/bin/bash` automatically when present. Run `bash` from ash, or boot with `init=/bin/bash`.
+
+## Next steps (M12 riscv64)
+1. Add `kernel/arch/riscv64/`: Limine boot glue, Sv48 paging, trap vector (`stvec`), SBI timer, PLIC, SBI/UART console, `ecall` syscall entry, signal frame.
+2. `arch/riscv64/include/arch/unistd.h` with asm-generic syscall numbers (no open/fork/stat — use openat/clone/fstatat); rerun `scripts/gen-syscalls.py`.
+3. Build musl for riscv64 (`userland/build-musl.sh` with ARCH) + compiler-rt builtins; then busybox.
+4. Then M13 aarch64 (GICv3, generic timer, `svc`), M14 SMP.
+5. Known gaps: no COW fork (eager copy), single CPU, no sockets, tmpfs only, PS/2 + serial input only.
