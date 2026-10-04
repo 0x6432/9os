@@ -101,7 +101,7 @@ void signal_force(struct thread *t, int sig) {
 
 void signal_send_internal_chld(struct process *parent, struct process *child) {
     struct k_sigaction *ka = &parent->sigactions[SIGCHLD];
-    if (ka->handler != SIG_DFL && ka->handler != SIG_IGN) signal_send(parent, SIGCHLD);
+    if (ka->handler != SIG_IGN) signal_send(parent, SIGCHLD);   /* SIG_DFL: queued only if blocked (signalfd) */
 }
 
 static void do_stop(struct process *p, int sig) {

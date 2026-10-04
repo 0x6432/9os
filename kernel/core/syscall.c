@@ -7,9 +7,12 @@
 typedef int64_t (*syscall_fn)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 #pragma clang diagnostic ignored "-Wdeprecated-non-prototype"
 #pragma clang diagnostic ignored "-Wstrict-prototypes"
+int64_t sys_accept();
+int64_t sys_accept4();
 int64_t sys_access();
 int64_t sys_alarm();
 int64_t sys_arch_prctl_wrap();
+int64_t sys_bind();
 int64_t sys_brk();
 int64_t sys_capget();
 int64_t sys_chdir();
@@ -74,6 +77,7 @@ int64_t sys_getrlimit();
 int64_t sys_getrusage();
 int64_t sys_getsid();
 int64_t sys_getsockname();
+int64_t sys_getsockopt();
 int64_t sys_gettid();
 int64_t sys_gettimeofday();
 int64_t sys_getuid();
@@ -82,6 +86,7 @@ int64_t sys_kill();
 int64_t sys_lchown();
 int64_t sys_link();
 int64_t sys_linkat();
+int64_t sys_listen();
 int64_t sys_lseek();
 int64_t sys_lstat();
 int64_t sys_madvise();
@@ -114,6 +119,8 @@ int64_t sys_readlink();
 int64_t sys_readlinkat();
 int64_t sys_readv();
 int64_t sys_reboot();
+int64_t sys_recvfrom();
+int64_t sys_recvmsg();
 int64_t sys_rename();
 int64_t sys_renameat();
 int64_t sys_renameat2();
@@ -129,6 +136,7 @@ int64_t sys_sched_getaffinity();
 int64_t sys_sched_yield();
 int64_t sys_select();
 int64_t sys_sendfile();
+int64_t sys_sendmsg();
 int64_t sys_sendto();
 int64_t sys_set_robust_list();
 int64_t sys_set_tid_address();
@@ -146,11 +154,14 @@ int64_t sys_setresuid();
 int64_t sys_setreuid();
 int64_t sys_setrlimit();
 int64_t sys_setsid();
+int64_t sys_setsockopt();
 int64_t sys_setuid();
+int64_t sys_shutdown();
 int64_t sys_sigaltstack();
 int64_t sys_signalfd();
 int64_t sys_signalfd4();
 int64_t sys_socket();
+int64_t sys_socketpair();
 int64_t sys_stat();
 int64_t sys_statfs();
 int64_t sys_statx();
@@ -558,6 +569,18 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #ifdef __NR_socket
     [__NR_socket] = (syscall_fn)sys_socket,
 #endif
+#ifdef __NR_socketpair
+    [__NR_socketpair] = (syscall_fn)sys_socketpair,
+#endif
+#ifdef __NR_bind
+    [__NR_bind] = (syscall_fn)sys_bind,
+#endif
+#ifdef __NR_listen
+    [__NR_listen] = (syscall_fn)sys_listen,
+#endif
+#ifdef __NR_accept
+    [__NR_accept] = (syscall_fn)sys_accept,
+#endif
 #ifdef __NR_connect
     [__NR_connect] = (syscall_fn)sys_connect,
 #endif
@@ -569,6 +592,24 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_sendto
     [__NR_sendto] = (syscall_fn)sys_sendto,
+#endif
+#ifdef __NR_recvfrom
+    [__NR_recvfrom] = (syscall_fn)sys_recvfrom,
+#endif
+#ifdef __NR_setsockopt
+    [__NR_setsockopt] = (syscall_fn)sys_setsockopt,
+#endif
+#ifdef __NR_getsockopt
+    [__NR_getsockopt] = (syscall_fn)sys_getsockopt,
+#endif
+#ifdef __NR_shutdown
+    [__NR_shutdown] = (syscall_fn)sys_shutdown,
+#endif
+#ifdef __NR_sendmsg
+    [__NR_sendmsg] = (syscall_fn)sys_sendmsg,
+#endif
+#ifdef __NR_recvmsg
+    [__NR_recvmsg] = (syscall_fn)sys_recvmsg,
 #endif
 #ifdef __NR_brk
     [__NR_brk] = (syscall_fn)sys_brk,
@@ -605,6 +646,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_madvise
     [__NR_madvise] = (syscall_fn)sys_madvise,
+#endif
+#ifdef __NR_accept4
+    [__NR_accept4] = (syscall_fn)sys_accept4,
 #endif
 #ifdef __NR_wait4
     [__NR_wait4] = (syscall_fn)sys_wait4,
