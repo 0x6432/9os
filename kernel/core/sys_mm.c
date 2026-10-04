@@ -1,4 +1,5 @@
 /* Memory-management system calls. */
+#include <kernel/pmm.h>
 #include <kernel/syscall.h>
 #include <kernel/kmalloc.h>
 #include <kernel/string.h>
@@ -49,6 +50,19 @@ int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t o
             if (r < 0) return r;
             for (size_t o = 0; o < ALIGN_UP(len, PAGE_SIZE); o += PAGE_SIZE)
                 vmm_map(mm->pt, r + o, pa + o, prot_to_vm(prot) | VM_USER | VM_WC);
+            return r;
+        }
+        if ((flags & MAP_SHARED) && f->fops && f->fops->mmap_page) {   /* shared file pages (tmpfs/memfd) */
+            bool fx = flags & (MAP_FIXED | MAP_FIXED_NOREPLACE);
+            int64_t r = mm_map(mm, addr, len, prot_to_vm(prot), VMA_SHARED, fx);
+            if (r < 0) return r;
+            for (size_t o = 0; o < ALIGN_UP(len, PAGE_SIZE); o += PAGE_SIZE) {
+                paddr_t pa;
+                int e = f->fops->mmap_page(f, (off + o) / PAGE_SIZE, &pa);
+                if (e) { mm_unmap(mm, r, len); return e; }
+                phys_to_page(pa)->refcount++;
+                if (vmm_map(mm->pt, r + o, pa, prot_to_vm(prot) | VM_USER)) { page_put_pa(pa); mm_unmap(mm, r, len); return -ENOMEM; }
+            }
             return r;
         }
         if (!f->fops || !f->fops->read) return -ENODEV;

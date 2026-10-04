@@ -77,7 +77,7 @@ static int t_create(struct inode *dir, const char *name, uint32_t mode, uint64_t
 static void t_evict(struct inode *i) {
     if (S_ISREG(i->mode)) {
         struct tfile *f = i->priv;
-        for (size_t k = 0; k < f->npages; k++) if (f->pages[k]) pmm_free_pages(f->pages[k], 0);
+        for (size_t k = 0; k < f->npages; k++) if (f->pages[k]) page_put_pa(f->pages[k]);
         kfree(f->pages);
         kfree(f);
     } else if (S_ISLNK(i->mode) || S_ISDIR(i->mode)) {
@@ -177,7 +177,7 @@ static int t_truncate(struct inode *i, uint64_t size) {
     size_t need = (size + PAGE_SIZE - 1) / PAGE_SIZE;
     if (size < i->size) {
         for (size_t k = need; k < f->npages; k++)
-            if (f->pages[k]) { pmm_free_pages(f->pages[k], 0); f->pages[k] = 0; }
+            if (f->pages[k]) { page_put_pa(f->pages[k]); f->pages[k] = 0; }
         if (size % PAGE_SIZE && need && f->pages[need - 1])
             memset((uint8_t *)PHYS_TO_VIRT(f->pages[need - 1]) + size % PAGE_SIZE, 0, PAGE_SIZE - size % PAGE_SIZE);
     } else if (ensure_pages(f, need)) return -ENOMEM;
@@ -254,7 +254,18 @@ static const struct inode_ops tmpfs_iops = {
     .readlink = t_readlink, .link = t_link, .rename = t_rename, .truncate = t_truncate,
     .iterate = t_iterate, .evict = t_evict,
 };
-static const struct file_ops tmpfs_fops = { .read = t_read, .write = t_write, .poll = t_poll };
+/* MAP_SHARED: hand out the page cache page itself (allocating holes). */
+static int t_mmap_page(struct file *fl, uint64_t pgoff, paddr_t *pa) {
+    struct tfile *f = fl->inode->priv;
+    if (ensure_pages(f, pgoff + 1)) return -ENOMEM;
+    if (!f->pages[pgoff] && !(f->pages[pgoff] = pmm_alloc_zeroed(0))) return -ENOMEM;
+    *pa = f->pages[pgoff];
+    return 0;
+}
+static const struct file_ops tmpfs_fops = { .read = t_read, .write = t_write, .poll = t_poll, .mmap_page = t_mmap_page };
+
+/* unlinked regular file (memfd_create, O_TMPFILE) */
+struct inode *tmpfs_create_anon(uint32_t mode) { return tmpfs_new(mode, 0); }
 static const struct file_ops tmpfs_dir_fops = { .poll = t_poll };
 
 struct inode *tmpfs_create_root(void) {

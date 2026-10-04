@@ -4,7 +4,7 @@ import re, glob, sys, os
 os.chdir(os.path.join(os.path.dirname(__file__), '..', 'kernel'))
 arch = sys.argv[1] if len(sys.argv) > 1 else 'x86_64'
 defs = set()
-for f in glob.glob('core/sys_*.c') + ['core/signal.c'] + glob.glob('arch/*/user.c'):
+for f in glob.glob('core/sys_*.c') + ['core/signal.c', 'fs/anonfd.c'] + glob.glob('net/*.c') + glob.glob('arch/*/user.c'):
     defs |= set(re.findall(r'^int64_t (sys_\w+)\(', open(f).read(), re.M))
 alias = {'arch_prctl':'sys_arch_prctl_wrap','madvise':'sys_madvise','fadvise64':'sys_zero','fdatasync':'sys_fsync',
          'syncfs':'sys_fsync','msync':'sys_zero','mlock':'sys_zero','munlock':'sys_zero','flock':'sys_zero',

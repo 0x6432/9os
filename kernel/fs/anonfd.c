@@ -1,0 +1,441 @@
+/*
+ * Anonymous-inode file descriptors used by event loops (libwayland, wlroots, glib, systemd-ish
+ * code): eventfd, timerfd, signalfd, epoll and memfd.
+ *
+ * Readiness is reported through file_ops.poll; waiters sleep on the global poll_wq (woken by
+ * poll_notify()) like poll/select. epoll keeps no reference on registered files: an item is
+ * only live while the registering fd still refers to the same struct file in the caller's fd
+ * table, which gives the "closed fds disappear from the set" behaviour without UAF.
+ */
+#include <kernel/vfs.h>
+#include <kernel/syscall.h>
+#include <kernel/kmalloc.h>
+#include <kernel/string.h>
+#include <kernel/errno.h>
+#include <kernel/process.h>
+#include <kernel/sched.h>
+#include <kernel/signal.h>
+#include <kernel/time.h>
+#include <kernel/mm.h>
+#include <kernel/arch.h>
+
+static int anon_fd(const struct file_ops *ops, void *priv, int flags, unsigned mode) {
+    struct inode *i = inode_alloc(mode);
+    if (!i) return -ENOMEM;
+    i->fops = ops;
+    struct file *f = file_open_inode(i, O_RDWR | (flags & O_NONBLOCK));
+    iput(i);
+    if (!f) return -ENOMEM;
+    f->priv = priv;
+    int fd = fd_alloc(f, 0, flags & O_CLOEXEC);
+    if (fd < 0) vfs_close(f);
+    return fd;
+}
+
+/* wait for cond with poll_wq; honours O_NONBLOCK and signals */
+#define WAIT_READY(f, cond) ({ int __r = 0; \
+    while (!(cond)) { \
+        if ((f)->flags & O_NONBLOCK) { __r = -EAGAIN; break; } \
+        uint64_t __fl = arch_irq_save(); \
+        if (!(cond)) __r = wait_event(&poll_wq); \
+        arch_irq_restore(__fl); \
+        if (__r) break; \
+    } __r; })
+
+/* ------------------------------------------------------------------ eventfd */
+struct eventfd { uint64_t count; bool semaphore; };
+
+static ssize_t efd_read(struct file *f, void *buf, size_t n, off_t *off) {
+    struct eventfd *e = f->priv;
+    if (n < 8) return -EINVAL;
+    int r = WAIT_READY(f, e->count > 0);
+    if (r) return r;
+    uint64_t v = e->semaphore ? 1 : e->count;
+    e->count -= v;
+    memcpy(buf, &v, 8);
+    poll_notify();
+    return 8;
+}
+static ssize_t efd_write(struct file *f, const void *buf, size_t n, off_t *off) {
+    struct eventfd *e = f->priv;
+    if (n < 8) return -EINVAL;
+    uint64_t v; memcpy(&v, buf, 8);
+    if (v == UINT64_MAX) return -EINVAL;
+    int r = WAIT_READY(f, UINT64_MAX - 1 - e->count >= v);
+    if (r) return r;
+    e->count += v;
+    poll_notify();
+    return 8;
+}
+static unsigned efd_poll(struct file *f) {
+    struct eventfd *e = f->priv;
+    return (e->count ? POLLIN | POLLRDNORM : 0) | (e->count < UINT64_MAX - 1 ? POLLOUT | POLLWRNORM : 0);
+}
+static void priv_release(struct file *f) { kfree(f->priv); f->priv = nullptr; }
+static const struct file_ops eventfd_fops = { .read = efd_read, .write = efd_write, .poll = efd_poll, .release = priv_release };
+
+#define EFD_SEMAPHORE 1
+int64_t sys_eventfd2(unsigned initval, int flags) {
+    struct eventfd *e = kzalloc(sizeof *e);
+    if (!e) return -ENOMEM;
+    e->count = initval; e->semaphore = flags & EFD_SEMAPHORE;
+    int fd = anon_fd(&eventfd_fops, e, flags, 0600);
+    if (fd < 0) kfree(e);
+    return fd;
+}
+int64_t sys_eventfd(unsigned initval) { return sys_eventfd2(initval, 0); }
+
+/* ------------------------------------------------------------------ timerfd */
+struct itimerspec_k { struct timespec interval, value; };
+struct timerfd {
+    struct list_node node;      /* armed list */
+    int clock;
+    bool armed;
+    uint64_t expires, interval; /* monotonic ns */
+    uint64_t ticks;
+};
+static struct list_node armed_timers = LIST_INIT(armed_timers);
+static volatile uint64_t next_expiry = UINT64_MAX;
+
+static void recompute_next(void) {
+    uint64_t n = UINT64_MAX;
+    list_for_each(it, &armed_timers) {
+        struct timerfd *t = list_entry(it, struct timerfd, node);
+        if (t->expires < n) n = t->expires;
+    }
+    next_expiry = n;
+}
+
+/* called from the cpu0 timer tick */
+void timerfd_tick(uint64_t now) {
+    if (now < next_expiry) return;
+    bool fired = false;
+    list_for_each_safe(it, tmp, &armed_timers) {
+        struct timerfd *t = list_entry(it, struct timerfd, node);
+        if (now < t->expires) continue;
+        uint64_t n = 1;
+        if (t->interval) { n += (now - t->expires) / t->interval; t->expires += n * t->interval; }
+        else { t->armed = false; list_del(&t->node); }
+        t->ticks += n;
+        fired = true;
+    }
+    recompute_next();
+    if (fired) poll_notify();
+}
+
+static uint64_t ts_ns(const struct timespec *ts) { return ts->tv_sec * 1000000000ull + ts->tv_nsec; }
+static struct timespec ns_ts(uint64_t ns) { return (struct timespec){ ns / 1000000000ull, ns % 1000000000ull }; }
+static uint64_t clock_offset(int clock) { return clock == 0 ? (uint64_t)boot_epoch * 1000000000ull : 0; } /* REALTIME */
+
+static ssize_t tfd_read(struct file *f, void *buf, size_t n, off_t *off) {
+    struct timerfd *t = f->priv;
+    if (n < 8) return -EINVAL;
+    int r = WAIT_READY(f, t->ticks > 0);
+    if (r) return r;
+    uint64_t f0 = arch_irq_save();
+    uint64_t v = t->ticks; t->ticks = 0;
+    arch_irq_restore(f0);
+    memcpy(buf, &v, 8);
+    return 8;
+}
+static unsigned tfd_poll(struct file *f) { return ((struct timerfd *)f->priv)->ticks ? POLLIN | POLLRDNORM : 0; }
+static void tfd_release(struct file *f) {
+    struct timerfd *t = f->priv;
+    uint64_t fl = arch_irq_save();
+    if (t->armed) list_del(&t->node);
+    recompute_next();
+    arch_irq_restore(fl);
+    kfree(t);
+}
+static const struct file_ops timerfd_fops = { .read = tfd_read, .poll = tfd_poll, .release = tfd_release };
+
+int64_t sys_timerfd_create(int clock, int flags) {
+    if (clock != 0 && clock != 1 && clock != 7 && clock != 8 && clock != 9) return -EINVAL;
+    struct timerfd *t = kzalloc(sizeof *t);
+    if (!t) return -ENOMEM;
+    t->clock = clock;
+    int fd = anon_fd(&timerfd_fops, t, flags, 0600);
+    if (fd < 0) kfree(t);
+    return fd;
+}
+
+static struct timerfd *get_timerfd(int fd) {
+    struct file *f = fd_get(fd);
+    return f && f->fops == &timerfd_fops ? f->priv : nullptr;
+}
+
+static void timer_value(struct timerfd *t, struct itimerspec_k *out) {
+    uint64_t now = time_ns();
+    out->interval = ns_ts(t->interval);
+    out->value = ns_ts(t->armed ? (t->expires > now ? t->expires - now : 1) : 0);
+}
+
+int64_t sys_timerfd_settime(int fd, int flags, const struct itimerspec_k *unew, struct itimerspec_k *uold) {
+    struct timerfd *t = get_timerfd(fd);
+    if (!t) return -EBADF;
+    struct itimerspec_k nv;
+    if (copy_from_user(&nv, unew, sizeof nv)) return -EFAULT;
+    if (uold) { struct itimerspec_k o; timer_value(t, &o); if (copy_to_user(uold, &o, sizeof o)) return -EFAULT; }
+    uint64_t fl = arch_irq_save();
+    if (t->armed) { list_del(&t->node); t->armed = false; }
+    t->ticks = 0;
+    uint64_t v = ts_ns(&nv.value);
+    if (v) {
+        uint64_t now = time_ns();
+        if (flags & 1) {                                  /* TFD_TIMER_ABSTIME */
+            uint64_t off = clock_offset(t->clock);
+            t->expires = v > off ? v - off : 0;
+        } else t->expires = now + v;
+        t->interval = ts_ns(&nv.interval);
+        t->armed = true;
+        list_add_tail(&armed_timers, &t->node);
+    }
+    recompute_next();
+    arch_irq_restore(fl);
+    return 0;
+}
+int64_t sys_timerfd_gettime(int fd, struct itimerspec_k *ucur) {
+    struct timerfd *t = get_timerfd(fd);
+    if (!t) return -EBADF;
+    struct itimerspec_k o; timer_value(t, &o);
+    return copy_to_user(ucur, &o, sizeof o) ? -EFAULT : 0;
+}
+
+/* ------------------------------------------------------------------ signalfd */
+struct signalfd { uint64_t mask; };
+struct signalfd_siginfo { uint32_t signo; int32_t err, code; uint32_t pid, uid; int32_t fd; uint32_t tid, band, overrun, trapno;
+    int32_t status, int_; uint64_t ptr, utime, stime, addr; uint16_t addr_lsb; uint8_t pad[46]; };
+_Static_assert(sizeof(struct signalfd_siginfo) == 128, "signalfd_siginfo ABI");
+
+static uint64_t sfd_pending(struct signalfd *s) {
+    return (current->sig_pending | (curproc ? curproc->sig_pending : 0)) & s->mask;
+}
+static ssize_t sfd_read(struct file *f, void *buf, size_t n, off_t *off) {
+    struct signalfd *s = f->priv;
+    if (n < sizeof(struct signalfd_siginfo)) return -EINVAL;
+    int r = WAIT_READY(f, sfd_pending(s));
+    if (r) return r;
+    size_t done = 0;
+    while (done + sizeof(struct signalfd_siginfo) <= n) {
+        uint64_t fl = arch_irq_save();
+        uint64_t p = sfd_pending(s);
+        if (!p) { arch_irq_restore(fl); break; }
+        int sig = __builtin_ctzll(p) + 1;
+        uint64_t bit = SIGBIT(sig);
+        if (current->sig_pending & bit) current->sig_pending &= ~bit; else curproc->sig_pending &= ~bit;
+        arch_irq_restore(fl);
+        struct signalfd_siginfo si = { .signo = sig };
+        memcpy((uint8_t *)buf + done, &si, sizeof si);
+        done += sizeof si;
+    }
+    return done;
+}
+static unsigned sfd_poll(struct file *f) { return sfd_pending(f->priv) ? POLLIN | POLLRDNORM : 0; }
+static const struct file_ops signalfd_fops = { .read = sfd_read, .poll = sfd_poll, .release = priv_release };
+
+int64_t sys_signalfd4(int fd, const uint64_t *umask, size_t sz, int flags) {
+    uint64_t mask;
+    if (sz != 8) return -EINVAL;
+    if (copy_from_user(&mask, umask, 8)) return -EFAULT;
+    mask &= ~(SIGBIT(SIGKILL) | SIGBIT(SIGSTOP));
+    if (fd != -1) {
+        struct file *f = fd_get(fd);
+        if (!f || f->fops != &signalfd_fops) return -EINVAL;
+        ((struct signalfd *)f->priv)->mask = mask;
+        return fd;
+    }
+    struct signalfd *s = kzalloc(sizeof *s);
+    if (!s) return -ENOMEM;
+    s->mask = mask;
+    int r = anon_fd(&signalfd_fops, s, flags, 0600);
+    if (r < 0) kfree(s);
+    return r;
+}
+int64_t sys_signalfd(int fd, const uint64_t *umask, size_t sz) { return sys_signalfd4(fd, umask, sz, 0); }
+
+/* ------------------------------------------------------------------ epoll */
+#define EPOLLIN 0x001
+#define EPOLLOUT 0x004
+#define EPOLLERR 0x008
+#define EPOLLHUP 0x010
+#define EPOLLRDHUP 0x2000
+#define EPOLLEXCLUSIVE (1u << 28)
+#define EPOLLWAKEUP (1u << 29)
+#define EPOLLONESHOT (1u << 30)
+#define EPOLLET (1u << 31)
+
+#ifdef __x86_64__
+struct epoll_event_u { uint32_t events; uint64_t data; } __attribute__((packed));
+#else
+struct epoll_event_u { uint32_t events; uint64_t data; };
+#endif
+
+struct epitem { struct list_node node; int fd; struct file *f; uint32_t events; uint64_t data; bool disabled; unsigned last; };
+struct epoll { struct list_node items; int depth; };
+
+static unsigned file_poll(struct file *f) {
+    return f->fops && f->fops->poll ? f->fops->poll(f) : (POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM);
+}
+
+static bool item_live(struct epitem *it) { return fd_get(it->fd) == it->f; }
+
+/* Collect ready events. Edge-triggered items are level-triggered for input (consumers drain
+ * to EAGAIN anyway) but only report EPOLLOUT on a not-writable -> writable transition. */
+static int ep_scan(struct epoll *ep, struct epoll_event_u *out, int max) {
+    int n = 0;
+    if (ep->depth > 4) return 0;
+    ep->depth++;
+    list_for_each_safe(i, tmp, &ep->items) {
+        struct epitem *it = list_entry(i, struct epitem, node);
+        if (!item_live(it)) { list_del(&it->node); kfree(it); continue; }
+        if (it->disabled) continue;
+        unsigned ready = file_poll(it->f) & (it->events | EPOLLERR | EPOLLHUP);
+        if (it->events & EPOLLET) {
+            unsigned prev = it->last;
+            it->last = ready;
+            if ((ready & EPOLLOUT) && (prev & EPOLLOUT)) ready &= ~EPOLLOUT;
+        }
+        if (!ready) continue;
+        if (out) {
+            if (n >= max) break;
+            out[n] = (struct epoll_event_u){ ready, it->data };
+            if (it->events & EPOLLONESHOT) it->disabled = true;
+        }
+        n++;
+        if (!out) break;
+    }
+    ep->depth--;
+    return n;
+}
+
+static unsigned ep_poll(struct file *f) {
+    struct epoll *ep = f->priv;
+    if (ep->depth) return 0;
+    /* peek without consuming edge state */
+    int n = 0;
+    ep->depth++;
+    list_for_each(i, &ep->items) {
+        struct epitem *it = list_entry(i, struct epitem, node);
+        if (it->disabled || !item_live(it)) continue;
+        if (file_poll(it->f) & (it->events | EPOLLERR | EPOLLHUP) & ~EPOLLET) { n = 1; break; }
+    }
+    ep->depth--;
+    return n ? POLLIN | POLLRDNORM : 0;
+}
+static void ep_release(struct file *f) {
+    struct epoll *ep = f->priv;
+    list_for_each_safe(i, tmp, &ep->items) { list_del(i); kfree(list_entry(i, struct epitem, node)); }
+    kfree(ep);
+}
+static const struct file_ops epoll_fops = { .poll = ep_poll, .release = ep_release };
+
+int64_t sys_epoll_create1(int flags) {
+    struct epoll *ep = kzalloc(sizeof *ep);
+    if (!ep) return -ENOMEM;
+    list_init(&ep->items);
+    int fd = anon_fd(&epoll_fops, ep, flags & O_CLOEXEC, 0600);
+    if (fd < 0) kfree(ep);
+    return fd;
+}
+int64_t sys_epoll_create(int size) { return size <= 0 ? -EINVAL : sys_epoll_create1(0); }
+
+int64_t sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event_u *uev) {
+    struct file *ef = fd_get(epfd);
+    if (!ef) return -EBADF;
+    if (ef->fops != &epoll_fops) return -EINVAL;
+    struct file *f = fd_get(fd);
+    if (!f) return -EBADF;
+    if (f == ef) return -EINVAL;
+    struct epoll *ep = ef->priv;
+    struct epoll_event_u ev = {0};
+    if (op != 2 && copy_from_user(&ev, uev, sizeof ev)) return -EFAULT;
+    struct epitem *found = nullptr;
+    list_for_each_safe(i, tmp, &ep->items) {
+        struct epitem *it = list_entry(i, struct epitem, node);
+        if (!item_live(it)) { list_del(&it->node); kfree(it); continue; }
+        if (it->fd == fd && it->f == f) found = it;
+    }
+    switch (op) {
+    case 1:                                                   /* EPOLL_CTL_ADD */
+        if (found) return -EEXIST;
+        found = kzalloc(sizeof *found);
+        if (!found) return -ENOMEM;
+        found->fd = fd; found->f = f;
+        found->events = ev.events; found->data = ev.data;
+        list_add_tail(&ep->items, &found->node);
+        break;
+    case 2:                                                   /* EPOLL_CTL_DEL */
+        if (!found) return -ENOENT;
+        list_del(&found->node); kfree(found);
+        break;
+    case 3:                                                   /* EPOLL_CTL_MOD */
+        if (!found) return -ENOENT;
+        found->events = ev.events; found->data = ev.data; found->disabled = false; found->last = 0;
+        break;
+    default: return -EINVAL;
+    }
+    poll_notify();
+    return 0;
+}
+
+int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms, const uint64_t *usig, size_t sz) {
+    struct file *ef = fd_get(epfd);
+    if (!ef) return -EBADF;
+    if (ef->fops != &epoll_fops) return -EINVAL;
+    if (max <= 0 || max > 4096) return -EINVAL;
+    struct epoll *ep = ef->priv;
+    uint64_t oldmask = current->sig_mask;
+    if (usig) {
+        uint64_t m;
+        if (copy_from_user(&m, usig, 8)) return -EFAULT;
+        current->sig_mask = m & ~(SIGBIT(SIGKILL) | SIGBIT(SIGSTOP));
+    }
+    struct epoll_event_u *ev = kmalloc(sizeof *ev * max);
+    if (!ev) return -ENOMEM;
+    uint64_t deadline = timeout_ms < 0 ? UINT64_MAX : time_ns() + (uint64_t)timeout_ms * 1000000ull;
+    int64_t r;
+    for (;;) {
+        uint64_t fl = arch_irq_save();
+        r = ep_scan(ep, ev, max);
+        if (r || timeout_ms == 0) { arch_irq_restore(fl); break; }
+        uint64_t now = time_ns();
+        if (now >= deadline) { arch_irq_restore(fl); r = 0; break; }
+        int w = wait_event_timeout(&poll_wq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        arch_irq_restore(fl);
+        if (w == -EINTR) { r = -EINTR; break; }
+    }
+    if (r > 0 && copy_to_user(uev, ev, sizeof *ev * r)) r = -EFAULT;
+    kfree(ev);
+    if (usig) {
+        if (r == -EINTR) { current->saved_mask = oldmask; current->restore_mask = true; }
+        else current->sig_mask = oldmask;
+    }
+    return r;
+}
+int64_t sys_epoll_wait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms) {
+    return sys_epoll_pwait(epfd, uev, max, timeout_ms, nullptr, 8);
+}
+int64_t sys_epoll_pwait2(int epfd, struct epoll_event_u *uev, int max, const struct timespec *uts, const uint64_t *usig, size_t sz) {
+    int ms = -1;
+    if (uts) { struct timespec ts; if (copy_from_user(&ts, uts, sizeof ts)) return -EFAULT; ms = ts.tv_sec * 1000 + (ts.tv_nsec + 999999) / 1000000; }
+    return sys_epoll_pwait(epfd, uev, max, ms, usig, sz);
+}
+
+/* ------------------------------------------------------------------ memfd */
+struct inode *tmpfs_create_anon(uint32_t mode);
+#define MFD_CLOEXEC 1
+int64_t sys_memfd_create(const char *uname, unsigned flags) {
+    char name[250];
+    if (strncpy_from_user(name, uname, sizeof name) < 0) return -EFAULT;
+    struct inode *i = tmpfs_create_anon(S_IFREG | 0777);
+    if (!i) return -ENOMEM;
+    struct file *f = file_open_inode(i, O_RDWR);
+    iput(i);
+    if (!f) return -ENOMEM;
+    size_t l = strlen(name);
+    f->path = kmalloc(l + 8);
+    if (f->path) { memcpy(f->path, "/memfd:", 7); memcpy(f->path + 7, name, l + 1); }
+    int fd = fd_alloc(f, 0, flags & MFD_CLOEXEC);
+    if (fd < 0) vfs_close(f);
+    return fd;
+}

@@ -62,14 +62,19 @@ void signal_send(struct process *p, int sig) {
         continue_process(p);
     }
     if (bit & STOP_SIGS) p->sig_pending &= ~SIGBIT(SIGCONT);
+    /* like Linux, a signal blocked by the (first) thread is queued even if its default action
+     * is to ignore it, so sigwait/signalfd can still collect e.g. SIGCHLD */
+    struct thread *t0 = list_empty(&p->threads) ? nullptr : list_entry(p->threads.next, struct thread, proc_node);
+    bool blocked = t0 && (t0->sig_mask & bit);
     bool ignored = sig != SIGKILL && sig != SIGSTOP &&
-                   (ka->handler == SIG_IGN || (ka->handler == SIG_DFL && (bit & IGNORE_SIGS)));
+                   (ka->handler == SIG_IGN || (ka->handler == SIG_DFL && (bit & IGNORE_SIGS) && !blocked));
     if (!ignored) {
         p->sig_pending |= bit;
         list_for_each(it, &p->threads) {
             struct thread *t = list_entry(it, struct thread, proc_node);
             if (!(t->sig_mask & bit) || (bit & UNBLOCKABLE)) { kick_thread(t); break; }
         }
+        poll_notify();                       /* signalfd readers */
     }
     arch_irq_restore(f);
 }

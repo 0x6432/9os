@@ -94,6 +94,8 @@ struct file_ops {
     void (*release)(struct file *f);
     /* device memory mapping: physical address backing [off, off+len), or -errno */
     int (*mmap)(struct file *f, uint64_t off, size_t len, paddr_t *pa);
+    /* MAP_SHARED of page-cache backed files: page at pgoff (caller takes a reference) */
+    int (*mmap_page)(struct file *f, uint64_t pgoff, paddr_t *pa);
 };
 
 struct inode {

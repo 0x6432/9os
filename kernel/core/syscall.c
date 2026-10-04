@@ -27,6 +27,14 @@ int64_t sys_creat();
 int64_t sys_dup();
 int64_t sys_dup2();
 int64_t sys_dup3();
+int64_t sys_epoll_create();
+int64_t sys_epoll_create1();
+int64_t sys_epoll_ctl();
+int64_t sys_epoll_pwait();
+int64_t sys_epoll_pwait2();
+int64_t sys_epoll_wait();
+int64_t sys_eventfd();
+int64_t sys_eventfd2();
 int64_t sys_execve();
 int64_t sys_exit();
 int64_t sys_exit_group();
@@ -77,6 +85,7 @@ int64_t sys_linkat();
 int64_t sys_lseek();
 int64_t sys_lstat();
 int64_t sys_madvise();
+int64_t sys_memfd_create();
 int64_t sys_mkdir();
 int64_t sys_mkdirat();
 int64_t sys_mknod();
@@ -139,6 +148,8 @@ int64_t sys_setrlimit();
 int64_t sys_setsid();
 int64_t sys_setuid();
 int64_t sys_sigaltstack();
+int64_t sys_signalfd();
+int64_t sys_signalfd4();
 int64_t sys_socket();
 int64_t sys_stat();
 int64_t sys_statfs();
@@ -150,6 +161,9 @@ int64_t sys_sysinfo();
 int64_t sys_syslog();
 int64_t sys_tgkill();
 int64_t sys_time();
+int64_t sys_timerfd_create();
+int64_t sys_timerfd_gettime();
+int64_t sys_timerfd_settime();
 int64_t sys_times();
 int64_t sys_tkill();
 int64_t sys_truncate();
@@ -168,6 +182,18 @@ int64_t sys_zero();
 static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #ifdef __NR_getcwd
     [__NR_getcwd] = (syscall_fn)sys_getcwd,
+#endif
+#ifdef __NR_eventfd2
+    [__NR_eventfd2] = (syscall_fn)sys_eventfd2,
+#endif
+#ifdef __NR_epoll_create1
+    [__NR_epoll_create1] = (syscall_fn)sys_epoll_create1,
+#endif
+#ifdef __NR_epoll_ctl
+    [__NR_epoll_ctl] = (syscall_fn)sys_epoll_ctl,
+#endif
+#ifdef __NR_epoll_pwait
+    [__NR_epoll_pwait] = (syscall_fn)sys_epoll_pwait,
 #endif
 #ifdef __NR_dup
     [__NR_dup] = (syscall_fn)sys_dup,
@@ -286,6 +312,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #ifdef __NR_ppoll
     [__NR_ppoll] = (syscall_fn)sys_ppoll,
 #endif
+#ifdef __NR_signalfd4
+    [__NR_signalfd4] = (syscall_fn)sys_signalfd4,
+#endif
 #ifdef __NR_readlinkat
     [__NR_readlinkat] = (syscall_fn)sys_readlinkat,
 #endif
@@ -303,6 +332,15 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_fdatasync
     [__NR_fdatasync] = (syscall_fn)sys_fsync,
+#endif
+#ifdef __NR_timerfd_create
+    [__NR_timerfd_create] = (syscall_fn)sys_timerfd_create,
+#endif
+#ifdef __NR_timerfd_settime
+    [__NR_timerfd_settime] = (syscall_fn)sys_timerfd_settime,
+#endif
+#ifdef __NR_timerfd_gettime
+    [__NR_timerfd_gettime] = (syscall_fn)sys_timerfd_gettime,
 #endif
 #ifdef __NR_utimensat
     [__NR_utimensat] = (syscall_fn)sys_utimensat,
@@ -583,6 +621,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #ifdef __NR_getrandom
     [__NR_getrandom] = (syscall_fn)sys_getrandom,
 #endif
+#ifdef __NR_memfd_create
+    [__NR_memfd_create] = (syscall_fn)sys_memfd_create,
+#endif
 #ifdef __NR_statx
     [__NR_statx] = (syscall_fn)sys_statx,
 #endif
@@ -594,6 +635,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_faccessat2
     [__NR_faccessat2] = (syscall_fn)sys_faccessat2,
+#endif
+#ifdef __NR_epoll_pwait2
+    [__NR_epoll_pwait2] = (syscall_fn)sys_epoll_pwait2,
 #endif
 #ifdef __NR_open
     [__NR_open] = (syscall_fn)sys_open,
@@ -687,6 +731,18 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_futimesat
     [__NR_futimesat] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_eventfd
+    [__NR_eventfd] = (syscall_fn)sys_eventfd,
+#endif
+#ifdef __NR_epoll_create
+    [__NR_epoll_create] = (syscall_fn)sys_epoll_create,
+#endif
+#ifdef __NR_epoll_wait
+    [__NR_epoll_wait] = (syscall_fn)sys_epoll_wait,
+#endif
+#ifdef __NR_signalfd
+    [__NR_signalfd] = (syscall_fn)sys_signalfd,
 #endif
 };
 
@@ -1782,6 +1838,84 @@ static const char *const syscall_names[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_eventfd
     [__NR_eventfd] = "eventfd",
+#endif
+#ifdef __NR_uselib
+    [__NR_uselib] = "uselib",
+#endif
+#ifdef __NR_ustat
+    [__NR_ustat] = "ustat",
+#endif
+#ifdef __NR_sysfs
+    [__NR_sysfs] = "sysfs",
+#endif
+#ifdef __NR_modify_ldt
+    [__NR_modify_ldt] = "modify_ldt",
+#endif
+#ifdef __NR__sysctl
+    [__NR__sysctl] = "_sysctl",
+#endif
+#ifdef __NR_iopl
+    [__NR_iopl] = "iopl",
+#endif
+#ifdef __NR_ioperm
+    [__NR_ioperm] = "ioperm",
+#endif
+#ifdef __NR_create_module
+    [__NR_create_module] = "create_module",
+#endif
+#ifdef __NR_get_kernel_syms
+    [__NR_get_kernel_syms] = "get_kernel_syms",
+#endif
+#ifdef __NR_query_module
+    [__NR_query_module] = "query_module",
+#endif
+#ifdef __NR_getpmsg
+    [__NR_getpmsg] = "getpmsg",
+#endif
+#ifdef __NR_putpmsg
+    [__NR_putpmsg] = "putpmsg",
+#endif
+#ifdef __NR_afs_syscall
+    [__NR_afs_syscall] = "afs_syscall",
+#endif
+#ifdef __NR_tuxcall
+    [__NR_tuxcall] = "tuxcall",
+#endif
+#ifdef __NR_security
+    [__NR_security] = "security",
+#endif
+#ifdef __NR_set_thread_area
+    [__NR_set_thread_area] = "set_thread_area",
+#endif
+#ifdef __NR_get_thread_area
+    [__NR_get_thread_area] = "get_thread_area",
+#endif
+#ifdef __NR_epoll_create
+    [__NR_epoll_create] = "epoll_create",
+#endif
+#ifdef __NR_epoll_ctl_old
+    [__NR_epoll_ctl_old] = "epoll_ctl_old",
+#endif
+#ifdef __NR_epoll_wait_old
+    [__NR_epoll_wait_old] = "epoll_wait_old",
+#endif
+#ifdef __NR_epoll_wait
+    [__NR_epoll_wait] = "epoll_wait",
+#endif
+#ifdef __NR_vserver
+    [__NR_vserver] = "vserver",
+#endif
+#ifdef __NR_inotify_init
+    [__NR_inotify_init] = "inotify_init",
+#endif
+#ifdef __NR_signalfd
+    [__NR_signalfd] = "signalfd",
+#endif
+#ifdef __NR_name_to_handle_at
+    [__NR_name_to_handle_at] = "name_to_handle_at",
+#endif
+#ifdef __NR_open_by_handle_at
+    [__NR_open_by_handle_at] = "open_by_handle_at",
 #endif
 };
 

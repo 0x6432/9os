@@ -238,10 +238,12 @@ bool sched_tick_fast(bool from_user) {
     return true;
 }
 
+void timerfd_tick(uint64_t now);
 void sched_tick(void) {
     struct cpu *c = this_cpu();
     if (c->id == 0) {
         uint64_t now = time_ns();
+        timerfd_tick(now);
         list_for_each_safe(it, tmp, &sleep_list) {
             struct thread *t = list_entry(it, struct thread, timer_node);
             if (t->wake_ns <= now) {
