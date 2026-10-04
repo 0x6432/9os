@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M16 complete — COW fork + Wayland-style IPC (AF_UNIX/SCM_RIGHTS, epoll, eventfd, timerfd, signalfd, memfd) on all three arches
+## Current state: M17 complete — ptys (/dev/ptmx + /dev/pts) and evdev input (virtio-input, PS/2) on all three arches
 
 | Milestone | Status |
 |-----------|--------|
@@ -23,6 +23,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M14 SMP | ✅ up to 16 CPUs on all arches: big kernel lock (ticket), IPIs, TLB shootdown, per-CPU current/idle/timers, lock-free tick on secondary CPUs; `make SCHED=rr\|mlfq` |
 | M15 Graphics base | ✅ `/dev/fb0` (Linux fbdev ABI + mmap), PCI ECAM enumeration, virtio-gpu 2D driver (riscv64/aarch64 display), `fbdemo`, `schedtest` |
 | M16 POSIX IPC base | ✅ COW fork, shared mappings across fork, memfd/tmpfs `MAP_SHARED`, AF_UNIX (stream/seqpacket/dgram, SCM_RIGHTS, SO_PEERCRED), epoll, eventfd, timerfd, signalfd, batched TLB flushes; `cowtest`, `ipctest` |
+| M17 Terminals + input | ✅ `/dev/ptmx` + `/dev/pts/N`, generic virtio-pci layer, virtio-input keyboard/tablet + PS/2 → evdev `/dev/input/eventN`, VT/KD ioctls for seatd-style sessions; `ptytest`, `evtest` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -154,7 +155,15 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - Syscall plumbing: x86_64 `unistd.h` now carries the full musl syscall number list; `scripts/gen-syscalls.py` also scans `fs/anonfd.c` and `net/*.c`. **Edit `kernel/core/syscall.c.in`, never the generated `syscall.c`** (`thread_first_return` had been lost that way and is now in the template).
 - Tests (all pass on x86_64, riscv64, aarch64 with -smp 4): `cowtest`, `ipctest` (72 checks; `ipctest unix` runs one group, `V=1` prints steps), plus `libctest`, `smptest`.
 
+## M17: ptys and evdev
+- **PTYs** (`kernel/drivers/pty.inc`, included by `tty.c`): `struct tty` has an `output(t, s, n, may_block)` hook (console → `console_write`, pty slave → master's ring) and `drv`/`hup`. `/dev/ptmx` (5:2) allocates a pair and creates `/dev/pts/N` (136:N, `CHRDEV_ANY_MINOR`); the slave uses the normal line discipline (ICANON/ECHO/ISIG, ONLCR on output). `TIOCGPTN`, `TIOCSPTLCK`, `TIOCGPTPEER`, `TIOCSWINSZ` (→ SIGWINCH to the pgrp). Closing the master hangs up the slave (EIO/0 reads, SIGHUP to the session) and removes the node; the pair is freed when both sides are closed. Opening a tty without `O_NOCTTY` as a session leader without one makes it the controlling tty; `/dev/tty` resolves to `p->ctty`.
+- **virtio** (`kernel/drivers/virtio.c`, `include/kernel/virtio.h`): `virtio_pci_probe` (caps incl. device cfg, reset, VERSION_1, FEATURES_OK), `virtq_init` (≤64 entries, one page), `virtq_push/pop`, `virtio_driver_ok`. virtio-gpu now uses it.
+- **Input core + evdev** (`kernel/drivers/evdev.c`, `include/kernel/input.h`): drivers fill a `struct input_dev` (bitmaps, absinfo, ids) and call `input_register` → `/dev/input/eventN` (char 13:64+N) and `input_event()` (IRQ-safe; per-device spinlock). Each open gets a 512-event queue of 24-byte `struct input_event` (SYN_DROPPED on overflow), `EVIOCGVERSION/GID/GNAME/GPHYS/GUNIQ/GPROP/GBIT/GKEY/GLED/GABS/SABS/GREP/GRAB/REVOKE/SCLOCKID`. Key autorepeat value 2 is synthesised. Keyboards also feed the console tty (US map, moved from ps2.c) unless grabbed or `KDSKBMODE K_OFF`.
+- **virtio-input** (`kernel/drivers/virtio_input.c`): PCI 1af4:1052; capabilities are read from the config space (ID_NAME/DEVIDS/PROP_BITS/EV_BITS/ABS_INFO); one `vinput-poll` kthread drains event queues every 4 ms. The Makefile adds `QEMU_INPUT=-device virtio-keyboard-pci -device virtio-tablet-pci` on all arches (override with `QEMU_INPUT=`; delete `build/<arch>/fw-vars.fd` after changing devices on riscv/aarch64). x86 PS/2 keyboard is an evdev device too ("AT Translated Set 2 keyboard").
+- **VT/KD ioctls** on the console: `KDGKBTYPE`, `KDSETMODE/KDGETMODE` (KD_GRAPHICS pauses fbcon), `KDGKBMODE/KDSKBMODE`, `VT_OPENQRY/GETMODE/SETMODE/GETSTATE/RELDISP/ACTIVATE/WAITACTIVE` (single VT).
+- Tests: `ptytest` (13 checks: interactive sh on a pty, ONLCR, stty size, backspace editing, Ctrl-C, raw mode, hangup) passes on all arches. `evtest [secs]` lists devices and prints events; drive it with the QEMU monitor (`sendkey a`, `mouse_button 1`; HMP `mouse_move` does not move absolute axes without a display).
+
 ## Next steps (see docs/ROADMAP.md)
-1. ptys (`/dev/ptmx` + devpts) for terminal emulators; `inotify` stubs; `MAP_PRIVATE` file mappings via page cache.
-2. evdev (`/dev/input/event*`) from PS/2 and virtio-input; then DRM/KMS-lite dumb buffers on top of the fb/virtio-gpu backend.
+1. DRM/KMS-lite (`/dev/dri/card0`: dumb buffers, ADDFB2, SETCRTC, PAGE_FLIP + vblank events) on the fb/virtio-gpu backend; `inotify` stubs; `MAP_PRIVATE` file mappings via page cache.
+2. Dynamic linking (`PT_INTERP` ld-musl), so libdrm/Mesa/wayland `.so` files can be used.
 3. Fine-grained locking + per-CPU run queues (M16 in the roadmap); interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2.

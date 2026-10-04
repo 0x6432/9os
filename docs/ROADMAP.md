@@ -16,14 +16,14 @@ push, and back up on its own. **Bold** items are the current focus.
 
 ## Phase B: A "real" POSIX base (M16–M22)
 
-Done in M16: COW fork, `MAP_SHARED` (anonymous + tmpfs/memfd), AF_UNIX with `SCM_RIGHTS`, `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`. Still open below: ptys, dynamic linking, storage, networking.
+Done in M16: COW fork, `MAP_SHARED` (anonymous + tmpfs/memfd), AF_UNIX with `SCM_RIGHTS`, `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`. Done in M17: ptys (`/dev/ptmx` + `/dev/pts`), evdev input (virtio-input, PS/2) and VT/KD ioctls. Still open below: dynamic linking, storage, networking.
 
 These features are what most ported software needs, in rough order of value:
 
 1. **mm**: copy-on-write fork, `MAP_SHARED` file and anonymous mappings, `mprotect`, `madvise`, `mremap`, page cache.
 2. **Dynamic linking**: `PT_INTERP` with `ld-musl` (to load shared musl, libdrm and Mesa `.so` files), `dlopen`.
 3. **IPC**: AF_UNIX sockets (stream + dgram, `SCM_RIGHTS` fd passing, which Wayland requires), `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`, POSIX shm (`/dev/shm` on tmpfs), futex `PI`/robust lists.
-4. **ttys**: `/dev/ptmx` + devpts (needed for terminals in the GUI: foot, konsole).
+4. ✅ **ttys**: `/dev/ptmx` + devpts (needed for terminals in the GUI: foot, konsole). Done in M17.
 5. **Storage**: virtio-blk (PCI and mmio), an ext2 driver (read/write), and a persistent root disk.
 6. **Networking** (optional, later): virtio-net and a small TCP/IP stack (lwIP port), AF_INET sockets.
 7. **Easy software first**: ports that use few syscalls, used to test each step: `lua`, `sqlite3`, `tcc`, `make`, `vim`/`nano` (ncurses), `doom` (fbdev + evdev: the classic first graphical port), `ffplay`-less tools, `htop` (procfs).
@@ -41,8 +41,8 @@ These features are what most ported software needs, in rough order of value:
 
 Kernel steps:
 1. fbdev (M14), then **DRM/KMS-lite**: `/dev/dri/card0` with the ioctls libdrm and wlroots use (`DRM_IOCTL_VERSION`, `GET_CAP`, `MODE_GETRESOURCES/GETCONNECTOR/GETENCODER/GETCRTC/SETCRTC`, `MODE_CREATE_DUMB/MAP_DUMB/DESTROY_DUMB`, `MODE_ADDFB2/RMFB`, `MODE_PAGE_FLIP` + vblank events, `PRIME` fd export as memfd-like objects, atomic modesetting later). The backend is the Limine/ramfb framebuffer first, then **virtio-gpu** (2D resources plus a scanout; virgl 3D much later).
-2. **evdev**: `/dev/input/event*` with `EVIOCG*` ioctls and `struct input_event` streams from PS/2, virtio-input and the riscv/aarch64 UART. libinput also needs udev-ish metadata, so provide a static `/run/udev/data` shim or patch libinput's udev dependency (eudev-lite).
-3. **Seat/session**: `seatd` (builtin backend) needs `VT_*`/`KD*` ioctls on `/dev/tty0`.
+2. ✅ (M17, minus udev metadata) **evdev**: `/dev/input/event*` with `EVIOCG*` ioctls and `struct input_event` streams from PS/2, virtio-input and the riscv/aarch64 UART. libinput also needs udev-ish metadata, so provide a static `/run/udev/data` shim or patch libinput's udev dependency (eudev-lite).
+3. **Seat/session**: `seatd` (builtin backend) needs `VT_*`/`KD*` ioctls on `/dev/tty0` (basic single-VT versions done in M17).
 4. **Userland build**: cross-compile with the musl toolchain: libffi, expat, libxml2, wayland, wayland-protocols, libxkbcommon, pixman, libdrm, mesa (`-Dgallium-drivers=softpipe,llvmpipe -Dplatforms=wayland`; llvmpipe needs LLVM, so softpipe first), libinput + mtdev + libevdev, seatd, wlroots, sway (+ json-c, pcre2, pango/cairo, which can be stubbed with `-Dtray=disabled` etc.), foot (fcft, freetype, fontconfig).
 5. **KDE Plasma** is last and much larger: Qt6 (qtbase + qtwayland + qtdeclarative), KF6 frameworks, KWin (needs a working libinput, logind-like DBus APIs, `/sys`), DBus, polkit-free setup. Realistically it needs sysfs, a udev-compatible device database, inotify, `/proc/self/*`, many more fs features and a lot of memory.
 
