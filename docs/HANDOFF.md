@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M12 complete — x86_64 and riscv64 both boot BusyBox + Bash
+## Current state: M13 complete — x86_64, riscv64 and aarch64 all boot BusyBox + Bash
 
 | Milestone | Status |
 |-----------|--------|
@@ -19,7 +19,8 @@ _Updated after every milestone. Read this first when picking up the project._
 | M10 BusyBox | ✅ static BusyBox 1.36.1: busybox init + inittab, ash with job control, Ctrl-C, vi, pipes, tar/gzip, awk, ps/free (procfs), RTC wall clock |
 | M11 Bash | ✅ static Bash 5.2.37: loops, $(...), <(...) via /dev/fd, here-docs, jobs/wait, indexed+assoc arrays, recursion, Ctrl-C, exit back to ash |
 | M12 riscv64 | ✅ Limine/UEFI (edk2) boot, Sv48, SBI timer+console (polled input), goldfish RTC, uACPI tables, ecall syscalls (asm-generic numbers), sigreturn trampoline page, FPU (D) context; BusyBox, libctest, Bash all pass |
-| M13 aarch64 | ⏳ in progress (sources written in kernel/arch/aarch64, not yet booted) |
+| M13 aarch64 | ✅ EL1, TTBR0 (user) / TTBR1 (kernel) 4-level paging, GICv2, virtual generic timer, PL011 (polled input), PL031 RTC, PSCI poweroff, svc syscalls, rt_sigframe with fpsimd_context, TPIDR_EL0 TLS; BusyBox, libctest, Bash all pass |
+| M14 SMP | ⏳ next |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -108,12 +109,16 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - riscv64 notes: sscratch holds the kernel stack top while in U-mode; SUM is always set; A/D bits preset in PTEs;
   `fence.i` on every return to user; console input polled from the 1 kHz timer (no PLIC driver yet).
 
-## Environment recovery
-The sandbox can be wiped. `scripts/setup-env.sh` reinstalls host packages, rebuilds QEMU 9.2.3 into /data/tools/qemu,
-fetches Limine + uACPI and builds all userlands.
+## Environment
+- Limine **11.4.1** (binary branch `v11.4.1-binary`), protocol header from limine-protocol trunk, **base revision 6**
+  (RSDP is HHDM-virtual from rev 4; aarch64 CPACR_EL1=0 at entry so `kmain_entry` enables FP/SIMD).
+- QEMU comes from the distro package manager (`scripts/setup-env.sh` handles apt/pacman/dnf/brew) — no source build.
+  UEFI firmware (edk2) is located automatically for riscv64/aarch64 (`FW_CODE=` overrides) and padded to the pflash size.
+- `make iso` refuses to build with an empty `userland/root-<arch>`: run `ARCH=<arch> userland/build-all.sh` first.
+- The agent sandbox has been wiped twice; push WIP often. (There, QEMU 11 comes from Alpine packages via apk.static.)
 
-## Next steps (M13 aarch64)
-1. Boot `make ARCH=aarch64 run` (QEMU virt, GICv2, cortex-a72); debug vectors/paging (TTBR0 user, TTBR1 kernel, MAIR indices).
-2. Signal frame (Linux rt_sigframe with fpsimd_context), then BusyBox + Bash.
-3. M14 SMP; PLIC/virtio drivers; COW fork; sockets; disk filesystem.
+## Next steps
+1. M14 SMP (Limine MP request; per-CPU data, run queues, IPIs, TLB shootdown).
+2. Interrupt-driven input on riscv64 (PLIC) / aarch64 (PL011 IRQ via GIC); GICv3.
+3. COW fork, sockets (AF_UNIX), virtio-blk + a disk filesystem.
 4. Known gaps: no COW fork (eager copy), single CPU, no sockets, tmpfs only.
