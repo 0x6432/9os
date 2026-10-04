@@ -422,3 +422,6 @@ int64_t sys_arch_prctl_wrap(int code, uint64_t addr) {
 
 int64_t sys_socket(int domain, int type, int proto) { return -97; /* EAFNOSUPPORT */ }
 int64_t sys_connect(int fd, void *addr, int len) { return -EBADF; }
+int64_t sys_getpeername(int fd, void *addr, int *len) { return -88; /* ENOTSOCK */ }
+int64_t sys_getsockname(int fd, void *addr, int *len) { return -88; }
+int64_t sys_sendto(int fd, const void *buf, size_t len, int flags, void *addr, int alen) { return -107; /* ENOTCONN */ }

@@ -53,6 +53,7 @@ int64_t sys_geteuid();
 int64_t sys_getgid();
 int64_t sys_getgroups();
 int64_t sys_getitimer();
+int64_t sys_getpeername();
 int64_t sys_getpgid();
 int64_t sys_getpgrp();
 int64_t sys_getpid();
@@ -64,6 +65,7 @@ int64_t sys_getresuid();
 int64_t sys_getrlimit();
 int64_t sys_getrusage();
 int64_t sys_getsid();
+int64_t sys_getsockname();
 int64_t sys_gettid();
 int64_t sys_gettimeofday();
 int64_t sys_getuid();
@@ -118,6 +120,7 @@ int64_t sys_sched_getaffinity();
 int64_t sys_sched_yield();
 int64_t sys_select();
 int64_t sys_sendfile();
+int64_t sys_sendto();
 int64_t sys_set_robust_list();
 int64_t sys_set_tid_address();
 int64_t sys_setfsgid();
@@ -519,6 +522,15 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_connect
     [__NR_connect] = (syscall_fn)sys_connect,
+#endif
+#ifdef __NR_getsockname
+    [__NR_getsockname] = (syscall_fn)sys_getsockname,
+#endif
+#ifdef __NR_getpeername
+    [__NR_getpeername] = (syscall_fn)sys_getpeername,
+#endif
+#ifdef __NR_sendto
+    [__NR_sendto] = (syscall_fn)sys_sendto,
 #endif
 #ifdef __NR_brk
     [__NR_brk] = (syscall_fn)sys_brk,
