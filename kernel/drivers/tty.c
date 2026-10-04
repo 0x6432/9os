@@ -1,5 +1,7 @@
 /* Console TTY with a POSIX line discipline (canonical mode, echo, job-control signals). */
 #include <kernel/tty.h>
+#include <kernel/input.h>
+#include <kernel/fbcon.h>
 #include <kernel/vfs.h>
 #include <kernel/printk.h>
 #include <kernel/process.h>
@@ -240,6 +242,28 @@ static int tty_ioctl_t(struct tty *t, struct file *f, uint64_t cmd, uint64_t arg
         if (arg == 0 || arg == 2) { t->rhead = t->rtail; t->line_len = 0; }
         return 0;
     case 0x5409: case 0x540A: case 0x5421: return 0;   /* TCSBRK, TCXONC, FIONBIO */
+    }
+    if (t != &console_tty) return -ENOTTY;
+    /* virtual-terminal / keyboard ioctls used by display servers (seatd, weston, X) */
+    static int kd_mode;
+    static struct { char mode, waitv; short relsig, acqsig, frsig; } vt_mode;
+    switch (cmd) {
+    case 0x4B33: { char kb = 2; return copy_to_user((void *)arg, &kb, 1); }      /* KDGKBTYPE: KB_101 */
+    case 0x4B3A:                                                                   /* KDSETMODE */
+        if (arg > 1) return -EINVAL;
+        kd_mode = (int)arg; fbcon_set_graphics(arg == 1);
+        return 0;
+    case 0x4B3B: return copy_to_user((void *)arg, &kd_mode, sizeof kd_mode);      /* KDGETMODE */
+    case 0x4B44: return copy_to_user((void *)arg, &console_kbmode, sizeof(int)); /* KDGKBMODE */
+    case 0x4B45:                                                                   /* KDSKBMODE */
+        if (arg > 4) return -EINVAL;
+        console_kbmode = (int)arg;
+        return 0;
+    case 0x5600: { int n = 1; return copy_to_user((void *)arg, &n, sizeof n); }  /* VT_OPENQRY */
+    case 0x5601: return copy_to_user((void *)arg, &vt_mode, sizeof vt_mode);     /* VT_GETMODE */
+    case 0x5602: return copy_from_user(&vt_mode, (void *)arg, sizeof vt_mode);   /* VT_SETMODE */
+    case 0x5603: { uint16_t st[3] = { 1, 0, 2 }; return copy_to_user((void *)arg, st, sizeof st); } /* VT_GETSTATE */
+    case 0x5605: case 0x5606: case 0x5607: return 0;                             /* VT_RELDISP/ACTIVATE/WAITACTIVE */
     default: return -ENOTTY;
     }
 }

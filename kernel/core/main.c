@@ -16,6 +16,8 @@
 void input_init(void);
 void fbdev_init(void);
 void virtio_gpu_init(void);
+void evdev_register_chrdev(void);
+void virtio_input_init(void);
 #include <kernel/pci.h>
 
 static const char *strstr_simple(const char *h, const char *n) {
@@ -78,6 +80,8 @@ void kmain(void) {
     devices_init();
     pci_init();
     virtio_gpu_init();
+    evdev_register_chrdev();
+    virtio_input_init();
     fbcon_init();          /* (re)attach the console if a GPU driver provided a framebuffer */
     fbdev_init();
     initramfs_load();

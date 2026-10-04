@@ -4,7 +4,7 @@
  * scanout 0 and exposes it as the system framebuffer (fbcon + /dev/fb0). A kernel
  * thread pushes damage to the host (TRANSFER_TO_HOST_2D + RESOURCE_FLUSH) at ~60 Hz.
  */
-#include <kernel/pci.h>
+#include <kernel/virtio.h>
 #include <kernel/boot.h>
 #include <kernel/fbcon.h>
 #include <kernel/pmm.h>
@@ -14,27 +14,6 @@
 #include <kernel/printk.h>
 #include <kernel/arch.h>
 
-#define VIRTIO_VENDOR 0x1af4
-#define VIRTIO_GPU_DEV 0x1050
-
-/* virtio-pci capability types */
-#define CAP_COMMON 1
-#define CAP_NOTIFY 2
-#define CAP_ISR    3
-#define CAP_DEVICE 4
-
-struct virtio_common {
-    uint32_t device_feature_select, device_feature, driver_feature_select, driver_feature;
-    uint16_t msix_config, num_queues;
-    uint8_t device_status, config_generation;
-    uint16_t queue_select, queue_size, queue_msix_vector, queue_enable, queue_notify_off;
-    uint32_t queue_desc_lo, queue_desc_hi, queue_driver_lo, queue_driver_hi, queue_device_lo, queue_device_hi;
-};   /* naturally aligned; not packed so every field is a single MMIO access of its own width */
-_Static_assert(sizeof(struct virtio_common) == 56, "virtio common cfg layout");
-
-struct vq_desc { uint64_t addr; uint32_t len; uint16_t flags, next; };
-#define VQ_NEXT 1
-#define VQ_WRITE 2
 #define QSIZE 16
 
 struct gpu_hdr { uint32_t type, flags; uint64_t fence_id; uint32_t ctx_id; uint8_t ring_idx, pad[3]; };
@@ -47,12 +26,8 @@ enum {
 };
 #define FMT_B8G8R8X8 2
 
-static volatile struct virtio_common *common;
-static volatile uint16_t *notify;
-static struct vq_desc *desc;
-static volatile uint16_t *avail;      /* flags, idx, ring[QSIZE] */
-static volatile uint16_t *used;       /* flags, idx, {u32 id, u32 len}[QSIZE] */
-static uint16_t avail_idx, used_seen;
+static struct virtio_dev vdev;
+static struct virtq vq;
 static uint8_t *cmdbuf; static paddr_t cmdbuf_pa;   /* request at 0, response at 2048 */
 
 static struct limine_framebuffer vfb;
@@ -60,19 +35,13 @@ static uint32_t width, height;
 static volatile bool dirty;
 
 static bool gpu_cmd(size_t req_len, size_t resp_len) {
-    desc[0] = (struct vq_desc){ cmdbuf_pa, (uint32_t)req_len, VQ_NEXT, 1 };
-    desc[1] = (struct vq_desc){ cmdbuf_pa + 2048, (uint32_t)resp_len, VQ_WRITE, 0 };
-    avail[2 + avail_idx % QSIZE] = 0;
-    __atomic_thread_fence(__ATOMIC_SEQ_CST);
-    avail[1] = ++avail_idx;
-    __atomic_thread_fence(__ATOMIC_SEQ_CST);
-    *notify = 0;
-    for (uint64_t spins = 0; used[1] == used_seen; spins++) {
+    vq.desc[0] = (struct vq_desc){ cmdbuf_pa, (uint32_t)req_len, VQ_NEXT, 1 };
+    vq.desc[1] = (struct vq_desc){ cmdbuf_pa + 2048, (uint32_t)resp_len, VQ_WRITE, 0 };
+    virtq_push(&vq, 0);
+    for (uint64_t spins = 0; !virtq_pop(&vq, nullptr, nullptr); spins++) {
         if (spins > 50000000ull) { pr_err("virtio-gpu: command timeout\n"); return false; }
         arch_cpu_relax();
     }
-    used_seen = used[1];
-    __atomic_thread_fence(__ATOMIC_SEQ_CST);
     struct gpu_hdr *r = (struct gpu_hdr *)(cmdbuf + 2048);
     return r->type == RESP_OK_NODATA || r->type == RESP_OK_DISPLAY_INFO;
 }
@@ -102,55 +71,16 @@ static void flush_thread(void *arg) {
 
 static void vgpu_damage_flush(void) { dirty = true; }
 
-static bool find_caps(struct pci_dev *d) {
-    if (!(pci_read16(d, 6) & 0x10)) return false;
-    uint32_t notify_mult = 0; volatile uint8_t *nbase = nullptr;
-    for (unsigned p = pci_read8(d, 0x34) & 0xfc; p; p = pci_read8(d, p + 1) & 0xfc) {
-        if (pci_read8(d, p) != 0x09) continue;
-        unsigned type = pci_read8(d, p + 3), bar = pci_read8(d, p + 4);
-        uint32_t off = pci_read32(d, p + 8), len = pci_read32(d, p + 12);
-        if (type != CAP_COMMON && type != CAP_NOTIFY) continue;
-        paddr_t pa = pci_bar(d, bar, nullptr);
-        if (!pa) continue;
-        volatile uint8_t *va = vmm_map_mmio(pa + off, MAX(len, 4096u));
-        if (type == CAP_COMMON) common = (volatile struct virtio_common *)va;
-        else { nbase = va; notify_mult = pci_read32(d, p + 16); }
-    }
-    if (!common || !nbase) return false;
-    common->queue_select = 0;
-    notify = (volatile uint16_t *)(nbase + (uint32_t)common->queue_notify_off * notify_mult);
-    return true;
-}
-
 void virtio_gpu_init(void) {
-    struct pci_dev *d = pci_find(VIRTIO_VENDOR, VIRTIO_GPU_DEV);
+    struct pci_dev *d = pci_find(VIRTIO_VENDOR, VIRTIO_DEV_GPU);
     if (!d) return;
     if (boot_framebuffer() && !strstr(boot_cmdline(), "virtiogpu")) {
         pr_info("virtio-gpu: present, using firmware framebuffer instead\n");
         return;
     }
-    pci_enable(d);
-    if (!find_caps(d)) { pr_err("virtio-gpu: missing virtio-pci capabilities\n"); return; }
-
-    common->device_status = 0;
-    while (common->device_status) ;
-    common->device_status = 1 | 2;                      /* ACKNOWLEDGE | DRIVER */
-    common->driver_feature_select = 0; common->driver_feature = 0;
-    common->driver_feature_select = 1; common->driver_feature = 1;   /* VIRTIO_F_VERSION_1 */
-    common->device_status = 1 | 2 | 8;                  /* FEATURES_OK */
-    if (!(common->device_status & 8)) { pr_err("virtio-gpu: features rejected\n"); return; }
-
-    paddr_t qpa = pmm_alloc_zeroed(0);
-    uint8_t *q = PHYS_TO_VIRT(qpa);
-    desc = (struct vq_desc *)q; avail = (uint16_t *)(q + 1024); used = (uint16_t *)(q + 2048);
-    common->queue_select = 0;
-    if (common->queue_size < QSIZE) { pr_err("virtio-gpu: queue too small\n"); return; }
-    common->queue_size = QSIZE;
-    common->queue_desc_lo = (uint32_t)qpa; common->queue_desc_hi = qpa >> 32;
-    common->queue_driver_lo = (uint32_t)(qpa + 1024); common->queue_driver_hi = (qpa + 1024) >> 32;
-    common->queue_device_lo = (uint32_t)(qpa + 2048); common->queue_device_hi = (qpa + 2048) >> 32;
-    common->queue_enable = 1;
-    common->device_status = 1 | 2 | 8 | 4;              /* DRIVER_OK */
+    if (!virtio_pci_probe(&vdev, d, "virtio-gpu")) return;
+    if (!virtq_init(&vdev, &vq, 0, QSIZE)) { pr_err("virtio-gpu: no control queue\n"); return; }
+    virtio_driver_ok(&vdev);
     cmdbuf_pa = pmm_alloc_zeroed(0); cmdbuf = PHYS_TO_VIRT(cmdbuf_pa);
 
     req(CMD_GET_DISPLAY_INFO, sizeof(struct gpu_hdr));
