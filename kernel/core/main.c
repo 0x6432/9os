@@ -15,6 +15,7 @@
 
 void input_init(void);
 void fbdev_init(void);
+void drm_init(void);
 void virtio_gpu_init(void);
 void evdev_register_chrdev(void);
 void virtio_input_init(void);
@@ -84,6 +85,7 @@ void kmain(void) {
     virtio_input_init();
     fbcon_init();          /* (re)attach the console if a GPU driver provided a framebuffer */
     fbdev_init();
+    drm_init();
     initramfs_load();
     vfs_mkdir_at(nullptr, "/proc", 0555);
     vfs_mount("/proc", procfs_create_root());
