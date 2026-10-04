@@ -29,6 +29,8 @@ static int expect(int m, const char *want, char *acc, size_t cap, int ms) {
     return strstr(acc, want) != NULL;
 }
 
+static void wr(int fd, const char *s) { write(fd, s, strlen(s)); }
+
 int main(void) {
     int m = posix_openpt(O_RDWR | O_NOCTTY);
     CHECK(m >= 0);
@@ -51,29 +53,30 @@ int main(void) {
     char acc[8192] = {0};
     CHECK(expect(m, "# ", acc, sizeof acc, 5000));                 /* prompt */
     acc[0] = 0;
-    write(m, "echo $((6*7)); stty size; tty\n", 30);
+    wr(m, "echo $((6*7)); stty size; tty\n");
     CHECK(expect(m, "42\r\n", acc, sizeof acc, 5000));            /* ONLCR applied */
     CHECK(expect(m, "30 100", acc, sizeof acc, 5000));
     CHECK(expect(m, "/dev/pts/", acc, sizeof acc, 5000));
     /* canonical editing: backspace removes a character before the shell sees it */
     acc[0] = 0;
-    write(m, "echo abX\x7f" "c\n", 11);
+    wr(m, "echo abX\x7f" "c\n");
     CHECK(expect(m, "abc\r\n", acc, sizeof acc, 5000));
     /* Ctrl-C interrupts a foreground job */
     acc[0] = 0;
-    write(m, "sleep 20\n", 9);
+    wr(m, "sleep 20\n");
     usleep(300000);
-    write(m, "\x03", 1);
-    write(m, "echo after\n", 11);
+    wr(m, "\x03");
+    wr(m, "echo after\n");
     CHECK(expect(m, "after\r\n", acc, sizeof acc, 5000));
     /* raw mode on the slave side */
     acc[0] = 0;
-    write(m, "stty raw -echo; dd bs=1 count=3 2>/dev/null | od -c | head -1; stty sane\n", 74);
+    wr(m, "stty raw -echo; dd bs=1 count=3 2>/dev/null | od -c | head -1; stty sane\n");
     usleep(400000);
-    write(m, "xyz", 3);
+    wr(m, "xyz");
     CHECK(expect(m, "x   y   z", acc, sizeof acc, 5000));
+    if (getenv("V") || !strstr(acc, "x   y   z")) { printf("  got: "); for (char *q = acc; *q; q++) printf(*q >= 32 && *q < 127 ? "%c" : "\\x%02x", (unsigned char)*q); printf("\n"); }
     /* exit → master sees EIO/HUP once the slave is closed */
-    write(m, "exit\n", 5);
+    wr(m, "exit\n");
     int st; waitpid(c, &st, 0);
     CHECK(WIFEXITED(st));
     struct pollfd p = { m, POLLIN, 0 };
