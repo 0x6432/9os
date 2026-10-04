@@ -60,3 +60,9 @@ char *strdup(const char *s) {
     if (d) memcpy(d, s, l);
     return d;
 }
+
+char *strstr(const char *h, const char *n) {
+    size_t ln = strlen(n);
+    for (; *h; h++) if (!strncmp(h, n, ln)) return (char *)h;
+    return ln ? nullptr : (char *)h;
+}

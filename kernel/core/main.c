@@ -15,6 +15,8 @@
 
 void input_init(void);
 void fbdev_init(void);
+void virtio_gpu_init(void);
+#include <kernel/pci.h>
 
 static const char *strstr_simple(const char *h, const char *n) {
     size_t l = strlen(n);
@@ -74,6 +76,9 @@ void kmain(void) {
     if (strstr_simple(boot_cmdline(), "selftest")) sched_selftest();
     vfs_init();
     devices_init();
+    pci_init();
+    virtio_gpu_init();
+    fbcon_init();          /* (re)attach the console if a GPU driver provided a framebuffer */
     fbdev_init();
     initramfs_load();
     vfs_mkdir_at(nullptr, "/proc", 0555);

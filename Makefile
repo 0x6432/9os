@@ -16,6 +16,11 @@ CFLAGS := -std=$(CSTD) -ffreestanding -fno-builtin -nostdlib -fno-stack-protecto
 # Build configuration: scheduler policy (rr | mlfq) and CPU count for 'make run'
 SCHED ?= rr
 SMP ?= 4
+# Display for riscv64/aarch64: firmware framebuffers are unusable there, the kernel drives virtio-gpu
+QEMU_GPU_x86_64 :=
+QEMU_GPU_riscv64 := -device virtio-gpu-pci
+QEMU_GPU_aarch64 := -device virtio-gpu-pci
+QEMU_GPU ?= $(QEMU_GPU_$(ARCH))
 CONFIG_FLAGS := -DCONFIG_SCHED_$(shell echo $(SCHED) | tr a-z A-Z)=1
 CFLAGS += $(CONFIG_FLAGS)
 CONFIG_STAMP := $(BUILD)/config.stamp
@@ -101,11 +106,11 @@ FW_SIZE_riscv64 := 33554432
 FW_SIZE_aarch64 := 67108864
 FW_CODE ?= $(firstword $(wildcard $(foreach d,$(FW_DIRS),$(foreach n,$(FW_NAMES_$(ARCH)),$(d)/$(n)))))
 QEMU_x86_64 := qemu-system-x86_64 -M q35 -m 512M -smp $(SMP) -serial stdio -no-reboot -cdrom $(ISO)
-QEMU_riscv64 := qemu-system-riscv64 -M virt -m 512M -smp $(SMP) -serial stdio -no-reboot \
+QEMU_riscv64 := qemu-system-riscv64 -M virt -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd
-QEMU_aarch64 := qemu-system-aarch64 -M virt -cpu cortex-a72 -m 512M -smp $(SMP) -serial stdio -no-reboot \
+QEMU_aarch64 := qemu-system-aarch64 -M virt -cpu cortex-a72 -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd

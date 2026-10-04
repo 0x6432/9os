@@ -64,7 +64,7 @@ static int fb_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
     case FBIOGET_FSCREENINFO: {
         struct fb_fix_screeninfo x;
         memset(&x, 0, sizeof x);
-        strlcpy(x.id, "9os-liminefb", sizeof x.id);
+        strlcpy(x.id, fb_flush_hook ? "virtio-gpu" : "9os-liminefb", sizeof x.id);
         x.smem_start = VIRT_TO_PHYS(fb->address);
         x.smem_len = fb_size;
         x.visual = 2;            /* FB_VISUAL_TRUECOLOR */
@@ -89,6 +89,7 @@ static ssize_t fb_write(struct file *f, const void *buf, size_t n, off_t *off) {
     n = MIN(n, fb_size - *off);
     memcpy((uint8_t *)fb->address + *off, buf, n);
     *off += n;
+    fb_damage();
     return n;
 }
 

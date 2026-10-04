@@ -9,6 +9,7 @@ extern uint64_t hhdm_offset;
 
 struct limine_memmap_response *boot_memmap(void);
 struct limine_framebuffer *boot_framebuffer(void);
+void boot_set_framebuffer(struct limine_framebuffer *fb);   /* e.g. virtio-gpu replaces/provides one */
 struct limine_executable_address_response *boot_kernel_address(void);
 void *boot_rsdp(void);           /* physical address or nullptr */
 struct limine_file *boot_module(const char *cmdline);

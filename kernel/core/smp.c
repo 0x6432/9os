@@ -63,13 +63,19 @@ void bkl_exit(void) {
 
 void bkl_release_idle(void) {
     if (current->bkl_depth != 1) panic("bkl_release_idle: depth %d", current->bkl_depth);
+    uint64_t f = arch_irq_save();
     current->bkl_depth = 0;
     bkl_unlock();
+    arch_irq_restore(f);
 }
 
+/* IRQs must be off while spinning: an interrupt taken with depth 0 would grab a second ticket
+ * from inside the lock queue and deadlock every CPU. */
 void bkl_acquire_idle(void) {
+    uint64_t f = arch_irq_save();
     bkl_lock();
     current->bkl_depth = 1;
+    arch_irq_restore(f);
 }
 
 bool bkl_held(void) { return current && current->bkl_depth > 0; }

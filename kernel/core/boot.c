@@ -35,7 +35,10 @@ void boot_check(void) {
 }
 
 struct limine_memmap_response *boot_memmap(void) { return memmap_req.response; }
+static struct limine_framebuffer *fb_override;
+void boot_set_framebuffer(struct limine_framebuffer *fb) { fb_override = fb; }
 struct limine_framebuffer *boot_framebuffer(void) {
+    if (fb_override) return fb_override;
     if (!fb_req.response || fb_req.response->framebuffer_count == 0) return nullptr;
     return fb_req.response->framebuffers[0];
 }

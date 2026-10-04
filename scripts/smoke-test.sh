@@ -8,5 +8,5 @@ SMP=${SMP:-4}
     sleep "$WAIT"
     for c in "$@"; do printf '%s\n' "$c"; sleep "${STEP:-2}"; done
     sleep 3
-} | timeout "${TIMEOUT:-120}" make -s ARCH="$ARCH" SMP="$SMP" run QEMUFLAGS="-display none ${QEMUEXTRA:-}" 2>&1 |
+} | timeout "${TIMEOUT:-120}" make -s ARCH="$ARCH" SMP="$SMP" ${QEMU_GPU+QEMU_GPU="$QEMU_GPU"} run QEMUFLAGS="-display none ${QEMUEXTRA:-}" 2>&1 |
     sed -e 's/\x1b\[[0-9;?]*[a-zA-Z]//g' -e 's/\r//g'

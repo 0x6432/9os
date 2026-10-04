@@ -126,27 +126,35 @@ static void putc_fb(char ch) {
 }
 
 static bool graphics;     /* a client owns the framebuffer (/dev/fb0 open) */
+void (*fb_flush_hook)(void);
+void fb_damage(void) { if (fb_flush_hook) fb_flush_hook(); }
+bool fb_graphics_active(void) { return graphics; }
 
 void fbcon_set_graphics(bool on) {
     if (!c.ready || graphics == on) return;
     graphics = on;
-    if (!on) { clear_cells(0, 0, c.cols, c.rows); c.cx = c.cy = 0; }
+    if (!on) { clear_cells(0, 0, c.cols, c.rows); c.cx = c.cy = 0; fb_damage(); }
 }
 
 void fbcon_write(const char *s, size_t n) {
     if (!c.ready || graphics) return;
     for (size_t i = 0; i < n; i++) putc_fb(s[i]);
+    fb_damage();
 }
 
 void fbcon_init(void) {
     struct limine_framebuffer *fb = boot_framebuffer();
     if (!fb || fb->bpp != 32) return;
+    bool registered = c.ready;   /* may be called again when a GPU driver provides a new fb */
+    if (registered && c.fb == (uint8_t *)fb->address) return;
     c.fb = fb->address; c.pitch = fb->pitch; c.width = fb->width; c.height = fb->height;
     c.cols = c.width / 8; c.rows = c.height / 16;
     c.fg = DEF_FG; c.bg = DEF_BG;
     clear_cells(0, 0, c.cols, c.rows);
+    c.cx = c.cy = 0;
     c.ready = true;
-    console_register(fbcon_write);
+    if (!registered) console_register(fbcon_write);
+    fb_damage();
 }
 
 void fbcon_get_size(int *cols, int *rows) {
