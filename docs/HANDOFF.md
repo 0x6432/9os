@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M6 complete (x86_64)
+## Current state: M8 complete (x86_64)
 
 | Milestone | Status |
 |-----------|--------|
@@ -13,7 +13,9 @@ _Updated after every milestone. Read this first when picking up the project._
 | M4 Virtual memory & heap | ✅ own PML4, NX/WP, PAT WC for framebuffer, slab + kmalloc, self-test |
 | M5 ACPI & timers | ✅ uACPI 6.1.1 (tables + namespace, power button → S5), LAPIC/IOAPIC, TSC via PIT, 1 kHz LAPIC timer |
 | M6 Threads & scheduler | ✅ kernel threads, fxsave/fxrstor + FS base per thread, round robin (10 ms quantum), sleep list, wait queues, zombie reaping in idle |
-| M7 User mode & syscalls | ⏳ next |
+| M7 User mode & syscalls | ✅ ring 3, `syscall` entry → common trap frame, per-process page tables + VMAs (demand-zero), ELF64 loader (static/PIE), SysV stack, fork/wait/exit |
+| M8 VFS & initramfs | ✅ VFS (path walk, symlinks, mounts), tmpfs, newc cpio initramfs, /dev nodes (null, zero, random, console/tty), pipes, TTY line discipline, PS/2 + serial input |
+| M9 Linux ABI core (musl) | ⏳ next |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -58,8 +60,21 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - x86: `switch.S` saves callee-saved regs; new threads start in `x86_thread_trampoline` (r12=fn, r13=arg).
 - `arch_switch_mm()` is a weak hook for address-space switching (M7).
 
-## Next steps (M7)
-1. `syscall`/`sysret` entry (STAR/LSTAR/FMASK MSRs, swapgs, per-CPU block with kernel/user rsp).
-2. `struct process` with its own page table; user mappings tracked by a simple VMA list.
-3. ELF64 loader (static, ET_EXEC + ET_DYN/PIE) with System V initial stack (argc/argv/envp/auxv).
-4. `write(1/2)`, `exit`, `exit_group`; load `/init` straight from the cpio module.
+## User mode / process notes (M7–M8)
+- Every thread's kernel stack top holds its user `struct trap_frame` (`thread_user_frame(t)`); kernel-mode
+  start frames are placed below it. Syscalls build the same frame (vector 0x100) and return via `trap_return`/`iretq`.
+- `user_return_work(f)` (core/syscall.c) runs on every return: reschedule, SIGALRM, signal delivery, mask restore.
+- Syscall table `core/syscall.c` is **generated** from `arch/x86_64/include/arch/unistd.h` + `sys_*` functions
+  (the python snippet lives in `scripts/gen-syscalls.py`). Missing syscalls → `-ENOSYS` with a one-time warning.
+- Kernel cmdline: `init=/path`, `strace` (log every syscall), `selftest` (scheduler test).
+- Memory: `kernel/mm/mm.c` VMAs, demand-zero faults, `mm_write()` for writing into inactive address spaces,
+  fork = eager copy (COW is future work). `copy_{from,to}_user` validate against VMAs and pre-fault.
+- VFS: `kernel/fs/vfs.c` (inodes are refcounted with `iget/iput`, freed when `nlink==0 && refcount==0`),
+  `tmpfs.c` (page-vector files), `initramfs.c`, `pipe.c`, `devices.c`; TTY in `drivers/tty.c`.
+- Signals: `core/signal.c` + `arch/x86_64/signal_frame.c` (Linux `rt_sigframe` layout), SA_RESTART via
+  `frame_restart_syscall`, job-control stop/continue.
+- Processes: `core/process.c` — clone flags CLONE_VM/VFORK/THREAD/SETTLS/*TID handled; pid == main thread tid.
+
+## Next steps (M9)
+1. Build musl (clang, static) via `userland/build-musl.sh` into `userland/sysroot`.
+2. Run a static musl hello world + a libc test program as /sbin/init; fix missing syscalls.

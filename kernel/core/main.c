@@ -8,6 +8,18 @@
 #include <kernel/acpi.h>
 #include <kernel/time.h>
 #include <kernel/sched.h>
+#include <kernel/vfs.h>
+#include <kernel/process.h>
+#include <kernel/string.h>
+#include <kernel/syscall.h>
+
+void input_init(void);
+
+static const char *strstr_simple(const char *h, const char *n) {
+    size_t l = strlen(n);
+    for (; *h; h++) if (!strncmp(h, n, l)) return h;
+    return nullptr;
+}
 
 static volatile int counters[3];
 static void spinner(void *arg) {
@@ -57,7 +69,19 @@ void kmain(void) {
     arch_init();
     arch_irq_enable();
     acpi_late_init();
-    sched_selftest();
-    pr_info("nothing left to do, idling\n");
+    if (strstr_simple(boot_cmdline(), "selftest")) sched_selftest();
+    vfs_init();
+    devices_init();
+    initramfs_load();
+    input_init();
+    syscall_trace = strstr_simple(boot_cmdline(), "strace") != nullptr;
+    static char init_path[128];
+    const char *ip = strstr_simple(boot_cmdline(), "init=");
+    if (ip) {
+        size_t n = 0;
+        for (ip += 5; *ip && *ip != ' ' && n < sizeof init_path - 1; ip++) init_path[n++] = *ip;
+    }
+    process_create_init(init_path[0] ? init_path : nullptr);
+    /* kmain becomes a sleeping kernel thread */
     for (;;) sleep_ns(1000000000ULL);
 }

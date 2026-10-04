@@ -2,6 +2,7 @@
 #include <kernel/types.h>
 #include <kernel/list.h>
 #include <arch/thread.h>
+#include <kernel/arch.h>
 
 #define KSTACK_ORDER 2                         /* 16 KiB kernel stacks */
 #define KSTACK_SIZE (PAGE_SIZE << KSTACK_ORDER)
@@ -18,13 +19,22 @@ struct thread {
     void *kstack;              /* base of kernel stack */
     int quantum;
     uint64_t wake_ns;
-    struct list_node run_node;     /* run queue / wait queue / sleep list */
+    struct list_node run_node;     /* run queue / wait queue */
+    struct list_node timer_node;   /* timeout list */
+    bool timer_active, timed_out;
     struct list_node proc_node;    /* process thread list */
     struct list_node all_node;
     struct process *proc;
     bool interrupted;              /* woken by signal */
     void *wait_chan;
     int *clear_child_tid;
+    /* signals */
+    uint64_t sig_mask, sig_pending, saved_mask;
+    bool restore_mask;
+    uint64_t altstack_sp, altstack_size;
+    int altstack_flags;
+    uint64_t last_syscall;
+    bool killed;
 };
 
 struct wait_queue { struct list_node head; };
@@ -47,12 +57,14 @@ void thread_wake(struct thread *t);
 void sleep_ns(uint64_t ns);
 /* Block on a queue. Returns 0, or -EINTR if interrupted by a signal. */
 int wait_event(struct wait_queue *q);
+/* 0 on wakeup, -ETIMEDOUT on timeout, -EINTR on signal. ns == UINT64_MAX means no timeout. */
+int wait_event_timeout(struct wait_queue *q, uint64_t ns);
 void wake_up(struct wait_queue *q);
 void wake_up_one(struct wait_queue *q);
 
 /* condition-style helper: sleep until cond is true (re-checked after each wakeup) */
-#define wait_until(q, cond) ({ int __r = 0; \
-    while (!(cond)) { if ((__r = wait_event(q))) break; } __r; })
+#define wait_until(q, cond) ({ int __r = 0; uint64_t __f = arch_irq_save(); \
+    while (!(cond)) { if ((__r = wait_event(q))) break; } arch_irq_restore(__f); __r; })
 
 /* provided by arch */
 void arch_thread_init(struct thread *t, void (*entry)(void *), void *arg);

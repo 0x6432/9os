@@ -8,6 +8,7 @@ void kmain(void);
 void gdt_init(void);
 void idt_init(void);
 void apic_init(void);
+void syscall_init(void);
 
 uint8_t fpu_initial_state[512] __attribute__((aligned(16)));
 
@@ -29,6 +30,7 @@ void arch_early_init(void) {
     gdt_init();
     idt_init();
     fpu_init();
+    syscall_init();
 }
 
 void arch_init(void) {

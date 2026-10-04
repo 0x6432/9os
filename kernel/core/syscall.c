@@ -1,0 +1,1210 @@
+/* System call dispatch (Linux ABI). Generated from syscall.c.in by scripts/gen-syscalls.py - edit the template. */
+#include <kernel/syscall.h>
+#include <kernel/printk.h>
+#include <kernel/time.h>
+#include <arch/syscall.h>
+
+typedef int64_t (*syscall_fn)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+#pragma clang diagnostic ignored "-Wdeprecated-non-prototype"
+#pragma clang diagnostic ignored "-Wstrict-prototypes"
+int64_t sys_access();
+int64_t sys_alarm();
+int64_t sys_arch_prctl_wrap();
+int64_t sys_brk();
+int64_t sys_capget();
+int64_t sys_chdir();
+int64_t sys_chmod();
+int64_t sys_chown();
+int64_t sys_chroot();
+int64_t sys_clock_getres();
+int64_t sys_clock_gettime();
+int64_t sys_clock_nanosleep();
+int64_t sys_clone();
+int64_t sys_close();
+int64_t sys_close_range();
+int64_t sys_creat();
+int64_t sys_dup();
+int64_t sys_dup2();
+int64_t sys_dup3();
+int64_t sys_execve();
+int64_t sys_exit();
+int64_t sys_exit_group();
+int64_t sys_faccessat();
+int64_t sys_faccessat2();
+int64_t sys_fchdir();
+int64_t sys_fchmod();
+int64_t sys_fchmodat();
+int64_t sys_fchown();
+int64_t sys_fchownat();
+int64_t sys_fcntl();
+int64_t sys_fork();
+int64_t sys_fstat();
+int64_t sys_fstatfs();
+int64_t sys_fsync();
+int64_t sys_ftruncate();
+int64_t sys_futex();
+int64_t sys_getcpu();
+int64_t sys_getcwd();
+int64_t sys_getdents();
+int64_t sys_getdents64();
+int64_t sys_getegid();
+int64_t sys_geteuid();
+int64_t sys_getgid();
+int64_t sys_getgroups();
+int64_t sys_getitimer();
+int64_t sys_getpgid();
+int64_t sys_getpgrp();
+int64_t sys_getpid();
+int64_t sys_getppid();
+int64_t sys_getpriority();
+int64_t sys_getrandom();
+int64_t sys_getresgid();
+int64_t sys_getresuid();
+int64_t sys_getrlimit();
+int64_t sys_getrusage();
+int64_t sys_getsid();
+int64_t sys_gettid();
+int64_t sys_gettimeofday();
+int64_t sys_getuid();
+int64_t sys_ioctl();
+int64_t sys_kill();
+int64_t sys_lchown();
+int64_t sys_link();
+int64_t sys_linkat();
+int64_t sys_lseek();
+int64_t sys_lstat();
+int64_t sys_madvise();
+int64_t sys_mkdir();
+int64_t sys_mkdirat();
+int64_t sys_mknod();
+int64_t sys_mknodat();
+int64_t sys_mmap();
+int64_t sys_mprotect();
+int64_t sys_mremap();
+int64_t sys_munmap();
+int64_t sys_nanosleep();
+int64_t sys_newfstatat();
+int64_t sys_open();
+int64_t sys_openat();
+int64_t sys_pause();
+int64_t sys_personality();
+int64_t sys_pipe();
+int64_t sys_pipe2();
+int64_t sys_poll();
+int64_t sys_ppoll();
+int64_t sys_prctl();
+int64_t sys_pread64();
+int64_t sys_prlimit64();
+int64_t sys_pselect6();
+int64_t sys_pwrite64();
+int64_t sys_read();
+int64_t sys_readlink();
+int64_t sys_readlinkat();
+int64_t sys_readv();
+int64_t sys_reboot();
+int64_t sys_rename();
+int64_t sys_renameat();
+int64_t sys_renameat2();
+int64_t sys_rmdir();
+int64_t sys_rseq();
+int64_t sys_rt_sigaction();
+int64_t sys_rt_sigpending();
+int64_t sys_rt_sigprocmask();
+int64_t sys_rt_sigreturn();
+int64_t sys_rt_sigsuspend();
+int64_t sys_sched_getaffinity();
+int64_t sys_sched_yield();
+int64_t sys_select();
+int64_t sys_sendfile();
+int64_t sys_set_robust_list();
+int64_t sys_set_tid_address();
+int64_t sys_setfsgid();
+int64_t sys_setfsuid();
+int64_t sys_setgid();
+int64_t sys_setgroups();
+int64_t sys_sethostname();
+int64_t sys_setitimer();
+int64_t sys_setpgid();
+int64_t sys_setpriority();
+int64_t sys_setregid();
+int64_t sys_setresgid();
+int64_t sys_setresuid();
+int64_t sys_setreuid();
+int64_t sys_setrlimit();
+int64_t sys_setsid();
+int64_t sys_setuid();
+int64_t sys_sigaltstack();
+int64_t sys_stat();
+int64_t sys_statfs();
+int64_t sys_statx();
+int64_t sys_symlink();
+int64_t sys_symlinkat();
+int64_t sys_sync();
+int64_t sys_sysinfo();
+int64_t sys_syslog();
+int64_t sys_tgkill();
+int64_t sys_time();
+int64_t sys_times();
+int64_t sys_tkill();
+int64_t sys_truncate();
+int64_t sys_umask();
+int64_t sys_uname();
+int64_t sys_unlink();
+int64_t sys_unlinkat();
+int64_t sys_utimensat();
+int64_t sys_vfork();
+int64_t sys_wait4();
+int64_t sys_waitid();
+int64_t sys_write();
+int64_t sys_writev();
+int64_t sys_zero();
+
+static const syscall_fn syscall_table[NR_SYSCALLS] = {
+#ifdef __NR_read
+    [__NR_read] = (syscall_fn)sys_read,
+#endif
+#ifdef __NR_write
+    [__NR_write] = (syscall_fn)sys_write,
+#endif
+#ifdef __NR_open
+    [__NR_open] = (syscall_fn)sys_open,
+#endif
+#ifdef __NR_close
+    [__NR_close] = (syscall_fn)sys_close,
+#endif
+#ifdef __NR_stat
+    [__NR_stat] = (syscall_fn)sys_stat,
+#endif
+#ifdef __NR_fstat
+    [__NR_fstat] = (syscall_fn)sys_fstat,
+#endif
+#ifdef __NR_lstat
+    [__NR_lstat] = (syscall_fn)sys_lstat,
+#endif
+#ifdef __NR_poll
+    [__NR_poll] = (syscall_fn)sys_poll,
+#endif
+#ifdef __NR_lseek
+    [__NR_lseek] = (syscall_fn)sys_lseek,
+#endif
+#ifdef __NR_mmap
+    [__NR_mmap] = (syscall_fn)sys_mmap,
+#endif
+#ifdef __NR_mprotect
+    [__NR_mprotect] = (syscall_fn)sys_mprotect,
+#endif
+#ifdef __NR_munmap
+    [__NR_munmap] = (syscall_fn)sys_munmap,
+#endif
+#ifdef __NR_brk
+    [__NR_brk] = (syscall_fn)sys_brk,
+#endif
+#ifdef __NR_rt_sigaction
+    [__NR_rt_sigaction] = (syscall_fn)sys_rt_sigaction,
+#endif
+#ifdef __NR_rt_sigprocmask
+    [__NR_rt_sigprocmask] = (syscall_fn)sys_rt_sigprocmask,
+#endif
+#ifdef __NR_rt_sigreturn
+    [__NR_rt_sigreturn] = (syscall_fn)sys_rt_sigreturn,
+#endif
+#ifdef __NR_ioctl
+    [__NR_ioctl] = (syscall_fn)sys_ioctl,
+#endif
+#ifdef __NR_pread64
+    [__NR_pread64] = (syscall_fn)sys_pread64,
+#endif
+#ifdef __NR_pwrite64
+    [__NR_pwrite64] = (syscall_fn)sys_pwrite64,
+#endif
+#ifdef __NR_readv
+    [__NR_readv] = (syscall_fn)sys_readv,
+#endif
+#ifdef __NR_writev
+    [__NR_writev] = (syscall_fn)sys_writev,
+#endif
+#ifdef __NR_access
+    [__NR_access] = (syscall_fn)sys_access,
+#endif
+#ifdef __NR_pipe
+    [__NR_pipe] = (syscall_fn)sys_pipe,
+#endif
+#ifdef __NR_select
+    [__NR_select] = (syscall_fn)sys_select,
+#endif
+#ifdef __NR_sched_yield
+    [__NR_sched_yield] = (syscall_fn)sys_sched_yield,
+#endif
+#ifdef __NR_mremap
+    [__NR_mremap] = (syscall_fn)sys_mremap,
+#endif
+#ifdef __NR_msync
+    [__NR_msync] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_madvise
+    [__NR_madvise] = (syscall_fn)sys_madvise,
+#endif
+#ifdef __NR_dup
+    [__NR_dup] = (syscall_fn)sys_dup,
+#endif
+#ifdef __NR_dup2
+    [__NR_dup2] = (syscall_fn)sys_dup2,
+#endif
+#ifdef __NR_pause
+    [__NR_pause] = (syscall_fn)sys_pause,
+#endif
+#ifdef __NR_nanosleep
+    [__NR_nanosleep] = (syscall_fn)sys_nanosleep,
+#endif
+#ifdef __NR_getitimer
+    [__NR_getitimer] = (syscall_fn)sys_getitimer,
+#endif
+#ifdef __NR_alarm
+    [__NR_alarm] = (syscall_fn)sys_alarm,
+#endif
+#ifdef __NR_setitimer
+    [__NR_setitimer] = (syscall_fn)sys_setitimer,
+#endif
+#ifdef __NR_getpid
+    [__NR_getpid] = (syscall_fn)sys_getpid,
+#endif
+#ifdef __NR_sendfile
+    [__NR_sendfile] = (syscall_fn)sys_sendfile,
+#endif
+#ifdef __NR_clone
+    [__NR_clone] = (syscall_fn)sys_clone,
+#endif
+#ifdef __NR_fork
+    [__NR_fork] = (syscall_fn)sys_fork,
+#endif
+#ifdef __NR_vfork
+    [__NR_vfork] = (syscall_fn)sys_vfork,
+#endif
+#ifdef __NR_execve
+    [__NR_execve] = (syscall_fn)sys_execve,
+#endif
+#ifdef __NR_exit
+    [__NR_exit] = (syscall_fn)sys_exit,
+#endif
+#ifdef __NR_wait4
+    [__NR_wait4] = (syscall_fn)sys_wait4,
+#endif
+#ifdef __NR_kill
+    [__NR_kill] = (syscall_fn)sys_kill,
+#endif
+#ifdef __NR_uname
+    [__NR_uname] = (syscall_fn)sys_uname,
+#endif
+#ifdef __NR_fcntl
+    [__NR_fcntl] = (syscall_fn)sys_fcntl,
+#endif
+#ifdef __NR_flock
+    [__NR_flock] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_fsync
+    [__NR_fsync] = (syscall_fn)sys_fsync,
+#endif
+#ifdef __NR_fdatasync
+    [__NR_fdatasync] = (syscall_fn)sys_fsync,
+#endif
+#ifdef __NR_truncate
+    [__NR_truncate] = (syscall_fn)sys_truncate,
+#endif
+#ifdef __NR_ftruncate
+    [__NR_ftruncate] = (syscall_fn)sys_ftruncate,
+#endif
+#ifdef __NR_getdents
+    [__NR_getdents] = (syscall_fn)sys_getdents,
+#endif
+#ifdef __NR_getcwd
+    [__NR_getcwd] = (syscall_fn)sys_getcwd,
+#endif
+#ifdef __NR_chdir
+    [__NR_chdir] = (syscall_fn)sys_chdir,
+#endif
+#ifdef __NR_fchdir
+    [__NR_fchdir] = (syscall_fn)sys_fchdir,
+#endif
+#ifdef __NR_rename
+    [__NR_rename] = (syscall_fn)sys_rename,
+#endif
+#ifdef __NR_mkdir
+    [__NR_mkdir] = (syscall_fn)sys_mkdir,
+#endif
+#ifdef __NR_rmdir
+    [__NR_rmdir] = (syscall_fn)sys_rmdir,
+#endif
+#ifdef __NR_creat
+    [__NR_creat] = (syscall_fn)sys_creat,
+#endif
+#ifdef __NR_link
+    [__NR_link] = (syscall_fn)sys_link,
+#endif
+#ifdef __NR_unlink
+    [__NR_unlink] = (syscall_fn)sys_unlink,
+#endif
+#ifdef __NR_symlink
+    [__NR_symlink] = (syscall_fn)sys_symlink,
+#endif
+#ifdef __NR_readlink
+    [__NR_readlink] = (syscall_fn)sys_readlink,
+#endif
+#ifdef __NR_chmod
+    [__NR_chmod] = (syscall_fn)sys_chmod,
+#endif
+#ifdef __NR_fchmod
+    [__NR_fchmod] = (syscall_fn)sys_fchmod,
+#endif
+#ifdef __NR_chown
+    [__NR_chown] = (syscall_fn)sys_chown,
+#endif
+#ifdef __NR_fchown
+    [__NR_fchown] = (syscall_fn)sys_fchown,
+#endif
+#ifdef __NR_lchown
+    [__NR_lchown] = (syscall_fn)sys_lchown,
+#endif
+#ifdef __NR_umask
+    [__NR_umask] = (syscall_fn)sys_umask,
+#endif
+#ifdef __NR_gettimeofday
+    [__NR_gettimeofday] = (syscall_fn)sys_gettimeofday,
+#endif
+#ifdef __NR_getrlimit
+    [__NR_getrlimit] = (syscall_fn)sys_getrlimit,
+#endif
+#ifdef __NR_getrusage
+    [__NR_getrusage] = (syscall_fn)sys_getrusage,
+#endif
+#ifdef __NR_sysinfo
+    [__NR_sysinfo] = (syscall_fn)sys_sysinfo,
+#endif
+#ifdef __NR_times
+    [__NR_times] = (syscall_fn)sys_times,
+#endif
+#ifdef __NR_getuid
+    [__NR_getuid] = (syscall_fn)sys_getuid,
+#endif
+#ifdef __NR_syslog
+    [__NR_syslog] = (syscall_fn)sys_syslog,
+#endif
+#ifdef __NR_getgid
+    [__NR_getgid] = (syscall_fn)sys_getgid,
+#endif
+#ifdef __NR_setuid
+    [__NR_setuid] = (syscall_fn)sys_setuid,
+#endif
+#ifdef __NR_setgid
+    [__NR_setgid] = (syscall_fn)sys_setgid,
+#endif
+#ifdef __NR_geteuid
+    [__NR_geteuid] = (syscall_fn)sys_geteuid,
+#endif
+#ifdef __NR_getegid
+    [__NR_getegid] = (syscall_fn)sys_getegid,
+#endif
+#ifdef __NR_setpgid
+    [__NR_setpgid] = (syscall_fn)sys_setpgid,
+#endif
+#ifdef __NR_getppid
+    [__NR_getppid] = (syscall_fn)sys_getppid,
+#endif
+#ifdef __NR_getpgrp
+    [__NR_getpgrp] = (syscall_fn)sys_getpgrp,
+#endif
+#ifdef __NR_setsid
+    [__NR_setsid] = (syscall_fn)sys_setsid,
+#endif
+#ifdef __NR_setreuid
+    [__NR_setreuid] = (syscall_fn)sys_setreuid,
+#endif
+#ifdef __NR_setregid
+    [__NR_setregid] = (syscall_fn)sys_setregid,
+#endif
+#ifdef __NR_getgroups
+    [__NR_getgroups] = (syscall_fn)sys_getgroups,
+#endif
+#ifdef __NR_setgroups
+    [__NR_setgroups] = (syscall_fn)sys_setgroups,
+#endif
+#ifdef __NR_setresuid
+    [__NR_setresuid] = (syscall_fn)sys_setresuid,
+#endif
+#ifdef __NR_getresuid
+    [__NR_getresuid] = (syscall_fn)sys_getresuid,
+#endif
+#ifdef __NR_setresgid
+    [__NR_setresgid] = (syscall_fn)sys_setresgid,
+#endif
+#ifdef __NR_getresgid
+    [__NR_getresgid] = (syscall_fn)sys_getresgid,
+#endif
+#ifdef __NR_getpgid
+    [__NR_getpgid] = (syscall_fn)sys_getpgid,
+#endif
+#ifdef __NR_setfsuid
+    [__NR_setfsuid] = (syscall_fn)sys_setfsuid,
+#endif
+#ifdef __NR_setfsgid
+    [__NR_setfsgid] = (syscall_fn)sys_setfsgid,
+#endif
+#ifdef __NR_getsid
+    [__NR_getsid] = (syscall_fn)sys_getsid,
+#endif
+#ifdef __NR_capget
+    [__NR_capget] = (syscall_fn)sys_capget,
+#endif
+#ifdef __NR_capset
+    [__NR_capset] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_rt_sigpending
+    [__NR_rt_sigpending] = (syscall_fn)sys_rt_sigpending,
+#endif
+#ifdef __NR_rt_sigsuspend
+    [__NR_rt_sigsuspend] = (syscall_fn)sys_rt_sigsuspend,
+#endif
+#ifdef __NR_sigaltstack
+    [__NR_sigaltstack] = (syscall_fn)sys_sigaltstack,
+#endif
+#ifdef __NR_utime
+    [__NR_utime] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_mknod
+    [__NR_mknod] = (syscall_fn)sys_mknod,
+#endif
+#ifdef __NR_personality
+    [__NR_personality] = (syscall_fn)sys_personality,
+#endif
+#ifdef __NR_statfs
+    [__NR_statfs] = (syscall_fn)sys_statfs,
+#endif
+#ifdef __NR_fstatfs
+    [__NR_fstatfs] = (syscall_fn)sys_fstatfs,
+#endif
+#ifdef __NR_getpriority
+    [__NR_getpriority] = (syscall_fn)sys_getpriority,
+#endif
+#ifdef __NR_setpriority
+    [__NR_setpriority] = (syscall_fn)sys_setpriority,
+#endif
+#ifdef __NR_sched_getparam
+    [__NR_sched_getparam] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_sched_getscheduler
+    [__NR_sched_getscheduler] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_mlock
+    [__NR_mlock] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_munlock
+    [__NR_munlock] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_prctl
+    [__NR_prctl] = (syscall_fn)sys_prctl,
+#endif
+#ifdef __NR_arch_prctl
+    [__NR_arch_prctl] = (syscall_fn)sys_arch_prctl_wrap,
+#endif
+#ifdef __NR_setrlimit
+    [__NR_setrlimit] = (syscall_fn)sys_setrlimit,
+#endif
+#ifdef __NR_chroot
+    [__NR_chroot] = (syscall_fn)sys_chroot,
+#endif
+#ifdef __NR_sync
+    [__NR_sync] = (syscall_fn)sys_sync,
+#endif
+#ifdef __NR_umount2
+    [__NR_umount2] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_reboot
+    [__NR_reboot] = (syscall_fn)sys_reboot,
+#endif
+#ifdef __NR_sethostname
+    [__NR_sethostname] = (syscall_fn)sys_sethostname,
+#endif
+#ifdef __NR_gettid
+    [__NR_gettid] = (syscall_fn)sys_gettid,
+#endif
+#ifdef __NR_tkill
+    [__NR_tkill] = (syscall_fn)sys_tkill,
+#endif
+#ifdef __NR_time
+    [__NR_time] = (syscall_fn)sys_time,
+#endif
+#ifdef __NR_futex
+    [__NR_futex] = (syscall_fn)sys_futex,
+#endif
+#ifdef __NR_sched_setaffinity
+    [__NR_sched_setaffinity] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_sched_getaffinity
+    [__NR_sched_getaffinity] = (syscall_fn)sys_sched_getaffinity,
+#endif
+#ifdef __NR_getdents64
+    [__NR_getdents64] = (syscall_fn)sys_getdents64,
+#endif
+#ifdef __NR_set_tid_address
+    [__NR_set_tid_address] = (syscall_fn)sys_set_tid_address,
+#endif
+#ifdef __NR_fadvise64
+    [__NR_fadvise64] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_clock_settime
+    [__NR_clock_settime] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_clock_gettime
+    [__NR_clock_gettime] = (syscall_fn)sys_clock_gettime,
+#endif
+#ifdef __NR_clock_getres
+    [__NR_clock_getres] = (syscall_fn)sys_clock_getres,
+#endif
+#ifdef __NR_clock_nanosleep
+    [__NR_clock_nanosleep] = (syscall_fn)sys_clock_nanosleep,
+#endif
+#ifdef __NR_exit_group
+    [__NR_exit_group] = (syscall_fn)sys_exit_group,
+#endif
+#ifdef __NR_tgkill
+    [__NR_tgkill] = (syscall_fn)sys_tgkill,
+#endif
+#ifdef __NR_utimes
+    [__NR_utimes] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_waitid
+    [__NR_waitid] = (syscall_fn)sys_waitid,
+#endif
+#ifdef __NR_openat
+    [__NR_openat] = (syscall_fn)sys_openat,
+#endif
+#ifdef __NR_mkdirat
+    [__NR_mkdirat] = (syscall_fn)sys_mkdirat,
+#endif
+#ifdef __NR_mknodat
+    [__NR_mknodat] = (syscall_fn)sys_mknodat,
+#endif
+#ifdef __NR_fchownat
+    [__NR_fchownat] = (syscall_fn)sys_fchownat,
+#endif
+#ifdef __NR_futimesat
+    [__NR_futimesat] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_newfstatat
+    [__NR_newfstatat] = (syscall_fn)sys_newfstatat,
+#endif
+#ifdef __NR_unlinkat
+    [__NR_unlinkat] = (syscall_fn)sys_unlinkat,
+#endif
+#ifdef __NR_renameat
+    [__NR_renameat] = (syscall_fn)sys_renameat,
+#endif
+#ifdef __NR_linkat
+    [__NR_linkat] = (syscall_fn)sys_linkat,
+#endif
+#ifdef __NR_symlinkat
+    [__NR_symlinkat] = (syscall_fn)sys_symlinkat,
+#endif
+#ifdef __NR_readlinkat
+    [__NR_readlinkat] = (syscall_fn)sys_readlinkat,
+#endif
+#ifdef __NR_fchmodat
+    [__NR_fchmodat] = (syscall_fn)sys_fchmodat,
+#endif
+#ifdef __NR_faccessat
+    [__NR_faccessat] = (syscall_fn)sys_faccessat,
+#endif
+#ifdef __NR_pselect6
+    [__NR_pselect6] = (syscall_fn)sys_pselect6,
+#endif
+#ifdef __NR_ppoll
+    [__NR_ppoll] = (syscall_fn)sys_ppoll,
+#endif
+#ifdef __NR_set_robust_list
+    [__NR_set_robust_list] = (syscall_fn)sys_set_robust_list,
+#endif
+#ifdef __NR_get_robust_list
+    [__NR_get_robust_list] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_utimensat
+    [__NR_utimensat] = (syscall_fn)sys_utimensat,
+#endif
+#ifdef __NR_fallocate
+    [__NR_fallocate] = (syscall_fn)sys_zero,
+#endif
+#ifdef __NR_dup3
+    [__NR_dup3] = (syscall_fn)sys_dup3,
+#endif
+#ifdef __NR_pipe2
+    [__NR_pipe2] = (syscall_fn)sys_pipe2,
+#endif
+#ifdef __NR_prlimit64
+    [__NR_prlimit64] = (syscall_fn)sys_prlimit64,
+#endif
+#ifdef __NR_syncfs
+    [__NR_syncfs] = (syscall_fn)sys_fsync,
+#endif
+#ifdef __NR_getcpu
+    [__NR_getcpu] = (syscall_fn)sys_getcpu,
+#endif
+#ifdef __NR_renameat2
+    [__NR_renameat2] = (syscall_fn)sys_renameat2,
+#endif
+#ifdef __NR_getrandom
+    [__NR_getrandom] = (syscall_fn)sys_getrandom,
+#endif
+#ifdef __NR_statx
+    [__NR_statx] = (syscall_fn)sys_statx,
+#endif
+#ifdef __NR_rseq
+    [__NR_rseq] = (syscall_fn)sys_rseq,
+#endif
+#ifdef __NR_close_range
+    [__NR_close_range] = (syscall_fn)sys_close_range,
+#endif
+#ifdef __NR_faccessat2
+    [__NR_faccessat2] = (syscall_fn)sys_faccessat2,
+#endif
+};
+
+static const char *const syscall_names[NR_SYSCALLS] = {
+#ifdef __NR_read
+    [__NR_read] = "read",
+#endif
+#ifdef __NR_write
+    [__NR_write] = "write",
+#endif
+#ifdef __NR_open
+    [__NR_open] = "open",
+#endif
+#ifdef __NR_close
+    [__NR_close] = "close",
+#endif
+#ifdef __NR_stat
+    [__NR_stat] = "stat",
+#endif
+#ifdef __NR_fstat
+    [__NR_fstat] = "fstat",
+#endif
+#ifdef __NR_lstat
+    [__NR_lstat] = "lstat",
+#endif
+#ifdef __NR_poll
+    [__NR_poll] = "poll",
+#endif
+#ifdef __NR_lseek
+    [__NR_lseek] = "lseek",
+#endif
+#ifdef __NR_mmap
+    [__NR_mmap] = "mmap",
+#endif
+#ifdef __NR_mprotect
+    [__NR_mprotect] = "mprotect",
+#endif
+#ifdef __NR_munmap
+    [__NR_munmap] = "munmap",
+#endif
+#ifdef __NR_brk
+    [__NR_brk] = "brk",
+#endif
+#ifdef __NR_rt_sigaction
+    [__NR_rt_sigaction] = "rt_sigaction",
+#endif
+#ifdef __NR_rt_sigprocmask
+    [__NR_rt_sigprocmask] = "rt_sigprocmask",
+#endif
+#ifdef __NR_rt_sigreturn
+    [__NR_rt_sigreturn] = "rt_sigreturn",
+#endif
+#ifdef __NR_ioctl
+    [__NR_ioctl] = "ioctl",
+#endif
+#ifdef __NR_pread64
+    [__NR_pread64] = "pread64",
+#endif
+#ifdef __NR_pwrite64
+    [__NR_pwrite64] = "pwrite64",
+#endif
+#ifdef __NR_readv
+    [__NR_readv] = "readv",
+#endif
+#ifdef __NR_writev
+    [__NR_writev] = "writev",
+#endif
+#ifdef __NR_access
+    [__NR_access] = "access",
+#endif
+#ifdef __NR_pipe
+    [__NR_pipe] = "pipe",
+#endif
+#ifdef __NR_select
+    [__NR_select] = "select",
+#endif
+#ifdef __NR_sched_yield
+    [__NR_sched_yield] = "sched_yield",
+#endif
+#ifdef __NR_mremap
+    [__NR_mremap] = "mremap",
+#endif
+#ifdef __NR_msync
+    [__NR_msync] = "msync",
+#endif
+#ifdef __NR_madvise
+    [__NR_madvise] = "madvise",
+#endif
+#ifdef __NR_dup
+    [__NR_dup] = "dup",
+#endif
+#ifdef __NR_dup2
+    [__NR_dup2] = "dup2",
+#endif
+#ifdef __NR_pause
+    [__NR_pause] = "pause",
+#endif
+#ifdef __NR_nanosleep
+    [__NR_nanosleep] = "nanosleep",
+#endif
+#ifdef __NR_getitimer
+    [__NR_getitimer] = "getitimer",
+#endif
+#ifdef __NR_alarm
+    [__NR_alarm] = "alarm",
+#endif
+#ifdef __NR_setitimer
+    [__NR_setitimer] = "setitimer",
+#endif
+#ifdef __NR_getpid
+    [__NR_getpid] = "getpid",
+#endif
+#ifdef __NR_sendfile
+    [__NR_sendfile] = "sendfile",
+#endif
+#ifdef __NR_clone
+    [__NR_clone] = "clone",
+#endif
+#ifdef __NR_fork
+    [__NR_fork] = "fork",
+#endif
+#ifdef __NR_vfork
+    [__NR_vfork] = "vfork",
+#endif
+#ifdef __NR_execve
+    [__NR_execve] = "execve",
+#endif
+#ifdef __NR_exit
+    [__NR_exit] = "exit",
+#endif
+#ifdef __NR_wait4
+    [__NR_wait4] = "wait4",
+#endif
+#ifdef __NR_kill
+    [__NR_kill] = "kill",
+#endif
+#ifdef __NR_uname
+    [__NR_uname] = "uname",
+#endif
+#ifdef __NR_fcntl
+    [__NR_fcntl] = "fcntl",
+#endif
+#ifdef __NR_flock
+    [__NR_flock] = "flock",
+#endif
+#ifdef __NR_fsync
+    [__NR_fsync] = "fsync",
+#endif
+#ifdef __NR_fdatasync
+    [__NR_fdatasync] = "fdatasync",
+#endif
+#ifdef __NR_truncate
+    [__NR_truncate] = "truncate",
+#endif
+#ifdef __NR_ftruncate
+    [__NR_ftruncate] = "ftruncate",
+#endif
+#ifdef __NR_getdents
+    [__NR_getdents] = "getdents",
+#endif
+#ifdef __NR_getcwd
+    [__NR_getcwd] = "getcwd",
+#endif
+#ifdef __NR_chdir
+    [__NR_chdir] = "chdir",
+#endif
+#ifdef __NR_fchdir
+    [__NR_fchdir] = "fchdir",
+#endif
+#ifdef __NR_rename
+    [__NR_rename] = "rename",
+#endif
+#ifdef __NR_mkdir
+    [__NR_mkdir] = "mkdir",
+#endif
+#ifdef __NR_rmdir
+    [__NR_rmdir] = "rmdir",
+#endif
+#ifdef __NR_creat
+    [__NR_creat] = "creat",
+#endif
+#ifdef __NR_link
+    [__NR_link] = "link",
+#endif
+#ifdef __NR_unlink
+    [__NR_unlink] = "unlink",
+#endif
+#ifdef __NR_symlink
+    [__NR_symlink] = "symlink",
+#endif
+#ifdef __NR_readlink
+    [__NR_readlink] = "readlink",
+#endif
+#ifdef __NR_chmod
+    [__NR_chmod] = "chmod",
+#endif
+#ifdef __NR_fchmod
+    [__NR_fchmod] = "fchmod",
+#endif
+#ifdef __NR_chown
+    [__NR_chown] = "chown",
+#endif
+#ifdef __NR_fchown
+    [__NR_fchown] = "fchown",
+#endif
+#ifdef __NR_lchown
+    [__NR_lchown] = "lchown",
+#endif
+#ifdef __NR_umask
+    [__NR_umask] = "umask",
+#endif
+#ifdef __NR_gettimeofday
+    [__NR_gettimeofday] = "gettimeofday",
+#endif
+#ifdef __NR_getrlimit
+    [__NR_getrlimit] = "getrlimit",
+#endif
+#ifdef __NR_getrusage
+    [__NR_getrusage] = "getrusage",
+#endif
+#ifdef __NR_sysinfo
+    [__NR_sysinfo] = "sysinfo",
+#endif
+#ifdef __NR_times
+    [__NR_times] = "times",
+#endif
+#ifdef __NR_getuid
+    [__NR_getuid] = "getuid",
+#endif
+#ifdef __NR_syslog
+    [__NR_syslog] = "syslog",
+#endif
+#ifdef __NR_getgid
+    [__NR_getgid] = "getgid",
+#endif
+#ifdef __NR_setuid
+    [__NR_setuid] = "setuid",
+#endif
+#ifdef __NR_setgid
+    [__NR_setgid] = "setgid",
+#endif
+#ifdef __NR_geteuid
+    [__NR_geteuid] = "geteuid",
+#endif
+#ifdef __NR_getegid
+    [__NR_getegid] = "getegid",
+#endif
+#ifdef __NR_setpgid
+    [__NR_setpgid] = "setpgid",
+#endif
+#ifdef __NR_getppid
+    [__NR_getppid] = "getppid",
+#endif
+#ifdef __NR_getpgrp
+    [__NR_getpgrp] = "getpgrp",
+#endif
+#ifdef __NR_setsid
+    [__NR_setsid] = "setsid",
+#endif
+#ifdef __NR_setreuid
+    [__NR_setreuid] = "setreuid",
+#endif
+#ifdef __NR_setregid
+    [__NR_setregid] = "setregid",
+#endif
+#ifdef __NR_getgroups
+    [__NR_getgroups] = "getgroups",
+#endif
+#ifdef __NR_setgroups
+    [__NR_setgroups] = "setgroups",
+#endif
+#ifdef __NR_setresuid
+    [__NR_setresuid] = "setresuid",
+#endif
+#ifdef __NR_getresuid
+    [__NR_getresuid] = "getresuid",
+#endif
+#ifdef __NR_setresgid
+    [__NR_setresgid] = "setresgid",
+#endif
+#ifdef __NR_getresgid
+    [__NR_getresgid] = "getresgid",
+#endif
+#ifdef __NR_getpgid
+    [__NR_getpgid] = "getpgid",
+#endif
+#ifdef __NR_setfsuid
+    [__NR_setfsuid] = "setfsuid",
+#endif
+#ifdef __NR_setfsgid
+    [__NR_setfsgid] = "setfsgid",
+#endif
+#ifdef __NR_getsid
+    [__NR_getsid] = "getsid",
+#endif
+#ifdef __NR_capget
+    [__NR_capget] = "capget",
+#endif
+#ifdef __NR_capset
+    [__NR_capset] = "capset",
+#endif
+#ifdef __NR_rt_sigpending
+    [__NR_rt_sigpending] = "rt_sigpending",
+#endif
+#ifdef __NR_rt_sigsuspend
+    [__NR_rt_sigsuspend] = "rt_sigsuspend",
+#endif
+#ifdef __NR_sigaltstack
+    [__NR_sigaltstack] = "sigaltstack",
+#endif
+#ifdef __NR_utime
+    [__NR_utime] = "utime",
+#endif
+#ifdef __NR_mknod
+    [__NR_mknod] = "mknod",
+#endif
+#ifdef __NR_personality
+    [__NR_personality] = "personality",
+#endif
+#ifdef __NR_statfs
+    [__NR_statfs] = "statfs",
+#endif
+#ifdef __NR_fstatfs
+    [__NR_fstatfs] = "fstatfs",
+#endif
+#ifdef __NR_getpriority
+    [__NR_getpriority] = "getpriority",
+#endif
+#ifdef __NR_setpriority
+    [__NR_setpriority] = "setpriority",
+#endif
+#ifdef __NR_sched_getparam
+    [__NR_sched_getparam] = "sched_getparam",
+#endif
+#ifdef __NR_sched_getscheduler
+    [__NR_sched_getscheduler] = "sched_getscheduler",
+#endif
+#ifdef __NR_mlock
+    [__NR_mlock] = "mlock",
+#endif
+#ifdef __NR_munlock
+    [__NR_munlock] = "munlock",
+#endif
+#ifdef __NR_prctl
+    [__NR_prctl] = "prctl",
+#endif
+#ifdef __NR_arch_prctl
+    [__NR_arch_prctl] = "arch_prctl",
+#endif
+#ifdef __NR_setrlimit
+    [__NR_setrlimit] = "setrlimit",
+#endif
+#ifdef __NR_chroot
+    [__NR_chroot] = "chroot",
+#endif
+#ifdef __NR_sync
+    [__NR_sync] = "sync",
+#endif
+#ifdef __NR_umount2
+    [__NR_umount2] = "umount2",
+#endif
+#ifdef __NR_reboot
+    [__NR_reboot] = "reboot",
+#endif
+#ifdef __NR_sethostname
+    [__NR_sethostname] = "sethostname",
+#endif
+#ifdef __NR_gettid
+    [__NR_gettid] = "gettid",
+#endif
+#ifdef __NR_tkill
+    [__NR_tkill] = "tkill",
+#endif
+#ifdef __NR_time
+    [__NR_time] = "time",
+#endif
+#ifdef __NR_futex
+    [__NR_futex] = "futex",
+#endif
+#ifdef __NR_sched_setaffinity
+    [__NR_sched_setaffinity] = "sched_setaffinity",
+#endif
+#ifdef __NR_sched_getaffinity
+    [__NR_sched_getaffinity] = "sched_getaffinity",
+#endif
+#ifdef __NR_getdents64
+    [__NR_getdents64] = "getdents64",
+#endif
+#ifdef __NR_set_tid_address
+    [__NR_set_tid_address] = "set_tid_address",
+#endif
+#ifdef __NR_fadvise64
+    [__NR_fadvise64] = "fadvise64",
+#endif
+#ifdef __NR_clock_settime
+    [__NR_clock_settime] = "clock_settime",
+#endif
+#ifdef __NR_clock_gettime
+    [__NR_clock_gettime] = "clock_gettime",
+#endif
+#ifdef __NR_clock_getres
+    [__NR_clock_getres] = "clock_getres",
+#endif
+#ifdef __NR_clock_nanosleep
+    [__NR_clock_nanosleep] = "clock_nanosleep",
+#endif
+#ifdef __NR_exit_group
+    [__NR_exit_group] = "exit_group",
+#endif
+#ifdef __NR_tgkill
+    [__NR_tgkill] = "tgkill",
+#endif
+#ifdef __NR_utimes
+    [__NR_utimes] = "utimes",
+#endif
+#ifdef __NR_waitid
+    [__NR_waitid] = "waitid",
+#endif
+#ifdef __NR_openat
+    [__NR_openat] = "openat",
+#endif
+#ifdef __NR_mkdirat
+    [__NR_mkdirat] = "mkdirat",
+#endif
+#ifdef __NR_mknodat
+    [__NR_mknodat] = "mknodat",
+#endif
+#ifdef __NR_fchownat
+    [__NR_fchownat] = "fchownat",
+#endif
+#ifdef __NR_futimesat
+    [__NR_futimesat] = "futimesat",
+#endif
+#ifdef __NR_newfstatat
+    [__NR_newfstatat] = "newfstatat",
+#endif
+#ifdef __NR_unlinkat
+    [__NR_unlinkat] = "unlinkat",
+#endif
+#ifdef __NR_renameat
+    [__NR_renameat] = "renameat",
+#endif
+#ifdef __NR_linkat
+    [__NR_linkat] = "linkat",
+#endif
+#ifdef __NR_symlinkat
+    [__NR_symlinkat] = "symlinkat",
+#endif
+#ifdef __NR_readlinkat
+    [__NR_readlinkat] = "readlinkat",
+#endif
+#ifdef __NR_fchmodat
+    [__NR_fchmodat] = "fchmodat",
+#endif
+#ifdef __NR_faccessat
+    [__NR_faccessat] = "faccessat",
+#endif
+#ifdef __NR_pselect6
+    [__NR_pselect6] = "pselect6",
+#endif
+#ifdef __NR_ppoll
+    [__NR_ppoll] = "ppoll",
+#endif
+#ifdef __NR_set_robust_list
+    [__NR_set_robust_list] = "set_robust_list",
+#endif
+#ifdef __NR_get_robust_list
+    [__NR_get_robust_list] = "get_robust_list",
+#endif
+#ifdef __NR_utimensat
+    [__NR_utimensat] = "utimensat",
+#endif
+#ifdef __NR_fallocate
+    [__NR_fallocate] = "fallocate",
+#endif
+#ifdef __NR_dup3
+    [__NR_dup3] = "dup3",
+#endif
+#ifdef __NR_pipe2
+    [__NR_pipe2] = "pipe2",
+#endif
+#ifdef __NR_prlimit64
+    [__NR_prlimit64] = "prlimit64",
+#endif
+#ifdef __NR_syncfs
+    [__NR_syncfs] = "syncfs",
+#endif
+#ifdef __NR_getcpu
+    [__NR_getcpu] = "getcpu",
+#endif
+#ifdef __NR_renameat2
+    [__NR_renameat2] = "renameat2",
+#endif
+#ifdef __NR_getrandom
+    [__NR_getrandom] = "getrandom",
+#endif
+#ifdef __NR_statx
+    [__NR_statx] = "statx",
+#endif
+#ifdef __NR_rseq
+    [__NR_rseq] = "rseq",
+#endif
+#ifdef __NR_close_range
+    [__NR_close_range] = "close_range",
+#endif
+#ifdef __NR_faccessat2
+    [__NR_faccessat2] = "faccessat2",
+#endif
+};
+
+bool syscall_trace;
+static uint8_t warned[NR_SYSCALLS];
+
+void signal_deliver(struct trap_frame *f);
+
+void user_return_work(struct trap_frame *f) {
+    if (need_resched && current) schedule();
+    if (!trap_from_user(f) || !current || !current->proc) return;
+    struct process *p = current->proc;
+    if (p->alarm_ns && time_ns() >= p->alarm_ns) { p->alarm_ns = 0; signal_send(p, SIGALRM); }
+    for (int i = 0; i < 8 && signal_pending(current); i++) signal_deliver(f);
+    if (current->restore_mask) { current->sig_mask = current->saved_mask; current->restore_mask = false; }
+    if (need_resched) schedule();
+}
+
+void syscall_dispatch(struct trap_frame *f) {
+    uint64_t nr = SC_NR(f);
+    current->last_syscall = nr;
+    int64_t ret;
+    if (nr < NR_SYSCALLS && syscall_table[nr]) {
+        ret = syscall_table[nr](SC_ARG0(f), SC_ARG1(f), SC_ARG2(f), SC_ARG3(f), SC_ARG4(f), SC_ARG5(f));
+        if (syscall_trace)
+            printk("[%d] %s(%lx, %lx, %lx) = %ld\n", current->tid, syscall_names[nr] ? syscall_names[nr] : "?",
+                   SC_ARG0(f), SC_ARG1(f), SC_ARG2(f), ret);
+    } else {
+        if (nr < NR_SYSCALLS && !warned[nr]) {
+            warned[nr] = 1;
+            pr_warn("unimplemented syscall %lu (%s) from %s\n", nr, syscall_names[nr] ? syscall_names[nr] : "?", current->name);
+        }
+        ret = -ENOSYS;
+    }
+    SC_SET_RET(f, ret);
+    arch_irq_disable();
+    user_return_work(f);
+}

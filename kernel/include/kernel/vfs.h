@@ -1,0 +1,168 @@
+#pragma once
+#include <kernel/types.h>
+#include <kernel/sched.h>
+
+#define S_IFMT   0170000
+#define S_IFSOCK 0140000
+#define S_IFLNK  0120000
+#define S_IFREG  0100000
+#define S_IFBLK  0060000
+#define S_IFDIR  0040000
+#define S_IFCHR  0020000
+#define S_IFIFO  0010000
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
+#define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
+#define S_ISFIFO(m) (((m) & S_IFMT) == S_IFIFO)
+
+#define O_ACCMODE 3
+#define O_RDONLY 0
+#define O_WRONLY 1
+#define O_RDWR 2
+#define O_CREAT 0100
+#define O_EXCL 0200
+#define O_NOCTTY 0400
+#define O_TRUNC 01000
+#define O_APPEND 02000
+#define O_NONBLOCK 04000
+#define O_SYNC 04010000
+#if defined(__aarch64__)
+#define O_DIRECTORY 040000
+#define O_NOFOLLOW 0100000
+#define O_LARGEFILE 0400000
+#else
+#define O_DIRECTORY 0200000
+#define O_NOFOLLOW 0400000
+#define O_LARGEFILE 0100000
+#endif
+#define O_CLOEXEC 02000000
+#define O_PATH 010000000
+
+#define AT_FDCWD (-100)
+#define AT_SYMLINK_NOFOLLOW 0x100
+#define AT_REMOVEDIR 0x200
+#define AT_SYMLINK_FOLLOW 0x400
+#define AT_EMPTY_PATH 0x1000
+
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+
+#define POLLIN 0x001
+#define POLLPRI 0x002
+#define POLLOUT 0x004
+#define POLLERR 0x008
+#define POLLHUP 0x010
+#define POLLNVAL 0x020
+#define POLLRDNORM 0x040
+#define POLLWRNORM 0x100
+
+#define MKDEV(ma, mi) (((uint64_t)(ma) << 8) | (mi))
+#define MAJOR(d) (((d) >> 8) & 0xfff)
+#define MINOR(d) ((d) & 0xff)
+
+struct timespec { int64_t tv_sec, tv_nsec; };
+
+struct inode;
+struct file;
+
+typedef int (*filldir_t)(void *ctx, const char *name, size_t len, uint64_t ino, unsigned type);
+
+struct inode_ops {
+    int (*lookup)(struct inode *dir, const char *name, struct inode **out);
+    int (*create)(struct inode *dir, const char *name, uint32_t mode, uint64_t rdev, struct inode **out);
+    int (*unlink)(struct inode *dir, const char *name, bool rmdir);
+    int (*symlink)(struct inode *dir, const char *name, const char *target);
+    int (*readlink)(struct inode *ino, char *buf, size_t size);
+    int (*link)(struct inode *dir, const char *name, struct inode *target);
+    int (*rename)(struct inode *odir, const char *oname, struct inode *ndir, const char *nname);
+    int (*truncate)(struct inode *ino, uint64_t size);
+    /* iterate directory entries starting at *pos; stop when filldir returns non-zero */
+    int (*iterate)(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx);
+    void (*evict)(struct inode *ino);
+};
+
+struct file_ops {
+    int (*open)(struct inode *ino, struct file *f);
+    ssize_t (*read)(struct file *f, void *buf, size_t n, off_t *off);
+    ssize_t (*write)(struct file *f, const void *buf, size_t n, off_t *off);
+    int (*ioctl)(struct file *f, uint64_t cmd, uint64_t arg);
+    unsigned (*poll)(struct file *f);
+    void (*release)(struct file *f);
+};
+
+struct inode {
+    uint32_t mode, uid, gid, nlink;
+    uint64_t ino, size, rdev, dev;
+    struct timespec atime, mtime, ctime;
+    const struct inode_ops *iops;
+    const struct file_ops *fops;
+    struct inode *parent;      /* directories: parent directory ("..") */
+    struct inode *mounted;     /* mount point: root of mounted filesystem */
+    struct inode *covered;     /* fs root: the mount point it covers */
+    void *priv;
+    int refcount;
+};
+
+struct file {
+    struct inode *inode;
+    const struct file_ops *fops;
+    off_t pos;
+    uint32_t flags;
+    int refcount;
+    void *priv;
+};
+
+struct kstat {
+    uint64_t dev, ino, nlink, rdev;
+    uint32_t mode, uid, gid;
+    int64_t size, blksize, blocks;
+    struct timespec atime, mtime, ctime;
+};
+
+extern struct inode *vfs_root;
+/* global wait queue for poll/select: woken on any I/O readiness change */
+extern struct wait_queue poll_wq;
+void poll_notify(void);
+
+void vfs_init(void);
+struct inode *inode_alloc(uint32_t mode);
+void iget(struct inode *i);
+void iput(struct inode *i);
+struct timespec now_timespec(void);
+
+/* Path resolution relative to dirfd-style base (nullptr = cwd). */
+int vfs_lookup_at(struct inode *base, const char *path, bool follow, struct inode **out);
+int vfs_lookup(const char *path, bool follow, struct inode **out);
+int vfs_lookup_parent_at(struct inode *base, const char *path, struct inode **dir, char *last);
+
+int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, struct file **out);
+int vfs_open(const char *path, int flags, uint32_t mode, struct file **out);
+struct file *file_open_inode(struct inode *ino, int flags);
+void vfs_close(struct file *f);
+static inline struct file *file_get(struct file *f) { f->refcount++; return f; }
+ssize_t vfs_read(struct file *f, void *buf, size_t n);
+ssize_t vfs_write(struct file *f, const void *buf, size_t n);
+ssize_t vfs_pread(struct file *f, void *buf, size_t n, off_t off);
+int vfs_mknod_at(struct inode *base, const char *path, uint32_t mode, uint64_t rdev);
+int vfs_mkdir_at(struct inode *base, const char *path, uint32_t mode);
+int vfs_unlink_at(struct inode *base, const char *path, bool rmdir);
+int vfs_symlink_at(struct inode *base, const char *target, const char *path);
+int vfs_link_at(struct inode *ob, const char *opath, struct inode *nb, const char *npath, bool follow);
+int vfs_rename_at(struct inode *ob, const char *opath, struct inode *nb, const char *npath);
+int vfs_readlink_at(struct inode *base, const char *path, char *buf, size_t size);
+void vfs_stat(struct inode *i, struct kstat *st);
+int vfs_mount(const char *path, struct inode *root);
+int vfs_getcwd(struct inode *cwd, char *buf, size_t size);
+
+/* filesystems */
+struct inode *tmpfs_create_root(void);
+void initramfs_load(void);
+struct inode *pipe_create(struct file **rd, struct file **wr);
+struct inode *procfs_create_root(void);
+
+/* character devices */
+void chrdev_register(unsigned major, unsigned minor, const struct file_ops *ops);
+const struct file_ops *chrdev_get(uint64_t rdev);
+void devices_init(void);

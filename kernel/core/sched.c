@@ -35,6 +35,7 @@ struct thread *thread_alloc(const char *name) {
     strlcpy(t->name, name, sizeof t->name);
     t->quantum = SCHED_QUANTUM;
     list_init(&t->run_node);
+    list_init(&t->timer_node);
     list_init(&t->proc_node);
     list_add_tail(&all_threads, &t->all_node);
     t->state = T_BLOCKED;
@@ -100,8 +101,15 @@ void sched_yield(void) {
 void sched_tick(void) {
     uint64_t now = time_ns();
     list_for_each_safe(it, tmp, &sleep_list) {
-        struct thread *t = list_entry(it, struct thread, run_node);
-        if (t->wake_ns <= now) { list_del(&t->run_node); enqueue(t); need_resched = true; }
+        struct thread *t = list_entry(it, struct thread, timer_node);
+        if (t->wake_ns <= now) {
+            list_del(&t->timer_node);
+            t->timer_active = false;
+            t->timed_out = true;
+            list_del(&t->run_node);
+            enqueue(t);
+            need_resched = true;
+        }
     }
     if (!current) return;
     if (current == idle_thread) { if (!list_empty(&run_queue)) need_resched = true; }
@@ -112,6 +120,7 @@ void thread_wake(struct thread *t) {
     uint64_t f = arch_irq_save();
     if (t->state == T_BLOCKED || t->state == T_SLEEPING) {
         list_del(&t->run_node);
+        if (t->timer_active) { list_del(&t->timer_node); t->timer_active = false; }
         enqueue(t);
         need_resched = true;
     }
@@ -122,7 +131,8 @@ void sleep_ns(uint64_t ns) {
     uint64_t f = arch_irq_save();
     current->wake_ns = time_ns() + ns;
     current->state = T_SLEEPING;
-    list_add_tail(&sleep_list, &current->run_node);
+    current->timer_active = true;
+    list_add_tail(&sleep_list, &current->timer_node);
     __schedule();
     arch_irq_restore(f);
 }
@@ -141,12 +151,34 @@ int wait_event(struct wait_queue *q) {
     return intr ? -EINTR : 0;
 }
 
+int wait_event_timeout(struct wait_queue *q, uint64_t ns) {
+    if (ns == UINT64_MAX) return wait_event(q);
+    uint64_t f = arch_irq_save();
+    if (signal_pending(current)) { arch_irq_restore(f); return -EINTR; }
+    current->state = T_BLOCKED;
+    current->interrupted = false;
+    current->timed_out = false;
+    current->wake_ns = time_ns() + ns;
+    current->timer_active = true;
+    list_add_tail(&sleep_list, &current->timer_node);
+    list_add_tail(&q->head, &current->run_node);
+    __schedule();
+    int r = current->interrupted ? -EINTR : current->timed_out ? -ETIMEDOUT : 0;
+    arch_irq_restore(f);
+    return r;
+}
+
+static void wake_thread_locked(struct thread *t) {
+    list_del(&t->run_node);
+    if (t->timer_active) { list_del(&t->timer_node); t->timer_active = false; }
+    enqueue(t);
+}
+
 void wake_up(struct wait_queue *q) {
     uint64_t f = arch_irq_save();
     list_for_each_safe(it, tmp, &q->head) {
         struct thread *t = list_entry(it, struct thread, run_node);
-        list_del(&t->run_node);
-        enqueue(t);
+        wake_thread_locked(t);
     }
     need_resched = true;
     arch_irq_restore(f);
@@ -156,8 +188,7 @@ void wake_up_one(struct wait_queue *q) {
     uint64_t f = arch_irq_save();
     if (!list_empty(&q->head)) {
         struct thread *t = list_first(&q->head, struct thread, run_node);
-        list_del(&t->run_node);
-        enqueue(t);
+        wake_thread_locked(t);
         need_resched = true;
     }
     arch_irq_restore(f);
@@ -190,10 +221,13 @@ void sched_init(void) {
     boot->state = T_RUNNING;
     boot->quantum = SCHED_QUANTUM;
     list_init(&boot->run_node);
+    list_init(&boot->timer_node);
     list_init(&boot->proc_node);
     list_add_tail(&all_threads, &boot->all_node);
     current = boot;
     idle_thread = thread_alloc("idle");
+    idle_thread->tid = 0;
+    next_tid = 1;          /* first user process (init) gets pid 1 */
     arch_thread_init(idle_thread, idle_loop, nullptr);
     idle_thread->state = T_RUNNABLE;
     pr_info("sched: round robin, quantum %d ms\n", SCHED_QUANTUM);

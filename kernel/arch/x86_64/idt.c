@@ -70,8 +70,7 @@ void dump_frame(struct trap_frame *f) {
 /* weak hooks, overridden by later subsystems */
 [[gnu::weak]] bool page_fault_handler(struct trap_frame *f) { return false; }
 [[gnu::weak]] bool user_exception(struct trap_frame *f) { return false; }
-void trap_exit_hook_sched(void);
-[[gnu::weak]] void trap_exit_hook(struct trap_frame *f) { trap_exit_hook_sched(); }
+void user_return_work(struct trap_frame *f);
 
 void trap_dispatch(struct trap_frame *f) {
     uint64_t v = f->vector;
@@ -85,5 +84,5 @@ void trap_dispatch(struct trap_frame *f) {
     if (handlers[v]) handlers[v](f, handler_ctx[v]);
     else printk("spurious interrupt vector %lu\n", v);
 out:
-    trap_exit_hook(f);
+    user_return_work(f);
 }

@@ -25,3 +25,10 @@ x86_thread_trampoline:
     movq %r13, %rdi
     callq *%r12
     call thread_exit
+
+/* void arch_enter_user(struct trap_frame *f) */
+.global arch_enter_user
+arch_enter_user:
+    cli
+    movq %rdi, %rsp
+    jmp trap_return

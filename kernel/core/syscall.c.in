@@ -1,0 +1,54 @@
+/* System call dispatch (Linux ABI). Generated from syscall.c.in by scripts/gen-syscalls.py - edit the template. */
+#include <kernel/syscall.h>
+#include <kernel/printk.h>
+#include <kernel/time.h>
+#include <arch/syscall.h>
+
+typedef int64_t (*syscall_fn)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+#pragma clang diagnostic ignored "-Wdeprecated-non-prototype"
+#pragma clang diagnostic ignored "-Wstrict-prototypes"
+@DECLS@
+
+static const syscall_fn syscall_table[NR_SYSCALLS] = {
+@TABLE@
+};
+
+static const char *const syscall_names[NR_SYSCALLS] = {
+@NAMES@
+};
+
+bool syscall_trace;
+static uint8_t warned[NR_SYSCALLS];
+
+void signal_deliver(struct trap_frame *f);
+
+void user_return_work(struct trap_frame *f) {
+    if (need_resched && current) schedule();
+    if (!trap_from_user(f) || !current || !current->proc) return;
+    struct process *p = current->proc;
+    if (p->alarm_ns && time_ns() >= p->alarm_ns) { p->alarm_ns = 0; signal_send(p, SIGALRM); }
+    for (int i = 0; i < 8 && signal_pending(current); i++) signal_deliver(f);
+    if (current->restore_mask) { current->sig_mask = current->saved_mask; current->restore_mask = false; }
+    if (need_resched) schedule();
+}
+
+void syscall_dispatch(struct trap_frame *f) {
+    uint64_t nr = SC_NR(f);
+    current->last_syscall = nr;
+    int64_t ret;
+    if (nr < NR_SYSCALLS && syscall_table[nr]) {
+        ret = syscall_table[nr](SC_ARG0(f), SC_ARG1(f), SC_ARG2(f), SC_ARG3(f), SC_ARG4(f), SC_ARG5(f));
+        if (syscall_trace)
+            printk("[%d] %s(%lx, %lx, %lx) = %ld\n", current->tid, syscall_names[nr] ? syscall_names[nr] : "?",
+                   SC_ARG0(f), SC_ARG1(f), SC_ARG2(f), ret);
+    } else {
+        if (nr < NR_SYSCALLS && !warned[nr]) {
+            warned[nr] = 1;
+            pr_warn("unimplemented syscall %lu (%s) from %s\n", nr, syscall_names[nr] ? syscall_names[nr] : "?", current->name);
+        }
+        ret = -ENOSYS;
+    }
+    SC_SET_RET(f, ret);
+    arch_irq_disable();
+    user_return_work(f);
+}

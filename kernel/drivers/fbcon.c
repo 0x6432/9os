@@ -140,3 +140,7 @@ void fbcon_init(void) {
     c.ready = true;
     console_register(fbcon_write);
 }
+
+void fbcon_get_size(int *cols, int *rows) {
+    if (c.ready) { *cols = c.cols; *rows = c.rows; }
+}
