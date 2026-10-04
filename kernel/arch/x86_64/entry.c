@@ -6,6 +6,7 @@ void serial_register_console(void);
 void kmain(void);
 void gdt_init(void);
 void idt_init(void);
+void apic_init(void);
 
 __noreturn void arch_halt_forever(void) {
     for (;;) __asm__ volatile("cli; hlt");
@@ -18,7 +19,9 @@ void arch_early_init(void) {
     idt_init();
 }
 
-void arch_init(void) {}
+void arch_init(void) {
+    apic_init();
+}
 
 /* Limine jumps here with a valid stack, interrupts disabled, in long mode. */
 __noreturn void kmain_entry(void) {

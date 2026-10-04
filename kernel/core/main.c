@@ -5,6 +5,8 @@
 #include <kernel/pmm.h>
 #include <kernel/vmm.h>
 #include <kernel/slab.h>
+#include <kernel/acpi.h>
+#include <kernel/time.h>
 
 void kmain(void) {
     arch_early_init();
@@ -30,6 +32,13 @@ void kmain(void) {
     vmm_init();
     slab_init();
     slab_selftest();
+    acpi_early_init();
     arch_init();
+    arch_irq_enable();
+    acpi_late_init();
+    uint64_t j = jiffies;
+    udelay(100000);
+    pr_info("timer: %lu ticks in 100 ms\n", jiffies - j);
     pr_info("nothing left to do, halting\n");
+    for (;;) arch_wait_for_interrupt();
 }
