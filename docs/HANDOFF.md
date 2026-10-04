@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M17 complete — ptys (/dev/ptmx + /dev/pts) and evdev input (virtio-input, PS/2) on all three arches
+## Current state: M18 complete — DRM/KMS-lite (/dev/dri/card0, dumb buffers, page flips) plus ptys and evdev input on all three arches
 
 | Milestone | Status |
 |-----------|--------|
@@ -24,6 +24,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M15 Graphics base | ✅ `/dev/fb0` (Linux fbdev ABI + mmap), PCI ECAM enumeration, virtio-gpu 2D driver (riscv64/aarch64 display), `fbdemo`, `schedtest` |
 | M16 POSIX IPC base | ✅ COW fork, shared mappings across fork, memfd/tmpfs `MAP_SHARED`, AF_UNIX (stream/seqpacket/dgram, SCM_RIGHTS, SO_PEERCRED), epoll, eventfd, timerfd, signalfd, batched TLB flushes; `cowtest`, `ipctest` |
 | M17 Terminals + input | ✅ `/dev/ptmx` + `/dev/pts/N`, generic virtio-pci layer, virtio-input keyboard/tablet + PS/2 → evdev `/dev/input/eventN`, VT/KD ioctls for seatd-style sessions; `ptytest`, `evtest` |
+| M18 KMS-lite | ✅ `/dev/dri/card0`: legacy KMS (1 connector/encoder/CRTC/primary plane), GEM dumb buffers + mmap, ADDFB/ADDFB2/RMFB, SETCRTC, PAGE_FLIP with flip events, DIRTYFB, WAIT_VBLANK; `drmdemo` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -163,7 +164,15 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - **VT/KD ioctls** on the console: `KDGKBTYPE`, `KDSETMODE/KDGETMODE` (KD_GRAPHICS pauses fbcon), `KDGKBMODE/KDSKBMODE`, `VT_OPENQRY/GETMODE/SETMODE/GETSTATE/RELDISP/ACTIVATE/WAITACTIVE` (single VT).
 - Tests: `ptytest` (13 checks: interactive sh on a pty, ONLCR, stty size, backspace editing, Ctrl-C, raw mode, hangup) passes on all arches. `evtest [secs]` lists devices and prints events; drive it with the QEMU monitor (`sendkey a`, `mouse_button 1`; HMP `mouse_move` does not move absolute axes without a display).
 
+## M18: DRM/KMS-lite
+- `kernel/drivers/drm.c`, char 226:0 `/dev/dri/card0` (created when there is a 32 bpp system framebuffer). Object IDs: connector 31 (type VIRTUAL, always connected, one preferred mode = scanout size @60), encoder 32, CRTC 33, plane 34. Driver name `9os` (so Mesa would pick kms_swrast).
+- Dumb buffers are order-0 pages (refcount 1 owned by the BO); `MAP_DUMB` offset = `handle << 28`; `mmap(MAP_SHARED)` goes through `file_ops.mmap_page`, so munmap/exit drop page refs like tmpfs. GEM_CLOSE == DESTROY_DUMB. Objects are global tables (64 each) tagged with the owning open file and freed on close.
+- Scanout is a copy (`present()`) of the client fb into the real framebuffer on SETCRTC, DIRTYFB and page-flip completion, followed by `fb_damage()` (virtio-gpu flush). A `drm-vblank` kthread (started on first open) ticks at 60 Hz, completes a pending flip and queues a 32-byte `drm_event_vblank` (type FLIP_COMPLETE) that `read()` returns; `poll` reports POLLIN. SETCRTC pauses fbcon (`fbcon_set_graphics`), disabling the CRTC or closing the fd restores it.
+- Caps: DUMB_BUFFER, PREFERRED_DEPTH 24, TIMESTAMP_MONOTONIC, CRTC_IN_VBLANK_EVENT; `SET_CLIENT_CAP` accepts UNIVERSAL_PLANES, rejects ATOMIC (clients fall back to legacy). No properties, no hw cursor (CURSOR → ENXIO), formats XR24/AR24 only, LINEAR modifier only.
+- `drmdemo [frames]` (raw ioctls, no libdrm): enumerate, 2 dumb buffers, SETCRTC, animated page flipping with events; 25 checks pass on all arches (x86 ~31 fps, riscv/aarch64 ~13 fps under TCG — drawing dominates).
+- Ideas: zero-copy virtio-gpu scanout (one resource per dumb BO + SET_SCANOUT on flip), PRIME export (dma-buf as memfd-like fd), atomic modesetting with a few properties (wlroots prefers it but has a legacy path).
+
 ## Next steps (see docs/ROADMAP.md)
-1. DRM/KMS-lite (`/dev/dri/card0`: dumb buffers, ADDFB2, SETCRTC, PAGE_FLIP + vblank events) on the fb/virtio-gpu backend; `inotify` stubs; `MAP_PRIVATE` file mappings via page cache.
+1. `inotify` stubs; `MAP_PRIVATE` file mappings via page cache; DRM properties/atomic + PRIME for wlroots.
 2. Dynamic linking (`PT_INTERP` ld-musl), so libdrm/Mesa/wayland `.so` files can be used.
 3. Fine-grained locking + per-CPU run queues (M16 in the roadmap); interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2.
