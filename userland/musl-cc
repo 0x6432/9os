@@ -1,0 +1,17 @@
+#!/bin/sh
+# clang wrapper that compiles and links static binaries against the 9os musl sysroot.
+ARCH=${ARCH:-x86_64}
+TOP=$(cd "$(dirname "$0")" && pwd)
+SYSROOT=$TOP/sysroot/$ARCH
+RT=$(${LIBGCC_CC:-gcc} -print-libgcc-file-name 2>/dev/null)
+[ "$ARCH" = x86_64 ] || RT=$TOP/sysroot/$ARCH/lib/libclang_rt.builtins.a
+link=1
+for a in "$@"; do case "$a" in -c|-S|-E|-M|-MM) link=0;; esac; done
+if [ $link = 1 ]; then
+    exec clang --target=$ARCH-linux-musl -nostdinc -isystem "$SYSROOT/include" \
+        -isystem "$(clang -print-resource-dir)/include" -fuse-ld=lld -static -nostdlib \
+        "$SYSROOT/lib/crt1.o" "$SYSROOT/lib/crti.o" "$@" -L"$SYSROOT/lib" -lc "$RT" "$SYSROOT/lib/crtn.o"
+else
+    exec clang --target=$ARCH-linux-musl -nostdinc -isystem "$SYSROOT/include" \
+        -isystem "$(clang -print-resource-dir)/include" "$@"
+fi

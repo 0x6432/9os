@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M8 complete (x86_64)
+## Current state: M9 complete (x86_64)
 
 | Milestone | Status |
 |-----------|--------|
@@ -15,7 +15,8 @@ _Updated after every milestone. Read this first when picking up the project._
 | M6 Threads & scheduler | ✅ kernel threads, fxsave/fxrstor + FS base per thread, round robin (10 ms quantum), sleep list, wait queues, zombie reaping in idle |
 | M7 User mode & syscalls | ✅ ring 3, `syscall` entry → common trap frame, per-process page tables + VMAs (demand-zero), ELF64 loader (static/PIE), SysV stack, fork/wait/exit |
 | M8 VFS & initramfs | ✅ VFS (path walk, symlinks, mounts), tmpfs, newc cpio initramfs, /dev nodes (null, zero, random, console/tty), pipes, TTY line discipline, PS/2 + serial input |
-| M9 Linux ABI core (musl) | ⏳ next |
+| M9 Linux ABI core (musl) | ✅ musl 1.2.5 built with clang (`userland/build-musl.sh`), `userland/musl-cc` wrapper, `tests/libctest.c` passes (malloc/mmap, stdio, dirs, symlinks, pipes, fork/wait, signals, clocks) |
+| M10 BusyBox | ⏳ next |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -75,6 +76,12 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
   `frame_restart_syscall`, job-control stop/continue.
 - Processes: `core/process.c` — clone flags CLONE_VM/VFORK/THREAD/SETTLS/*TID handled; pid == main thread tid.
 
-## Next steps (M9)
-1. Build musl (clang, static) via `userland/build-musl.sh` into `userland/sysroot`.
-2. Run a static musl hello world + a libc test program as /sbin/init; fix missing syscalls.
+## Userland toolchain (M9)
+- `userland/build-musl.sh` → `userland/sysroot/<arch>` (not committed; rebuild in ~30 s).
+- `userland/musl-cc` → clang + lld, static, links crt1/crti/crtn + libc.a + libgcc.a (x86_64).
+- Test: `userland/musl-cc -O2 -o userland/root/sbin/init userland/tests/libctest.c && make iso run`.
+
+## Next steps (M10)
+1. Build BusyBox statically with musl-cc (`userland/build-busybox.sh`), install into `userland/root`.
+2. `/sbin/init` → busybox init with `/etc/inittab` (`::respawn:-/bin/sh`), or boot `init=/bin/sh`.
+3. Fix whatever syscalls ash/coreutils applets need (watch for "unimplemented syscall" warnings).
