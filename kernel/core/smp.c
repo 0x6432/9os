@@ -24,8 +24,7 @@ int ncpus = 1;
 /* ticket lock: FIFO fairness so a CPU that keeps re-entering the kernel cannot starve others */
 static volatile uint32_t bkl_next, bkl_serving;
 volatile int bkl_owner = -1;
-void *bkl_last_ra[MAX_CPUS];
-struct thread *bkl_last_thr[MAX_CPUS];
+
 
 static void bkl_lock(void) {
     uint32_t me = __atomic_fetch_add(&bkl_next, 1, __ATOMIC_RELAXED);
@@ -39,22 +38,31 @@ static void bkl_unlock(void) {
     if (bkl_owner != this_cpu()->id) panic("bkl_unlock: owner cpu%d, unlocking on cpu%d (%s)", bkl_owner, this_cpu()->id, current ? current->name : "?");
     bkl_owner = -1; __atomic_store_n(&bkl_serving, bkl_serving + 1, __ATOMIC_RELEASE); }
 
+/* The lock is taken with interrupts off: an interrupt arriving while we spin must not see
+ * a non-zero depth and assume the lock is already held. */
 void bkl_enter(void) {
     struct thread *t = current;
     if (!t) return;
-    if (t->bkl_depth++ == 0) bkl_lock();
+    if (t->bkl_depth) { t->bkl_depth++; return; }
+    uint64_t f = arch_irq_save();
+    bkl_lock();
+    t->bkl_depth = 1;
+    arch_irq_restore(f);
 }
 
 void bkl_exit(void) {
     struct thread *t = current;
     if (!t) return;
     if (t->bkl_depth <= 0) panic("bkl_exit: depth %d in %s", t->bkl_depth, t->name);
-    if (--t->bkl_depth == 0) { bkl_last_ra[this_cpu()->id] = __builtin_return_address(0); bkl_last_thr[this_cpu()->id] = t; bkl_unlock(); }
+    if (t->bkl_depth > 1) { t->bkl_depth--; return; }
+    uint64_t f = arch_irq_save();
+    t->bkl_depth = 0;
+    bkl_unlock();
+    arch_irq_restore(f);
 }
 
 void bkl_release_idle(void) {
     if (current->bkl_depth != 1) panic("bkl_release_idle: depth %d", current->bkl_depth);
-    bkl_last_ra[this_cpu()->id] = __builtin_return_address(0); bkl_last_thr[this_cpu()->id] = current;
     current->bkl_depth = 0;
     bkl_unlock();
 }
