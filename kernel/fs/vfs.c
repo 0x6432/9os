@@ -12,7 +12,15 @@ struct inode *vfs_root;
 struct wait_queue poll_wq = WAIT_QUEUE_INIT(poll_wq);
 static uint64_t next_ino = 1;
 
-void poll_notify(void) { wake_up(&poll_wq); }
+uint64_t poll_seq;
+void poll_notify(void) { __atomic_add_fetch(&poll_seq, 1, __ATOMIC_SEQ_CST); wake_up(&poll_wq); }
+
+/* sleep on poll_wq unless poll_notify() ran since 'seq' was sampled (before the readiness scan) */
+int poll_wait_seq(uint64_t seq, uint64_t ns) {
+    uint64_t f = sched_wait_lock();
+    if (__atomic_load_n(&poll_seq, __ATOMIC_SEQ_CST) != seq) { sched_wait_unlock(f); return 0; }
+    return wait_event_timeout_locked(&poll_wq, ns, f);
+}
 
 struct timespec now_timespec(void) {
     uint64_t ns = time_ns();
@@ -206,13 +214,17 @@ int vfs_open(const char *path, int flags, uint32_t mode, struct file **out) {
 }
 
 void vfs_close(struct file *f) {
-    if (--f->refcount > 0) return;
+    if (__atomic_sub_fetch(&f->refcount, 1, __ATOMIC_ACQ_REL) > 0) return;
+    /* the last reference may be dropped by a lock-free syscall: release under the BKL */
+    bool took = !bkl_held();
+    if (took) bkl_enter();
     if (f->inode && (S_ISREG(f->inode->mode) || S_ISDIR(f->inode->mode)) && !(f->flags & O_PATH))
         fsnotify_file(f, (f->flags & O_ACCMODE) != O_RDONLY ? IN_CLOSE_WRITE_ : IN_CLOSE_NOWRITE);
     if (f->fops && f->fops->release) f->fops->release(f);
     iput(f->inode);
     kfree(f->path);
     kfree(f);
+    if (took) bkl_exit();
 }
 
 ssize_t vfs_read(struct file *f, void *buf, size_t n) {

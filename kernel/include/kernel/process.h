@@ -1,6 +1,7 @@
 #pragma once
 #include <kernel/types.h>
 #include <kernel/list.h>
+#include <kernel/spinlock.h>
 #include <kernel/sched.h>
 #include <kernel/signal.h>
 
@@ -26,6 +27,7 @@ struct process {
     struct wait_queue child_wait;     /* parent sleeps here in wait4 */
     struct mm *mm;
     struct file *fds[MAX_FDS];
+    spinlock_t fd_lock;     /* slot updates vs. lock-free fd_get_ref(); mutators also hold the BKL */
     uint64_t cloexec[MAX_FDS / 64];
     struct inode *cwd;
     struct inode *root;

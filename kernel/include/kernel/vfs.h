@@ -87,6 +87,7 @@ struct inode_ops {
 };
 
 struct file_ops {
+    bool nobkl;             /* read/write are safe without the BKL (see pipe.c) */
     int (*open)(struct inode *ino, struct file *f);
     ssize_t (*read)(struct file *f, void *buf, size_t n, off_t *off);
     ssize_t (*write)(struct file *f, const void *buf, size_t n, off_t *off);
@@ -133,6 +134,9 @@ extern struct inode *vfs_root;
 /* global wait queue for poll/select: woken on any I/O readiness change */
 extern struct wait_queue poll_wq;
 void poll_notify(void);
+extern uint64_t poll_seq;
+int poll_wait_seq(uint64_t seq, uint64_t ns);
+#define poll_seq_read() __atomic_load_n(&poll_seq, __ATOMIC_SEQ_CST)
 
 /* inotify hooks (kernel/fs/anonfd.c); free while nobody watches anything */
 extern int fsnotify_nwatches;
@@ -175,7 +179,7 @@ int vfs_open(const char *path, int flags, uint32_t mode, struct file **out);
 struct file *file_open_inode(struct inode *ino, int flags);
 #define CHRDEV_ANY_MINOR 0xffffffffu
 void vfs_close(struct file *f);
-static inline struct file *file_get(struct file *f) { f->refcount++; return f; }
+static inline struct file *file_get(struct file *f) { __atomic_add_fetch(&f->refcount, 1, __ATOMIC_RELAXED); return f; }
 ssize_t vfs_read(struct file *f, void *buf, size_t n);
 ssize_t vfs_write(struct file *f, const void *buf, size_t n);
 ssize_t vfs_pread(struct file *f, void *buf, size_t n, off_t off);

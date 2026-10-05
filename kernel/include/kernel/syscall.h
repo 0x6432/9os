@@ -7,6 +7,9 @@
 #include <arch/unistd.h>
 
 struct file *fd_get(int fd);
+struct file *fd_get_ref(int fd);
+struct process;
+struct file *fd_slot_set(struct process *p, int fd, struct file *f);
 int fd_alloc(struct file *f, int min, bool cloexec);
 int fd_install(int fd, struct file *f, bool cloexec);
 int fd_close(int fd);

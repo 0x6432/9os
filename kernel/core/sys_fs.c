@@ -29,10 +29,30 @@ struct file *fd_get(int fd) {
     return curproc->fds[fd];
 }
 
+/* reference-taking lookup for syscalls running without the BKL; drop with vfs_close() */
+struct file *fd_get_ref(int fd) {
+    if (fd < 0 || fd >= MAX_FDS) return nullptr;
+    struct process *p = curproc;
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+    struct file *f = p->fds[fd];
+    if (f) file_get(f);
+    spin_unlock_irqrestore(&p->fd_lock, fl);
+    return f;
+}
+
+/* swap a slot under fd_lock; returns the previous file (caller closes it) */
+struct file *fd_slot_set(struct process *p, int fd, struct file *f) {
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+    struct file *old = p->fds[fd];
+    p->fds[fd] = f;
+    spin_unlock_irqrestore(&p->fd_lock, fl);
+    return old;
+}
+
 int fd_install(int fd, struct file *f, bool cloexec) {
     struct process *p = curproc;
-    if (p->fds[fd]) vfs_close(p->fds[fd]);
-    p->fds[fd] = f;
+    struct file *old = fd_slot_set(p, fd, f);
+    if (old) vfs_close(old);
     cloexec_set(p, fd, cloexec);
     return fd;
 }
@@ -47,7 +67,7 @@ int fd_alloc(struct file *f, int min, bool cloexec) {
 int fd_close(int fd) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
-    curproc->fds[fd] = nullptr;
+    fd_slot_set(curproc, fd, nullptr);
     cloexec_set(curproc, fd, false);
     vfs_close(f);
     return 0;
@@ -55,7 +75,7 @@ int fd_close(int fd) {
 
 void files_close_on_exec(struct process *p) {
     for (int i = 0; i < MAX_FDS; i++)
-        if (p->fds[i] && cloexec_get(p, i)) { vfs_close(p->fds[i]); p->fds[i] = nullptr; cloexec_set(p, i, false); }
+        if (p->fds[i] && cloexec_get(p, i)) { vfs_close(fd_slot_set(p, i, nullptr)); cloexec_set(p, i, false); }
 }
 
 int user_path(const char *upath, char *kpath) {
@@ -104,18 +124,37 @@ int64_t sys_close_range(unsigned first, unsigned last, unsigned flags) {
     return 0;
 }
 
+/*
+ * read/write are dispatched without the BKL (lockfree_names in syscall.c.in). Files whose
+ * ops are marked nobkl (pipes) run as-is and copy with copy_{to,from}_user; everything else
+ * takes the BKL here, and its drivers may then touch the (pre-faulted) user buffer directly.
+ */
 int64_t sys_read(int fd, void *buf, size_t n) {
-    struct file *f = fd_get(fd);
+    struct file *f = fd_get_ref(fd);
     if (!f) return -EBADF;
-    if (n && !user_range_ok(buf, n, true)) return -EFAULT;
-    return vfs_read(f, buf, n);
+    int64_t r;
+    if (f->fops && f->fops->nobkl) r = vfs_read(f, buf, n);
+    else {
+        bkl_enter();
+        r = n && !user_range_ok(buf, n, true) ? -EFAULT : vfs_read(f, buf, n);
+        bkl_exit();
+    }
+    vfs_close(f);
+    return r;
 }
 
 int64_t sys_write(int fd, const void *buf, size_t n) {
-    struct file *f = fd_get(fd);
+    struct file *f = fd_get_ref(fd);
     if (!f) return -EBADF;
-    if (n && !user_range_ok(buf, n, false)) return -EFAULT;
-    return vfs_write(f, buf, n);
+    int64_t r;
+    if (f->fops && f->fops->nobkl) r = vfs_write(f, buf, n);
+    else {
+        bkl_enter();
+        r = n && !user_range_ok(buf, n, false) ? -EFAULT : vfs_write(f, buf, n);
+        bkl_exit();
+    }
+    vfs_close(f);
+    return r;
 }
 
 int64_t sys_pread64(int fd, void *buf, size_t n, off_t off) {
@@ -663,11 +702,12 @@ static int64_t do_poll(struct pollfd *upf, size_t n, int64_t timeout_ns) {
     int64_t r;
     for (;;) {
         uint64_t f = arch_irq_save();
+        uint64_t pseq = poll_seq_read();
         r = poll_once(pf, n);
         if (r || timeout_ns == 0) { arch_irq_restore(f); break; }
         uint64_t now = time_ns();
         if (now >= deadline) { arch_irq_restore(f); r = 0; break; }
-        int w = wait_event_timeout(&poll_wq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        int w = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
         arch_irq_restore(f);
         if (w == -EINTR) { r = -EINTR; break; }
     }
@@ -721,11 +761,12 @@ static int64_t do_select(int nfds, uint64_t *ur, uint64_t *uw, uint64_t *ue, int
     int64_t res;
     for (;;) {
         uint64_t fl = arch_irq_save();
+        uint64_t pseq = poll_seq_read();
         res = poll_once(pf, n);
         if (res || timeout_ns == 0) { arch_irq_restore(fl); break; }
         uint64_t now = time_ns();
         if (now >= deadline) { arch_irq_restore(fl); res = 0; break; }
-        int wr = wait_event_timeout(&poll_wq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        int wr = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
         arch_irq_restore(fl);
         if (wr == -EINTR) { res = -EINTR; break; }
     }

@@ -85,6 +85,18 @@ int wait_event_timeout(struct wait_queue *q, uint64_t ns);
 void wake_up(struct wait_queue *q);
 void wake_up_one(struct wait_queue *q);
 
+/* Lost-wakeup-free waits for waiters/wakers that do not share the BKL: take sched_lock,
+ * re-check the condition, then block (the lock is released by the switch). Wakers update
+ * state first and call wake_up() (which takes sched_lock) afterwards. */
+uint64_t sched_wait_lock(void);
+void sched_wait_unlock(uint64_t f);
+int wait_event_locked(struct wait_queue *q, uint64_t f);
+int wait_event_timeout_locked(struct wait_queue *q, uint64_t ns, uint64_t f);
+#define wait_until_sl(q, cond) ({ int __r = 0; \
+    for (;;) { if (cond) break; uint64_t __g = sched_wait_lock(); \
+        if (cond) { sched_wait_unlock(__g); break; } \
+        if ((__r = wait_event_locked(q, __g))) break; } __r; })
+
 /* condition-style helper: sleep until cond is true (re-checked after each wakeup) */
 #define wait_until(q, cond) ({ int __r = 0; uint64_t __f = arch_irq_save(); \
     while (!(cond)) { if ((__r = wait_event(q))) break; } arch_irq_restore(__f); __r; })

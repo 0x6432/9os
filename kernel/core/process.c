@@ -1,5 +1,6 @@
 /* Processes: creation, fork/clone, exit, wait. */
 #include <kernel/process.h>
+#include <kernel/syscall.h>
 #include <kernel/mm.h>
 #include <kernel/vfs.h>
 #include <kernel/kmalloc.h>
@@ -198,7 +199,7 @@ __noreturn void process_exit(int status) {
         if (t != current) { t->killed = true; thread_wake(t); }
     }
     release_thread_tid(current);
-    for (int i = 0; i < MAX_FDS; i++) if (p->fds[i]) { vfs_close(p->fds[i]); p->fds[i] = nullptr; }
+    for (int i = 0; i < MAX_FDS; i++) if (p->fds[i]) vfs_close(fd_slot_set(p, i, nullptr));
     iput(p->cwd); iput(p->root);
     p->cwd = p->root = nullptr;
     if (p->ctty && p->sid == p->pid) { p->ctty->sid = 0; p->ctty->pgrp = 0; }

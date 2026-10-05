@@ -344,8 +344,13 @@ void sleep_ns(uint64_t ns) {
 [[gnu::weak]] bool signal_pending(struct thread *t) { return false; }
 
 /* The signal check happens under sched_lock so a concurrent thread_interrupt() cannot be missed. */
-int wait_event(struct wait_queue *q) {
-    uint64_t f = sl_lock_irqsave();
+uint64_t sched_wait_lock(void) { return sl_lock_irqsave(); }
+void sched_wait_unlock(uint64_t f) { sl_unlock_irqrestore(f); }
+
+int wait_event(struct wait_queue *q) { return wait_event_locked(q, sl_lock_irqsave()); }
+
+/* caller holds sched_lock (from sched_wait_lock(), flags f) and has checked its condition */
+int wait_event_locked(struct wait_queue *q, uint64_t f) {
     if (signal_pending(current)) { sl_unlock_irqrestore(f); return -EINTR; }
     current->state = T_BLOCKED;
     current->interrupted = false;
@@ -357,8 +362,11 @@ int wait_event(struct wait_queue *q) {
 }
 
 int wait_event_timeout(struct wait_queue *q, uint64_t ns) {
-    if (ns == UINT64_MAX) return wait_event(q);
-    uint64_t f = sl_lock_irqsave();
+    return wait_event_timeout_locked(q, ns, sl_lock_irqsave());
+}
+
+int wait_event_timeout_locked(struct wait_queue *q, uint64_t ns, uint64_t f) {
+    if (ns == UINT64_MAX) return wait_event_locked(q, f);
     if (signal_pending(current)) { sl_unlock_irqrestore(f); return -EINTR; }
     current->state = T_BLOCKED;
     current->interrupted = false;

@@ -396,11 +396,12 @@ int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeou
     int64_t r;
     for (;;) {
         uint64_t fl = arch_irq_save();
+        uint64_t pseq = poll_seq_read();
         r = ep_scan(ep, ev, max);
         if (r || timeout_ms == 0) { arch_irq_restore(fl); break; }
         uint64_t now = time_ns();
         if (now >= deadline) { arch_irq_restore(fl); r = 0; break; }
-        int w = wait_event_timeout(&poll_wq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        int w = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
         arch_irq_restore(fl);
         if (w == -EINTR) { r = -EINTR; break; }
     }
