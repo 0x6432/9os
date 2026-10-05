@@ -10,6 +10,7 @@
  */
 #define _GNU_SOURCE
 #include <stdio.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -499,7 +500,7 @@ static int on_quit_timer(void *data) { C.quit = 1; return 0; }
 
 int main(int argc, char **argv) {
     int secs = argc > 1 ? atoi(argv[1]) : 0;
-    if (!getenv("XDG_RUNTIME_DIR")) setenv("XDG_RUNTIME_DIR", "/tmp", 1);
+    if (!getenv("XDG_RUNTIME_DIR")) { mkdir("/run", 0755); mkdir("/run/user", 0755); mkdir("/run/user/0", 0700); setenv("XDG_RUNTIME_DIR", "/run/user/0", 1); };
     wl_list_init(&C.surfaces); wl_list_init(&C.pointers); wl_list_init(&C.keyboards);
     if (kms_init()) return 1;
     make_assets();
