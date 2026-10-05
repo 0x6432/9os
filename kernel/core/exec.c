@@ -9,6 +9,8 @@
 #include <kernel/errno.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
+#include <kernel/vmm.h>
+#include <kernel/pmm.h>
 #include <arch/syscall.h>
 
 #define PIE_BASE 0x400000ULL
@@ -16,6 +18,8 @@
 
 void arch_reset_fpu(struct thread *t);
 void arch_set_tls(struct thread *t, uint64_t v);
+
+uint64_t pc_stats_exec;   /* page-cache pages mapped by exec */
 
 static int read_exact(struct file *f, void *buf, size_t n, off_t off) {
     ssize_t r = vfs_pread(f, buf, n, off);
@@ -79,6 +83,33 @@ static int load_elf(struct mm *mm, struct file *f, bool is_interp, uint64_t *ent
             if (m < 0) { r = (int)m; goto out; }
             p = q;
         }
+        /* read-only segments come straight from the page cache (shared by every process
+         * running this file); a page already present (shared with a previous segment) is
+         * filled by copying, which breaks COW as usual */
+        if (!(ph[i].p_flags & PF_W) && f->fops && f->fops->mmap_page && S_ISREG(f->inode->mode) &&
+            (va - ph[i].p_offset) % PAGE_SIZE == 0) {
+            uint64_t pva = ALIGN_DOWN(va, PAGE_SIZE), foff = ALIGN_DOWN(ph[i].p_offset, PAGE_SIZE);
+            bool ok = true;
+            for (; pva < va + ph[i].p_filesz; pva += PAGE_SIZE, foff += PAGE_SIZE) {
+                paddr_t pa;
+                if (vmm_query(mm->pt, pva, nullptr, nullptr) || f->fops->mmap_page(f, foff / PAGE_SIZE, &pa)) { ok = false; break; }
+                phys_to_page(pa)->refcount++;
+                if (vmm_map(mm->pt, pva, pa, (prot & ~VM_WRITE) | VM_USER)) { page_put_pa(pa); r = -ENOMEM; goto out; }
+                pc_stats_exec++;
+            }
+            if (ok) goto mapped;
+            /* fall back to copying the rest of the segment */
+            uint64_t done = pva > va ? pva - va : 0;
+            uint8_t *buf = kmalloc(PAGE_SIZE);
+            for (uint64_t off = done; off < ph[i].p_filesz; off += PAGE_SIZE) {
+                size_t n = MIN(PAGE_SIZE, ph[i].p_filesz - off);
+                r = read_exact(f, buf, n, ph[i].p_offset + off);
+                if (!r) r = mm_write(mm, va + off, buf, n);
+                if (r) { kfree(buf); goto out; }
+            }
+            kfree(buf);
+            goto mapped;
+        }
         /* copy file contents in chunks */
         uint8_t *buf = kmalloc(PAGE_SIZE);
         for (uint64_t off = 0; off < ph[i].p_filesz; off += PAGE_SIZE) {
@@ -88,6 +119,7 @@ static int load_elf(struct mm *mm, struct file *f, bool is_interp, uint64_t *ent
             if (r) { kfree(buf); goto out; }
         }
         kfree(buf);
+    mapped:
         if (!*phdr_va && ph[i].p_offset == 0) *phdr_va = va + eh.e_phoff;
         top = MAX(top, e);
     }

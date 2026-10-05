@@ -226,6 +226,8 @@ static void gen(struct pinfo *pi, struct buf *b) {
         uint64_t fr, tot; pmm_stats(&fr, &tot);
         bprintf(b, "nr_free_pages %lu\nnr_total_pages %lu\ncow_shared %lu\ncow_copied %lu\ncow_reused %lu\n",
                 fr, tot, cow_stats.shared, cow_stats.copied, cow_stats.reused);
+        extern uint64_t pc_stats_mapped, pc_stats_exec;
+        bprintf(b, "pagecache_private_mapped %lu\npagecache_exec_mapped %lu\n", pc_stats_mapped, pc_stats_exec);
         break;
     }
     case G_SCHED:

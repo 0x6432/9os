@@ -33,6 +33,8 @@ int64_t sys_brk(uint64_t addr) {
     return addr;
 }
 
+uint64_t pc_stats_mapped;   /* page-cache pages mapped privately (shown in /proc/vmstat) */
+
 int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t off) {
     struct mm *mm = curproc->mm;
     if (!len) return -EINVAL;
@@ -62,6 +64,27 @@ int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t o
                 if (e) { mm_unmap(mm, r, len); return e; }
                 phys_to_page(pa)->refcount++;
                 if (vmm_map(mm->pt, r + o, pa, prot_to_vm(prot) | VM_USER)) { page_put_pa(pa); mm_unmap(mm, r, len); return -ENOMEM; }
+            }
+            return r;
+        }
+        if (!(flags & MAP_SHARED) && f->fops && f->fops->mmap_page && S_ISREG(f->inode->mode)) {
+            /* private file mapping from the page cache: map the file's pages read-only and let
+             * the COW fault path copy a page on the first write (the cache holds a reference,
+             * so the page is never written in place). Pages past EOF are demand-zero. */
+            bool fx = flags & (MAP_FIXED | MAP_FIXED_NOREPLACE);
+            if ((flags & MAP_FIXED_NOREPLACE)) {
+                for (uint64_t a = addr; a < addr + len; a += PAGE_SIZE) if (vma_find(mm, a)) return -EEXIST;
+            }
+            unsigned vp = prot_to_vm(prot);
+            int64_t r = mm_map(mm, addr, len, vp, VMA_ANON, fx);
+            if (r < 0) return r;
+            uint64_t fsize = f->inode->size;
+            for (size_t o = 0; o < ALIGN_UP(len, PAGE_SIZE) && off + o < fsize; o += PAGE_SIZE) {
+                paddr_t pa;
+                if (f->fops->mmap_page(f, (off + o) / PAGE_SIZE, &pa)) break;
+                phys_to_page(pa)->refcount++;
+                if (vmm_map(mm->pt, r + o, pa, (vp & ~VM_WRITE) | VM_USER)) { page_put_pa(pa); mm_unmap(mm, r, len); return -ENOMEM; }
+                pc_stats_mapped++;
             }
             return r;
         }
