@@ -163,6 +163,7 @@ int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, 
         uint32_t um = curproc ? curproc->umask : 022;
         if (!dir->iops->create) { iput(dir); return -EROFS; }
         r = dir->iops->create(dir, last, S_IFREG | (mode & 07777 & ~um), 0, &ino);
+        if (!r) fsnotify_dirent(dir, last, IN_CREATE, false, 0);
         iput(dir);
         if (r) return r;
     } else if (r) {
@@ -196,6 +197,7 @@ int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, 
         r = f->fops->open(ino, f);
         if (r) { f->fops = nullptr; vfs_close(f); return r; }
     }
+    if (!(flags & O_PATH)) fsnotify_file(f, IN_OPEN);
     *out = f;
     return 0;
 }
@@ -205,6 +207,8 @@ int vfs_open(const char *path, int flags, uint32_t mode, struct file **out) {
 
 void vfs_close(struct file *f) {
     if (--f->refcount > 0) return;
+    if (f->inode && (S_ISREG(f->inode->mode) || S_ISDIR(f->inode->mode)) && !(f->flags & O_PATH))
+        fsnotify_file(f, (f->flags & O_ACCMODE) != O_RDONLY ? IN_CLOSE_WRITE_ : IN_CLOSE_NOWRITE);
     if (f->fops && f->fops->release) f->fops->release(f);
     iput(f->inode);
     kfree(f->path);
@@ -215,14 +219,18 @@ ssize_t vfs_read(struct file *f, void *buf, size_t n) {
     if ((f->flags & O_ACCMODE) == O_WRONLY || (f->flags & O_PATH)) return -EBADF;
     if (S_ISDIR(f->inode->mode)) return -EISDIR;
     if (!f->fops || !f->fops->read) return -EINVAL;
-    return f->fops->read(f, buf, n, &f->pos);
+    ssize_t r = f->fops->read(f, buf, n, &f->pos);
+    if (r > 0 && S_ISREG(f->inode->mode)) fsnotify_file(f, IN_ACCESS);
+    return r;
 }
 
 ssize_t vfs_write(struct file *f, const void *buf, size_t n) {
     if ((f->flags & O_ACCMODE) == O_RDONLY || (f->flags & O_PATH)) return -EBADF;
     if (!f->fops || !f->fops->write) return -EINVAL;
     if ((f->flags & O_APPEND) && S_ISREG(f->inode->mode)) f->pos = f->inode->size;
-    return f->fops->write(f, buf, n, &f->pos);
+    ssize_t r = f->fops->write(f, buf, n, &f->pos);
+    if (r > 0 && S_ISREG(f->inode->mode)) fsnotify_file(f, IN_MODIFY_);
+    return r;
 }
 
 ssize_t vfs_pread(struct file *f, void *buf, size_t n, off_t off) {
@@ -238,7 +246,7 @@ int vfs_mknod_at(struct inode *base, const char *path, uint32_t mode, uint64_t r
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); iput(dir); return -EEXIST; }
     r = dir->iops->create(dir, last, mode, rdev, &ino);
-    if (!r) iput(ino);
+    if (!r) { fsnotify_dirent(dir, last, IN_CREATE, S_ISDIR(mode), 0); iput(ino); }
     iput(dir);
     return r;
 }
@@ -253,7 +261,14 @@ int vfs_unlink_at(struct inode *base, const char *path, bool rmdir) {
     int r = vfs_lookup_parent_at(base, path, &dir, last);
     if (r) return r;
     if (!strcmp(last, ".") || !strcmp(last, "..")) { iput(dir); return rmdir ? -EINVAL : -EISDIR; }
+    struct inode *victim = nullptr;
+    if (fsnotify_nwatches && lookup_child(dir, last, &victim)) victim = nullptr;
     r = dir->iops->unlink ? dir->iops->unlink(dir, last, rmdir) : -EROFS;
+    if (!r && victim) {
+        fsnotify_dirent(dir, last, IN_DELETE, S_ISDIR(victim->mode), 0);
+        fsnotify_unlinked(victim);
+    }
+    if (victim) iput(victim);
     iput(dir);
     return r;
 }
@@ -265,6 +280,7 @@ int vfs_symlink_at(struct inode *base, const char *target, const char *path) {
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); iput(dir); return -EEXIST; }
     r = dir->iops->symlink ? dir->iops->symlink(dir, last, target) : -EROFS;
+    if (!r) fsnotify_dirent(dir, last, IN_CREATE, false, 0);
     iput(dir);
     return r;
 }
@@ -280,6 +296,7 @@ int vfs_link_at(struct inode *ob, const char *opath, struct inode *nb, const cha
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); r = -EEXIST; }
     else r = dir->iops->link ? dir->iops->link(dir, last, src) : -EPERM;
+    if (!r) { fsnotify_dirent(dir, last, IN_CREATE, false, 0); fsnotify_inode(src, IN_ATTRIB); }
     iput(dir); iput(src);
     return r;
 }
@@ -290,8 +307,18 @@ int vfs_rename_at(struct inode *ob, const char *opath, struct inode *nb, const c
     if (r) return r;
     r = vfs_lookup_parent_at(nb, npath, &nd, nl);
     if (r) { iput(od); return r; }
+    struct inode *moved = nullptr;
+    if (fsnotify_nwatches && lookup_child(od, ol, &moved)) moved = nullptr;
     if (od->iops != nd->iops) r = -EXDEV;
     else r = od->iops->rename ? od->iops->rename(od, ol, nd, nl) : -EROFS;
+    if (!r && moved) {
+        uint32_t ck = fsnotify_cookie();
+        bool d = S_ISDIR(moved->mode);
+        fsnotify_dirent(od, ol, IN_MOVED_FROM, d, ck);
+        fsnotify_dirent(nd, nl, IN_MOVED_TO, d, ck);
+        fsnotify_inode(moved, IN_MOVE_SELF);
+    }
+    if (moved) iput(moved);
     iput(od); iput(nd);
     return r;
 }

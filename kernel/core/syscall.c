@@ -81,6 +81,10 @@ int64_t sys_getsockopt();
 int64_t sys_gettid();
 int64_t sys_gettimeofday();
 int64_t sys_getuid();
+int64_t sys_inotify_add_watch();
+int64_t sys_inotify_init();
+int64_t sys_inotify_init1();
+int64_t sys_inotify_rm_watch();
 int64_t sys_ioctl();
 int64_t sys_kill();
 int64_t sys_lchown();
@@ -215,6 +219,15 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_fcntl
     [__NR_fcntl] = (syscall_fn)sys_fcntl,
+#endif
+#ifdef __NR_inotify_init1
+    [__NR_inotify_init1] = (syscall_fn)sys_inotify_init1,
+#endif
+#ifdef __NR_inotify_add_watch
+    [__NR_inotify_add_watch] = (syscall_fn)sys_inotify_add_watch,
+#endif
+#ifdef __NR_inotify_rm_watch
+    [__NR_inotify_rm_watch] = (syscall_fn)sys_inotify_rm_watch,
 #endif
 #ifdef __NR_ioctl
     [__NR_ioctl] = (syscall_fn)sys_ioctl,
@@ -788,6 +801,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_epoll_wait
     [__NR_epoll_wait] = (syscall_fn)sys_epoll_wait,
+#endif
+#ifdef __NR_inotify_init
+    [__NR_inotify_init] = (syscall_fn)sys_inotify_init,
 #endif
 #ifdef __NR_signalfd
     [__NR_signalfd] = (syscall_fn)sys_signalfd,

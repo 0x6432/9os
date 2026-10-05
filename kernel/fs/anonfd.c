@@ -439,3 +439,194 @@ int64_t sys_memfd_create(const char *uname, unsigned flags) {
     if (fd < 0) vfs_close(f);
     return fd;
 }
+
+/* ------------------------------------------------------------------ inotify */
+/*
+ * Watches pin their inode (like Linux). VFS operations call the fsnotify_* hooks (cheap no-ops
+ * while no watch exists): events about a directory entry go to watches on the directory (with
+ * the name), events about an object go to watches on the object itself.
+ */
+#define IN_MODIFY 0x2
+#define IN_CLOSE_WRITE 0x8
+#define IN_Q_OVERFLOW 0x4000
+#define IN_IGNORED 0x8000
+#define IN_ONLYDIR 0x1000000
+#define IN_DONT_FOLLOW 0x2000000
+#define IN_MASK_CREATE 0x10000000
+#define IN_MASK_ADD 0x20000000
+#define IN_ISDIR 0x40000000
+#define IN_ONESHOT 0x80000000u
+#define IN_ALL_EVENTS 0xfff
+#define INOTIFY_MAX_EVENTS 16384
+
+struct inotify_ev { struct list_node node; int wd; uint32_t mask, cookie, len; char name[]; };
+struct inotify;
+struct iwatch { struct list_node node, inode_node; struct inotify *in; struct inode *ino; int wd; uint32_t mask; };
+struct inotify { struct list_node watches, events; size_t nevents, bytes; int next_wd; };
+
+static struct list_node all_watches = { &all_watches, &all_watches };
+int fsnotify_nwatches;
+static uint32_t next_cookie = 1;
+
+static void in_queue(struct inotify *in, int wd, uint32_t mask, uint32_t cookie, const char *name) {
+    size_t nl = name ? strlen(name) : 0, len = nl ? ALIGN_UP(nl + 1, 16) : 0;
+    if (!list_empty(&in->events)) {        /* coalesce identical back-to-back events */
+        struct inotify_ev *last = list_entry(in->events.prev, struct inotify_ev, node);
+        if (last->wd == wd && last->mask == mask && last->cookie == cookie && last->len == len &&
+            (!len || !strcmp(last->name, name))) return;
+    }
+    if (in->nevents >= INOTIFY_MAX_EVENTS) {
+        if (in->nevents > INOTIFY_MAX_EVENTS) return;
+        wd = -1; mask = IN_Q_OVERFLOW; cookie = 0; nl = len = 0;
+    }
+    struct inotify_ev *e = kzalloc(sizeof *e + len);
+    if (!e) return;
+    e->wd = wd; e->mask = mask; e->cookie = cookie; e->len = len;
+    if (nl) memcpy(e->name, name, nl);
+    list_add_tail(&in->events, &e->node);
+    in->nevents++; in->bytes += 16 + len;
+    poll_notify();
+}
+
+static void watch_remove(struct iwatch *w, bool notify) {
+    if (notify) in_queue(w->in, w->wd, IN_IGNORED, 0, nullptr);
+    list_del(&w->node); list_del(&w->inode_node);
+    iput(w->ino);
+    kfree(w);
+    fsnotify_nwatches--;
+}
+
+static void notify(struct inode *i, uint32_t mask, uint32_t cookie, const char *name) {
+    list_for_each_safe(it, tmp, &all_watches) {
+        struct iwatch *w = list_entry(it, struct iwatch, inode_node);
+        if (w->ino != i || !(w->mask & mask & IN_ALL_EVENTS)) continue;
+        in_queue(w->in, w->wd, mask & (IN_ALL_EVENTS | IN_ISDIR), cookie, name);
+        if (w->mask & IN_ONESHOT) watch_remove(w, true);
+    }
+}
+
+void fsnotify_dirent_(struct inode *dir, const char *name, uint32_t mask, bool isdir, uint32_t cookie) {
+    notify(dir, mask | (isdir ? IN_ISDIR : 0), cookie, name);
+}
+void fsnotify_inode_(struct inode *i, uint32_t mask) {
+    notify(i, mask | (S_ISDIR(i->mode) ? IN_ISDIR : 0), 0, nullptr);
+}
+/* object event, also reported to the parent directory with the entry name (from f->path) */
+void fsnotify_file_(struct file *f, uint32_t mask) {
+    struct inode *i = f->inode;
+    if (!i) return;
+    fsnotify_inode_(i, mask);
+    if (S_ISDIR(i->mode) || !f->path || f->path[0] != '/') return;
+    struct inode *dir; char last[256];
+    if (vfs_lookup_parent_at(nullptr, f->path, &dir, last)) return;
+    notify(dir, mask, 0, last);
+    iput(dir);
+}
+/* object event for a path-based syscall: the object plus its parent directory with the name */
+void fsnotify_path_(struct inode *base, const char *path, struct inode *i, uint32_t mask) {
+    fsnotify_inode_(i, mask);
+    struct inode *dir; char last[256];
+    if (vfs_lookup_parent_at(base, path, &dir, last)) return;
+    if (dir != i) notify(dir, mask | (S_ISDIR(i->mode) ? IN_ISDIR : 0), 0, last);
+    iput(dir);
+}
+/* the inode lost a link: DELETE_SELF + IGNORED once it is gone */
+void fsnotify_unlinked_(struct inode *i) {
+    if (S_ISDIR(i->mode) || i->nlink == 0) {
+        fsnotify_inode_(i, 0x400 /* IN_DELETE_SELF */);
+        list_for_each_safe(it, tmp, &all_watches) {
+            struct iwatch *w = list_entry(it, struct iwatch, inode_node);
+            if (w->ino == i) watch_remove(w, true);
+        }
+    } else {
+        fsnotify_inode_(i, 0x4 /* IN_ATTRIB */);
+    }
+}
+uint32_t fsnotify_cookie(void) { return next_cookie++; }
+
+static ssize_t in_read(struct file *f, void *buf, size_t n, off_t *off) {
+    struct inotify *in = f->priv;
+    int r = WAIT_READY(f, in->nevents > 0);
+    if (r) return r;
+    size_t done = 0;
+    while (!list_empty(&in->events)) {
+        struct inotify_ev *e = list_entry(in->events.next, struct inotify_ev, node);
+        size_t sz = 16 + e->len;
+        if (done + sz > n) break;
+        if (copy_to_user((char *)buf + done, &e->wd, 16) ||
+            (e->len && copy_to_user((char *)buf + done + 16, e->name, e->len))) return done ? (ssize_t)done : -EFAULT;
+        done += sz;
+        list_del(&e->node); in->nevents--; in->bytes -= sz; kfree(e);
+    }
+    return done ? (ssize_t)done : -EINVAL;
+}
+static unsigned in_poll(struct file *f) { struct inotify *in = f->priv; return in->nevents ? POLLIN | POLLRDNORM : 0; }
+static int in_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
+    struct inotify *in = f->priv;
+    if (cmd != 0x541B) return -ENOTTY;    /* FIONREAD */
+    int v = (int)in->bytes;
+    return copy_to_user((void *)arg, &v, sizeof v);
+}
+static void in_release(struct file *f) {
+    struct inotify *in = f->priv;
+    list_for_each_safe(it, tmp, &in->watches) watch_remove(list_entry(it, struct iwatch, node), false);
+    list_for_each_safe(it, tmp, &in->events) kfree(list_entry(it, struct inotify_ev, node));
+    kfree(in);
+}
+static const struct file_ops inotify_fops = { .read = in_read, .poll = in_poll, .ioctl = in_ioctl, .release = in_release };
+
+int64_t sys_inotify_init1(int flags) {
+    if (flags & ~(O_NONBLOCK | O_CLOEXEC)) return -EINVAL;
+    struct inotify *in = kzalloc(sizeof *in);
+    if (!in) return -ENOMEM;
+    list_init(&in->watches); list_init(&in->events);
+    in->next_wd = 1;
+    int fd = anon_fd(&inotify_fops, in, flags, 0600);
+    if (fd < 0) kfree(in);
+    return fd;
+}
+int64_t sys_inotify_init(void) { return sys_inotify_init1(0); }
+
+int user_path(const char *upath, char *kpath);
+int64_t sys_inotify_add_watch(int fd, const char *upath, uint32_t mask) {
+    struct file *f = fd_get(fd);
+    if (!f) return -EBADF;
+    if (f->fops != &inotify_fops) return -EINVAL;
+    if (!(mask & IN_ALL_EVENTS)) return -EINVAL;
+    if ((mask & IN_MASK_ADD) && (mask & IN_MASK_CREATE)) return -EINVAL;
+    struct inotify *in = f->priv;
+    char *kp = kmalloc(4096);
+    int r = user_path(upath, kp);
+    struct inode *i = nullptr;
+    if (!r) r = vfs_lookup(kp, !(mask & IN_DONT_FOLLOW), &i);
+    kfree(kp);
+    if (r) return r;
+    if ((mask & IN_ONLYDIR) && !S_ISDIR(i->mode)) { iput(i); return -ENOTDIR; }
+    list_for_each(it, &in->watches) {
+        struct iwatch *w = list_entry(it, struct iwatch, node);
+        if (w->ino != i) continue;
+        iput(i);
+        if (mask & IN_MASK_CREATE) return -EEXIST;
+        w->mask = (mask & IN_MASK_ADD) ? w->mask | (mask & ~IN_MASK_ADD) : mask;
+        return w->wd;
+    }
+    struct iwatch *w = kzalloc(sizeof *w);
+    if (!w) { iput(i); return -ENOMEM; }
+    w->in = in; w->ino = i; w->wd = in->next_wd++; w->mask = mask & ~(IN_MASK_ADD | IN_MASK_CREATE);
+    list_add_tail(&in->watches, &w->node);
+    list_add_tail(&all_watches, &w->inode_node);
+    fsnotify_nwatches++;
+    return w->wd;
+}
+
+int64_t sys_inotify_rm_watch(int fd, int wd) {
+    struct file *f = fd_get(fd);
+    if (!f) return -EBADF;
+    if (f->fops != &inotify_fops) return -EINVAL;
+    struct inotify *in = f->priv;
+    list_for_each(it, &in->watches) {
+        struct iwatch *w = list_entry(it, struct iwatch, node);
+        if (w->wd == wd) { watch_remove(w, true); return 0; }
+    }
+    return -EINVAL;
+}

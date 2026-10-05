@@ -134,6 +134,31 @@ extern struct inode *vfs_root;
 extern struct wait_queue poll_wq;
 void poll_notify(void);
 
+/* inotify hooks (kernel/fs/anonfd.c); free while nobody watches anything */
+extern int fsnotify_nwatches;
+void fsnotify_dirent_(struct inode *dir, const char *name, uint32_t mask, bool isdir, uint32_t cookie);
+void fsnotify_inode_(struct inode *i, uint32_t mask);
+void fsnotify_file_(struct file *f, uint32_t mask);
+void fsnotify_unlinked_(struct inode *i);
+void fsnotify_path_(struct inode *base, const char *path, struct inode *i, uint32_t mask);
+#define fsnotify_path(b, p, i, m) do { if (fsnotify_nwatches) fsnotify_path_(b, p, i, m); } while (0)
+uint32_t fsnotify_cookie(void);
+#define fsnotify_dirent(d, n, m, isdir, c) do { if (fsnotify_nwatches) fsnotify_dirent_(d, n, m, isdir, c); } while (0)
+#define fsnotify_inode(i, m) do { if (fsnotify_nwatches) fsnotify_inode_(i, m); } while (0)
+#define fsnotify_file(f, m) do { if (fsnotify_nwatches) fsnotify_file_(f, m); } while (0)
+#define fsnotify_unlinked(i) do { if (fsnotify_nwatches) fsnotify_unlinked_(i); } while (0)
+#define IN_ACCESS 0x1
+#define IN_MODIFY_ 0x2
+#define IN_ATTRIB 0x4
+#define IN_CLOSE_WRITE_ 0x8
+#define IN_CLOSE_NOWRITE 0x10
+#define IN_OPEN 0x20
+#define IN_MOVED_FROM 0x40
+#define IN_MOVED_TO 0x80
+#define IN_CREATE 0x100
+#define IN_DELETE 0x200
+#define IN_MOVE_SELF 0x800
+
 void vfs_init(void);
 struct inode *inode_alloc(uint32_t mode);
 void iget(struct inode *i);

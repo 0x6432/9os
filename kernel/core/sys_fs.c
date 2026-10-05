@@ -529,16 +529,20 @@ int64_t sys_fchmodat(int dirfd, const char *upath, uint32_t mode) {
     struct inode *base, *i;
     int64_t r = dirfd_base(dirfd, path, &base);
     if (!r) r = vfs_lookup_at(base, path, true, &i);
-    kfree(path);
-    if (r) return r;
+    if (r) { kfree(path); return r; }
     chmod_inode(i, mode);
+    fsnotify_path(base, path, i, IN_ATTRIB);
+    kfree(path);
     iput(i);
     return 0;
 }
 int64_t sys_chmod(const char *p, uint32_t m) { return sys_fchmodat(AT_FDCWD, p, m); }
 int64_t sys_fchmod(int fd, uint32_t m) {
     struct file *f = fd_get(fd);
-    return f ? chmod_inode(f->inode, m) : -EBADF;
+    if (!f) return -EBADF;
+    chmod_inode(f->inode, m);
+    fsnotify_file(f, IN_ATTRIB);
+    return 0;
 }
 
 int64_t sys_fchownat(int dirfd, const char *upath, uint32_t uid, uint32_t gid, int flags) {
@@ -546,10 +550,11 @@ int64_t sys_fchownat(int dirfd, const char *upath, uint32_t uid, uint32_t gid, i
     struct inode *base, *i;
     int64_t r = dirfd_base(dirfd, path, &base);
     if (!r) r = vfs_lookup_at(base, path, !(flags & AT_SYMLINK_NOFOLLOW), &i);
-    kfree(path);
-    if (r) return r;
+    if (r) { kfree(path); return r; }
     if (uid != (uint32_t)-1) i->uid = uid;
     if (gid != (uint32_t)-1) i->gid = gid;
+    fsnotify_path(base, path, i, IN_ATTRIB);
+    kfree(path);
     iput(i);
     return 0;
 }
@@ -560,6 +565,7 @@ int64_t sys_fchown(int fd, uint32_t u, uint32_t g) {
     if (!f) return -EBADF;
     if (u != (uint32_t)-1) f->inode->uid = u;
     if (g != (uint32_t)-1) f->inode->gid = g;
+    fsnotify_file(f, IN_ATTRIB);
     return 0;
 }
 
@@ -575,6 +581,7 @@ int64_t sys_utimensat(int dirfd, const char *upath, const struct timespec *utime
         struct inode *base;
         r = dirfd_base(dirfd, path, &base);
         if (!r) r = vfs_lookup_at(base, path, !(flags & AT_SYMLINK_NOFOLLOW), &i);
+        if (!r) fsnotify_path(base, path, i, IN_ATTRIB);
         kfree(path);
         if (r) return r;
     }
@@ -587,6 +594,7 @@ int64_t sys_utimensat(int dirfd, const char *upath, const struct timespec *utime
         }
     } else ts[0] = ts[1] = now;
     i->atime = ts[0]; i->mtime = ts[1]; i->ctime = now;
+    if (!upath) fsnotify_inode(i, IN_ATTRIB);
     iput(i);
     return 0;
 }
@@ -596,7 +604,9 @@ int64_t sys_ftruncate(int fd, off_t len) {
     if (!f) return -EBADF;
     if (len < 0) return -EINVAL;
     if (!S_ISREG(f->inode->mode) || !f->inode->iops->truncate) return -EINVAL;
-    return f->inode->iops->truncate(f->inode, len);
+    int r = f->inode->iops->truncate(f->inode, len);
+    if (!r) fsnotify_file(f, IN_MODIFY_);
+    return r;
 }
 int64_t sys_truncate(const char *upath, off_t len) {
     WITH_PATH(upath, path);
@@ -605,6 +615,7 @@ int64_t sys_truncate(const char *upath, off_t len) {
     kfree(path);
     if (r) return r;
     r = S_ISREG(i->mode) && i->iops->truncate ? i->iops->truncate(i, len) : -EINVAL;
+    if (!r) fsnotify_inode(i, IN_MODIFY_);
     iput(i);
     return r;
 }
