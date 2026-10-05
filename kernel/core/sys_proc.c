@@ -374,8 +374,8 @@ int64_t sys_sched_getparam(int pid, int *uparam) {
     int prio = t->rt_prio;
     return copy_to_user(uparam, &prio, sizeof prio);
 }
-int64_t sys_sched_get_priority_max(int policy) { return policy == 1 || policy == 2 ? 99 : 0; }
-int64_t sys_sched_get_priority_min(int policy) { return policy == 1 || policy == 2 ? 1 : 0; }
+int64_t sys_sched_get_priority_max(int policy) { return policy == 1 || policy == 2 ? 99 : policy == 0 || policy == 3 || policy == 5 ? 0 : -EINVAL; }
+int64_t sys_sched_get_priority_min(int policy) { return policy == 1 || policy == 2 ? 1 : policy == 0 || policy == 3 || policy == 5 ? 0 : -EINVAL; }
 int64_t sys_sched_rr_get_interval(int pid, struct timespec *uts) {
     struct thread *t = affinity_target(pid);
     if (!t) return -ESRCH;

@@ -108,11 +108,15 @@ void ipi_handle(void) {
         arch_tlb_flush_local();
         __atomic_and_fetch(&c->ipi_pending, ~IPI_TLB_FLUSH, __ATOMIC_RELEASE);
     }
-    if (p & IPI_RESCHED) __atomic_and_fetch(&c->ipi_pending, ~IPI_RESCHED, __ATOMIC_RELEASE);
+    if (p & IPI_RESCHED) {
+        c->resched = true;
+        __atomic_and_fetch(&c->ipi_pending, ~IPI_RESCHED, __ATOMIC_RELEASE);
+    }
     /* a resched IPI only needs to wake the CPU from its idle halt */
 }
 
 void smp_send_resched(struct cpu *c) {
+    __atomic_store_n(&c->resched, true, __ATOMIC_RELEASE);
     __atomic_or_fetch(&c->ipi_pending, IPI_RESCHED, __ATOMIC_RELEASE);
     arch_send_ipi(c);
 }

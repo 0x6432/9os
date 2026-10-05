@@ -34,7 +34,10 @@ static inline void arch_irq_disable(void) { __asm__ volatile("csrci sstatus, 2" 
 static inline bool arch_irq_enabled(void) { return csr_read(sstatus) & SSTATUS_SIE; }
 static inline void arch_cpu_relax(void) { __asm__ volatile("nop"); }
 /* wfi with interrupts enabled: a pending interrupt wakes the hart and is taken right after. */
-static inline void arch_wait_for_interrupt(void) { __asm__ volatile("csrsi sstatus, 2; wfi" ::: "memory"); }
+/* WFI wakes for locally enabled pending IRQs even while global SIE is clear.
+ * Keep SIE clear until after WFI, so an IPI cannot be handled and consumed in
+ * the enable-to-WFI gap with the AP's timer disabled. */
+static inline void arch_wait_for_interrupt(void) { __asm__ volatile("wfi; csrsi sstatus, 2" ::: "memory"); }
 
 /* SBI calls */
 struct sbiret { long error, value; };

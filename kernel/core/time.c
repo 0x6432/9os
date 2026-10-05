@@ -9,7 +9,7 @@ int64_t boot_epoch;
 
 /* every CPU's local timer calls this; only the boot CPU advances jiffies */
 void timer_tick(void) {
-    if (this_cpu()->id == 0) jiffies++;
+    if (this_cpu()->id == 0) jiffies = time_ns() / 1000000ULL;
     sched_tick();
 }
 

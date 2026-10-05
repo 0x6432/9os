@@ -25,6 +25,9 @@ struct cpu {
     bool tick_user;                /* the current tick interrupted user mode */
     struct thread *prev;           /* thread switched away from (cleared by the next thread) */
     uint64_t arch_data[4];         /* arch private (e.g. GIC cpu mask) */
+    uint32_t idle_seq;             /* stable snapshots of a still-halted idle span */
+    bool tick_stopped;
+    uint64_t idle_start_ns, idle_remainder_ns, idle_sleeps;
 };
 
 #define IPI_TLB_FLUSH (1u << 0)

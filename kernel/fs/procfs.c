@@ -7,6 +7,7 @@
 #include <kernel/printk.h>
 #include <kernel/time.h>
 #include <kernel/pmm.h>
+#include <kernel/slab.h>
 #include <kernel/mm.h>
 #include <kernel/tty.h>
 #include <kernel/sched.h>
@@ -230,10 +231,10 @@ static void gen(struct pinfo *pi, struct buf *b) {
     case G_LOADAVG: bprintf(b, "0.00 0.00 0.00 %d/%d 1\n", sched_runnable_count() + 1, sched_runnable_count() + 1); break;
     case G_STAT: {
         uint64_t tu = 0, ts = 0, ti = 0, cs = 0;
-        for (int i = 0; i < ncpus; i++) { tu += cpus[i].user_ticks; ts += cpus[i].sys_ticks; ti += cpus[i].idle_ticks; cs += cpus[i].ctx_switches; }
+        for (int i = 0; i < ncpus; i++) { tu += cpus[i].user_ticks; ts += cpus[i].sys_ticks; ti += sched_idle_ticks(i); cs += cpus[i].ctx_switches; }
         bprintf(b, "cpu  %lu 0 %lu %lu 0 0 0 0 0 0\n", tu / 10, ts / 10, ti / 10);
         for (int i = 0; i < ncpus; i++)
-            bprintf(b, "cpu%d %lu 0 %lu %lu 0 0 0 0 0 0\n", i, cpus[i].user_ticks / 10, cpus[i].sys_ticks / 10, cpus[i].idle_ticks / 10);
+            bprintf(b, "cpu%d %lu 0 %lu %lu 0 0 0 0 0 0\n", i, cpus[i].user_ticks / 10, cpus[i].sys_ticks / 10, sched_idle_ticks(i) / 10);
         bprintf(b, "ctxt %lu\nbtime %ld\nprocs_running %d\n", cs, (long)boot_epoch, sched_runnable_count() + 1);
         break;
     }
@@ -246,14 +247,17 @@ static void gen(struct pinfo *pi, struct buf *b) {
         struct pmm_cache_stats ps; pmm_cache_stats(&ps);
         bprintf(b, "pmm_pcpu_cached %lu\npmm_pcpu_alloc_hits %lu\npmm_pcpu_free_hits %lu\npmm_pcpu_drained %lu\n",
                 ps.cached_pages, ps.alloc_hits, ps.free_hits, ps.drained_pages);
+        struct slab_cpu_stats ss; slab_cpu_stats(&ss);
+        bprintf(b, "slab_pcpu_cached %lu\nslab_pcpu_alloc_hits %lu\nslab_pcpu_free_hits %lu\nslab_pcpu_drained %lu\n",
+                ss.cached_objects, ss.alloc_hits, ss.free_hits, ss.drained_objects);
         break;
     }
     case G_SCHED:
         bprintf(b, "policy: %s\ncpus: %d\nrunnable: %d\n", sched_policy_name(), ncpus, sched_runnable_count());
         for (int i = 0; i < ncpus; i++)
-            bprintf(b, "cpu%d: hwid 0x%lx ticks %lu idle %lu switches %lu rq %d steals %lu balances %lu running %s\n", i, cpus[i].hwid,
-                    cpus[i].ticks, cpus[i].idle_ticks, cpus[i].ctx_switches, sched_rq_len(i), sched_rq_steals(i),
-                    sched_rq_balances(i),
+            bprintf(b, "cpu%d: hwid 0x%lx ticks %lu idle %lu switches %lu rq %d steals %lu balances %lu local %lu coordinated %lu nohz %lu running %s\n", i, cpus[i].hwid,
+                    cpus[i].ticks, sched_idle_ticks(i), cpus[i].ctx_switches, sched_rq_len(i), sched_rq_steals(i),
+                    sched_rq_balances(i), sched_rq_local(i), sched_rq_coordinated(i), cpus[i].idle_sleeps,
                     cpus[i].cur ? cpus[i].cur->name : "-");
         break;
     case G_FILESYSTEMS: bprintf(b, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n"); break;

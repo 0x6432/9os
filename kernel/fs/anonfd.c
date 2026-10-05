@@ -103,8 +103,10 @@ static void recompute_next(void) {
         struct timerfd *t = list_entry(it, struct timerfd, node);
         if (t->expires < n) n = t->expires;
     }
-    next_expiry = n;
+    __atomic_store_n(&next_expiry, n, __ATOMIC_RELEASE);
+    sched_timer_changed();
 }
+uint64_t timerfd_next_deadline(void) { return __atomic_load_n(&next_expiry, __ATOMIC_ACQUIRE); }
 
 /* called from the cpu0 timer tick */
 void timerfd_tick(uint64_t now) {

@@ -159,6 +159,24 @@ void lapic_cpu_init(void) {
     lapic_write(LAPIC_LVT_TMR, VEC_TIMER | (1 << 17));  /* periodic */
     lapic_write(LAPIC_TMR_INIT, lapic_per_tick);
 }
+void arch_timer_active(void) {
+    lapic_write(LAPIC_LVT_TMR, VEC_TIMER | (1 << 17));
+    lapic_write(LAPIC_TMR_INIT, lapic_per_tick);
+}
+void arch_timer_idle(uint64_t deadline) {
+    if (deadline == UINT64_MAX) {
+        lapic_write(LAPIC_LVT_TMR, VEC_TIMER | (1 << 16));
+        lapic_write(LAPIC_TMR_INIT, 0);
+        return;
+    }
+    uint64_t now = time_ns(), delta = deadline > now ? deadline - now : 1000;
+    uint64_t max_ns = 0xffffffffULL * 1000000 / MAX(lapic_per_tick, 1u);
+    delta = MIN(delta, max_ns);
+    uint64_t count = (delta * lapic_per_tick + 999999) / 1000000;
+    lapic_write(LAPIC_LVT_TMR, VEC_TIMER);        /* one shot, not periodic */
+    lapic_write(LAPIC_TMR_INIT, (uint32_t)MAX(count, 1ULL));
+}
+uint64_t arch_idle_poll_ns(void) { return UINT64_MAX; } /* serial/PS2 are interrupt driven */
 
 void apic_init(void) {
     calibrate_tsc();
