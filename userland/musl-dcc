@@ -1,0 +1,3 @@
+#!/bin/sh
+# musl-cc in dynamic mode: executables are PIEs using /lib/ld-musl-$ARCH.so.1 (for ports).
+DYNAMIC=1 exec "$(dirname "$0")/musl-cc" "$@"
