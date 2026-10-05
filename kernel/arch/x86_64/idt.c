@@ -72,6 +72,7 @@ void dump_frame(struct trap_frame *f) {
 /* weak hooks, overridden by later subsystems */
 [[gnu::weak]] bool page_fault_handler(struct trap_frame *f) { return false; }
 [[gnu::weak]] bool user_exception(struct trap_frame *f) { return false; }
+[[gnu::weak]] bool page_fault_fast(struct trap_frame *f) { return false; }
 void user_return_work(struct trap_frame *f);
 
 void irq_eoi(void);
@@ -89,6 +90,10 @@ void trap_dispatch(struct trap_frame *f) {
         bkl_enter();
         timer_tick();
         goto out;
+    }
+    if (v == 14 && page_fault_fast(f)) {     /* resolved without the BKL */
+        if (trap_from_user(f)) user_return_work(f);
+        return;
     }
     bkl_enter();
     if (v < 32) {

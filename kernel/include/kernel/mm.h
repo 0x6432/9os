@@ -1,4 +1,5 @@
 #pragma once
+#include <kernel/spinlock.h>
 /* User address spaces: VMAs + demand-zero paging. */
 #include <kernel/types.h>
 #include <kernel/list.h>
@@ -25,7 +26,17 @@ struct mm {
     vaddr_t mmap_hint;
     int refcount;
     vaddr_t sigtramp;       /* user sigreturn trampoline (archs without SA_RESTORER) */
+    /* Recursive IRQ-off lock protecting the VMA list and this mm's page-table entries against
+     * lock-free page faults and user copies. Order: BKL -> mm->lock -> pt_lock/buddy/slab ->
+     * sched_lock. Never sleep while holding it. */
+    spinlock_t lock;
+    int lock_owner;         /* cpu id + 1, 0 = free */
+    int lock_depth;
+    uint64_t lock_flags;
 };
+
+void mm_lock(struct mm *mm);
+void mm_unlock(struct mm *mm);
 
 struct cow_stats { uint64_t shared, copied, reused; };   /* fork COW counters (/proc/vmstat) */
 extern struct cow_stats cow_stats;

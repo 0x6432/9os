@@ -121,7 +121,7 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
         if (parent->exe) p->exe = strdup(parent->exe);
         p->start_ticks = jiffies;
         memcpy(p->sigactions, parent->sigactions, sizeof p->sigactions);
-        if (flags & CLONE_VM) { p->mm = parent->mm; p->mm->refcount++; }
+        if (flags & CLONE_VM) { p->mm = parent->mm; __atomic_add_fetch(&p->mm->refcount, 1, __ATOMIC_RELAXED); }
         else {
             p->mm = mm_clone(parent->mm);
             if (!p->mm) { list_del(&p->all_node); kfree(p); thread_free(t); return -ENOMEM; }

@@ -67,6 +67,11 @@ void trap_dispatch(struct trap_frame *f) {
         syscall_dispatch(f);        /* takes the BKL; also runs user_return_work */
         return;
     }
+    if ((c == 12 || c == 13 || c == 15) && f->stval < USER_TOP && current && current->proc &&
+        mm_handle_fault(current->proc->mm, f->stval, c == 15, c == 12)) {   /* lock-free fault fast path */
+        if (trap_from_user(f)) user_return_work(f);
+        return;
+    }
     bkl_enter();
     if ((int64_t)c < 0) {
         switch (c & 0xff) {

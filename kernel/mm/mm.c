@@ -24,6 +24,24 @@ static void vma_insert(struct mm *mm, struct vma *v) {
     list_add_tail(&mm->vmas, &v->node);
 }
 
+void mm_lock(struct mm *mm) {
+    uint64_t f = arch_irq_save();
+    int me = this_cpu()->id + 1;
+    if (__atomic_load_n(&mm->lock_owner, __ATOMIC_RELAXED) == me) { mm->lock_depth++; arch_irq_restore(f); return; }
+    spin_lock_ipi(&mm->lock);
+    mm->lock_owner = me;
+    mm->lock_depth = 1;
+    mm->lock_flags = f;
+}
+
+void mm_unlock(struct mm *mm) {
+    if (--mm->lock_depth > 0) return;
+    uint64_t f = mm->lock_flags;
+    __atomic_store_n(&mm->lock_owner, 0, __ATOMIC_RELAXED);
+    spin_unlock(&mm->lock);
+    arch_irq_restore(f);
+}
+
 struct mm *mm_create(void) {
     struct mm *mm = kzalloc(sizeof *mm);
     if (!mm) return nullptr;
@@ -48,7 +66,8 @@ static void free_pages_in(struct mm *mm, vaddr_t s, vaddr_t e, unsigned vflags) 
 }
 
 void mm_put(struct mm *mm) {
-    if (--mm->refcount > 0) return;
+    if (__atomic_sub_fetch(&mm->refcount, 1, __ATOMIC_ACQ_REL) > 0) return;
+    mm_lock(mm);            /* a straggling lock-free fault/copy may still be inside */
     vmm_batch_begin();
     list_for_each_safe(it, tmp, &mm->vmas) {
         struct vma *v = list_entry(it, struct vma, node);
@@ -57,6 +76,7 @@ void mm_put(struct mm *mm) {
         kfree(v);
     }
     vmm_batch_end();
+    mm_unlock(mm);
     vmm_free_user_pagetable(mm->pt);
     kfree(mm);
 }
@@ -70,6 +90,7 @@ struct mm *mm_clone(struct mm *src) {
     if (!mm) return nullptr;
     mm->brk_start = src->brk_start; mm->brk = src->brk; mm->mmap_hint = src->mmap_hint;
     mm->sigtramp = src->sigtramp;
+    mm_lock(src);
     vmm_batch_begin();
     list_for_each(it, &src->vmas) {
         struct vma *v = list_entry(it, struct vma, node);
@@ -94,9 +115,11 @@ struct mm *mm_clone(struct mm *src) {
         }
     }
     vmm_batch_end();
+    mm_unlock(src);
     return mm;
 fail:
     vmm_batch_end();
+    mm_unlock(src);
     mm_put(mm);
     return nullptr;
 }
@@ -163,7 +186,7 @@ static int vma_split(struct mm *mm, vaddr_t addr) {
     return 0;
 }
 
-int mm_unmap(struct mm *mm, vaddr_t addr, size_t len) {
+static int mm_unmap_locked(struct mm *mm, vaddr_t addr, size_t len) {
     if (addr & (PAGE_SIZE - 1)) return -EINVAL;
     vaddr_t end = ALIGN_UP(addr + len, PAGE_SIZE);
     if (vma_split(mm, addr) || vma_split(mm, end)) return -ENOMEM;
@@ -189,7 +212,7 @@ static bool range_free(struct mm *mm, vaddr_t s, vaddr_t e) {
     return true;
 }
 
-int64_t mm_map(struct mm *mm, vaddr_t addr, size_t len, unsigned prot, unsigned flags, bool fixed) {
+static int64_t mm_map_locked(struct mm *mm, vaddr_t addr, size_t len, unsigned prot, unsigned flags, bool fixed) {
     len = ALIGN_UP(len, PAGE_SIZE);
     if (!len) return -EINVAL;
     if (fixed) {
@@ -220,7 +243,7 @@ int64_t mm_map(struct mm *mm, vaddr_t addr, size_t len, unsigned prot, unsigned 
     return (int64_t)addr;
 }
 
-int mm_protect(struct mm *mm, vaddr_t addr, size_t len, unsigned prot) {
+static int mm_protect_locked(struct mm *mm, vaddr_t addr, size_t len, unsigned prot) {
     vaddr_t end = ALIGN_UP(addr + len, PAGE_SIZE);
     if (vma_split(mm, addr) || vma_split(mm, end)) return -ENOMEM;
     for (vaddr_t a = addr; a < end; a += PAGE_SIZE)
@@ -252,7 +275,7 @@ static paddr_t fault_in(struct mm *mm, struct vma *v, vaddr_t va) {
     return pa;
 }
 
-bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
+static bool mm_handle_fault_locked(struct mm *mm, vaddr_t addr, bool write, bool exec) {
     struct vma *v = vma_find(mm, addr);
     if (!v) return false;
     if (write && !(v->prot & VM_WRITE)) return false;
@@ -265,7 +288,7 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
 }
 
 /* Writes through the HHDM, faulting pages in regardless of VMA protection. */
-int mm_write(struct mm *mm, vaddr_t dst, const void *src, size_t n) {
+static int mm_write_locked(struct mm *mm, vaddr_t dst, const void *src, size_t n) {
     const uint8_t *s = src;
     while (n) {
         struct vma *v = vma_find(mm, dst);
@@ -284,11 +307,9 @@ int mm_zero(struct mm *mm, vaddr_t dst, size_t n) { return mm_write(mm, dst, nul
 
 /* ---- current-process user access ---- */
 
-bool user_range_ok(const void *uaddr, size_t n, bool write) {
+static bool user_range_ok_locked(struct mm *mm, const void *uaddr, size_t n, bool write) {
     vaddr_t a = (vaddr_t)uaddr;
     if (a + n < a || a + n > USER_TOP) return false;
-    if (!current || !current->proc) return false;
-    struct mm *mm = current->proc->mm;
     vaddr_t end = a + n;
     for (vaddr_t p = ALIGN_DOWN(a, PAGE_SIZE); p < end; p += PAGE_SIZE) {
         struct vma *v = vma_find(mm, p);
@@ -301,35 +322,94 @@ bool user_range_ok(const void *uaddr, size_t n, bool write) {
     return true;
 }
 
+bool user_range_ok(const void *uaddr, size_t n, bool write) {
+    if (!current || !current->proc) return false;
+    struct mm *mm = current->proc->mm;
+    mm_lock(mm);
+    bool ok = user_range_ok_locked(mm, uaddr, n, write);
+    mm_unlock(mm);
+    return ok;
+}
+
 /*
- * VMAs, page tables and page refcounts are still protected by the BKL. Lock-free syscalls (see
- * syscall.c) therefore take it just for the duration of a user copy; another thread of the same
- * process cannot unmap the range between the check and the memcpy.
+ * User copies hold the mm lock (IRQs off) from the range check through the memcpy, so a
+ * concurrent munmap/mprotect by another thread cannot pull the pages out from under it and
+ * no fault can occur during the copy. No BKL needed. Copies are chunked so IRQs are not held
+ * off for long stretches on big transfers.
  */
+#define COPY_CHUNK (64 * 1024)
+static int user_copy(void *dst, const void *src, vaddr_t uaddr, size_t n, bool write) {
+    if (!current || !current->proc) return -EFAULT;
+    struct mm *mm = current->proc->mm;
+    while (n) {
+        size_t c = MIN(n, (size_t)COPY_CHUNK);
+        mm_lock(mm);
+        bool ok = user_range_ok_locked(mm, (const void *)uaddr, c, write);
+        if (ok) memcpy(dst, src, c);
+        mm_unlock(mm);
+        if (!ok) return -EFAULT;
+        dst = (uint8_t *)dst + c; src = (const uint8_t *)src + c; uaddr += c; n -= c;
+    }
+    return 0;
+}
+
 int copy_from_user(void *dst, const void *usrc, size_t n) {
-    if (!n) return 0;
-    bool took = !bkl_held();
-    if (took) bkl_enter();
-    int r = user_range_ok(usrc, n, false) ? (memcpy(dst, usrc, n), 0) : -EFAULT;
-    if (took) bkl_exit();
-    return r;
+    return n ? user_copy(dst, usrc, (vaddr_t)usrc, n, false) : 0;
 }
 
 int copy_to_user(void *udst, const void *src, size_t n) {
-    if (!n) return 0;
-    bool took = !bkl_held();
-    if (took) bkl_enter();
-    int r = user_range_ok(udst, n, true) ? (memcpy(udst, src, n), 0) : -EFAULT;
-    if (took) bkl_exit();
-    return r;
+    return n ? user_copy(udst, src, (vaddr_t)udst, n, true) : 0;
 }
 
 int64_t strncpy_from_user(char *dst, const char *usrc, size_t max) {
-    for (size_t i = 0; i < max; i++) {
-        if (((vaddr_t)(usrc + i) & (PAGE_SIZE - 1)) == 0 || i == 0)
-            if (!user_range_ok(usrc + i, 1, false)) return -EFAULT;
-        dst[i] = usrc[i];
-        if (!dst[i]) return (int64_t)i;
+    if (!current || !current->proc) return -EFAULT;
+    struct mm *mm = current->proc->mm;
+    size_t i = 0;
+    while (i < max) {
+        /* one page at a time under the lock */
+        size_t lim = MIN(max, i + (PAGE_SIZE - ((vaddr_t)(usrc + i) & (PAGE_SIZE - 1))));
+        mm_lock(mm);
+        if (!user_range_ok_locked(mm, usrc + i, 1, false)) { mm_unlock(mm); return -EFAULT; }
+        for (; i < lim; i++) {
+            dst[i] = usrc[i];
+            if (!dst[i]) { mm_unlock(mm); return (int64_t)i; }
+        }
+        mm_unlock(mm);
     }
     return -ENAMETOOLONG;
+}
+
+int mm_unmap(struct mm *mm, vaddr_t addr, size_t len) {
+    mm_lock(mm);
+    int r = mm_unmap_locked(mm, addr, len);
+    mm_unlock(mm);
+    return r;
+}
+
+int64_t mm_map(struct mm *mm, vaddr_t addr, size_t len, unsigned prot, unsigned flags, bool fixed) {
+    mm_lock(mm);
+    int64_t r = mm_map_locked(mm, addr, len, prot, flags, fixed);
+    mm_unlock(mm);
+    return r;
+}
+
+int mm_protect(struct mm *mm, vaddr_t addr, size_t len, unsigned prot) {
+    mm_lock(mm);
+    int r = mm_protect_locked(mm, addr, len, prot);
+    mm_unlock(mm);
+    return r;
+}
+
+bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
+    mm_lock(mm);
+    bool r = mm_handle_fault_locked(mm, addr, write, exec);
+    mm_unlock(mm);
+    return r;
+}
+
+int mm_write(struct mm *mm, vaddr_t dst, const void *src, size_t n) {
+    mm_lock(mm);
+    int r = mm_write_locked(mm, dst, src, n);
+    mm_unlock(mm);
+    return r;
 }

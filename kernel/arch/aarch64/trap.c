@@ -52,6 +52,14 @@ void trap_dispatch(struct trap_frame *f, int kind) {
             syscall_dispatch(f);
             return;
         }
+        if (ec == 0x24 || ec == 0x25 || ec == 0x20 || ec == 0x21) {     /* lock-free fault fast path */
+            bool exec = ec == 0x20 || ec == 0x21;
+            if (f->far < USER_TOP && current && current->proc &&
+                mm_handle_fault(current->proc->mm, f->far, !exec && (f->esr & (1 << 6)), exec)) {
+                if (kind == 2) user_return_work(f);
+                return;
+            }
+        }
         bkl_enter();
         if ((ec == 0x24 || ec == 0x25) && handle_abort(f, false)) goto out;
         if ((ec == 0x20 || ec == 0x21) && handle_abort(f, true)) goto out;

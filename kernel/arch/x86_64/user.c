@@ -79,6 +79,13 @@ void arch_switch_mm(struct thread *prev, struct thread *next) {
 
 void dump_frame(struct trap_frame *f);
 
+/* #PF fast path, run before the BKL: demand-zero/COW faults only need the mm lock */
+bool page_fault_fast(struct trap_frame *f) {
+    uint64_t addr = read_cr2();
+    if (addr >= USER_TOP || !current || !current->proc) return false;
+    return mm_handle_fault(current->proc->mm, addr, f->error & 2, f->error & 16);
+}
+
 /* #PF: demand paging for user addresses */
 bool page_fault_handler(struct trap_frame *f) {
     uint64_t addr = read_cr2();
