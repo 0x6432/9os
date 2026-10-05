@@ -244,6 +244,15 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - `/proc/sched` shows queue length and steals per CPU. `afftest` (in ci-tests): pinning to each CPU sticks, offline-only mask rejected, busy threads spread over all CPUs.
 - Next for M25: per-CPU locks (split `sched_lock` into rq locks + a sleep-list lock), load balancing on tick for busy CPUs, nice/priorities.
 
+## M25 part 3: nice, SCHED_FIFO/RR, accounting by time
+- `nice` (`setpriority`/`getpriority`, kernel returns 20-nice) scales the quantum (`quantum_for()`: x1.25 per step, clamped 1..100 ticks); deficit round robin: a thread that overran its quantum carries the debt into the next one (`pick_reset_quantum`), `policy_skip` lets lower-nice threads run first.
+- SCHED_FIFO/SCHED_RR (`sched_setscheduler/getscheduler/setparam/getparam/get_priority_max/min/rr_get_interval`): RT threads sit on a per-rq RT list sorted by `rt_prio` and always beat normal threads; RR quantum `SCHED_RR_QUANTUM` (100 ms). `wake_preempts()` decides wake-up preemption. nice/policy are inherited by `thread_alloc`; `/proc/pid/stat` priority/nice.
+- Accounting is now time-weighted (`acct_ns`, `*_ns` fields) instead of counting ticks; `account_tick()` returns the ms consumed for quantum bookkeeping.
+- Idle-loop fix: on x86 `sti; cli` in a loop could livelock a CPU so it never took the TLB-shootdown IPI (deadlock). Idle now only calls schedule when `cpu_has_work()` (rq length + per-rq `nr_mig` migratable count) and halts otherwise.
+- Tests: `nicetest` (in ci-tests); `afftest` checks CLOCK_MONOTONIC across CPUs; `timetest` checks cpu <= wall for a fresh child. `scripts/qemu-test.py` waits for the `#` prompt before each command and appends `QEMU_EXTRA`.
+- CI installs Alpine edge QEMU/edk2 (`scripts/install-qemu-alpine.sh`, also used by `sandbox-setup.sh`): Ubuntu's riscv64 firmware made Limine panic ("BSP hart does not advertise MMU support").
+- Timing tests (nicetest/afftest) can be flaky when the host has fewer cores than `--smp`.
+
 ## CI/CD
 - `.github/workflows/release.yml`: on every push to `main` (docs/markdown-only changes are ignored), on PRs (build only) and manually (`workflow_dispatch`, optional `ports: false` → `NO_PORTS=1`). A `stamp` job fixes one UTC timestamp, a matrix builds x86_64/riscv64/aarch64 on ubuntu-24.04 (clang 18; `scripts/fetch-deps.sh`, `userland/build-all.sh`, `make iso`; downloads cached via `TOOLS_DIR`), and `release` publishes `9os-<YYYYMMDD-HHMMSS>` with `9os-<ts>-<arch>.iso` + `SHA256SUMS`. Build scripts accept `TOOLS_DIR` (default `/data/tools`). First release: `9os-20261005-114810`.
 
