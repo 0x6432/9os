@@ -41,11 +41,17 @@ struct process {
     size_t cmdline_len;
     char *exe;
     uint64_t start_ticks;
-    uint64_t utime_ticks, stime_ticks;
+    uint64_t utime_ticks, stime_ticks;      /* 1 kHz tick samples, all threads (atomic adds) */
+    uint64_t cutime_ticks, cstime_ticks;    /* reaped children (and their reaped children) */
+    uint64_t sum_exec_ns;                   /* precise on-CPU time of switched-out slices */
+    uint64_t min_flt, cmin_flt, nvcsw, nivcsw, cnvcsw, cnivcsw;
     uint64_t alarm_ns;
     struct vfork_done { bool done; struct wait_queue wq; } *vfork;
 };
 
+
+/* resource usage in kernel units, turned into struct rusage by rusage_to_user() */
+int rusage_to_user(void *u, const struct rusage_k *r);
 
 struct process *process_current(void);
 #define curproc (current->proc)

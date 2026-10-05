@@ -74,9 +74,21 @@ int64_t sys_execve(const char *upath, char *const *uargv, char *const *uenvp) {
     return r;
 }
 
+int rusage_to_user(void *u, const struct rusage_k *r) {
+    int64_t ru[18] = {0};       /* struct rusage: utime, stime timevals + 14 longs */
+    uint64_t us = r->utime_ticks * 1000, ss = r->stime_ticks * 1000;   /* 1 tick = 1 ms */
+    ru[0] = us / 1000000; ru[1] = us % 1000000;
+    ru[2] = ss / 1000000; ru[3] = ss % 1000000;
+    ru[4 + 4] = r->min_flt;     /* ru_minflt */
+    ru[4 + 12] = r->nvcsw; ru[4 + 13] = r->nivcsw;
+    return copy_to_user(u, ru, sizeof ru);
+}
+
 int64_t sys_wait4(int pid, int *status, int options, void *rusage) {
-    if (rusage) { uint8_t z[144] = {0}; copy_to_user(rusage, z, sizeof z); }
-    return do_wait(pid, status, options, nullptr);
+    current->reaped_ru = (struct rusage_k){0};
+    int64_t r = do_wait(pid, status, options, nullptr);
+    if (r >= 0 && rusage && rusage_to_user(rusage, &current->reaped_ru)) return -EFAULT;
+    return r;
 }
 
 int64_t sys_waitid(int idtype, int id, void *uinfo, int options, void *ru) {
@@ -222,6 +234,13 @@ int64_t sys_clock_gettime(int clk, struct timespec *uts) {
     uint64_t ns = time_ns();
     if (clk == 0 || clk == 5 || clk == 8)   /* REALTIME, REALTIME_COARSE, REALTIME_ALARM */
         ts = now_timespec();
+    else if (clk == 2 || clk == 3) {        /* PROCESS_CPUTIME_ID, THREAD_CPUTIME_ID */
+        uint64_t f = arch_irq_save();       /* no switch while sampling the running slice */
+        uint64_t run = time_ns() - current->exec_start_ns;
+        uint64_t cpu = (clk == 2 ? __atomic_load_n(&curproc->sum_exec_ns, __ATOMIC_RELAXED) : current->sum_exec_ns) + run;
+        arch_irq_restore(f);
+        ts = (struct timespec){ cpu / 1000000000ULL, cpu % 1000000000ULL };
+    }
     else ts = (struct timespec){ ns / 1000000000ULL, ns % 1000000000ULL };
     return copy_to_user(uts, &ts, sizeof ts);
 }
@@ -240,13 +259,22 @@ int64_t sys_time(int64_t *ut) {
     return t;
 }
 int64_t sys_times(uint64_t *ubuf) {
-    uint64_t t[4] = { jiffies / 10, 0, 0, 0 };
+    struct process *p = curproc;     /* clock_t at USER_HZ = 100 */
+    uint64_t t[4] = { p->utime_ticks / 10, p->stime_ticks / 10, p->cutime_ticks / 10, p->cstime_ticks / 10 };
     if (ubuf && copy_to_user(ubuf, t, sizeof t)) return -EFAULT;
     return jiffies / 10;
 }
 int64_t sys_getrusage(int who, void *u) {
-    uint8_t z[144] = {0};
-    return copy_to_user(u, z, sizeof z);
+    struct process *p = curproc;
+    struct rusage_k r;
+    if (who == 0)            /* RUSAGE_SELF */
+        r = (struct rusage_k){ p->utime_ticks, p->stime_ticks, p->min_flt, p->nvcsw, p->nivcsw };
+    else if (who == -1)      /* RUSAGE_CHILDREN */
+        r = (struct rusage_k){ p->cutime_ticks, p->cstime_ticks, p->cmin_flt, p->cnvcsw, p->cnivcsw };
+    else if (who == 1)       /* RUSAGE_THREAD */
+        r = (struct rusage_k){ current->utime_ticks, current->stime_ticks, 0, current->nvcsw, current->nivcsw };
+    else return -EINVAL;
+    return rusage_to_user(u, &r);
 }
 int64_t sys_sysinfo(void *u) {
     uint64_t free, total;

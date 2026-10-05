@@ -219,6 +219,18 @@ static void reap_zombies(void) {
     next->cpu = c;
     c->cur = next;
     c->ctx_switches++;
+    uint64_t now = time_ns();
+    if (prev != c->idle) {
+        uint64_t d = now - prev->exec_start_ns;
+        prev->sum_exec_ns += d;
+        bool invol = prev->state == T_RUNNING || prev->state == T_RUNNABLE;   /* preempted, not blocked */
+        if (invol) prev->nivcsw++; else prev->nvcsw++;
+        if (prev->proc) {
+            __atomic_fetch_add(&prev->proc->sum_exec_ns, d, __ATOMIC_RELAXED);
+            __atomic_fetch_add(invol ? &prev->proc->nivcsw : &prev->proc->nvcsw, 1, __ATOMIC_RELAXED);
+        }
+    }
+    next->exec_start_ns = now;
     c->prev = prev;
     arch_set_current(next);
     arch_switch_to(prev, next);
@@ -249,8 +261,17 @@ void sched_yield(void) {
  * Returns true if the tick is fully handled; false means the caller must take the BKL and run
  * timer_tick() (accounting is not repeated).
  */
+/* charge one tick to the running thread / process / CPU as user or system time */
+static void account_tick(struct cpu *c, struct thread *cur) {
+    cur->run_ticks++;
+    if (c->tick_user) { cur->utime_ticks++; c->user_ticks++; }
+    else { cur->stime_ticks++; c->sys_ticks++; }
+    if (cur->proc) __atomic_fetch_add(c->tick_user ? &cur->proc->utime_ticks : &cur->proc->stime_ticks, 1, __ATOMIC_RELAXED);
+}
+
 bool sched_tick_fast(bool from_user) {
     struct cpu *c = this_cpu();
+    c->tick_user = from_user;
     if (c->id == 0 || !c->cur) return false;
     c->ticks++;
     c->tick_accounted = true;
@@ -261,8 +282,7 @@ bool sched_tick_fast(bool from_user) {
         c->tick_accounted = false;
         return true;
     }
-    cur->run_ticks++;
-    if (cur->proc) __atomic_fetch_add(&cur->proc->utime_ticks, 1, __ATOMIC_RELAXED);
+    account_tick(c, cur);
     if (--cur->quantum <= 0) { quantum_expired(cur); c->resched = true; return false; }
     if (from_user && (signal_pending(cur) || (cur->proc && cur->proc->alarm_ns))) return false;
     if (c->resched) return false;
@@ -300,8 +320,7 @@ void sched_tick(void) {
         if (nr_runnable) c->resched = true;
         return;
     }
-    cur->run_ticks++;
-    if (cur->proc) __atomic_fetch_add(&cur->proc->utime_ticks, 1, __ATOMIC_RELAXED);
+    account_tick(c, cur);
     if (--cur->quantum <= 0) {
         quantum_expired(cur);
         c->resched = true;

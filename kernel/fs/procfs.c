@@ -17,6 +17,12 @@ enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
              G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
+static int nthreads(struct process *p) {
+    int n = 0;
+    list_for_each(it, &p->threads) n++;
+    return n ? n : 1;
+}
+
 static const struct inode_ops proc_iops;
 static const struct file_ops proc_file_fops, proc_dir_fops;
 static struct inode *proc_root_inode;
@@ -214,11 +220,11 @@ static void gen(struct pinfo *pi, struct buf *b) {
     case G_MOUNTS: bprintf(b, "rootfs / tmpfs rw 0 0\nproc /proc proc rw 0 0\ndevtmpfs /dev devtmpfs rw 0 0\n"); break;
     case G_LOADAVG: bprintf(b, "0.00 0.00 0.00 %d/%d 1\n", sched_runnable_count() + 1, sched_runnable_count() + 1); break;
     case G_STAT: {
-        uint64_t tb = 0, ti = 0, cs = 0;
-        for (int i = 0; i < ncpus; i++) { tb += cpus[i].ticks - cpus[i].idle_ticks; ti += cpus[i].idle_ticks; cs += cpus[i].ctx_switches; }
-        bprintf(b, "cpu  %lu 0 0 %lu 0 0 0 0 0 0\n", tb / 10, ti / 10);
+        uint64_t tu = 0, ts = 0, ti = 0, cs = 0;
+        for (int i = 0; i < ncpus; i++) { tu += cpus[i].user_ticks; ts += cpus[i].sys_ticks; ti += cpus[i].idle_ticks; cs += cpus[i].ctx_switches; }
+        bprintf(b, "cpu  %lu 0 %lu %lu 0 0 0 0 0 0\n", tu / 10, ts / 10, ti / 10);
         for (int i = 0; i < ncpus; i++)
-            bprintf(b, "cpu%d %lu 0 0 %lu 0 0 0 0 0 0\n", i, (cpus[i].ticks - cpus[i].idle_ticks) / 10, cpus[i].idle_ticks / 10);
+            bprintf(b, "cpu%d %lu 0 %lu %lu 0 0 0 0 0 0\n", i, cpus[i].user_ticks / 10, cpus[i].sys_ticks / 10, cpus[i].idle_ticks / 10);
         bprintf(b, "ctxt %lu\nbtime %ld\nprocs_running %d\n", cs, (long)boot_epoch, sched_runnable_count() + 1);
         break;
     }
@@ -238,15 +244,18 @@ static void gen(struct pinfo *pi, struct buf *b) {
         break;
     case G_FILESYSTEMS: bprintf(b, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n"); break;
     case F_STAT:
-        bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 0 0 0 0 %lu %lu 0 0 20 0 1 0 %lu %lu %lu\n",
+        bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 %lu %lu 0 0 %lu %lu %lu %lu 20 0 %d 0 %lu %lu %lu\n",
                 p->pid, p->name, pstate(p), p->parent ? p->parent->pid : 0, p->pgid, p->sid,
-                p->ctty ? 0x0501 : 0, p->ctty ? p->ctty->pgrp : -1, p->utime_ticks / 10, p->stime_ticks / 10,
-                p->start_ticks / 10, vm_size(p), vm_size(p) / PAGE_SIZE / 4);
+                p->ctty ? 0x0501 : 0, p->ctty ? p->ctty->pgrp : -1, p->min_flt, p->cmin_flt,
+                p->utime_ticks / 10, p->stime_ticks / 10, p->cutime_ticks / 10, p->cstime_ticks / 10,
+                nthreads(p), p->start_ticks / 10, vm_size(p), vm_size(p) / PAGE_SIZE / 4);
         break;
     case F_STATUS:
-        bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nUid:\t%u\t%u\t%u\t%u\nGid:\t%u\t%u\t%u\t%u\nVmSize:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t1\n",
+        bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nUid:\t%u\t%u\t%u\t%u\nGid:\t%u\t%u\t%u\t%u\nVmSize:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
+                   "voluntary_ctxt_switches:\t%lu\nnonvoluntary_ctxt_switches:\t%lu\n",
                 p->name, pstate(p), p->pid, p->pid, p->parent ? p->parent->pid : 0,
-                p->uid, p->euid, p->euid, p->euid, p->gid, p->egid, p->egid, p->egid, vm_size(p) >> 10, vm_size(p) >> 12);
+                p->uid, p->euid, p->euid, p->euid, p->gid, p->egid, p->egid, p->egid, vm_size(p) >> 10, vm_size(p) >> 12,
+                nthreads(p), p->nvcsw, p->nivcsw);
         break;
     case F_CMDLINE:
         if (p->cmdline && p->cmdline_len) {

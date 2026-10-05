@@ -16,6 +16,9 @@
 enum thread_state { T_RUNNABLE, T_RUNNING, T_BLOCKED, T_SLEEPING, T_ZOMBIE };
 
 struct process;
+/* resource usage in kernel units (see rusage_to_user) */
+struct rusage_k { uint64_t utime_ticks, stime_ticks, min_flt, nvcsw, nivcsw; };
+
 struct thread {
     struct arch_thread arch;   /* must stay first (alignment) */
     int tid;
@@ -47,6 +50,8 @@ struct thread {
     int tlb_batch_depth;           /* vmm_batch_begin nesting */
     int level;                     /* MLFQ priority level (0 = highest) */
     uint64_t run_ticks;            /* total ticks on CPU */
+    uint64_t utime_ticks, stime_ticks, sum_exec_ns, exec_start_ns, nvcsw, nivcsw;
+    struct rusage_k reaped_ru;     /* last child reaped by do_wait (wait4 rusage) */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
 };
 

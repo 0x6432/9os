@@ -404,6 +404,8 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
     mm_lock(mm);
     bool r = mm_handle_fault_locked(mm, addr, write, exec);
     mm_unlock(mm);
+    if (r && current && current->proc && current->proc->mm == mm)
+        __atomic_fetch_add(&current->proc->min_flt, 1, __ATOMIC_RELAXED);
     return r;
 }
 

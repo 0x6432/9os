@@ -248,6 +248,11 @@ int64_t do_wait(int pid, int *ustatus, int options, int *out_pid) {
             if (c->state == P_ZOMBIE) {
                 status = c->exit_status;
                 int cpid = c->pid;
+                struct rusage_k cru = { c->utime_ticks + c->cutime_ticks, c->stime_ticks + c->cstime_ticks,
+                                        c->min_flt + c->cmin_flt, c->nvcsw + c->cnvcsw, c->nivcsw + c->cnivcsw };
+                self->cutime_ticks += cru.utime_ticks; self->cstime_ticks += cru.stime_ticks;
+                self->cmin_flt += cru.min_flt; self->cnvcsw += cru.nvcsw; self->cnivcsw += cru.nivcsw;
+                current->reaped_ru = cru;
                 list_del(&c->sibling);
                 list_del(&c->all_node);
                 kfree(c->cmdline); kfree(c->exe);
