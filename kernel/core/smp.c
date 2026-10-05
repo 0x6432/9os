@@ -16,6 +16,7 @@
 #include <kernel/time.h>
 #include <kernel/pmm.h>
 #include <kernel/vmm.h>
+#include <kernel/spinlock.h>
 
 extern volatile bool panicking;
 struct cpu cpus[MAX_CPUS];
@@ -195,15 +196,27 @@ void smp_init(void) {
 }
 
 /* ---------------------------------------------------------------- TLB batching */
-int tlb_batch_depth;
-static bool tlb_batch_dirty;
-void vmm_batch_begin(void) { tlb_batch_depth++; }
+/* Per thread (not per CPU: a batch may be preempted and resumed elsewhere; the final flush covers
+ * every CPU anyway). Lock-free page faults on other CPUs keep flushing individually. */
+static int boot_batch_depth;
+static int *batch_depth(void) { return current ? &current->tlb_batch_depth : &boot_batch_depth; }
+bool tlb_batched(vaddr_t va) { return *batch_depth() > 0 && va < 0x0000800000000000ULL; }
+void vmm_batch_begin(void) { (*batch_depth())++; }
 void vmm_batch_end(void) {
-    if (--tlb_batch_depth > 0) return;
+    if (--(*batch_depth()) > 0) return;
     arch_tlb_flush_local();
     uint64_t mask = 0;
     struct cpu *self = this_cpu();
     for (int i = 0; i < ncpus; i++) if (&cpus[i] != self && cpus[i].online) mask |= 1ULL << i;
     if (mask) arch_tlb_remote(mask, ~0UL);             /* ~0: flush everything */
-    tlb_batch_dirty = false;
+}
+
+/* Spin with interrupts disabled while still answering TLB-shootdown IPIs: the holder may be
+ * waiting for this CPU's acknowledgement. */
+void spin_lock_ipi(spinlock_t *l) {
+    while (__atomic_exchange_n(&l->locked, 1, __ATOMIC_ACQUIRE))
+        while (__atomic_load_n(&l->locked, __ATOMIC_RELAXED)) {
+            if (this_cpu()->ipi_pending || panicking) ipi_handle();
+            arch_cpu_relax();
+        }
 }

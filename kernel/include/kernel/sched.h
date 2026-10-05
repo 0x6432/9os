@@ -44,6 +44,7 @@ struct thread {
     struct cpu *cpu;               /* CPU this thread last ran on */
     int bkl_depth;                 /* big kernel lock nesting */
     int bkl_saved;                 /* depth dropped across a context switch, retaken after it */
+    int tlb_batch_depth;           /* vmm_batch_begin nesting */
     int level;                     /* MLFQ priority level (0 = highest) */
     uint64_t run_ticks;            /* total ticks on CPU */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */

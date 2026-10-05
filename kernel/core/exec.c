@@ -93,7 +93,7 @@ static int load_elf(struct mm *mm, struct file *f, bool is_interp, uint64_t *ent
             for (; pva < va + ph[i].p_filesz; pva += PAGE_SIZE, foff += PAGE_SIZE) {
                 paddr_t pa;
                 if (vmm_query(mm->pt, pva, nullptr, nullptr) || f->fops->mmap_page(f, foff / PAGE_SIZE, &pa)) { ok = false; break; }
-                phys_to_page(pa)->refcount++;
+                page_ref_inc(phys_to_page(pa));
                 if (vmm_map(mm->pt, pva, pa, (prot & ~VM_WRITE) | VM_USER)) { page_put_pa(pa); r = -ENOMEM; goto out; }
                 pc_stats_exec++;
             }

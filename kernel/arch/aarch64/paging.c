@@ -24,6 +24,7 @@
 pagetable_t kernel_pt;
 static paddr_t empty_root;              /* TTBR0 for kernel threads */
 static spinlock_t pt_lock = SPINLOCK_INIT;
+static uint64_t pt_lock_irqsave(void) { uint64_t f = arch_irq_save(); spin_lock_ipi(&pt_lock); return f; }
 static unsigned attr_normal, attr_device, attr_wc;
 
 static uint64_t attrs(unsigned fl) {
@@ -67,7 +68,7 @@ static inline void tlb_flush_all(void) { __asm__ volatile("dsb ishst; tlbi vmall
 void vmm_flush(vaddr_t va) { tlb_flush_va(va); }
 
 int vmm_map(pagetable_t pt, vaddr_t va, paddr_t pa, unsigned flags) {
-    uint64_t f = spin_lock_irqsave(&pt_lock);
+    uint64_t f = pt_lock_irqsave();
     uint64_t *pte = walk(pt.root, va, true);
     if (!pte) { spin_unlock_irqrestore(&pt_lock, f); return -ENOMEM; }
     *pte = to_pte(pa, flags);
@@ -108,7 +109,7 @@ int vmm_map_range(pagetable_t pt, vaddr_t va, paddr_t pa, size_t len, unsigned f
 }
 
 paddr_t vmm_unmap(pagetable_t pt, vaddr_t va) {
-    uint64_t f = spin_lock_irqsave(&pt_lock);
+    uint64_t f = pt_lock_irqsave();
     uint64_t *pte = walk(pt.root, va, false);
     paddr_t old = 0;
     if (pte && (*pte & D_VALID)) { old = *pte & D_ADDR; *pte = 0; if (!tlb_batched(va)) tlb_flush_va(va); }

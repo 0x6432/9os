@@ -62,7 +62,7 @@ int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t o
                 paddr_t pa;
                 int e = f->fops->mmap_page(f, (off + o) / PAGE_SIZE, &pa);
                 if (e) { mm_unmap(mm, r, len); return e; }
-                phys_to_page(pa)->refcount++;
+                page_ref_inc(phys_to_page(pa));
                 if (vmm_map(mm->pt, r + o, pa, prot_to_vm(prot) | VM_USER)) { page_put_pa(pa); mm_unmap(mm, r, len); return -ENOMEM; }
             }
             return r;
@@ -82,7 +82,7 @@ int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t o
             for (size_t o = 0; o < ALIGN_UP(len, PAGE_SIZE) && off + o < fsize; o += PAGE_SIZE) {
                 paddr_t pa;
                 if (f->fops->mmap_page(f, (off + o) / PAGE_SIZE, &pa)) break;
-                phys_to_page(pa)->refcount++;
+                page_ref_inc(phys_to_page(pa));
                 if (vmm_map(mm->pt, r + o, pa, (vp & ~VM_WRITE) | VM_USER)) { page_put_pa(pa); mm_unmap(mm, r, len); return -ENOMEM; }
                 pc_stats_mapped++;
             }

@@ -32,7 +32,6 @@ void vmm_switch(pagetable_t pt);
 void vmm_flush(vaddr_t va);
 /* TLB batching for bulk user PTE updates (fork, exit, munmap): while active, per-page user
  * invalidations are skipped; vmm_batch_end() flushes every CPU once. Caller holds the BKL. */
-extern int tlb_batch_depth;
-static inline bool tlb_batched(vaddr_t va) { return tlb_batch_depth > 0 && va < 0x0000800000000000ULL; }
+bool tlb_batched(vaddr_t va);    /* inside vmm_batch_begin/end on this thread (user addresses) */
 void vmm_batch_begin(void);
 void vmm_batch_end(void);

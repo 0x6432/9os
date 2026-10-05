@@ -37,7 +37,11 @@ void pmm_selftest(void);
 static inline paddr_t page_to_phys(struct page *p) { return (paddr_t)(p - page_array) << PAGE_SHIFT; }
 static inline struct page *phys_to_page(paddr_t pa) { return &page_array[pa >> PAGE_SHIFT]; }
 /* drop one reference on an order-0 page (shared by tmpfs and user mappings) */
-static inline void page_put_pa(paddr_t pa) { struct page *pg = phys_to_page(pa); if (--pg->refcount <= 0) page_free(pg, 0); }
+static inline void page_ref_inc(struct page *pg) { __atomic_fetch_add(&pg->refcount, 1, __ATOMIC_RELAXED); }
+static inline bool page_ref_dec_test(struct page *pg) { return __atomic_sub_fetch(&pg->refcount, 1, __ATOMIC_ACQ_REL) <= 0; }
+static inline int page_ref_read(struct page *pg) { return __atomic_load_n(&pg->refcount, __ATOMIC_RELAXED); }
+static inline void page_put(struct page *pg) { if (page_ref_dec_test(pg)) page_free(pg, 0); }
+static inline void page_put_pa(paddr_t pa) { page_put(phys_to_page(pa)); }
 static inline unsigned size_to_order(size_t size) {
     unsigned o = 0;
     while ((PAGE_SIZE << o) < size) o++;

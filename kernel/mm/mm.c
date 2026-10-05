@@ -42,7 +42,7 @@ static void free_pages_in(struct mm *mm, vaddr_t s, vaddr_t e, unsigned vflags) 
         paddr_t pa = vmm_unmap(mm->pt, va);
         if (pa && !(vflags & VMA_PHYS)) {
             struct page *pg = phys_to_page(pa);
-            if (--pg->refcount <= 0) page_free(pg, 0);
+            page_put(pg);
         }
     }
 }
@@ -89,7 +89,7 @@ struct mm *mm_clone(struct mm *src) {
                 vmm_protect(src->pt, va, fl);
             }
             if (vmm_map(mm->pt, va, pa, fl)) goto fail;
-            phys_to_page(pa)->refcount++;
+            page_ref_inc(phys_to_page(pa));
             cow_stats.shared++;
         }
     }
@@ -109,13 +109,13 @@ static paddr_t cow_break_any(struct mm *mm, struct vma *v, vaddr_t va) {
     if (!vmm_query(mm->pt, va, &pa, &fl)) return 0;
     pa = ALIGN_DOWN(pa, PAGE_SIZE);
     struct page *pg = phys_to_page(pa);
-    if ((v->flags & (VMA_SHARED | VMA_PHYS)) || pg->refcount <= 1) return pa;
+    if ((v->flags & (VMA_SHARED | VMA_PHYS)) || page_ref_read(pg) <= 1) return pa;
     paddr_t np = pmm_alloc_pages(0);
     if (!np) return 0;
     memcpy(PHYS_TO_VIRT(np), PHYS_TO_VIRT(pa), PAGE_SIZE);
     vmm_unmap(mm->pt, va);
     if (vmm_map(mm->pt, va, np, fl)) { pmm_free_pages(np, 0); return 0; }
-    if (--pg->refcount <= 0) page_free(pg, 0);
+    page_put(pg);
     cow_stats.copied++;
     return np;
 }
@@ -128,7 +128,7 @@ static paddr_t cow_break(struct mm *mm, struct vma *v, vaddr_t va) {
     if (fl & VM_WRITE) return pa;
     if (!(v->prot & VM_WRITE) || (v->flags & VMA_PHYS)) return 0;
     struct page *pg = phys_to_page(pa);
-    if (pg->refcount <= 1 || (v->flags & VMA_SHARED)) {        /* sole owner: just re-enable writes */
+    if (page_ref_read(pg) <= 1 || (v->flags & VMA_SHARED)) {        /* sole owner: just re-enable writes */
         vmm_protect(mm->pt, va, v->prot | VM_USER);
         cow_stats.reused++;
         return pa;
@@ -138,7 +138,7 @@ static paddr_t cow_break(struct mm *mm, struct vma *v, vaddr_t va) {
     memcpy(PHYS_TO_VIRT(np), PHYS_TO_VIRT(pa), PAGE_SIZE);
     vmm_unmap(mm->pt, va);
     if (vmm_map(mm->pt, va, np, v->prot | VM_USER)) { pmm_free_pages(np, 0); return 0; }
-    if (--pg->refcount <= 0) page_free(pg, 0);
+    page_put(pg);
     cow_stats.copied++;
     return np;
 }
@@ -233,7 +233,7 @@ int mm_protect(struct mm *mm, vaddr_t addr, size_t len, unsigned prot) {
                 paddr_t pa;
                 if (!vmm_query(mm->pt, va, &pa, nullptr)) continue;
                 unsigned p = prot | VM_USER;
-                if (!(v->flags & (VMA_SHARED | VMA_PHYS)) && phys_to_page(ALIGN_DOWN(pa, PAGE_SIZE))->refcount > 1)
+                if (!(v->flags & (VMA_SHARED | VMA_PHYS)) && page_ref_read(phys_to_page(ALIGN_DOWN(pa, PAGE_SIZE))) > 1)
                     p &= ~VM_WRITE;            /* still copy-on-write */
                 if (v->flags & VMA_PHYS) p |= VM_WC;
                 vmm_protect(mm->pt, va, p);

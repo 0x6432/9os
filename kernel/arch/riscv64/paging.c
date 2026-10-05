@@ -25,6 +25,7 @@
 
 pagetable_t kernel_pt;
 static spinlock_t pt_lock = SPINLOCK_INIT;
+static uint64_t pt_lock_irqsave(void) { uint64_t f = arch_irq_save(); spin_lock_ipi(&pt_lock); return f; }
 
 static uint64_t to_pte(paddr_t pa, unsigned fl) {
     /* A/D preset: we do not rely on hardware A/D updates (Svadu may be absent) */
@@ -57,7 +58,7 @@ static uint64_t *walk(paddr_t root, vaddr_t va, bool create) {
 void vmm_flush(vaddr_t va) { sfence_vma(va); }
 
 int vmm_map(pagetable_t pt, vaddr_t va, paddr_t pa, unsigned flags) {
-    uint64_t f = spin_lock_irqsave(&pt_lock);
+    uint64_t f = pt_lock_irqsave();
     uint64_t *pte = walk(pt.root, va, true);
     if (!pte) { spin_unlock_irqrestore(&pt_lock, f); return -ENOMEM; }
     *pte = to_pte(pa, flags);
@@ -98,7 +99,7 @@ int vmm_map_range(pagetable_t pt, vaddr_t va, paddr_t pa, size_t len, unsigned f
 }
 
 paddr_t vmm_unmap(pagetable_t pt, vaddr_t va) {
-    uint64_t f = spin_lock_irqsave(&pt_lock);
+    uint64_t f = pt_lock_irqsave();
     uint64_t *pte = walk(pt.root, va, false);
     paddr_t old = 0;
     if (pte && (*pte & PTE_V)) { old = PTE_PA(*pte); *pte = 0; if (!tlb_batched(va)) { sfence_vma(va); if (va < USER_TOP) tlb_shootdown(pt.root, va); } }
