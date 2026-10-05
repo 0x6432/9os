@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M19 complete — dynamic linking (ld-musl, dlopen) and inotify, on top of KMS-lite, ptys and evdev, on all three arches
+## Current state: M20 complete — real ports on the dynamic toolchain: Lua, SQLite, libffi, expat and libwayland (client+server test passes) on all three arches
 
 | Milestone | Status |
 |-----------|--------|
@@ -26,6 +26,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M17 Terminals + input | ✅ `/dev/ptmx` + `/dev/pts/N`, generic virtio-pci layer, virtio-input keyboard/tablet + PS/2 → evdev `/dev/input/eventN`, VT/KD ioctls for seatd-style sessions; `ptytest`, `evtest` |
 | M18 KMS-lite | ✅ `/dev/dri/card0`: legacy KMS (1 connector/encoder/CRTC/primary plane), GEM dumb buffers + mmap, ADDFB/ADDFB2/RMFB, SETCRTC, PAGE_FLIP with flip events, DIRTYFB, WAIT_VBLANK; `drmdemo` |
 | M19 Dynamic linking + inotify | ✅ `PT_INTERP` → musl `libc.so` as `/lib/ld-musl-<arch>.so.1`, shared libs + `dlopen`, `membarrier`; inotify with VFS hooks; `dyntest`, `inotifytest` |
+| M20 Ports + libwayland | ✅ page cache for private file mappings + exec (3.4× faster exec), `userland/ports` (meson/autotools cross helpers): Lua 5.4, SQLite 3.47 (FTS5), libffi, expat, wayland 1.23.1; `wltest`, `mapprivtest` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -181,7 +182,15 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - **inotify** (end of `kernel/fs/anonfd.c`): watches pin their inode; hooks in `vfs.c`/`sys_fs.c` (`fsnotify_dirent/inode/file/path/unlinked`, no-ops while `fsnotify_nwatches == 0`): IN_CREATE (open O_CREAT, mknod, mkdir, symlink, link), IN_OPEN, IN_ACCESS, IN_MODIFY (write, truncate), IN_CLOSE_WRITE/NOWRITE, IN_ATTRIB (chmod/chown/utimensat, link count), IN_MOVED_FROM/TO with a shared cookie + IN_MOVE_SELF, IN_DELETE + IN_DELETE_SELF/IN_IGNORED, IN_ISDIR, ONESHOT, MASK_ADD/MASK_CREATE, ONLYDIR, DONT_FOLLOW, identical-event coalescing, 16384-event queue with IN_Q_OVERFLOW, FIONREAD. Directory-entry events for files opened by path use `f->path` to find the parent.
 - Tests: `dyntest` (11 checks: DT_NEEDED lib with constructor, TLS from a .so incl. new threads, dlopen/dlsym/dlerror, dl_iterate_phdr) and `inotifytest` (29 checks) pass on x86_64, riscv64, aarch64.
 
+## M20: ports and libwayland
+- `userland/build-ports.sh` builds `$PORTS` (default, in dependency order: `lua sqlite libffi expat wayland wltest`) with `userland/ports/<name>.sh`; `build-all.sh` runs it unless `NO_PORTS=1`. Ports install into `userland/build/ports-root-$ARCH/usr` (`DESTDIR`), which `mkroot.sh` copies to `/usr/bin` + `/usr/lib` of the root fs. Sources are cached in `/data/tools/dl` (`fetch URL`).
+- `userland/ports/common.sh`: `musl-dcc` (= `DYNAMIC=1 musl-cc`, dynamic PIEs), `mkso`, a generated meson cross file (`c = musl-dcc`, pkg-config limited to the ports root via `pkg_config_libdir` + `sys_root`) and `meson_port SRC BUILD opts...`; `autotools_port SRC opts...` (`--host=$ARCH-linux-musl`, `LIBS=<libgcc|compiler-rt builtins>` because libtool links with `-nostdlib`). Host-side tools (`wayland-scanner`) go to `/data/tools/host` and are passed with a meson native file (`[built-in options] pkg_config_path`).
+- `musl-cc -shared` now links against the sysroot (crti/crtn, `-lc`, builtins) instead of host defaults.
+- compiler-rt builtins now include `__clear_cache` (libffi closures); riscv64 gets `riscv_flush_icache(2)` (`kernel/arch/riscv64/user.c`, local `fence.i`).
+- Ports: Lua 5.4.7 (`liblua.so.5.4`, `lua`, `luac`), SQLite 3.47.2 (`libsqlite3.so.0`, `sqlite3` with FTS5 + math), libffi 3.4.6, expat 2.6.4, wayland 1.23.1 (client, server, cursor, egl libs).
+- `wltest` (`userland/ports/src/wltest.c`): a libwayland server (wl_shm + minimal wl_compositor/wl_surface/wl_region, timer and SIGCHLD event sources, client create/destroy listeners) and a forked client (registry, memfd pool through SCM_RIGHTS, ARGB8888 buffer, attach/damage/frame/commit, buffer release, roundtrips). Server reads the pixels via `wl_shm_buffer`. Passes on all three arches.
+
 ## Next steps (see docs/ROADMAP.md)
 1. DRM properties/atomic + PRIME for wlroots; fine-grained locking / per-CPU run queues.
-2. First real ports on the dynamic toolchain: libffi, expat, wayland (scanner on host), libxkbcommon, pixman, libdrm → a minimal Wayland compositor demo on KMS-lite + evdev.
+2. Next ports: wayland-protocols, libxkbcommon (needs bison on the host), pixman, libdrm, then a small Wayland compositor on KMS-lite + evdev (own minimal one first, then tinywl/wlroots with the libinput/udev shims) and simple clients (weston-simple-shm style, foot later).
 3. Fine-grained locking + per-CPU run queues (M16 in the roadmap); interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2.

@@ -18,12 +18,14 @@ B=$TOP/build/crt-$ARCH
 rm -rf "$B" && mkdir -p "$B"
 EXTRA=
 [ "$ARCH" = aarch64 ] && EXTRA="$SRC/lib/builtins/aarch64/fp_mode.c"
+DEFS=
+[ "$ARCH" = riscv64 ] && DEFS="-D__NR_riscv_flush_icache=259"
 for f in "$SRC"/lib/builtins/*.c $EXTRA; do
     n=$(basename "$f" .c)
     case $n in
-        apple_versioning|atomic|atomic_*|clear_cache|emutls|enable_execute_stack|eprintf|gcc_personality_v0|os_version_check|trampoline_setup|cpu_model) continue;;
+        apple_versioning|atomic|atomic_*|emutls|enable_execute_stack|eprintf|gcc_personality_v0|os_version_check|trampoline_setup|cpu_model) continue;;
     esac
-    clang --target=$ARCH-linux-musl -O2 -fno-stack-protector -ffreestanding -fPIC -nostdinc \
+    clang --target=$ARCH-linux-musl -O2 -fno-stack-protector -ffreestanding -fPIC -nostdinc $DEFS \
         -isystem "$SYSROOT/include" -isystem "$(clang -print-resource-dir)/include" \
         -c "$f" -o "$B/$n.o" 2>/dev/null || echo "skip $n"
 done

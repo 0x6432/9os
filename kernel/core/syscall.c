@@ -129,6 +129,7 @@ int64_t sys_recvmsg();
 int64_t sys_rename();
 int64_t sys_renameat();
 int64_t sys_renameat2();
+int64_t sys_riscv_flush_icache();
 int64_t sys_rmdir();
 int64_t sys_rseq();
 int64_t sys_rt_sigaction();
@@ -699,6 +700,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_epoll_pwait2
     [__NR_epoll_pwait2] = (syscall_fn)sys_epoll_pwait2,
+#endif
+#ifdef __NR_riscv_flush_icache
+    [__NR_riscv_flush_icache] = (syscall_fn)sys_riscv_flush_icache,
 #endif
 #ifdef __NR_open
     [__NR_open] = (syscall_fn)sys_open,

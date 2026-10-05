@@ -51,11 +51,12 @@ meson_port() {
     ninja -C "$b" >>"$b.log" 2>&1 || { tail -30 "$b.log"; exit 1; }
     DESTDIR="$PREFIX_ROOT" meson install -C "$b" --no-rebuild >>"$b.log" 2>&1 || { tail -30 "$b.log"; exit 1; }
 }
+if [ "$ARCH" = x86_64 ]; then RTLIB=$(gcc -print-libgcc-file-name); else RTLIB=$SYSROOT/lib/libclang_rt.builtins.a; fi
 # autotools_port SRCDIR [configure options...] (builds in-tree)
 autotools_port() {
     s=$1; shift
     (cd "$s" && ./configure --host=$ARCH-linux-musl --build=x86_64-pc-linux-gnu --prefix=/usr --libdir=/usr/lib \
-        CC="$DCCBIN" AR=llvm-ar RANLIB=llvm-ranlib STRIP=llvm-strip CFLAGS="-O2 -fPIC" "$@" >config.out 2>&1 || { tail -30 config.out; exit 1; }
+        CC="$DCCBIN" AR=llvm-ar RANLIB=llvm-ranlib STRIP=llvm-strip CFLAGS="-O2 -fPIC" LIBS="$RTLIB" "$@" >config.out 2>&1 || { tail -30 config.out; exit 1; }
      make -j"$(nproc)" >make.out 2>&1 || { tail -30 make.out; exit 1; }
      make DESTDIR="$PREFIX_ROOT" install >>make.out 2>&1 || { tail -30 make.out; exit 1; })
 }
