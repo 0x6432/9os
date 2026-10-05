@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M21 complete — a Wayland desktop on KMS-lite: `wlkms` compositor (libwayland-server + libdrm + pixman + evdev) running xdg-shell clients on all three arches
+## Current state: M22 complete — a usable Wayland desktop on KMS-lite: `wlkms` compositor + `wlterm` terminal (shell on a pty inside a window) and `wlclient`, on all three arches
 
 | Milestone | Status |
 |-----------|--------|
@@ -27,6 +27,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M18 KMS-lite | ✅ `/dev/dri/card0`: legacy KMS (1 connector/encoder/CRTC/primary plane), GEM dumb buffers + mmap, ADDFB/ADDFB2/RMFB, SETCRTC, PAGE_FLIP with flip events, DIRTYFB, WAIT_VBLANK; `drmdemo` |
 | M19 Dynamic linking + inotify | ✅ `PT_INTERP` → musl `libc.so` as `/lib/ld-musl-<arch>.so.1`, shared libs + `dlopen`, `membarrier`; inotify with VFS hooks; `dyntest`, `inotifytest` |
 | M20 Ports + libwayland | ✅ page cache for private file mappings + exec (3.4× faster exec), `userland/ports` (meson/autotools cross helpers): Lua 5.4, SQLite 3.47 (FTS5), libffi, expat, wayland 1.23.1; `wltest`, `mapprivtest` |
+| M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 | M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
 
 ## Build environment used
@@ -198,6 +199,11 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - `XDG_RUNTIME_DIR=/run/user/0` comes from `/etc/profile` (wlkms creates it if unset).
 - `wlclient [seconds] [w h]`: xdg toplevel with two shm buffers, animated pattern on frame callbacks, click → palette change, `q` quits; prints fps.
 - Test: `wlkms 16 > /tmp/k.log 2>&1 &`, `wlclient 10 &`, `wlclient 9 200 150 &` then screendump through the QEMU monitor (`QEMUEXTRA="-monitor unix:/tmp/mon.sock,server,nowait"`, `python3 scripts/qemu-monitor.py "screendump /tmp/x.ppm"`). x86_64 (TCG): ~40 fps for one client; riscv64/aarch64 (TCG) 4–6 fps, bound by emulation speed.
+
+## M22: wlterm
+- `wlterm [-e command] [cols rows]` (`userland/ports/src/wlterm.c`, built by `wlkms.sh` with `kernel/drivers/font8x16.c`): opens `/dev/ptmx`, forks `/bin/sh` (login) or `sh -c command` with `TERM=linux` on the slave, sets `TIOCSWINSZ`; event loop with `wl_display_prepare_read` + `poll` on the display fd and the pty; redraws the cell grid into one of two shm buffers when dirty and no frame callback is pending; exits after the child's output ends. Keyboard: raw evdev codes (the compositor sends `NO_KEYMAP`), shift/ctrl tracked locally, arrows/home/end/del/pgup/pgdn as VT sequences. No key repeat, no scrollback, no scroll regions yet.
+- `wlkms` draws window titles with the 8x16 font and sends `wl_keyboard.enter` to newly mapped windows.
+- Interactive test: boot with `QEMUEXTRA="-monitor unix:/tmp/mon.sock,server,nowait"`, run `wlkms 40 &` and `wlterm &`, then `python3 scripts/qemu-type.py /tmp/mon.sock 'ls /\n'` and screendump. Verified on x86_64 and aarch64 (riscv64 builds the same binaries).
 
 ## Next steps (see docs/ROADMAP.md)
 1. xkeyboard-config data so libxkbcommon can compile real keymaps (wl_keyboard XKB_V1 keymaps for toolkits); a terminal client (foot needs fcft/freetype/fontconfig) or a tiny own one.
