@@ -205,6 +205,9 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - `wlkms` draws window titles with the 8x16 font and sends `wl_keyboard.enter` to newly mapped windows.
 - Interactive test: boot with `QEMUEXTRA="-monitor unix:/tmp/mon.sock,server,nowait"`, run `wlkms 40 &` and `wlterm &`, then `python3 scripts/qemu-type.py /tmp/mon.sock 'ls /\n'` and screendump. Verified on x86_64 and aarch64 (riscv64 builds the same binaries).
 
+## CI/CD
+- `.github/workflows/release.yml`: on every push to `main` (docs/markdown-only changes are ignored), on PRs (build only) and manually (`workflow_dispatch`, optional `ports: false` → `NO_PORTS=1`). A `stamp` job fixes one UTC timestamp, a matrix builds x86_64/riscv64/aarch64 on ubuntu-24.04 (clang 18; `scripts/fetch-deps.sh`, `userland/build-all.sh`, `make iso`; downloads cached via `TOOLS_DIR`), and `release` publishes `9os-<YYYYMMDD-HHMMSS>` with `9os-<ts>-<arch>.iso` + `SHA256SUMS`. Build scripts accept `TOOLS_DIR` (default `/data/tools`). First release: `9os-20261005-114810`.
+
 ## Next steps (see docs/ROADMAP.md)
 1. xkeyboard-config data so libxkbcommon can compile real keymaps (wl_keyboard XKB_V1 keymaps for toolkits); a terminal client (foot needs fcft/freetype/fontconfig) or a tiny own one.
 2. DRM properties/atomic + PRIME for wlroots; libinput/libevdev/mtdev + a udev shim; seatd; then tinywl/wlroots and Sway.
