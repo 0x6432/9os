@@ -21,6 +21,7 @@ if [ ! -x bin/qemu-system-x86_64 ]; then
         chmod +x bin/qemu-system-$a
     done
 fi
+mkdir -p "$TOOLS_DIR/share" && ln -sfn "$TOOLS_DIR/alpine/usr/share/qemu" "$TOOLS_DIR/share/qemu"
 cd - >/dev/null
 [ -d "$TOOLS_DIR/limine-bin" ] || { git clone -q --depth 1 --branch v11.4.1-binary https://github.com/limine-bootloader/limine.git "$TOOLS_DIR/limine-bin"; make -C "$TOOLS_DIR/limine-bin" >/dev/null; }
 [ -d "$TOOLS_DIR/uACPI" ] || { git clone -q https://github.com/uACPI/uACPI.git "$TOOLS_DIR/uACPI"; (cd "$TOOLS_DIR/uACPI" && git checkout -q fd92d3f); }

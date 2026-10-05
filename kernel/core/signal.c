@@ -37,12 +37,7 @@ static uint64_t deliverable(struct thread *t) {
 
 bool signal_pending(struct thread *t) { return t->killed || deliverable(t) != 0; }
 
-static void kick_thread(struct thread *t) {
-    if (t->state == T_BLOCKED || t->state == T_SLEEPING) {
-        t->interrupted = true;
-        thread_wake(t);
-    }
-}
+static void kick_thread(struct thread *t) { thread_interrupt(t); }
 
 static void continue_process(struct process *p) {
     if (!p->stopped) return;

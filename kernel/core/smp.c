@@ -61,6 +61,21 @@ void bkl_exit(void) {
     arch_irq_restore(f);
 }
 
+/* Context switches drop the BKL (saving the nesting depth in the thread) and retake it when the
+ * thread runs again, Linux-2.2 style: a sleeping or preempted thread never blocks the kernel. */
+void bkl_drop_for_switch(struct thread *t) {
+    if (t->bkl_depth <= 0) return;
+    t->bkl_saved = t->bkl_depth;
+    t->bkl_depth = 0;
+    bkl_unlock();
+}
+void bkl_retake_after_switch(struct thread *t) {
+    if (!t->bkl_saved) return;
+    bkl_lock();
+    t->bkl_depth = t->bkl_saved;
+    t->bkl_saved = 0;
+}
+
 void bkl_release_idle(void) {
     if (current->bkl_depth != 1) panic("bkl_release_idle: depth %d", current->bkl_depth);
     uint64_t f = arch_irq_save();

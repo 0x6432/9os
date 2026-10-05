@@ -43,6 +43,7 @@ struct thread {
     /* SMP / scheduling */
     struct cpu *cpu;               /* CPU this thread last ran on */
     int bkl_depth;                 /* big kernel lock nesting */
+    int bkl_saved;                 /* depth dropped across a context switch, retaken after it */
     int level;                     /* MLFQ priority level (0 = highest) */
     uint64_t run_ticks;            /* total ticks on CPU */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
@@ -64,6 +65,7 @@ int sched_runnable_count(void);
 
 void sched_init(void);
 void sched_finish_switch(void);    /* new threads call this first */
+void thread_interrupt(struct thread *t); /* wake t from an interruptible sleep with -EINTR */
 struct thread *thread_create(const char *name, void (*fn)(void *), void *arg);
 struct thread *thread_alloc(const char *name);   /* allocated but not runnable */
 void thread_start(struct thread *t);

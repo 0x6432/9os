@@ -28,6 +28,7 @@ for f in "$SRC"/lib/builtins/*.c $EXTRA; do
     clang --target=$ARCH-linux-musl -O2 -fno-stack-protector -ffreestanding -fPIC -nostdinc $DEFS \
         -isystem "$SYSROOT/include" -isystem "$(clang -print-resource-dir)/include" \
         -c "$f" -o "$B/$n.o" 2>/dev/null || echo "skip $n"
+    [ "$n" = clear_cache ] && [ ! -f "$B/$n.o" ] && { echo "compiler-rt: clear_cache.c failed (missing UAPI headers?)" >&2; exit 1; }
 done
 llvm-ar rcs "$SYSROOT/lib/libclang_rt.builtins.a" "$B"/*.o
 echo "compiler-rt builtins: $(ls "$B" | wc -l) objects -> $SYSROOT/lib/libclang_rt.builtins.a"

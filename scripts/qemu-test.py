@@ -20,7 +20,7 @@ def main():
     ap.add_argument('--boot-timeout', type=float, default=180)
     ap.add_argument('--timeout', type=float, default=240, help='per command')
     ap.add_argument('--log', default=None)
-    a = ap.parse_args()
+    a = ap.parse_intermixed_args()
     make = ['make', '-s', 'ARCH=' + a.arch, 'SMP=' + a.smp, 'run', 'QEMUFLAGS=-display none']
     if a.sched: make.insert(3, 'SCHED=' + a.sched)
     p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,

@@ -3,8 +3,12 @@
  *   CONFIG_SCHED_RR   (default) round robin, fixed 10 ms quantum
  *   CONFIG_SCHED_MLFQ multilevel feedback queue: MLFQ_LEVELS levels, quantum doubles per level,
  *                     demotion after using a level's allotment, periodic boost to the top level.
- * SMP: one global run queue shared by all CPUs; scheduler state is protected by the big kernel
- * lock (see core/smp.c) plus disabled interrupts. Each CPU has its own idle thread.
+ * SMP: one global run queue shared by all CPUs. Scheduler state (run queue, sleep list, wait
+ * queues, thread states, zombies) is protected by sched_lock, taken with interrupts disabled.
+ * The lock is held across the context switch and released by the incoming thread in
+ * sched_finish_switch(). A switch drops the big kernel lock of the outgoing thread and the
+ * incoming thread retakes its own afterwards (lock order: BKL -> sched_lock), so code that does not
+ * need the BKL (lock-free syscalls, idle) can sleep, wake and schedule without it.
  */
 #include <kernel/sched.h>
 #include <kernel/arch.h>
@@ -16,6 +20,7 @@
 #include <kernel/time.h>
 #include <kernel/errno.h>
 #include <kernel/process.h>
+#include <kernel/spinlock.h>
 
 #if !defined(CONFIG_SCHED_RR) && !defined(CONFIG_SCHED_MLFQ)
 #define CONFIG_SCHED_RR 1
@@ -27,6 +32,15 @@ static struct list_node all_threads = LIST_INIT(all_threads);
 static struct kmem_cache *thread_cache;
 static int next_tid = 1;
 static int nr_runnable;
+static spinlock_t sched_lock = SPINLOCK_INIT;
+static volatile int sched_owner = -1;          /* CPU holding sched_lock (debugging) */
+void bkl_drop_for_switch(struct thread *t);
+void bkl_retake_after_switch(struct thread *t);
+/* interrupts must already be disabled */
+static void sl_lock(void) { spin_lock(&sched_lock); sched_owner = this_cpu()->id; }
+static void sl_unlock(void) { sched_owner = -1; spin_unlock(&sched_lock); }
+static uint64_t sl_lock_irqsave(void) { uint64_t f = arch_irq_save(); sl_lock(); return f; }
+static void sl_unlock_irqrestore(uint64_t f) { sl_unlock(); arch_irq_restore(f); }
 
 /* ---------------------------------------------------------------- policy */
 #ifdef CONFIG_SCHED_MLFQ
@@ -123,7 +137,8 @@ struct thread *thread_alloc(const char *name) {
     strlcpy(t->name, name, sizeof t->name);
     t->level = 0;
     t->quantum = quantum_for(t);
-    t->bkl_depth = 1;        /* new threads start in kernel mode, holding the BKL of whoever switches to them */
+    t->bkl_depth = 0;
+    t->bkl_saved = 1;        /* new threads take the BKL in sched_finish_switch() before running */
     t->cpu = this_cpu();
     list_init(&t->run_node);
     list_init(&t->timer_node);
@@ -134,10 +149,10 @@ struct thread *thread_alloc(const char *name) {
 }
 
 void thread_start(struct thread *t) {
-    uint64_t f = arch_irq_save();
+    uint64_t f = sl_lock_irqsave();
     enqueue(t);
     kick_after_wake(t);
-    arch_irq_restore(f);
+    sl_unlock_irqrestore(f);
 }
 
 /* Kernel threads draw TIDs from a range above PID_MAX so user PIDs (init = 1) are unaffected. */
@@ -159,29 +174,44 @@ void thread_free(struct thread *t) {
     kmem_cache_free(thread_cache, t);
 }
 
+/* idle loop, interrupts off, BKL not held */
 static void reap_zombies(void) {
+    if (list_empty(&zombies)) return;
+    struct list_node dead = LIST_INIT(dead);
+    sl_lock();
     list_for_each_safe(it, tmp, &zombies) {
+        struct thread *t = list_entry(it, struct thread, run_node);
+        if (__atomic_load_n(&t->on_cpu, __ATOMIC_ACQUIRE)) continue;   /* still switching out */
+        list_del(&t->run_node);
+        list_add_tail(&dead, &t->run_node);
+    }
+    sl_unlock();
+    if (list_empty(&dead)) return;
+    bkl_enter();                                  /* slab + all_threads are BKL-protected */
+    list_for_each_safe(it, tmp, &dead) {
         struct thread *t = list_entry(it, struct thread, run_node);
         list_del(&t->run_node);
         thread_free(t);
     }
+    bkl_exit();
 }
 
-/* Must be called with interrupts disabled and the BKL held. */
+/* Must be called with interrupts disabled and sched_lock held; returns with sched_lock released
+ * (and the caller's BKL depth restored). */
 [[gnu::noinline]] static void __schedule(void) {
     struct cpu *c = this_cpu();
     struct thread *prev = c->cur, *next;
-    extern volatile int bkl_owner;
-    if (bkl_owner != c->id || prev != current)
-        panic("__schedule: cpu%d bkl owner %d prev %s current %s depth %d from %p %p", c->id, bkl_owner, prev->name, current->name,
-              current->bkl_depth, __builtin_return_address(0), (void *)0);
+    if (sched_owner != c->id || prev != current)
+        panic("__schedule: cpu%d sched_lock owner %d prev %s current %s from %p", c->id, sched_owner, prev->name,
+              current->name, __builtin_return_address(0));
+    bkl_drop_for_switch(prev);
     c->resched = false;
     if (prev->state == T_RUNNING && prev != c->idle) enqueue(prev);
     next = dequeue();
     if (!next) next = c->idle;
     next->state = T_RUNNING;
     pick_reset_quantum(next);
-    if (next == prev) return;
+    if (next == prev) { sched_finish_switch(); return; }
     if (next->on_cpu) {          /* cannot happen under the BKL; kept as a safety net for finer locking */
         while (__atomic_load_n(&next->on_cpu, __ATOMIC_ACQUIRE)) arch_cpu_relax();
     }
@@ -199,10 +229,12 @@ static void reap_zombies(void) {
 void sched_finish_switch(void) {
     struct cpu *c = this_cpu();
     if (c->prev) { __atomic_store_n(&c->prev->on_cpu, 0, __ATOMIC_RELEASE); c->prev = nullptr; }
+    sl_unlock();
+    bkl_retake_after_switch(current);
 }
 
 void schedule(void) {
-    uint64_t f = arch_irq_save();
+    uint64_t f = sl_lock_irqsave();
     __schedule();
     arch_irq_restore(f);
 }
@@ -244,6 +276,7 @@ void sched_tick(void) {
     if (c->id == 0) {
         uint64_t now = time_ns();
         timerfd_tick(now);
+        sl_lock();
         list_for_each_safe(it, tmp, &sleep_list) {
             struct thread *t = list_entry(it, struct thread, timer_node);
             if (t->wake_ns <= now) {
@@ -256,6 +289,7 @@ void sched_tick(void) {
             }
         }
         policy_tick();
+        sl_unlock();
     }
     if (c->tick_accounted) { c->tick_accounted = false; return; }
     c->ticks++;
@@ -275,18 +309,30 @@ void sched_tick(void) {
 }
 
 void thread_wake(struct thread *t) {
-    uint64_t f = arch_irq_save();
+    uint64_t f = sl_lock_irqsave();
     if (t->state == T_BLOCKED || t->state == T_SLEEPING) {
         list_del(&t->run_node);
         if (t->timer_active) { list_del(&t->timer_node); t->timer_active = false; }
         enqueue(t);
         kick_after_wake(t);
     }
-    arch_irq_restore(f);
+    sl_unlock_irqrestore(f);
+}
+
+void thread_interrupt(struct thread *t) {
+    uint64_t f = sl_lock_irqsave();
+    if (t->state == T_BLOCKED || t->state == T_SLEEPING) {
+        t->interrupted = true;
+        list_del(&t->run_node);
+        if (t->timer_active) { list_del(&t->timer_node); t->timer_active = false; }
+        enqueue(t);
+        kick_after_wake(t);
+    }
+    sl_unlock_irqrestore(f);
 }
 
 void sleep_ns(uint64_t ns) {
-    uint64_t f = arch_irq_save();
+    uint64_t f = sl_lock_irqsave();
     current->wake_ns = time_ns() + ns;
     current->state = T_SLEEPING;
     current->timer_active = true;
@@ -297,9 +343,10 @@ void sleep_ns(uint64_t ns) {
 
 [[gnu::weak]] bool signal_pending(struct thread *t) { return false; }
 
+/* The signal check happens under sched_lock so a concurrent thread_interrupt() cannot be missed. */
 int wait_event(struct wait_queue *q) {
-    uint64_t f = arch_irq_save();
-    if (signal_pending(current)) { arch_irq_restore(f); return -EINTR; }
+    uint64_t f = sl_lock_irqsave();
+    if (signal_pending(current)) { sl_unlock_irqrestore(f); return -EINTR; }
     current->state = T_BLOCKED;
     current->interrupted = false;
     list_add_tail(&q->head, &current->run_node);
@@ -311,8 +358,8 @@ int wait_event(struct wait_queue *q) {
 
 int wait_event_timeout(struct wait_queue *q, uint64_t ns) {
     if (ns == UINT64_MAX) return wait_event(q);
-    uint64_t f = arch_irq_save();
-    if (signal_pending(current)) { arch_irq_restore(f); return -EINTR; }
+    uint64_t f = sl_lock_irqsave();
+    if (signal_pending(current)) { sl_unlock_irqrestore(f); return -EINTR; }
     current->state = T_BLOCKED;
     current->interrupted = false;
     current->timed_out = false;
@@ -334,41 +381,39 @@ static void wake_thread_locked(struct thread *t) {
 }
 
 void wake_up(struct wait_queue *q) {
-    uint64_t f = arch_irq_save();
+    uint64_t f = sl_lock_irqsave();
     list_for_each_safe(it, tmp, &q->head) {
         struct thread *t = list_entry(it, struct thread, run_node);
         wake_thread_locked(t);
     }
-    arch_irq_restore(f);
+    sl_unlock_irqrestore(f);
 }
 
 void wake_up_one(struct wait_queue *q) {
-    uint64_t f = arch_irq_save();
+    uint64_t f = sl_lock_irqsave();
     if (!list_empty(&q->head)) {
         struct thread *t = list_first(&q->head, struct thread, run_node);
         wake_thread_locked(t);
     }
-    arch_irq_restore(f);
+    sl_unlock_irqrestore(f);
 }
 
 __noreturn void thread_exit(void) {
     arch_irq_disable();
+    sl_lock();
     current->state = T_ZOMBIE;
     list_add_tail(&zombies, &current->run_node);
     __schedule();
     panic("zombie thread rescheduled");
 }
 
+/* Idle threads run without the BKL (bkl_depth 0); interrupt handlers taken here acquire it. */
 static void idle_loop(void *arg) {
     for (;;) {
         arch_irq_disable();
         reap_zombies();
-        if (nr_runnable) { __schedule(); arch_irq_enable(); continue; }
-        /* let other CPUs into the kernel while we sleep */
-        bkl_release_idle();
+        if (nr_runnable) { sl_lock(); __schedule(); arch_irq_enable(); continue; }
         arch_wait_for_interrupt();
-        arch_irq_disable();
-        bkl_acquire_idle();
         arch_irq_enable();
     }
 }
@@ -377,6 +422,7 @@ static struct thread *make_idle(struct cpu *c) {
     struct thread *t = thread_alloc("idle");
     t->tid = 0;
     t->cpu = c;
+    t->bkl_saved = 0;
     arch_thread_init(t, idle_loop, nullptr);
     t->state = T_RUNNABLE;
     return t;
@@ -428,7 +474,7 @@ __noreturn void sched_start_ap(struct cpu *c) {
     d->state = T_ZOMBIE;
     c->cur = d;
     arch_set_current(d);
-    bkl_acquire_idle();        /* idle starts with bkl_depth 1 */
+    sl_lock();                 /* released by the idle thread in sched_finish_switch() */
     c->online = true;
     c->cur = c->idle;
     c->prev = d;
@@ -440,5 +486,5 @@ __noreturn void sched_start_ap(struct cpu *c) {
 }
 
 void trap_exit_hook_sched(void) {
-    if (need_resched && current) __schedule();
+    if (need_resched && current) { sl_lock(); __schedule(); }
 }
