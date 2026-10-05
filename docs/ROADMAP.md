@@ -16,12 +16,12 @@ push, and back up on its own. **Bold** items are the current focus.
 
 ## Phase B: A "real" POSIX base (M16–M22)
 
-Done in M16: COW fork, `MAP_SHARED` (anonymous + tmpfs/memfd), AF_UNIX with `SCM_RIGHTS`, `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`. Done in M17: ptys (`/dev/ptmx` + `/dev/pts`), evdev input (virtio-input, PS/2) and VT/KD ioctls. Still open below: dynamic linking, storage, networking.
+Done in M16: COW fork, `MAP_SHARED` (anonymous + tmpfs/memfd), AF_UNIX with `SCM_RIGHTS`, `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`. Done in M17: ptys (`/dev/ptmx` + `/dev/pts`), evdev input (virtio-input, PS/2) and VT/KD ioctls. Done in M19: dynamic linking (ld-musl, dlopen) and inotify. Still open below: page cache, storage, networking.
 
 These features are what most ported software needs, in rough order of value:
 
 1. **mm**: copy-on-write fork, `MAP_SHARED` file and anonymous mappings, `mprotect`, `madvise`, `mremap`, page cache.
-2. **Dynamic linking**: `PT_INTERP` with `ld-musl` (to load shared musl, libdrm and Mesa `.so` files), `dlopen`.
+2. ✅ (M19) **Dynamic linking**: `PT_INTERP` with `ld-musl` (to load shared musl, libdrm and Mesa `.so` files), `dlopen`.
 3. **IPC**: AF_UNIX sockets (stream + dgram, `SCM_RIGHTS` fd passing, which Wayland requires), `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`, POSIX shm (`/dev/shm` on tmpfs), futex `PI`/robust lists.
 4. ✅ **ttys**: `/dev/ptmx` + devpts (needed for terminals in the GUI: foot, konsole). Done in M17.
 5. **Storage**: virtio-blk (PCI and mmio), an ext2 driver (read/write), and a persistent root disk.

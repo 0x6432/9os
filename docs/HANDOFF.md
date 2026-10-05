@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M18 complete — DRM/KMS-lite (/dev/dri/card0, dumb buffers, page flips) plus ptys and evdev input on all three arches
+## Current state: M19 complete — dynamic linking (ld-musl, dlopen) and inotify, on top of KMS-lite, ptys and evdev, on all three arches
 
 | Milestone | Status |
 |-----------|--------|
@@ -25,6 +25,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M16 POSIX IPC base | ✅ COW fork, shared mappings across fork, memfd/tmpfs `MAP_SHARED`, AF_UNIX (stream/seqpacket/dgram, SCM_RIGHTS, SO_PEERCRED), epoll, eventfd, timerfd, signalfd, batched TLB flushes; `cowtest`, `ipctest` |
 | M17 Terminals + input | ✅ `/dev/ptmx` + `/dev/pts/N`, generic virtio-pci layer, virtio-input keyboard/tablet + PS/2 → evdev `/dev/input/eventN`, VT/KD ioctls for seatd-style sessions; `ptytest`, `evtest` |
 | M18 KMS-lite | ✅ `/dev/dri/card0`: legacy KMS (1 connector/encoder/CRTC/primary plane), GEM dumb buffers + mmap, ADDFB/ADDFB2/RMFB, SETCRTC, PAGE_FLIP with flip events, DIRTYFB, WAIT_VBLANK; `drmdemo` |
+| M19 Dynamic linking + inotify | ✅ `PT_INTERP` → musl `libc.so` as `/lib/ld-musl-<arch>.so.1`, shared libs + `dlopen`, `membarrier`; inotify with VFS hooks; `dyntest`, `inotifytest` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -119,7 +120,7 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - QEMU comes from the distro package manager (`scripts/setup-env.sh` handles apt/pacman/dnf/brew) — no source build.
   UEFI firmware (edk2) is located automatically for riscv64/aarch64 (`FW_CODE=` overrides) and padded to the pflash size.
 - `make iso` refuses to build with an empty `userland/root-<arch>`: run `ARCH=<arch> userland/build-all.sh` first.
-- The agent sandbox has been wiped three times; push WIP often. (There, QEMU 11.1 comes from Alpine edge packages via apk.static,
+- The agent sandbox has been wiped four times; push WIP often. (There, QEMU 11.1 comes from Alpine edge packages via apk.static,
   plus `qemu-hw-display-virtio-gpu{,-pci}`; the wrappers in /data/tools/bin set `QEMU_MODULE_DIR`.)
 
 ## Next steps
@@ -172,7 +173,15 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - `drmdemo [frames]` (raw ioctls, no libdrm): enumerate, 2 dumb buffers, SETCRTC, animated page flipping with events; 25 checks pass on all arches (x86 ~31 fps, riscv/aarch64 ~13 fps under TCG — drawing dominates).
 - Ideas: zero-copy virtio-gpu scanout (one resource per dumb BO + SET_SCANOUT on flip), PRIME export (dma-buf as memfd-like fd), atomic modesetting with a few properties (wlroots prefers it but has a legacy path).
 
+## M19: dynamic linking and inotify
+- **ELF loader** (`kernel/core/exec.c`): `load_elf(..., is_interp, ..., &base, &interp)`. A program with `PT_INTERP` gets the interpreter (must be ET_DYN) loaded at a free range reserved through the mmap allocator; execution starts at the interpreter's entry with `AT_BASE` = its load bias and `AT_ENTRY`/`AT_PHDR` describing the program. Static binaries are unchanged.
+- **Userland**: `userland/build-musl-shared.sh` (run by `build-all.sh` after compiler-rt) builds musl's `libc.so` with `LIBCC` = libgcc/compiler-rt builtins. `mkroot.sh` installs it as `/lib/libc.so` + `/lib/ld-musl-$ARCH.so.1` symlink, builds every `userland/dynlib/*.c` into `/lib/<name>.so`, and every `userland/dyntests/*.c` as a dynamic PIE (`DYNAMIC=1 musl-cc ...` links with Scrt1.o, `-pie`, `-dynamic-linker`). The `-shared` mode of musl-cc only links (compile with `musl-cc -fPIC -c` first; it would otherwise pick host headers).
+- Library file mappings are still private snapshots (each process copies libc.so's segments, ~0.7 MiB); a page cache for `MAP_PRIVATE` file mappings is the next memory win.
+- `membarrier` (QUERY/REGISTER/GLOBAL/PRIVATE_EXPEDITED: fence + reschedule IPI to other CPUs) — musl's dlopen uses it.
+- **inotify** (end of `kernel/fs/anonfd.c`): watches pin their inode; hooks in `vfs.c`/`sys_fs.c` (`fsnotify_dirent/inode/file/path/unlinked`, no-ops while `fsnotify_nwatches == 0`): IN_CREATE (open O_CREAT, mknod, mkdir, symlink, link), IN_OPEN, IN_ACCESS, IN_MODIFY (write, truncate), IN_CLOSE_WRITE/NOWRITE, IN_ATTRIB (chmod/chown/utimensat, link count), IN_MOVED_FROM/TO with a shared cookie + IN_MOVE_SELF, IN_DELETE + IN_DELETE_SELF/IN_IGNORED, IN_ISDIR, ONESHOT, MASK_ADD/MASK_CREATE, ONLYDIR, DONT_FOLLOW, identical-event coalescing, 16384-event queue with IN_Q_OVERFLOW, FIONREAD. Directory-entry events for files opened by path use `f->path` to find the parent.
+- Tests: `dyntest` (11 checks: DT_NEEDED lib with constructor, TLS from a .so incl. new threads, dlopen/dlsym/dlerror, dl_iterate_phdr) and `inotifytest` (29 checks) pass on x86_64, riscv64, aarch64.
+
 ## Next steps (see docs/ROADMAP.md)
-1. `inotify` stubs; `MAP_PRIVATE` file mappings via page cache; DRM properties/atomic + PRIME for wlroots.
-2. Dynamic linking (`PT_INTERP` ld-musl), so libdrm/Mesa/wayland `.so` files can be used.
+1. Page cache for `MAP_PRIVATE` file mappings (shared read-only library text, COW data); DRM properties/atomic + PRIME for wlroots.
+2. First real ports on the dynamic toolchain: libffi, expat, wayland (scanner on host), libxkbcommon, pixman, libdrm → a minimal Wayland compositor demo on KMS-lite + evdev.
 3. Fine-grained locking + per-CPU run queues (M16 in the roadmap); interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2.
