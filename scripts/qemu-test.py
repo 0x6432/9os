@@ -46,7 +46,11 @@ def main():
         return False
 
     def send(s):
-        p.stdin.write(s.encode()); p.stdin.flush()
+        # small chunks: a 16550 FIFO holds 16 bytes and the guest may be slow to drain it
+        b = s.encode()
+        for i in range(0, len(b), 8):
+            p.stdin.write(b[i:i + 8]); p.stdin.flush()
+            time.sleep(0.03)
 
     results = []
     # the boot console shows a prompt once the shell is up; poke it with newlines until we see one

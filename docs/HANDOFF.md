@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M22 complete — a usable Wayland desktop on KMS-lite: `wlkms` compositor + `wlterm` terminal (shell on a pty inside a window) and `wlclient`, on all three arches
+## Current state: M23 complete, M24 (fine-grained locking) in progress — CI boots and tests every arch; scheduler has its own lock, the BKL is dropped across context switches and a set of syscalls runs lock-free
 
 | Milestone | Status |
 |-----------|--------|
@@ -28,6 +28,8 @@ _Updated after every milestone. Read this first when picking up the project._
 | M19 Dynamic linking + inotify | ✅ `PT_INTERP` → musl `libc.so` as `/lib/ld-musl-<arch>.so.1`, shared libs + `dlopen`, `membarrier`; inotify with VFS hooks; `dyntest`, `inotifytest` |
 | M20 Ports + libwayland | ✅ page cache for private file mappings + exec (3.4× faster exec), `userland/ports` (meson/autotools cross helpers): Lua 5.4, SQLite 3.47 (FTS5), libffi, expat, wayland 1.23.1; `wltest`, `mapprivtest` |
 | M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
+| M23 CI boot tests | ✅ `scripts/qemu-test.py` (expect-style serial driver, panic detection, per-command exit status), `scripts/ci-tests.sh` (13 checks) run for all arches in GitHub Actions before a release; found and fixed a console race and a missing `__clear_cache` on riscv64 |
+| M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; IRQ-safe console lock; `sysbench` |
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 
 ## Build environment used
@@ -204,6 +206,22 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - `wlterm [-e command] [cols rows]` (`userland/ports/src/wlterm.c`, built by `wlkms.sh` with `kernel/drivers/font8x16.c`): opens `/dev/ptmx`, forks `/bin/sh` (login) or `sh -c command` with `TERM=linux` on the slave, sets `TIOCSWINSZ`; event loop with `wl_display_prepare_read` + `poll` on the display fd and the pty; redraws the cell grid into one of two shm buffers when dirty and no frame callback is pending; exits after the child's output ends. Keyboard: raw evdev codes (the compositor sends `NO_KEYMAP`), shift/ctrl tracked locally, arrows/home/end/del/pgup/pgdn as VT sequences. No key repeat, no scrollback, no scroll regions yet.
 - `wlkms` draws window titles with the 8x16 font and sends `wl_keyboard.enter` to newly mapped windows.
 - Interactive test: boot with `QEMUEXTRA="-monitor unix:/tmp/mon.sock,server,nowait"`, run `wlkms 40 &` and `wlterm &`, then `python3 scripts/qemu-type.py /tmp/mon.sock 'ls /\n'` and screendump. Verified on x86_64 and aarch64 (riscv64 builds the same binaries).
+
+## M23: CI boot tests
+- `scripts/qemu-test.py ARCH [--smp N] [--sched rr|mlfq] [--boot-timeout S] [--timeout S] [--log F] CMD...` boots `make run` with `-display none`, waits for the shell banner/prompt, runs each command as `CMD; echo __RCi=$?`, fails a command on a non-zero status or `FAIL` in its output, and fails the run on any panic/exception text. Exit status 0 = all passed.
+- `scripts/ci-tests.sh ARCH` = libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest + a bash array test + a gzip pipe + wltest (if ports are built) + drmdemo; log in `build/test-ARCH.log`.
+- CI runs it after building each ISO (Ubuntu qemu-system-* + qemu-efi-aarch64/riscv64); the release job only runs if all three pass.
+- `userland/install-uapi.sh` now runs right after musl (compiler-rt's `clear_cache.c` needs `<asm/unistd.h>`; without it libffi had an undefined `__clear_cache` on riscv64 after a clean build).
+- `scripts/sandbox-setup.sh` rebuilds the agent sandbox (dnf packages, Alpine QEMU, Limine/uACPI, userland).
+
+## M24: fine-grained locking (in progress)
+- Lock order: BKL → `sched_lock` → (`buddy_lock`, `pt_lock`, console lock). `sched_lock` (core/sched.c) guards the run queue, sleep list, wait queues, thread states and zombies; it is taken with IRQs off, held across `arch_switch_to` and released by the incoming thread in `sched_finish_switch()`.
+- Context switches drop the outgoing thread's BKL (`bkl_drop_for_switch`, depth saved in `bkl_saved`) and the incoming thread retakes its own (`bkl_retake_after_switch`). New threads start with `bkl_saved = 1`; idle threads run with no BKL (IRQ handlers on an idle CPU take it).
+- `wait_event*` check `signal_pending()` under `sched_lock`; signals wake sleepers with `thread_interrupt()` (no lost wakeups).
+- Lock-free syscalls (`lockfree_names[]` in syscall.c.in): get*id, getres*id, clock_gettime/getres, gettimeofday, time, sched_yield, nanosleep, clock_nanosleep, uname, getcpu, sched_getaffinity. `copy_{to,from}_user` take the BKL for the copy when the caller does not hold it (VMAs/page tables/page refcounts are still BKL-protected). `user_return_work` takes the BKL only for signal/alarm work.
+- `console_write()` is serialised by an IRQ-safe lock (owner CPU may re-enter, e.g. panic): an echo from the serial IRQ used to interrupt fbcon mid-scroll and write past the framebuffer.
+- `sysbench [iters] [procs]`: getpid (lock-free) vs getppid (BKL) with 1..N processes. SMP=2 under TCG: lock-free ×2.8, BKL ×1.5. (SMP=4 on a 2-core host collapses from lock-holder preemption of vCPUs; that is a host artefact.)
+- Next: per-mm lock + atomic page refcounts (then page faults and user copies without the BKL), slab/kmalloc locks, per-file/pipe/socket locks so read/write/poll can leave the BKL, then per-CPU run queues (M25).
 
 ## CI/CD
 - `.github/workflows/release.yml`: on every push to `main` (docs/markdown-only changes are ignored), on PRs (build only) and manually (`workflow_dispatch`, optional `ports: false` → `NO_PORTS=1`). A `stamp` job fixes one UTC timestamp, a matrix builds x86_64/riscv64/aarch64 on ubuntu-24.04 (clang 18; `scripts/fetch-deps.sh`, `userland/build-all.sh`, `make iso`; downloads cached via `TOOLS_DIR`), and `release` publishes `9os-<YYYYMMDD-HHMMSS>` with `9os-<ts>-<arch>.iso` + `SHA256SUMS`. Build scripts accept `TOOLS_DIR` (default `/data/tools`). First release: `9os-20261005-114810`.

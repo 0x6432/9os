@@ -1,3 +1,4 @@
+#include <kernel/cpu.h>
 #include <kernel/mm.h>
 #include <kernel/pmm.h>
 #include <kernel/boot.h>
@@ -300,18 +301,27 @@ bool user_range_ok(const void *uaddr, size_t n, bool write) {
     return true;
 }
 
+/*
+ * VMAs, page tables and page refcounts are still protected by the BKL. Lock-free syscalls (see
+ * syscall.c) therefore take it just for the duration of a user copy; another thread of the same
+ * process cannot unmap the range between the check and the memcpy.
+ */
 int copy_from_user(void *dst, const void *usrc, size_t n) {
     if (!n) return 0;
-    if (!user_range_ok(usrc, n, false)) return -EFAULT;
-    memcpy(dst, usrc, n);
-    return 0;
+    bool took = !bkl_held();
+    if (took) bkl_enter();
+    int r = user_range_ok(usrc, n, false) ? (memcpy(dst, usrc, n), 0) : -EFAULT;
+    if (took) bkl_exit();
+    return r;
 }
 
 int copy_to_user(void *udst, const void *src, size_t n) {
     if (!n) return 0;
-    if (!user_range_ok(udst, n, true)) return -EFAULT;
-    memcpy(udst, src, n);
-    return 0;
+    bool took = !bkl_held();
+    if (took) bkl_enter();
+    int r = user_range_ok(udst, n, true) ? (memcpy(udst, src, n), 0) : -EFAULT;
+    if (took) bkl_exit();
+    return r;
 }
 
 int64_t strncpy_from_user(char *dst, const char *usrc, size_t max) {
