@@ -6,7 +6,7 @@ VER=5.2.37
 TOP=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$TOP/build"
 SRC=$TOP/build/bash-$VER
-[ -d "$SRC" ] || (cd "$TOP/build" && { [ -f /data/tools/bash-$VER.tar.gz ] && tar xzf /data/tools/bash-$VER.tar.gz || curl -sL https://ftp.gnu.org/gnu/bash/bash-$VER.tar.gz | tar xz; })
+[ -d "$SRC" ] || (cd "$TOP/build" && { [ -f ${TOOLS_DIR:-/data/tools}/bash-$VER.tar.gz ] && tar xzf ${TOOLS_DIR:-/data/tools}/bash-$VER.tar.gz || curl -sL https://ftp.gnu.org/gnu/bash/bash-$VER.tar.gz | tar xz; })
 B=$TOP/build/bash-$ARCH
 rm -rf "$B" && mkdir -p "$B" && cd "$B"
 export ARCH

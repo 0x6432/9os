@@ -1,0 +1,116 @@
+# Build 9os ISOs for x86_64, riscv64 and aarch64 and publish them as a GitHub release
+# named after the build timestamp (UTC), e.g. "9os-20260105-142233".
+name: build-and-release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**.md']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ports:
+        description: "Build the graphics/ports userland (slower)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stamp:
+    runs-on: ubuntu-24.04
+    outputs:
+      ts: ${{ steps.ts.outputs.ts }}
+    steps:
+      - id: ts
+        run: echo "ts=$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: stamp
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, riscv64, aarch64]
+    env:
+      ARCH: ${{ matrix.arch }}
+      TOOLS_DIR: ${{ github.workspace }}/../tools
+      NO_PORTS: ${{ (github.event_name == 'workflow_dispatch' && !inputs.ports) && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install host packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc git curl bzip2 xz-utils \
+            bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip ninja-build
+          pip3 install --break-system-packages 'meson>=1.3'
+          clang --version | head -1
+
+      - name: Cache downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.TOOLS_DIR }}/dl
+            ${{ env.TOOLS_DIR }}/host
+          key: dl-${{ matrix.arch }}-${{ hashFiles('userland/*.sh', 'userland/ports/*.sh') }}
+          restore-keys: dl-${{ matrix.arch }}-
+
+      - name: Fetch Limine + uACPI
+        run: |
+          mkdir -p "$TOOLS_DIR/dl"
+          scripts/fetch-deps.sh
+
+      - name: Build userland (musl, BusyBox, Bash, ports)
+        run: userland/build-all.sh
+
+      - name: Build kernel + ISO
+        run: |
+          make ARCH=$ARCH iso
+          mkdir -p out
+          cp build/$ARCH/9os.iso "out/9os-${{ needs.stamp.outputs.ts }}-$ARCH.iso"
+          sha256sum out/*.iso
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iso-${{ matrix.arch }}
+          path: out/*.iso
+          retention-days: 14
+
+  release:
+    needs: [stamp, build]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: iso-*
+          merge-multiple: true
+          path: out
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TS: ${{ needs.stamp.outputs.ts }}
+        run: |
+          cd out
+          sha256sum *.iso > SHA256SUMS
+          cat > notes.md <<NOTES
+          Automated build of \`${GITHUB_SHA::7}\` (${GITHUB_REF_NAME}) at ${TS} UTC.
+
+          | File | Boot with |
+          |------|-----------|
+          | 9os-${TS}-x86_64.iso | \`qemu-system-x86_64 -M q35 -m 512M -smp 4 -serial stdio -cdrom 9os-${TS}-x86_64.iso\` (BIOS or UEFI) |
+          | 9os-${TS}-riscv64.iso | UEFI (edk2 RISC-V) on \`qemu-system-riscv64 -M virt\` |
+          | 9os-${TS}-aarch64.iso | UEFI (edk2 AArch64) on \`qemu-system-aarch64 -M virt -cpu cortex-a72\` |
+
+          See docs/HANDOFF.md for the exact QEMU command lines (\`make ARCH=<arch> run\`).
+          NOTES
+          gh release create "9os-${TS}" *.iso SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "9os ${TS}" --notes-file notes.md

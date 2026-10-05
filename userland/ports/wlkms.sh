@@ -1,7 +1,7 @@
 #!/bin/sh
 # wlkms (KMS Wayland compositor) + wlclient (xdg-shell demo client)
 . "$(dirname "$0")/common.sh"
-SCAN=${WAYLAND_SCANNER:-/data/tools/host/bin/wayland-scanner}
+SCAN=${WAYLAND_SCANNER:-${TOOLS_DIR:-/data/tools}/host/bin/wayland-scanner}
 XML=$PREFIX_ROOT/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
 G=$PORTS_BUILD/wlkms; mkdir -p "$G"
 $SCAN server-header "$XML" "$G/xdg-shell-server-protocol.h"

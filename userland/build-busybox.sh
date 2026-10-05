@@ -23,7 +23,7 @@ mkdir -p "$TOP/build"
 SRC=$TOP/build/busybox-$BB_VER
 B=$TOP/build/busybox-$ARCH
 if [ ! -d "$B" ]; then
-    T=/data/tools/busybox-$BB_VER.tar.bz2
+    T=${TOOLS_DIR:-/data/tools}/busybox-$BB_VER.tar.bz2
     [ -f "$T" ] || { T=$TOP/build/busybox.tar.bz2; curl -sL -o "$T" https://busybox.net/downloads/busybox-$BB_VER.tar.bz2; }
     (cd "$TOP/build" && tar xjf "$T" && mv busybox-$BB_VER "$B")
 fi
