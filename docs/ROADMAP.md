@@ -48,6 +48,35 @@ Kernel steps:
 
 Prerequisite syscall count estimate: BusyBox+Bash ~170 (done); Weston/Sway ~230 (AF_UNIX, epoll, memfd, timerfd, signalfd, eventfd, `ppoll`, `recvmsg/sendmsg` with cmsg, `mmap MAP_SHARED`); KDE ~280+ (inotify, `statx`, `name_to_handle_at`, `getrandom`, `prctl`, `sched_*`, sysfs).
 
+## Phase E: From "Linux-compatible toy" to "small real kernel" (M23–M40)
+
+Gaps found when comparing 9os with Linux, turned into milestones that are possible and worth it for
+a hobby kernel. Order = payoff first (each one unblocks the next ones). Out of scope on purpose:
+NUMA, cgroups v2 controllers, eBPF, live patching, hundreds of real-hardware drivers.
+
+| # | Milestone | Content | Unblocks |
+|---|-----------|---------|----------|
+| M23 | **CI boot tests** | QEMU boot of every arch in GitHub Actions, run the in-tree tests (libctest, cowtest, ipctest, ptytest, dyntest, inotifytest, mapprivtest, wltest, drmdemo), fail the build on regressions; release only if green | safe refactoring |
+| M24 | **Fine-grained locking** | Replace the big kernel lock: per-subsystem spinlocks/mutexes (sched, pmm, slab, mm per process, VFS inode/dentry, fd table, tty, drivers), sleeping mutexes, lock-order rules, a debug lock checker | real SMP scaling |
+| M25 | **Per-CPU scheduling** | Per-CPU run queues + load balancing/work stealing, `sched_setaffinity`, `nice`, SCHED_FIFO/RR, per-CPU slab/pmm caches, CPU time accounting (`times`, `getrusage`, `/proc/<pid>/stat`), tickless idle | top/htop, compositor latency |
+| M26 | **VMM v2** | VMA tree (augmented RB/maple-like), anon_vma reverse mapping, page refcount/mapcount, LRU lists, page-cache reclaim, OOM killer, `mremap`, `madvise(DONTNEED/FREE)`, `mlock`, `msync`, stack guard gaps, 2 MiB pages for the direct map | big programs (Mesa, Qt), stability under memory pressure |
+| M27 | **Hardening** | SMEP/SMAP (x86), PAN/PXN (aarch64), SUM discipline (riscv), `copy_*_user` fixups via exception tables, stack canaries, ASLR (mmap/stack/PIE base), W^X checks | robustness |
+| M28 | **Interrupt-driven I/O** | PLIC (riscv) and GICv2/v3 (aarch64) for virtio + UART input, MSI-X on x86, threaded IRQ handlers; drop the polling kthreads | lower latency, less CPU |
+| M29 | **Block layer + virtio-blk** | bio/request queue, buffer cache, partition table (GPT/MBR), virtio-blk (PCI + mmio) | storage |
+| M30 | **ext2 + unified page cache** | ext2 read/write, page cache for every fs with write-back, `fsync`, root on disk (`root=/dev/vda1`), dentry/inode caches with negative entries | persistence, git, package installs |
+| M31 | **Users and permissions** | uid/gid checks in VFS, `setuid` exec, capabilities subset, `/etc/passwd` login (`getty` + `login`), umask | multi-user, sane daemons |
+| M32 | **Networking** | virtio-net, lwIP port (or own IPv4/TCP/UDP/ARP/ICMP/DHCP), `AF_INET` sockets, loopback, `/etc/resolv.conf` | ping, curl, wget, ssh |
+| M33 | **ptrace + POSIX timers** | `ptrace` (gdb, strace), `timer_create`, robust futexes, `clone3` extras, `waitid`, file locks (`flock`, `fcntl` locks), xattrs on tmpfs/ext2 | debugging, toolkits |
+| M34 | **sysfs + uevents** | `/sys/class`, `/sys/devices`, `/sys/dev/char`, netlink `NETLINK_KOBJECT_UEVENT`, a static udev db shim | libinput, wlroots, KDE |
+| M35 | **Input/seat stack** | xkeyboard-config, libevdev, mtdev, libinput, seatd ports | wlroots |
+| M36 | **DRM atomic + PRIME** | properties, atomic commits, dma-buf/PRIME fds, zero-copy virtio-gpu scanout (resource per dumb buffer) | wlroots/Sway |
+| M37 | **Sway + foot** | wlroots, tinywl, Sway, freetype/fontconfig/fcft, foot | a real desktop |
+| M38 | **Mesa softpipe → llvmpipe** | EGL/GLES2/GBM in software | GL apps, Qt Quick |
+| M39 | **Audio** | virtio-snd or Intel HDA, minimal ALSA PCM ABI | sound |
+| M40 | **KDE groundwork** | DBus, Qt6 (qtbase, qtwayland, qtdeclarative), namespaces/`unshare` subset as needed, more `/proc` | KDE Plasma attempts |
+
+Smaller ports to slot in when the kernel side allows it: make, tcc, ncurses → nano/vim/htop, Doom (fbdev/evdev), Python, git (after M30), curl/OpenSSL (after M32).
+
 ## Phase D: Polish
 - Modular refactor (see the R0–R7 plan in HANDOFF): initcalls, driver model, `SYSCALL_DEFINE`, `register_filesystem`, a kbuild-style tree.
 - CI: build all arches plus scripted QEMU smoke tests (expect-style).
