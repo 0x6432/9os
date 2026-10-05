@@ -25,6 +25,7 @@ static struct page_cpu_cache pcaches[MAX_CPUS];
 static bool pcaches_enabled;
 static uint64_t cached_pages;
 static spinlock_t cache_drain_lock = SPINLOCK_INIT;
+void slab_reclaim_cpu_caches(void) __attribute__((weak));
 
 /* Before SMP setup there may be no valid per-CPU pointer. Once enabled, lock
  * waiters must service TLB IPIs (callers may already hold an mm/page-table lock). */
@@ -116,6 +117,13 @@ struct page *page_alloc(unsigned order) {
     f = buddy_lock_irqsave();
     p = alloc_block_locked(order);
     spin_unlock_irqrestore(&buddy_lock, f);
+    if (!p && slab_reclaim_cpu_caches) {
+        slab_reclaim_cpu_caches();
+        pmm_drain_cpu_caches();
+        f = buddy_lock_irqsave();
+        p = alloc_block_locked(order);
+        spin_unlock_irqrestore(&buddy_lock, f);
+    }
     return p;
 }
 

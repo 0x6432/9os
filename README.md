@@ -4,7 +4,7 @@ A 64-bit hobby operating system in C23. Boots with [Limine](https://github.com/l
 uses [uACPI](https://github.com/uACPI/uACPI) for ACPI and targets the Linux syscall ABI so that
 static [musl](https://musl.libc.org) programs — BusyBox and Bash — run unmodified.
 
-Targets: **x86_64** (primary), riscv64 and aarch64 (planned).
+Targets: **x86_64** (primary), riscv64 and aarch64 (all boot-tested in CI).
 
 ## Building
 
@@ -21,11 +21,24 @@ See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [docs/HANDOFF.md](docs/HAND
 
 ## Allocator and scheduler regression tests
 
-`scripts/sched-host-tests.sh` checks the actual RR/MLFQ queue code on the host with
-undefined-behavior traps (no userland or QEMU needed). After building the userland,
-`python3 scripts/qemu-test.py x86_64 --smp 2 balancetest` checks busy-CPU balancing and
-sibling-thread affinity in the guest. `scripts/ci-tests.sh ARCH` runs the full boot suite.
+Host tests compile the **actual kernel implementations** with undefined-behavior traps
+(no userland or QEMU needed):
 
-`scripts/pmm-host-tests.sh` checks per-CPU physical-page reuse, bounded caching,
-remote-cache recovery, large-block coalescing and concurrent drains on the host.
-The guest `pcputest` checks zero-filled page reuse and isolation on every tested CPU.
+```sh
+scripts/pmm-host-tests.sh     # page caches, pressure, coalescing and overlapping drains
+scripts/slab-host-tests.sh    # object reuse, zeroing, real OOM and concurrent drains
+scripts/sched-host-tests.sh   # RR/MLFQ local locks, switches, wake races and idle deadlines
+```
+
+After building userland, `scripts/ci-tests.sh ARCH` runs the full guest suite,
+including `slabtest`, `idletest`, `pcputest`, affinity/nice/RT and busy-CPU balancing.
+For focused single-CPU or alternate-policy coverage:
+
+```sh
+python3 scripts/qemu-test.py x86_64 --smp 1 slabtest idletest nicetest
+python3 scripts/qemu-test.py riscv64 --smp 2 --sched mlfq slabtest idletest afftest balancetest
+```
+
+Pass `--sched mlfq` to the QEMU runner itself: it invokes Make and otherwise uses
+the default RR build even if an MLFQ ISO was built previously. CI runs single-CPU
+and MLFQ-focused tests on all three architectures before publishing the default RR ISOs.

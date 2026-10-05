@@ -66,6 +66,15 @@ static void set_timer(uint64_t when) {
 
 static struct tty *input_tty;
 void riscv_timer_rearm(void) { set_timer(rdtime() + tick_delta); }
+void arch_timer_active(void) { riscv_timer_rearm(); }
+void arch_timer_idle(uint64_t deadline) {
+    if (deadline == UINT64_MAX) { set_timer(UINT64_MAX); return; }
+    uint64_t now = time_ns(), delta = deadline > now ? deadline - now : 1000;
+    uint64_t ticks = delta / 1000000000 * timebase_hz +
+                     (delta % 1000000000) * timebase_hz / 1000000000;
+    set_timer(rdtime() + MAX(ticks, 1ULL));
+}
+uint64_t arch_idle_poll_ns(void) { return input_tty ? 10000000ULL : UINT64_MAX; }
 void riscv_timer_irq(void) {
     if (input_tty && this_cpu()->id == 0) for (int c; (c = sbi_getc()) >= 0;) tty_input(input_tty, (char)c);
     timer_tick();

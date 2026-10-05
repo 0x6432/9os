@@ -59,6 +59,7 @@ struct thread {
     uint64_t utime_ns, stime_ns, sum_exec_ns, exec_start_ns, acct_ns, nvcsw, nivcsw;
     struct rusage_k reaped_ru;     /* last child reaped by do_wait (wait4 rusage) */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
+    int handoff_refs;              /* pins saved contexts until all finish-switch readers retire */
 };
 
 struct wait_queue { struct list_node head; };
@@ -77,6 +78,11 @@ int sched_runnable_count(void);
 int sched_rq_len(int cpu);
 uint64_t sched_rq_steals(int cpu);
 uint64_t sched_rq_balances(int cpu);
+uint64_t sched_rq_local(int cpu);
+uint64_t sched_idle_ticks(int cpu);
+uint64_t sched_rq_coordinated(int cpu);
+void sched_timer_changed(void);
+bool sched_kernel_preemptible(void);
 int sched_set_affinity(struct thread *t, uint64_t mask);
 int sched_set_policy(struct thread *t, int policy, int rt_prio, int nice);
 

@@ -77,6 +77,7 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: |
           scripts/pmm-host-tests.sh
+          scripts/slab-host-tests.sh
           scripts/sched-host-tests.sh
 
       - name: Build userland (musl, BusyBox, Bash, ports)
@@ -92,12 +93,30 @@ jobs:
       - name: Boot tests in QEMU
         run: scripts/ci-tests.sh $ARCH --boot-timeout 300
 
+      - name: Uniprocessor M25 regressions
+        run: >-
+          python3 scripts/qemu-test.py $ARCH --smp 1 --boot-timeout 300
+          --log build/test-up-$ARCH.log slabtest idletest nicetest pcputest balancetest
+
+      - name: MLFQ M25 regressions
+        run: |
+          make ARCH=$ARCH SCHED=mlfq iso
+          python3 scripts/qemu-test.py $ARCH --smp 2 --sched mlfq --boot-timeout 300 \
+            --log build/test-mlfq-$ARCH.log slabtest idletest nicetest afftest \
+            balancetest pcputest smptest timetest
+
+      - name: Eight-CPU scheduler and allocator stress
+        if: matrix.arch == 'x86_64'
+        run: >-
+          python3 scripts/qemu-test.py $ARCH --smp 8 --sched mlfq --boot-timeout 300
+          --log build/test-smp8-$ARCH.log slabtest idletest pcputest smptest afftest balancetest
+
       - name: Upload test log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-log-${{ matrix.arch }}
-          path: build/test-${{ matrix.arch }}.log
+          path: build/test*${{ matrix.arch }}.log
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4

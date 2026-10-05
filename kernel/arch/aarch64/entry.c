@@ -55,6 +55,19 @@ uint64_t time_ns(void) {
 }
 
 static struct tty *input_tty;
+void arch_timer_active(void) {
+    sysreg_write(cntv_tval_el0, tick_delta);
+    sysreg_write(cntv_ctl_el0, 1);
+}
+void arch_timer_idle(uint64_t deadline) {
+    if (deadline == UINT64_MAX) { sysreg_write(cntv_ctl_el0, 0); return; }
+    uint64_t now = time_ns(), delta = deadline > now ? deadline - now : 1000;
+    uint64_t ticks = delta / 1000000000 * cnt_freq +
+                     (delta % 1000000000) * cnt_freq / 1000000000;
+    sysreg_write(cntv_cval_el0, sysreg_read(cntvct_el0) + MAX(ticks, 1ULL));
+    sysreg_write(cntv_ctl_el0, 1);
+}
+uint64_t arch_idle_poll_ns(void) { return input_tty ? 10000000ULL : UINT64_MAX; }
 static void timer_irq(void) {
     if (input_tty && uart && this_cpu()->id == 0)
         while (!(uart[UART_FR] & (1 << 4))) tty_input(input_tty, (char)uart[UART_DR]);

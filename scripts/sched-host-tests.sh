@@ -9,6 +9,6 @@ for policy in RR MLFQ; do
         -fsanitize=undefined -fsanitize-trap=all -fno-omit-frame-pointer \
         -Wall -Wextra -Wno-unused-parameter -DCONFIG_SCHED_$policy=1 \
         -Itests/sched-host -Ikernel/include -Ikernel/arch/x86_64/include -Ithird_party/limine \
-        tests/sched-host/queues.c -Wl,--gc-sections -o "build/sched-host/$policy"
+        tests/sched-host/queues.c -pthread -Wl,--gc-sections -o "build/sched-host/$policy"
     "build/sched-host/$policy"
 done

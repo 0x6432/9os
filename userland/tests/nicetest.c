@@ -2,6 +2,7 @@
  * thread starving a SCHED_OTHER one on the same CPU, getpriority/sched_* syscalls. */
 #define _GNU_SOURCE
 #include <pthread.h>
+#include <errno.h>
 #include <sched.h>
 #include <signal.h>
 #include <stdio.h>
@@ -42,6 +43,18 @@ int main(void) {
     CHECK(setpriority(PRIO_PROCESS, 0, 5) == 0 && getpriority(PRIO_PROCESS, 0) == 5);
     setpriority(PRIO_PROCESS, 0, 0);
     CHECK(sched_get_priority_max(SCHED_FIFO) == 99 && sched_get_priority_min(SCHED_RR) == 1);
+    CHECK(sched_get_priority_min(SCHED_OTHER) == 0 && sched_get_priority_max(SCHED_OTHER) == 0);
+    errno = 0; CHECK(sched_get_priority_max(99) == -1 && errno == EINVAL);
+    errno = 0; CHECK(sched_get_priority_min(-1) == -1 && errno == EINVAL);
+    /* musl intentionally stubs sched_setscheduler/getscheduler with ENOSYS;
+     * use the kernel ABI directly, as the FIFO scenario below already does. */
+    struct sched_param bad = { .sched_priority = 0 };
+    errno = 0; CHECK(syscall(SYS_sched_setscheduler, 0, SCHED_FIFO, &bad) == -1 && errno == EINVAL);
+    bad.sched_priority = 100;
+    errno = 0; CHECK(syscall(SYS_sched_setscheduler, 0, SCHED_RR, &bad) == -1 && errno == EINVAL);
+    bad.sched_priority = 1;
+    errno = 0; CHECK(syscall(SYS_sched_setscheduler, 0, SCHED_OTHER, &bad) == -1 && errno == EINVAL);
+    CHECK(syscall(SYS_sched_getscheduler, 0) == SCHED_OTHER);
 
     int pfd[2]; pipe(pfd);
     int cpu_id = n > 1 ? 1 : 0;

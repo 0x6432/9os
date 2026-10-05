@@ -2018,7 +2018,7 @@ void signal_deliver(struct trap_frame *f);
 
 /* Runs with interrupts off, with or without the BKL; signal work takes it (recursively). */
 void user_return_work(struct trap_frame *f) {
-    if (need_resched && current) schedule();
+    if (need_resched && current && (trap_from_user(f) || sched_kernel_preemptible())) schedule();
     if (!trap_from_user(f) || !current || !current->proc) return;
     struct process *p = current->proc;
     if ((p->alarm_ns && time_ns() >= p->alarm_ns) || signal_pending(current) || current->restore_mask) {

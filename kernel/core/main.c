@@ -77,6 +77,8 @@ void kmain(void) {
     smp_init();
     pmm_enable_cpu_caches();
     pmm_cache_selftest();
+    slab_enable_cpu_caches();
+    slab_cpu_selftest();
     acpi_late_init();
     if (strstr_simple(boot_cmdline(), "selftest")) sched_selftest();
     vfs_init();

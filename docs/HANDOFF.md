@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M23 complete, M24 (fine-grained locking) mostly done, M25 (per-CPU scheduling + accounting) in progress — CI boots and tests every arch; scheduler has its own lock, the BKL is dropped across context switches and a set of syscalls runs lock-free
+## Current state: M23 and M25 complete; M24 (fine-grained locking) remains in progress — per-CPU run-queue locks and allocator caches, periodic balancing, CPU accounting and deadline-driven idle on all three architectures
 
 | Milestone | Status |
 |-----------|--------|
@@ -30,7 +30,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
 | M23 CI boot tests | ✅ `scripts/qemu-test.py` (expect-style serial driver, panic detection, per-command exit status), `scripts/ci-tests.sh` (13 checks) run for all arches in GitHub Actions before a release; found and fixed a console race and a missing `__clear_cache` on riscv64 |
 | M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; per-mm lock, atomic page refcounts, page faults + user copies without BKL; IRQ-safe console lock; `sysbench`, `faulttest` |
-| M25 Scheduling (in progress) | ◐ per-CPU queues, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing, bounded per-CPU order-0 page caches; per-CPU queue locks, slab caches and tickless idle remain |
+| M25 Scheduling | ✅ independent per-CPU run-queue locks, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing, bounded per-CPU PMM/slab caches, deadline-driven tickless idle |
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 
 ## Build environment used
@@ -356,6 +356,160 @@ musl 1.2.5 / compiler-rt 15.0.7 toolchain. This avoids rebuilding unrelated port
 Host regressions passed: PMM 19,629 checks (plus ten repeated stress runs), scheduler
 4,467 checks for each of RR/MLFQ. The larger graphics-port suite and full non-x86
 regressions still belong in CI; these focused results do not imply M24/M25 completion.
+
+## M25 completion: local queue locks, slab magazines and tickless idle
+
+This finishes the M25 scope in ROADMAP.md. It does **not** declare M24 complete or
+remove the BKL from every syscall/subsystem. Earlier “remaining M25” notes above
+are historical, superseded by this section.
+
+### Scheduler concurrency
+
+- Each cache-line-aligned run queue has its own IRQ-off, IPI-aware spinlock.
+  Local yield/preemption switches take only their own queue lock; CPU0's
+  sleep/wait/wake coordinator is not held across a machine context switch.
+- Blocking/waking, affinity changes and remote steals use the brief coordinator.
+  Balancing takes source/destination queue locks in ascending CPU order and
+  revalidates placement/load. Global MLFQ boosts lock all queues in ascending order.
+- The incoming thread releases its own rq lock **before** any foreign-queue kick
+  and before retaking the BKL. A live foreign `on_cpu` context is skipped.
+  `handoff_refs` pins the saved context while a finish-switch reader clears
+  `on_cpu` and sends the post-save kick that closes the wake/switch-out race.
+  Zombie reaping waits for both `on_cpu == 0` and all handoff readers to retire.
+- Selecting the already-running thread leaves the BKL held: only a **real**
+  context switch drops it. Eight-vCPU object churn exposed acquire/preempt/self-
+  select/drop/retake livelock when even a self-selection requeued the BKL ticket.
+  Host tests now model BKL nesting/saved depth and assert no drop on self-selection.
+- User-syscall BKL critical sections defer **kernel-mode IRQ** preemption until
+  user return/explicit blocking. Eight-vCPU stress exposed a real progress
+  livelock (above); deferring syscall-critical kernel IRQ preemption also gives
+  a contended syscall a chance to finish before the next involuntary switch. IRQ wakeups
+  still mark resched, while user return, explicit waits/yields, BKL-free paths
+  and pure kernel threads remain preemptible. The fix is shared across arches;
+  host tests check the gate and CI adds an eight-CPU object/idle/page/thread test.
+- Equal-priority FIFO wakeups do not force preemption; higher RT priorities do.
+  Inherited policy/nice now determine a newly allocated thread's first quantum.
+  Invalid priority policies and nonzero OTHER/BATCH/IDLE priorities return EINVAL.
+- `/proc/sched` adds per-CPU `local`, `coordinated` and `nohz` counters while
+  retaining queue/steal/balance diagnostics.
+
+### Generic per-CPU object magazines
+
+- Every generic cache of objects <= 2 KiB has a bounded eight-object magazine
+  per CPU (not just kmalloc size classes). Cache selection and magazine access
+  are IRQ-off; reuse avoids the global class lock. Oversized caches bypass it.
+- A magazine or drain-detached object still reserves its slab slot, preventing
+  backing memory from being returned while a cached reference exists. Magazines
+  release their lock before the global free path acquires a class/buddy lock.
+- The class lock is released **before** growing a slab. On page-allocation
+  pressure, PMM drains PCP pages, retries, then asks slab to drain all magazines
+  and trim empty slabs, drains newly released PCP pages, and retries. Registry
+  serialization prevents incomplete concurrent drains from hiding free memory.
+- Cache metadata is aligned to `_Alignof(struct kmem_cache)`; invalid/oversized
+  cache geometry is rejected and kmalloc requests above maximum buddy size return
+  NULL without size-order overflow. kzalloc still clears objects reused from a
+  magazine. Boot runs the original slab test plus a magazine zero/reuse/drain test.
+- `/proc/vmstat`: `slab_pcpu_cached`, `slab_pcpu_alloc_hits`,
+  `slab_pcpu_free_hits`, `slab_pcpu_drained`.
+
+### Deadline-driven idle
+
+- x86 LAPIC idle timers switch from periodic mode to one-shot (or masked);
+  RISC-V programs the SBI absolute timer; ARM programs CNTV_CVAL (or disables it).
+  Active-thread scheduling restores the normal 1 kHz quantum timer.
+- APs without work stop their local tick completely and wake on IPIs. CPU0 arms
+  the earliest sleep/timeout, timerfd, 20 ms balance, MLFQ boost or console-poll
+  deadline. RISC-V/ARM console polling is bounded to 10 ms pending M28's
+  interrupt-driven I/O; existing driver-poller sleepers may impose earlier wakes.
+  This is NOHZ **idle**, not tickless execution of non-idle threads.
+- Remote timeout insertion or timerfd rearming kicks an idle CPU0 so an earlier
+  deadline is not missed. IRQ-off timer arming plus a final queue/IPI/resched
+  check closes the enqueue/WFI race; architecture WFI helpers retain their
+  interrupt-safe entry sequences. RISC-V keeps global IRQs masked through WFI
+  (locally enabled pending IRQs still wake it), avoiding an enable-before-WFI
+  lost-IPI window. IRQs are masked again before updating idle accounting.
+  A remote donor hint that only allows other CPUs does not prevent WFI forever;
+  final idle entry checks local placement and actual resched/IPI notifications.
+- CPU0 derives jiffies from elapsed monotonic time, not IRQ count. Idle elapsed
+  time is charged before switching away from the idle thread, with fractional-ms
+  carry. Sequence-protected `/proc/stat` and `/proc/sched` snapshots also include
+  an idle interval while its CPU remains halted, without waking that CPU.
+
+### Added regression coverage
+
+- `scripts/sched-host-tests.sh`: actual scheduler implementation under both RR
+  and MLFQ, UBSan traps; affinity/migration/RT bounds, queue invariants, balancing,
+  live-context skipping, local/self switches, late wake handoff, FIFO wake
+  priorities, deadline selection, elapsed/live idle accounting and two concurrent
+  CPU-local switchers. CPU1 completes 2,000 switches while CPU0 holds the global
+  coordinator; combined workers complete 6,000 machine switches per policy.
+- `scripts/slab-host-tests.sh`: actual buddy + slab allocators over an aligned
+  physical arena, UBSan traps; all size classes, alignment, zeroing/realloc,
+  oversized geometry, remote reuse, real total-memory exhaustion, high-order
+  coalescing and four concurrent alloc/free workers racing magazine/PCP drains.
+- `slabtest`: pinned per-CPU pipe/eventfd/socket object churn, clean reuse,
+  payload/EOF isolation and observable magazine hits.
+- `idletest`: idle AP interrupt suppression, live idle-time snapshots, sleep and
+  poll deadlines, relative/absolute/periodic timerfds, accumulated expirations,
+  disarm, remotely armed timers and idle CPUs facing affinity-ineligible donors. Expanded `nicetest` checks invalid policies
+  and RT/normal priority limits without changing the caller's policy on failure.
+- CI runs all three host suites, the new guest tests in the full suite, plus
+  single-CPU and MLFQ-focused guest runs on **each** architecture. Published ISO
+  artifacts are copied from the default RR build before alternate-policy tests.
+
+### Completion validation
+
+The final matrix explicitly passes `--sched mlfq` to the QEMU runner and checks
+its boot policy. Earlier results labelled MLFQ based only on a prebuilt ISO are
+superseded: the runner invokes Make and otherwise rebuilds the default RR kernel.
+Guest priority tests use raw sched syscalls because musl 1.2.5 intentionally
+stubs its sched_setscheduler/getscheduler wrappers with ENOSYS.
+
+All final runs were serial on the two-core development host using clang 15.0.7
+and QEMU 11.1.2. Default RR builds were followed by explicitly selected MLFQ
+builds; the MLFQ banner was verified in each log. Non-x86 userland was reused from
+release `9os-20261005-183051` (`0a3e922`), with new/updated tests rebuilt against
+the target musl 1.2.5/compiler-rt toolchains. x86 userland used `NO_PORTS=1`.
+
+| Architecture / policy | CPUs | Coverage | Result (includes boot) |
+|---|---:|---|---|
+| x86_64 / RR | 4 | Full base guest suite | 21/21 |
+| riscv64 / RR | 2 | Full base guest suite | 21/21 |
+| aarch64 / RR | 2 | Full base guest suite | 21/21 |
+| x86_64 / MLFQ | 4 | Full base guest suite | 21/21 |
+| riscv64 / MLFQ | 2 | slabtest, idletest, nicetest, afftest, balancetest, pcputest, smptest, timetest | 9/9 |
+| aarch64 / MLFQ | 2 | Same focused MLFQ suite | 9/9 |
+| x86_64, riscv64, aarch64 / RR | 1 each | slabtest, idletest, nicetest, pcputest, balancetest | 6/6 each |
+| x86_64 / RR | 8 | slabtest, idletest, afftest, balancetest, pcputest, smptest | 7/7 |
+| x86_64 / MLFQ | 8 | Same high-contention suite | 7/7 |
+
+Host results: PMM **19,629** checks; slab **65,512,082** checks (plus five
+additional completed stress repetitions); scheduler **28,543** checks **per
+policy**, plus five repeated final RR/MLFQ runs. All use UBSan traps. Workflow
+YAML parsed, shell scripts passed `sh -n`, and `git diff --check` passed.
+
+Reproduce the final matrix after building userland:
+
+```sh
+scripts/pmm-host-tests.sh
+scripts/slab-host-tests.sh
+scripts/sched-host-tests.sh
+scripts/ci-tests.sh x86_64 --sched rr --smp 4
+scripts/ci-tests.sh riscv64 --sched rr --smp 2
+scripts/ci-tests.sh aarch64 --sched rr --smp 2
+scripts/ci-tests.sh x86_64 --sched mlfq --smp 4
+# Substitute each architecture for ARCH in the focused runs:
+python3 scripts/qemu-test.py ARCH --sched rr --smp 1 slabtest idletest nicetest pcputest balancetest
+python3 scripts/qemu-test.py ARCH --sched mlfq --smp 2 slabtest idletest nicetest afftest balancetest pcputest smptest timetest
+python3 scripts/qemu-test.py x86_64 --sched mlfq --smp 8 slabtest idletest afftest balancetest pcputest smptest
+```
+
+These are local functional/stress results, not a claim of hardware validation,
+NUMA/cgroup support or complete BKL removal. The graphics-port `wltest` suite
+was not run locally; CI retains it when the ports userland is built. M24 and M28
+remain separate milestones. The pre-existing non-x86 syscall debug-name alias
+initializer warning is unchanged. GitHub Actions configuration was validated,
+not remotely executed as part of this local completion run.
 
 ## CI/CD
 - `.github/workflows/release.yml`: on every push to `main` (docs/markdown-only changes are ignored), on PRs (build only) and manually (`workflow_dispatch`, optional `ports: false` → `NO_PORTS=1`). A `stamp` job fixes one UTC timestamp, a matrix builds x86_64/riscv64/aarch64 on ubuntu-24.04 (clang 18; `scripts/fetch-deps.sh`, `userland/build-all.sh`, `make iso`; downloads cached via `TOOLS_DIR`), and `release` publishes `9os-<YYYYMMDD-HHMMSS>` with `9os-<ts>-<arch>.iso` + `SHA256SUMS`. Build scripts accept `TOOLS_DIR` (default `/data/tools`). First release: `9os-20261005-114810`.
