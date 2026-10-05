@@ -41,5 +41,7 @@ if [ -f "$TOP/sysroot/$ARCH/lib/libc.so" ]; then
         DYNAMIC=1 "$TOP/musl-cc" -O2 -o "bin/$(basename "$src" .c)" "$src" -L"$R/lib" -ldemo -lm
     done
 fi
+# ports (userland/build-ports.sh) install under build/ports-root-$ARCH
+[ -d "$TOP/build/ports-root-$ARCH/usr" ] && cp -a "$TOP/build/ports-root-$ARCH/usr/bin" "$TOP/build/ports-root-$ARCH/usr/lib" usr/ 2>/dev/null || true
 cp -r "$TOP/skel/." "$R/"
 echo "root populated: $(find . -type f | wc -l) files, $(du -sk . | cut -f1) KiB"

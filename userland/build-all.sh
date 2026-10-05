@@ -8,4 +8,5 @@ D=$(cd "$(dirname "$0")" && pwd)
 "$D/build-musl-shared.sh"
 "$D/build-busybox.sh"
 "$D/build-bash.sh"
+[ -n "$NO_PORTS" ] || "$D/build-ports.sh"
 "$D/mkroot.sh"
