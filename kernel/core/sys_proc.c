@@ -76,7 +76,7 @@ int64_t sys_execve(const char *upath, char *const *uargv, char *const *uenvp) {
 
 int rusage_to_user(void *u, const struct rusage_k *r) {
     int64_t ru[18] = {0};       /* struct rusage: utime, stime timevals + 14 longs */
-    uint64_t us = r->utime_ticks * 1000, ss = r->stime_ticks * 1000;   /* 1 tick = 1 ms */
+    uint64_t us = r->utime_ns / 1000, ss = r->stime_ns / 1000;
     ru[0] = us / 1000000; ru[1] = us % 1000000;
     ru[2] = ss / 1000000; ru[3] = ss % 1000000;
     ru[4 + 4] = r->min_flt;     /* ru_minflt */
@@ -260,7 +260,7 @@ int64_t sys_time(int64_t *ut) {
 }
 int64_t sys_times(uint64_t *ubuf) {
     struct process *p = curproc;     /* clock_t at USER_HZ = 100 */
-    uint64_t t[4] = { p->utime_ticks / 10, p->stime_ticks / 10, p->cutime_ticks / 10, p->cstime_ticks / 10 };
+    uint64_t t[4] = { p->utime_ns / 10000000, p->stime_ns / 10000000, p->cutime_ns / 10000000, p->cstime_ns / 10000000 };
     if (ubuf && copy_to_user(ubuf, t, sizeof t)) return -EFAULT;
     return jiffies / 10;
 }
@@ -268,11 +268,11 @@ int64_t sys_getrusage(int who, void *u) {
     struct process *p = curproc;
     struct rusage_k r;
     if (who == 0)            /* RUSAGE_SELF */
-        r = (struct rusage_k){ p->utime_ticks, p->stime_ticks, p->min_flt, p->nvcsw, p->nivcsw };
+        r = (struct rusage_k){ p->utime_ns, p->stime_ns, p->min_flt, p->nvcsw, p->nivcsw };
     else if (who == -1)      /* RUSAGE_CHILDREN */
-        r = (struct rusage_k){ p->cutime_ticks, p->cstime_ticks, p->cmin_flt, p->cnvcsw, p->cnivcsw };
+        r = (struct rusage_k){ p->cutime_ns, p->cstime_ns, p->cmin_flt, p->cnvcsw, p->cnivcsw };
     else if (who == 1)       /* RUSAGE_THREAD */
-        r = (struct rusage_k){ current->utime_ticks, current->stime_ticks, 0, current->nvcsw, current->nivcsw };
+        r = (struct rusage_k){ current->utime_ns, current->stime_ns, 0, current->nvcsw, current->nivcsw };
     else return -EINVAL;
     return rusage_to_user(u, &r);
 }
@@ -326,8 +326,63 @@ int64_t sys_prctl(int opt, uint64_t a2) {
 }
 int64_t sys_personality(uint64_t p) { return 0; }
 int64_t sys_capget(void *h, void *d) { if (d) { uint32_t c[6] = { ~0u, ~0u, ~0u, ~0u, ~0u, ~0u }; copy_to_user(d, c, sizeof c); } return 0; }
-int64_t sys_getpriority(int which, int who) { return 20; }
-int64_t sys_setpriority(int which, int who, int prio) { return 0; }
+/* nice: PRIO_PROCESS applies to every thread of the process (who = pid, 0 = caller) */
+static struct process *prio_target(int which, int who) {
+    if (which != 0) return nullptr;              /* PRIO_PGRP/PRIO_USER not supported */
+    return who ? process_find(who) : curproc;
+}
+int64_t sys_getpriority(int which, int who) {
+    if (which != 0) return -EINVAL;
+    struct process *p = prio_target(which, who);
+    if (!p) return -ESRCH;
+    struct thread *t = who ? list_first(&p->threads, struct thread, proc_node) : current;
+    return 20 - t->nice;                          /* kernel ABI: 40..1 */
+}
+int64_t sys_setpriority(int which, int who, int prio) {
+    if (which != 0) return -EINVAL;
+    struct process *p = prio_target(which, who);
+    if (!p) return -ESRCH;
+    list_for_each(it, &p->threads) {
+        struct thread *t = list_entry(it, struct thread, proc_node);
+        sched_set_policy(t, t->policy, t->rt_prio, prio);
+    }
+    return 0;
+}
+
+static struct thread *affinity_target(int pid);
+int64_t sys_sched_setscheduler(int pid, int policy, const int *uparam) {
+    int prio;
+    if (!uparam || copy_from_user(&prio, uparam, sizeof prio)) return -EFAULT;
+    struct thread *t = affinity_target(pid);
+    if (!t) return -ESRCH;
+    return sched_set_policy(t, policy & ~0x40000000, prio, t->nice);    /* ignore SCHED_RESET_ON_FORK */
+}
+int64_t sys_sched_getscheduler(int pid) {
+    struct thread *t = affinity_target(pid);
+    return t ? t->policy : -ESRCH;
+}
+int64_t sys_sched_setparam(int pid, const int *uparam) {
+    int prio;
+    if (!uparam || copy_from_user(&prio, uparam, sizeof prio)) return -EFAULT;
+    struct thread *t = affinity_target(pid);
+    if (!t) return -ESRCH;
+    return sched_set_policy(t, t->policy, prio, t->nice);
+}
+int64_t sys_sched_getparam(int pid, int *uparam) {
+    struct thread *t = affinity_target(pid);
+    if (!t) return -ESRCH;
+    int prio = t->rt_prio;
+    return copy_to_user(uparam, &prio, sizeof prio);
+}
+int64_t sys_sched_get_priority_max(int policy) { return policy == 1 || policy == 2 ? 99 : 0; }
+int64_t sys_sched_get_priority_min(int policy) { return policy == 1 || policy == 2 ? 1 : 0; }
+int64_t sys_sched_rr_get_interval(int pid, struct timespec *uts) {
+    struct thread *t = affinity_target(pid);
+    if (!t) return -ESRCH;
+    uint64_t ms = t->policy == 1 ? 0 : t->policy == 2 ? SCHED_RR_QUANTUM : SCHED_QUANTUM;
+    struct timespec ts = { 0, (int64_t)ms * 1000000 };
+    return copy_to_user(uts, &ts, sizeof ts);
+}
 /* pid 0 = calling thread; otherwise the thread with that tid in the process of that pid */
 static struct thread *affinity_target(int pid) {
     if (!pid || pid == current->tid) return current;

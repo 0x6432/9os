@@ -8,6 +8,9 @@
 
 #define KSTACK_ORDER 2                         /* 16 KiB kernel stacks */
 #define KSTACK_SIZE (PAGE_SIZE << KSTACK_ORDER)
+#define SCHED_RR_QUANTUM 100                   /* SCHED_RR slice (ms) */
+#define SCHED_FIFO_ 1
+#define SCHED_RR_ 2
 #define SCHED_QUANTUM 10                       /* ticks (ms) per time slice (round robin) */
 #define MLFQ_LEVELS 4                          /* MLFQ: level i has quantum MLFQ_BASE_QUANTUM << i */
 #define MLFQ_BASE_QUANTUM 5
@@ -17,7 +20,7 @@ enum thread_state { T_RUNNABLE, T_RUNNING, T_BLOCKED, T_SLEEPING, T_ZOMBIE };
 
 struct process;
 /* resource usage in kernel units (see rusage_to_user) */
-struct rusage_k { uint64_t utime_ticks, stime_ticks, min_flt, nvcsw, nivcsw; };
+struct rusage_k { uint64_t utime_ns, stime_ns, min_flt, nvcsw, nivcsw; };
 
 struct thread {
     struct arch_thread arch;   /* must stay first (alignment) */
@@ -51,8 +54,9 @@ struct thread {
     int level;                     /* MLFQ priority level (0 = highest) */
     uint64_t run_ticks;            /* total ticks on CPU */
     uint64_t affinity;             /* allowed CPUs (bit = cpu id) */
+    int nice, policy, rt_prio;     /* SCHED_OTHER(0)/FIFO(1)/RR(2)/BATCH(3)/IDLE(5) */
     int rq_cpu;                    /* run queue it is (or was last) queued on */
-    uint64_t utime_ticks, stime_ticks, sum_exec_ns, exec_start_ns, nvcsw, nivcsw;
+    uint64_t utime_ns, stime_ns, sum_exec_ns, exec_start_ns, acct_ns, nvcsw, nivcsw;
     struct rusage_k reaped_ru;     /* last child reaped by do_wait (wait4 rusage) */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
 };
@@ -73,6 +77,7 @@ int sched_runnable_count(void);
 int sched_rq_len(int cpu);
 uint64_t sched_rq_steals(int cpu);
 int sched_set_affinity(struct thread *t, uint64_t mask);
+int sched_set_policy(struct thread *t, int policy, int rt_prio, int nice);
 
 void sched_init(void);
 void sched_finish_switch(void);    /* new threads call this first */

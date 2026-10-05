@@ -42,6 +42,8 @@ static void sl_unlock(void) { sched_owner = -1; spin_unlock(&sched_lock); }
 static uint64_t sl_lock_irqsave(void) { uint64_t f = arch_irq_save(); sl_lock(); return f; }
 static void sl_unlock_irqrestore(uint64_t f) { sl_unlock(); arch_irq_restore(f); }
 
+static int quantum_for(struct thread *t);
+
 /* ---------------------------------------------------------------- policy */
 /*
  * Run queues are per CPU (rqs[cpu id]); all of them are still guarded by sched_lock.
@@ -53,50 +55,112 @@ static void sl_unlock_irqrestore(uint64_t f) { sl_unlock(); arch_irq_restore(f);
 #define RQ_LEVELS MLFQ_LEVELS
 static uint64_t last_boost;
 const char *sched_policy_name(void) { return "mlfq"; }
-static int quantum_for(struct thread *t) { return MLFQ_BASE_QUANTUM << t->level; }
+static int policy_quantum_for(struct thread *t) { return MLFQ_BASE_QUANTUM << t->level; }
 static int level_of(struct thread *t) { return t->level; }
 /* the running thread used up its allotment at this level */
 static void quantum_expired(struct thread *t) {
+    if (t->policy == SCHED_FIFO_ || t->policy == SCHED_RR_) { t->quantum = quantum_for(t); return; }
     if (t->level < MLFQ_LEVELS - 1) t->level++;
     t->quantum = quantum_for(t);
 }
 /* should a newly woken thread preempt the running one? */
-static bool wake_preempts(struct thread *woken, struct thread *running) { return woken->level <= running->level; }
+static bool policy_wake_preempts(struct thread *woken, struct thread *running) { return woken->level <= running->level; }
 static void pick_reset_quantum(struct thread *t) { if (t->quantum <= 0) t->quantum = quantum_for(t); }
+static bool policy_skip(struct thread *t) { return false; }
 #else
 #define RQ_LEVELS 1
 const char *sched_policy_name(void) { return "round-robin"; }
-static int quantum_for(struct thread *t) { return SCHED_QUANTUM; }
+static int policy_quantum_for(struct thread *t) { return SCHED_QUANTUM; }
 static int level_of(struct thread *t) { return 0; }
 static void quantum_expired(struct thread *t) {}
-static bool wake_preempts(struct thread *woken, struct thread *running) { return true; }
-static void pick_reset_quantum(struct thread *t) { t->quantum = quantum_for(t); }
+static bool policy_wake_preempts(struct thread *woken, struct thread *running) { return true; }
+/*
+ * Deficit round robin: a slice that overran (ticks are coarse, and may be lost under
+ * emulation) leaves t->quantum negative; the debt is paid back from the next refill, and a
+ * thread still in debt after its refill gives up that turn. Keeps nice shares proportional.
+ */
+static void pick_reset_quantum(struct thread *t) { if (t->quantum <= 0) t->quantum += quantum_for(t); if (t->quantum <= 0) t->quantum = 1; }
+static bool policy_skip(struct thread *t) {
+    if (t->quantum > 0) return false;
+    t->quantum += quantum_for(t);
+    return t->quantum <= 0;
+}
 #endif
 
-struct rq { struct list_node q[RQ_LEVELS]; int nr; uint64_t steals; };
+/*
+ * SCHED_FIFO/SCHED_RR threads sit on a separate list ordered by rt_prio (FIFO within a
+ * priority) that is always served first; they are only preempted by higher RT priorities.
+ * Normal threads get a slice scaled by nice (x1.25 per step, 1..100 ms).
+ */
+static bool is_rt(struct thread *t) { return t->policy == SCHED_FIFO_ || t->policy == SCHED_RR_; }
+static int quantum_for(struct thread *t) {
+    if (t->policy == SCHED_FIFO_) return 1 << 30;
+    if (t->policy == SCHED_RR_) return SCHED_RR_QUANTUM;
+    int q = policy_quantum_for(t) * 64;      /* fixed point, 1/64 tick */
+    for (int n = t->nice; n > 0; n--) q = q * 4 / 5;
+    for (int n = t->nice; n < 0; n++) q = q * 5 / 4;
+    q /= 64;
+    return q < 1 ? 1 : q > 100 ? 100 : q;
+}
+static bool wake_preempts(struct thread *woken, struct thread *running) {
+    if (is_rt(running)) return is_rt(woken) && woken->rt_prio > running->rt_prio;
+    if (is_rt(woken)) return true;
+    return policy_wake_preempts(woken, running);
+}
+
+struct rq { struct list_node rt; struct list_node q[RQ_LEVELS]; int nr, nr_mig; uint64_t steals; };   /* nr_mig: queued threads allowed elsewhere too */
 static struct rq rqs[MAX_CPUS];
 
 static void rq_init(void) {
-    for (int c = 0; c < MAX_CPUS; c++)
+    for (int c = 0; c < MAX_CPUS; c++) {
+        list_init(&rqs[c].rt);
         for (int i = 0; i < RQ_LEVELS; i++) list_init(&rqs[c].q[i]);
+    }
 }
 static bool allowed(struct thread *t, int cpu) { return (t->affinity >> cpu) & 1; }
+static bool migratable(struct thread *t, int cpu) { return (t->affinity & ~(1ULL << cpu)) != 0; }
 static void rq_add(int cpu, struct thread *t) {
-    list_add_tail(&rqs[cpu].q[level_of(t)], &t->run_node);
     rqs[cpu].nr++;
+    if (migratable(t, cpu)) rqs[cpu].nr_mig++;
+    if (is_rt(t)) {
+        list_for_each(it, &rqs[cpu].rt) {
+            struct thread *o = list_entry(it, struct thread, run_node);
+            if (o->rt_prio < t->rt_prio) { __list_add(&t->run_node, it->prev, it); return; }
+        }
+        list_add_tail(&rqs[cpu].rt, &t->run_node);
+        return;
+    }
+    list_add_tail(&rqs[cpu].q[level_of(t)], &t->run_node);
 }
 /* highest-priority thread in rqs[from] that may run on 'cpu' */
 static struct thread *rq_take(int from, int cpu) {
     struct rq *r = &rqs[from];
     if (!r->nr) return nullptr;
-    for (int i = 0; i < RQ_LEVELS; i++)
+    list_for_each(it, &r->rt) {
+        struct thread *t = list_entry(it, struct thread, run_node);
+        if (!allowed(t, cpu)) continue;
+        list_del(&t->run_node);
+        r->nr--;
+        if (migratable(t, from)) r->nr_mig--;
+        return t;
+    }
+    for (int i = 0; i < RQ_LEVELS; i++) {
+        /* threads in slice debt are refilled and rotated to the tail (bounded passes) */
+        for (int pass = 0, n = r->nr * 4; pass < n && !list_empty(&r->q[i]); pass++) {
+            struct thread *t = list_first(&r->q[i], struct thread, run_node);
+            if (!allowed(t, cpu) || !policy_skip(t)) break;
+            list_del(&t->run_node);
+            list_add_tail(&r->q[i], &t->run_node);
+        }
         list_for_each(it, &r->q[i]) {
             struct thread *t = list_entry(it, struct thread, run_node);
             if (!allowed(t, cpu)) continue;
             list_del(&t->run_node);
             r->nr--;
+            if (migratable(t, from)) r->nr_mig--;
             return t;
         }
+    }
     return nullptr;
 }
 
@@ -156,11 +220,40 @@ static struct thread *dequeue(struct cpu *c) {
 
 int sched_runnable_count(void) { return nr_runnable; }
 
+/* could CPU c find something to run? (lock-free, approximate; dequeue() decides for real) */
+static bool cpu_has_work(struct cpu *c) {
+    if (__atomic_load_n(&rqs[c->id].nr, __ATOMIC_RELAXED)) return true;
+    for (int i = 0; i < ncpus; i++)
+        if (i != c->id && __atomic_load_n(&rqs[i].nr_mig, __ATOMIC_RELAXED)) return true;
+    return false;
+}
+
 static void kick_after_wake(struct thread *t);
 static uint64_t online_mask(void) {
     uint64_t m = 0;
     for (int i = 0; i < ncpus && i < 64; i++) if (cpus[i].online) m |= 1ULL << i;
     return m;
+}
+
+/* change policy/priority; requeues the thread if it is waiting on a run queue */
+int sched_set_policy(struct thread *t, int policy, int rt_prio, int nice) {
+    if (policy == SCHED_FIFO_ || policy == SCHED_RR_) { if (rt_prio < 1 || rt_prio > 99) return -EINVAL; }
+    else if (policy == 0 || policy == 3 || policy == 5) rt_prio = 0;     /* OTHER, BATCH, IDLE */
+    else return -EINVAL;
+    if (nice < -20) nice = -20;
+    if (nice > 19) nice = 19;
+    uint64_t f = sl_lock_irqsave();
+    bool queued = t->state == T_RUNNABLE && t != this_cpu()->idle;
+    if (queued) { list_del(&t->run_node); rqs[t->rq_cpu].nr--; if (migratable(t, t->rq_cpu)) rqs[t->rq_cpu].nr_mig--; }
+    t->policy = policy; t->rt_prio = rt_prio; t->nice = nice;
+    t->quantum = quantum_for(t);
+    if (queued) { rq_add(t->rq_cpu, t); kick_after_wake(t); }
+    else if (t->state == T_RUNNING && t->cpu) {      /* may now be preemptable: re-evaluate */
+        if (t->cpu == this_cpu()) this_cpu()->resched = true;
+        else smp_send_resched(t->cpu);
+    }
+    sl_unlock_irqrestore(f);
+    return 0;
 }
 
 int sched_set_affinity(struct thread *t, uint64_t mask) {
@@ -171,6 +264,7 @@ int sched_set_affinity(struct thread *t, uint64_t mask) {
     if (t->state == T_RUNNABLE && !allowed(t, t->rq_cpu)) {          /* queued on a CPU it may no longer use */
         list_del(&t->run_node);
         rqs[t->rq_cpu].nr--;
+        if (migratable(t, t->rq_cpu)) rqs[t->rq_cpu].nr_mig--;
         nr_runnable--;
         enqueue(t);
         kick_after_wake(t);
@@ -210,6 +304,7 @@ struct thread *thread_alloc(const char *name) {
     t->bkl_saved = 1;        /* new threads take the BKL in sched_finish_switch() before running */
     t->cpu = this_cpu();
     t->affinity = current ? current->affinity : ~0ULL;
+    if (current) { t->nice = current->nice; t->policy = current->policy; t->rt_prio = current->rt_prio; }
     if (!t->affinity) t->affinity = ~0ULL;
     list_init(&t->run_node);
     list_init(&t->timer_node);
@@ -279,7 +374,7 @@ static void reap_zombies(void) {
     c->resched = false;
     if (prev->state == T_RUNNING && prev != c->idle) {
         if (allowed(prev, c->id)) enqueue_on(c->id, prev);   /* round robin stays local */
-        else enqueue(prev);                                    /* affinity changed */
+        else { enqueue(prev); kick_after_wake(prev); }         /* affinity changed */
     }
     next = dequeue(c);
     if (!next) next = c->idle;
@@ -335,12 +430,22 @@ void sched_yield(void) {
  * Returns true if the tick is fully handled; false means the caller must take the BKL and run
  * timer_tick() (accounting is not repeated).
  */
-/* charge one tick to the running thread / process / CPU as user or system time */
-static void account_tick(struct cpu *c, struct thread *cur) {
+/*
+ * Charge the time since the thread's last accounting point (switch-in or previous tick) as
+ * user or system time, as sampled by this tick. Ticks can be lost (e.g. an emulator vCPU
+ * descheduled by the host), so the elapsed time is used rather than "one tick". Returns the
+ * elapsed milliseconds (>= 1) for time-slice accounting.
+ */
+static int account_tick(struct cpu *c, struct thread *cur) {
+    uint64_t now = time_ns(), last = cur->acct_ns > cur->exec_start_ns ? cur->acct_ns : cur->exec_start_ns;
+    uint64_t d = now > last ? now - last : 0;
+    cur->acct_ns = now;
     cur->run_ticks++;
-    if (c->tick_user) { cur->utime_ticks++; c->user_ticks++; }
-    else { cur->stime_ticks++; c->sys_ticks++; }
-    if (cur->proc) __atomic_fetch_add(c->tick_user ? &cur->proc->utime_ticks : &cur->proc->stime_ticks, 1, __ATOMIC_RELAXED);
+    if (c->tick_user) { cur->utime_ns += d; c->user_ticks++; }
+    else { cur->stime_ns += d; c->sys_ticks++; }
+    if (cur->proc) __atomic_fetch_add(c->tick_user ? &cur->proc->utime_ns : &cur->proc->stime_ns, d, __ATOMIC_RELAXED);
+    int ms = (int)((d + 500000) / 1000000);
+    return ms < 1 ? 1 : ms > 1000 ? 1000 : ms;
 }
 
 bool sched_tick_fast(bool from_user) {
@@ -352,12 +457,12 @@ bool sched_tick_fast(bool from_user) {
     struct thread *cur = c->cur;
     if (cur == c->idle) {
         c->idle_ticks++;
-        if (nr_runnable) { c->resched = true; return false; }
+        if (cpu_has_work(c)) { c->resched = true; return false; }
         c->tick_accounted = false;
         return true;
     }
-    account_tick(c, cur);
-    if (--cur->quantum <= 0) { quantum_expired(cur); c->resched = true; return false; }
+    cur->quantum -= account_tick(c, cur);
+    if (cur->quantum <= 0) { quantum_expired(cur); c->resched = true; return false; }
     if (from_user && (signal_pending(cur) || (cur->proc && cur->proc->alarm_ns))) return false;
     if (c->resched) return false;
     c->tick_accounted = false;
@@ -391,11 +496,11 @@ void sched_tick(void) {
     if (!cur) return;
     if (cur == c->idle) {
         c->idle_ticks++;
-        if (nr_runnable) c->resched = true;
+        if (cpu_has_work(c)) c->resched = true;
         return;
     }
-    account_tick(c, cur);
-    if (--cur->quantum <= 0) {
+    cur->quantum -= account_tick(c, cur);
+    if (cur->quantum <= 0) {
         quantum_expired(cur);
         c->resched = true;
     }
@@ -513,7 +618,15 @@ static void idle_loop(void *arg) {
     for (;;) {
         arch_irq_disable();
         reap_zombies();
-        if (nr_runnable) { sl_lock(); __schedule(); arch_irq_enable(); continue; }
+        /* Only schedule if this CPU can take something; otherwise halt. Never loop straight
+         * back to arch_irq_disable(): on x86 'sti; cli' opens no interrupt window, so an idle
+         * CPU spinning here would never acknowledge TLB-shootdown IPIs. */
+        if (cpu_has_work(this_cpu())) {
+            uint64_t sw = this_cpu()->ctx_switches;
+            sl_lock();
+            __schedule();
+            if (this_cpu()->ctx_switches != sw) { arch_irq_enable(); continue; }   /* ran something */
+        }
         arch_wait_for_interrupt();
         arch_irq_enable();
     }

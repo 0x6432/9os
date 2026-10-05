@@ -41,8 +41,8 @@ struct process {
     size_t cmdline_len;
     char *exe;
     uint64_t start_ticks;
-    uint64_t utime_ticks, stime_ticks;      /* 1 kHz tick samples, all threads (atomic adds) */
-    uint64_t cutime_ticks, cstime_ticks;    /* reaped children (and their reaped children) */
+    uint64_t utime_ns, stime_ns;      /* tick-sampled user/system split, weighted by elapsed time */
+    uint64_t cutime_ns, cstime_ns;    /* reaped children (and their reaped children) */
     uint64_t sum_exec_ns;                   /* precise on-CPU time of switched-out slices */
     uint64_t min_flt, cmin_flt, nvcsw, nivcsw, cnvcsw, cnivcsw;
     uint64_t alarm_ns;

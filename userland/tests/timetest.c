@@ -51,6 +51,16 @@ int main(void) {
     CHECK(r0 != (clock_t)-1);
     CHECK(tm.tms_utime >= 15);
 
+    for (int k = 0; k < 3; k++) {     /* a fresh child starts with no inherited CPU time */
+        int pf[2]; pipe(pf);
+        double wall0 = ns(CLOCK_MONOTONIC);
+        pid_t q = fork();
+        if (q == 0) { double v = ns(CLOCK_THREAD_CPUTIME_ID), w = ns(CLOCK_PROCESS_CPUTIME_ID); write(pf[1], &v, sizeof v); write(pf[1], &w, sizeof w); _exit(0); }
+        double v = 0, w = 0; read(pf[0], &v, sizeof v); read(pf[0], &w, sizeof w); waitpid(q, 0, 0); close(pf[0]); close(pf[1]);
+        double wall = ns(CLOCK_MONOTONIC) - wall0;
+        printf("fresh child cputime: thread %.1f ms, process %.1f ms (wall since fork %.1f ms)\n", v / 1e6, w / 1e6, wall / 1e6);
+        CHECK(v <= wall + 1e6 && w <= wall + 1e6);   /* nothing inherited from the parent */
+    }
     pid_t c = fork();
     if (c == 0) { burn_user(250); char *m = mmap(0, 1 << 20, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0); memset(m, 1, 1 << 20); _exit(0); }
     int st;

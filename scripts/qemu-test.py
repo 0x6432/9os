@@ -21,7 +21,7 @@ def main():
     ap.add_argument('--timeout', type=float, default=240, help='per command')
     ap.add_argument('--log', default=None)
     a = ap.parse_intermixed_args()
-    make = ['make', '-s', 'ARCH=' + a.arch, 'SMP=' + a.smp, 'run', 'QEMUFLAGS=-display none']
+    make = ['make', '-s', 'ARCH=' + a.arch, 'SMP=' + a.smp, 'run', 'QEMUFLAGS=-display none ' + os.environ.get('QEMU_EXTRA', '')]
     if a.sched: make.insert(3, 'SCHED=' + a.sched)
     p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          start_new_session=True)
@@ -68,6 +68,9 @@ def main():
         results.append(('boot', True))
         for i, cmd in enumerate(a.cmds):
             mark = '__RC%d=' % i
+            # wait for the prompt so the shell is reading (line editing in raw mode) before typing;
+            # input typed while the previous command was still finishing could get lost
+            pump(time.time() + 5, lambda: buf.rstrip().endswith(b'#'))
             start = len(buf)
             send('%s; echo %s$?\n' % (cmd, mark))
             rx = re.compile(re.escape(mark.encode()) + rb'(\d+)\n')

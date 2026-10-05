@@ -139,8 +139,15 @@ int64_t sys_rt_sigprocmask();
 int64_t sys_rt_sigreturn();
 int64_t sys_rt_sigsuspend();
 int64_t sys_rt_sigtimedwait();
+int64_t sys_sched_get_priority_max();
+int64_t sys_sched_get_priority_min();
 int64_t sys_sched_getaffinity();
+int64_t sys_sched_getparam();
+int64_t sys_sched_getscheduler();
+int64_t sys_sched_rr_get_interval();
 int64_t sys_sched_setaffinity();
+int64_t sys_sched_setparam();
+int64_t sys_sched_setscheduler();
 int64_t sys_sched_yield();
 int64_t sys_select();
 int64_t sys_sendfile();
@@ -427,11 +434,17 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #ifdef __NR_syslog
     [__NR_syslog] = (syscall_fn)sys_syslog,
 #endif
+#ifdef __NR_sched_setparam
+    [__NR_sched_setparam] = (syscall_fn)sys_sched_setparam,
+#endif
+#ifdef __NR_sched_setscheduler
+    [__NR_sched_setscheduler] = (syscall_fn)sys_sched_setscheduler,
+#endif
 #ifdef __NR_sched_getscheduler
-    [__NR_sched_getscheduler] = (syscall_fn)sys_zero,
+    [__NR_sched_getscheduler] = (syscall_fn)sys_sched_getscheduler,
 #endif
 #ifdef __NR_sched_getparam
-    [__NR_sched_getparam] = (syscall_fn)sys_zero,
+    [__NR_sched_getparam] = (syscall_fn)sys_sched_getparam,
 #endif
 #ifdef __NR_sched_setaffinity
     [__NR_sched_setaffinity] = (syscall_fn)sys_sched_setaffinity,
@@ -441,6 +454,15 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_sched_yield
     [__NR_sched_yield] = (syscall_fn)sys_sched_yield,
+#endif
+#ifdef __NR_sched_get_priority_max
+    [__NR_sched_get_priority_max] = (syscall_fn)sys_sched_get_priority_max,
+#endif
+#ifdef __NR_sched_get_priority_min
+    [__NR_sched_get_priority_min] = (syscall_fn)sys_sched_get_priority_min,
+#endif
+#ifdef __NR_sched_rr_get_interval
+    [__NR_sched_rr_get_interval] = (syscall_fn)sys_sched_rr_get_interval,
 #endif
 #ifdef __NR_kill
     [__NR_kill] = (syscall_fn)sys_kill,

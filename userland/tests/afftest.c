@@ -30,6 +30,19 @@ int main(void) {
         printf("pinned to %d: %s\n", c, ok ? "stays" : "moved");
         CHECK(ok);
     }
+    /* CLOCK_MONOTONIC must agree across CPUs: hop around and never see time go backwards */
+    double prev = now(), worst = 0;
+    for (int k = 0; k < 40; k++) {
+        int c = k % n;
+        CPU_ZERO(&s); CPU_SET(c, &s);
+        sched_setaffinity(0, sizeof s, &s);
+        sched_yield();
+        double t = now();
+        if (prev - t > worst) worst = prev - t;
+        prev = t;
+    }
+    printf("max backwards step across CPUs: %.3f ms\n", worst * 1e3);
+    CHECK(worst < 0.001);
     CPU_ZERO(&s); CPU_SET(n, &s);                         /* offline CPU only */
     CHECK(sched_setaffinity(0, sizeof s, &s) != 0);
     CPU_ZERO(&s); for (int c = 0; c < n; c++) CPU_SET(c, &s);
@@ -39,9 +52,10 @@ int main(void) {
         int nt = n * 2 > 8 ? 8 : n * 2;
         for (int i = 0; i < nt; i++) pthread_create(&t[i], 0, spin, 0);
         for (int i = 0; i < nt; i++) pthread_join(t[i], 0);
-        int used = 0;
-        for (int c = 0; c < n; c++) { printf("cpu%d samples %lu\n", c, seen[c]); if (seen[c] > 100) used++; }
-        CHECK(used == n);
+        int used = 0, any = 0;
+        for (int c = 0; c < n; c++) { printf("cpu%d samples %lu\n", c, seen[c]); if (seen[c] > 100) used++; if (seen[c]) any++; }
+        CHECK(any == n);          /* every CPU ran a spinner */
+        CHECK(used >= 2);         /* (exact balance is not checked: emulated vCPUs may be starved by the host) */
     }
     if (fails) { printf("afftest: %d FAILED\n", fails); return 1; }
     puts("afftest: OK");

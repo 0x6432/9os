@@ -17,6 +17,15 @@ enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
              G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
+static struct thread *main_thread(struct process *p) {
+    return list_empty(&p->threads) ? nullptr : list_first(&p->threads, struct thread, proc_node);
+}
+static int main_nice(struct process *p) { struct thread *t = main_thread(p); return t ? t->nice : 0; }
+static int main_prio(struct process *p) {      /* /proc stat 'priority': 20+nice, or -1-rt_prio */
+    struct thread *t = main_thread(p);
+    if (!t) return 20;
+    return t->policy == 1 || t->policy == 2 ? -1 - t->rt_prio : 20 + t->nice;
+}
 static int nthreads(struct process *p) {
     int n = 0;
     list_for_each(it, &p->threads) n++;
@@ -245,11 +254,11 @@ static void gen(struct pinfo *pi, struct buf *b) {
         break;
     case G_FILESYSTEMS: bprintf(b, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n"); break;
     case F_STAT:
-        bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 %lu %lu 0 0 %lu %lu %lu %lu 20 0 %d 0 %lu %lu %lu\n",
+        bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 %lu %lu 0 0 %lu %lu %lu %lu %d %d %d 0 %lu %lu %lu\n",
                 p->pid, p->name, pstate(p), p->parent ? p->parent->pid : 0, p->pgid, p->sid,
                 p->ctty ? 0x0501 : 0, p->ctty ? p->ctty->pgrp : -1, p->min_flt, p->cmin_flt,
-                p->utime_ticks / 10, p->stime_ticks / 10, p->cutime_ticks / 10, p->cstime_ticks / 10,
-                nthreads(p), p->start_ticks / 10, vm_size(p), vm_size(p) / PAGE_SIZE / 4);
+                p->utime_ns / 10000000, p->stime_ns / 10000000, p->cutime_ns / 10000000, p->cstime_ns / 10000000,
+                main_prio(p), main_nice(p), nthreads(p), p->start_ticks / 10, vm_size(p), vm_size(p) / PAGE_SIZE / 4);
         break;
     case F_STATUS:
         bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nUid:\t%u\t%u\t%u\t%u\nGid:\t%u\t%u\t%u\t%u\nVmSize:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
