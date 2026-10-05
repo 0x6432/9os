@@ -2,6 +2,7 @@
 #include <kernel/syscall.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
+#include <kernel/string.h>
 #include <arch/syscall.h>
 
 typedef int64_t (*syscall_fn)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
@@ -1992,19 +1993,54 @@ static uint8_t warned[NR_SYSCALLS];
 
 void signal_deliver(struct trap_frame *f);
 
+/* Runs with interrupts off, with or without the BKL; signal work takes it (recursively). */
 void user_return_work(struct trap_frame *f) {
     if (need_resched && current) schedule();
     if (!trap_from_user(f) || !current || !current->proc) return;
     struct process *p = current->proc;
-    if (p->alarm_ns && time_ns() >= p->alarm_ns) { p->alarm_ns = 0; signal_send(p, SIGALRM); }
-    for (int i = 0; i < 8 && signal_pending(current); i++) signal_deliver(f);
-    if (current->restore_mask) { current->sig_mask = current->saved_mask; current->restore_mask = false; }
+    if ((p->alarm_ns && time_ns() >= p->alarm_ns) || signal_pending(current) || current->restore_mask) {
+        bkl_enter();
+        if (p->alarm_ns && time_ns() >= p->alarm_ns) { p->alarm_ns = 0; signal_send(p, SIGALRM); }
+        for (int i = 0; i < 8 && signal_pending(current); i++) signal_deliver(f);
+        if (current->restore_mask) { current->sig_mask = current->saved_mask; current->restore_mask = false; }
+        bkl_exit();
+    }
     if (need_resched) schedule();
 }
 
+/*
+ * Syscalls that only touch the calling thread, read-mostly globals or the scheduler (which has its
+ * own lock) run without the big kernel lock, so they proceed in parallel on all CPUs. Page faults
+ * taken while copying to/from user memory still take the BKL in the trap handler.
+ */
+static const char *const lockfree_names[] = {
+    "getpid", "gettid", "getuid", "geteuid", "getgid", "getegid", "getresuid", "getresgid",
+    "clock_gettime", "clock_getres", "gettimeofday", "time", "sched_yield", "nanosleep",
+    "clock_nanosleep", "uname", "getcpu", "sched_getaffinity", nullptr,
+};
+static uint8_t lockfree[NR_SYSCALLS];
+static volatile bool lockfree_ready;
+static void lockfree_init(void) {
+    for (int i = 0; lockfree_names[i]; i++)
+        for (int n = 0; n < NR_SYSCALLS; n++)
+            if (syscall_names[n] && !strcmp(syscall_names[n], lockfree_names[i])) lockfree[n] = 1;
+    __atomic_store_n(&lockfree_ready, true, __ATOMIC_RELEASE);
+}
+uint64_t syscalls_lockfree, syscalls_locked;   /* /proc/stat-style counters (approximate) */
+
 void syscall_dispatch(struct trap_frame *f) {
-    bkl_enter();
     uint64_t nr = SC_NR(f);
+    if (nr < NR_SYSCALLS && lockfree[nr] && !syscall_trace) {
+        syscalls_lockfree++;
+        current->last_syscall = nr;
+        SC_SET_RET(f, syscall_table[nr](SC_ARG0(f), SC_ARG1(f), SC_ARG2(f), SC_ARG3(f), SC_ARG4(f), SC_ARG5(f)));
+        arch_irq_disable();
+        user_return_work(f);
+        return;
+    }
+    bkl_enter();
+    syscalls_locked++;
+    if (!lockfree_ready) lockfree_init();
     current->last_syscall = nr;
     int64_t ret;
     if (nr < NR_SYSCALLS && syscall_table[nr]) {
