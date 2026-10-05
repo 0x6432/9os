@@ -19,9 +19,13 @@ make run                    # boot in QEMU (serial on stdio)
 
 See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [docs/HANDOFF.md](docs/HANDOFF.md) for the current state.
 
-## Scheduler regression tests
+## Allocator and scheduler regression tests
 
 `scripts/sched-host-tests.sh` checks the actual RR/MLFQ queue code on the host with
 undefined-behavior traps (no userland or QEMU needed). After building the userland,
 `python3 scripts/qemu-test.py x86_64 --smp 2 balancetest` checks busy-CPU balancing and
 sibling-thread affinity in the guest. `scripts/ci-tests.sh ARCH` runs the full boot suite.
+
+`scripts/pmm-host-tests.sh` checks per-CPU physical-page reuse, bounded caching,
+remote-cache recovery, large-block coalescing and concurrent drains on the host.
+The guest `pcputest` checks zero-filled page reuse and isolation on every tested CPU.

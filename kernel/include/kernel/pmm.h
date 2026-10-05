@@ -10,6 +10,7 @@ enum {
     PG_FREE     = 1 << 1,     /* head of a free buddy block */
     PG_SLAB     = 1 << 2,
     PG_LARGE    = 1 << 3,     /* head of a large kmalloc block */
+    PG_PCPU     = 1 << 4,     /* free order-0 page held in a per-CPU cache */
 };
 
 struct kmem_slab;
@@ -33,6 +34,14 @@ paddr_t pmm_alloc_zeroed(unsigned order);
 void pmm_free_pages(paddr_t pa, unsigned order);
 void pmm_stats(uint64_t *free_pages, uint64_t *total_pages);
 void pmm_selftest(void);
+/* Enable only after SMP/per-CPU context setup. Cached pages count as free memory. */
+void pmm_enable_cpu_caches(void);
+void pmm_drain_cpu_caches(void);
+void pmm_cache_selftest(void);
+struct pmm_cache_stats {
+    uint64_t cached_pages, alloc_hits, free_hits, drained_pages;
+};
+void pmm_cache_stats(struct pmm_cache_stats *stats);
 
 static inline paddr_t page_to_phys(struct page *p) { return (paddr_t)(p - page_array) << PAGE_SHIFT; }
 static inline struct page *phys_to_page(paddr_t pa) { return &page_array[pa >> PAGE_SHIFT]; }
