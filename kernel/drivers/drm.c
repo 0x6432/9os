@@ -100,10 +100,26 @@ static void queue_event(struct dfile *f, uint32_t type, uint64_t user_data) {
     poll_notify();
 }
 
+/* WAIT_VBLANK events waiting for their target sequence */
+struct vbl_wait { struct list_node node; struct dfile *f; uint32_t target; uint64_t user_data; };
+static struct list_node vbl_waits = { &vbl_waits, &vbl_waits };
+
 static void vblank_thread(void *arg) {
+    const uint64_t period = 16666667ull;
+    uint64_t next = time_ns() + period;
     for (;;) {
-        sleep_ns(16666667ull);
+        uint64_t now = time_ns();
+        if (next > now) sleep_ns(next - now);
+        next += period;
+        if (next < time_ns()) next = time_ns() + period;    /* fell behind: resync, don't burst */
         vblank_seq++;
+        list_for_each_safe(it, tmp, &vbl_waits) {
+            struct vbl_wait *w = list_entry(it, struct vbl_wait, node);
+            if ((int32_t)(vblank_seq - w->target) < 0) continue;
+            list_del(&w->node);
+            queue_event(w->f, 1 /* DRM_EVENT_VBLANK */, w->user_data);
+            kfree(w);
+        }
         if (flip.pending) {
             struct dfb *fb = fb_lookup(flip.fb_id);
             if (fb) { crtc.fb_id = fb->id; present(fb); }
@@ -213,6 +229,13 @@ static int drm_ioctl(struct file *file, uint64_t cmd, uint64_t uarg) {
     case 0x01: { uint64_t u[2]; if (copy_from_user(u, arg, 16)) return -EFAULT; u[0] = 0; return copy_to_user(arg, u, 16); } /* GET_UNIQUE */
     case 0x02: { uint32_t m = 1; return copy_to_user(arg, &m, 4); }       /* GET_MAGIC */
     case 0x11: return 0;                                                     /* AUTH_MAGIC */
+    case 0x07: {                                                             /* SET_VERSION */
+        int32_t sv[4];
+        if (copy_from_user(sv, arg, sizeof sv)) return -EFAULT;
+        if (sv[0] != -1 && sv[0] != 1) return -EINVAL;
+        sv[0] = 1; sv[1] = 4; sv[2] = 1; sv[3] = 0;                          /* interface 1.4, driver 1.0 */
+        return copy_to_user(arg, sv, sizeof sv);
+    }
     case 0x09: { uint32_t h; if (copy_from_user(&h, arg, 4)) return -EFAULT; return destroy_handle(h); }   /* GEM_CLOSE */
     case 0x0c: {                                                             /* GET_CAP */
         uint64_t c[2];
@@ -242,7 +265,10 @@ static int drm_ioctl(struct file *file, uint64_t cmd, uint64_t uarg) {
         if (copy_from_user(&w, arg, sizeof w)) return -EFAULT;
         uint32_t target = (w.type & 1) ? vblank_seq + w.seq : w.seq;        /* RELATIVE : ABSOLUTE */
         if (w.type & 0x4000000) {                                            /* EVENT */
-            queue_event(f, 1 /* DRM_EVENT_VBLANK */, (uint64_t)w.usec);
+            struct vbl_wait *vw = kzalloc(sizeof *vw);   /* request.signal (offset 8) = user data */
+            if (!vw) return -ENOMEM;
+            vw->f = f; vw->target = target; vw->user_data = (uint64_t)w.sec;
+            list_add_tail(&vbl_waits, &vw->node);
         } else {
             while ((int32_t)(vblank_seq - target) < 0) sleep_ns(4000000);
         }
@@ -398,6 +424,10 @@ static int drm_open(struct inode *ino, struct file *file) {
 static void drm_release(struct file *file) {
     struct dfile *f = file->priv;
     if (flip.f == f) { flip.pending = false; flip.f = nullptr; }
+    list_for_each_safe(it, tmp, &vbl_waits) {
+        struct vbl_wait *w = list_entry(it, struct vbl_wait, node);
+        if (w->f == f) { list_del(&w->node); kfree(w); }
+    }
     for (int i = 0; i < MAX_OBJ; i++) if (fbs[i] && fbs[i]->owner == f) fb_remove(i);
     for (int i = 0; i < MAX_OBJ; i++) if (dumbs[i] && dumbs[i]->owner == f) { bo_free(dumbs[i]); dumbs[i] = nullptr; }
     if (crtc.owner == f) { crtc.active = false; crtc.fb_id = 0; crtc.owner = nullptr; fbcon_set_graphics(false); }
