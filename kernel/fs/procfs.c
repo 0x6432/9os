@@ -239,8 +239,9 @@ static void gen(struct pinfo *pi, struct buf *b) {
     case G_SCHED:
         bprintf(b, "policy: %s\ncpus: %d\nrunnable: %d\n", sched_policy_name(), ncpus, sched_runnable_count());
         for (int i = 0; i < ncpus; i++)
-            bprintf(b, "cpu%d: hwid 0x%lx ticks %lu idle %lu switches %lu running %s\n", i, cpus[i].hwid, cpus[i].ticks,
-                    cpus[i].idle_ticks, cpus[i].ctx_switches, cpus[i].cur ? cpus[i].cur->name : "-");
+            bprintf(b, "cpu%d: hwid 0x%lx ticks %lu idle %lu switches %lu rq %d steals %lu running %s\n", i, cpus[i].hwid,
+                    cpus[i].ticks, cpus[i].idle_ticks, cpus[i].ctx_switches, sched_rq_len(i), sched_rq_steals(i),
+                    cpus[i].cur ? cpus[i].cur->name : "-");
         break;
     case G_FILESYSTEMS: bprintf(b, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n"); break;
     case F_STAT:

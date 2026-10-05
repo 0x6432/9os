@@ -328,11 +328,42 @@ int64_t sys_personality(uint64_t p) { return 0; }
 int64_t sys_capget(void *h, void *d) { if (d) { uint32_t c[6] = { ~0u, ~0u, ~0u, ~0u, ~0u, ~0u }; copy_to_user(d, c, sizeof c); } return 0; }
 int64_t sys_getpriority(int which, int who) { return 20; }
 int64_t sys_setpriority(int which, int who, int prio) { return 0; }
-int64_t sys_sched_getaffinity(int pid, size_t len, uint64_t *mask) {
-    if (len < 8) return -EINVAL;
-    uint64_t m = ncpus >= 64 ? ~0ULL : (1ULL << ncpus) - 1;
+/* pid 0 = calling thread; otherwise the thread with that tid in the process of that pid */
+static struct thread *affinity_target(int pid) {
+    if (!pid || pid == current->tid) return current;
+    struct process *p = process_find(pid);
+    if (!p) return nullptr;
+    list_for_each(it, &p->threads) {
+        struct thread *t = list_entry(it, struct thread, proc_node);
+        if (t->tid == pid) return t;
+    }
+    return nullptr;
+}
+
+int64_t sys_sched_getaffinity(int pid, size_t len, uint64_t *mask) {       /* lock-free syscall */
+    if (len < 8 || (len & 7)) return -EINVAL;
+    uint64_t online = ncpus >= 64 ? ~0ULL : (1ULL << ncpus) - 1, m;
+    if (!pid || pid == current->tid) m = current->affinity & online;
+    else {
+        bkl_enter();
+        struct thread *t = affinity_target(pid);
+        m = t ? t->affinity & online : 0;
+        bkl_exit();
+        if (!t) return -ESRCH;
+    }
     if (copy_to_user(mask, &m, 8)) return -EFAULT;
-    return 8;
+    uint64_t z = 0;
+    for (size_t o = 8; o < len && o < 128; o += 8) if (copy_to_user((char *)mask + o, &z, 8)) return -EFAULT;
+    return len < 128 ? (int64_t)len : 128;
+}
+
+int64_t sys_sched_setaffinity(int pid, size_t len, const uint64_t *umask) {
+    if (len < 8) return -EINVAL;
+    uint64_t m;
+    if (copy_from_user(&m, umask, 8)) return -EFAULT;
+    struct thread *t = affinity_target(pid);
+    if (!t) return -ESRCH;
+    return sched_set_affinity(t, m);
 }
 int64_t sys_getcpu(unsigned *cpu, unsigned *node) {
     unsigned z = 0, id = this_cpu()->id;

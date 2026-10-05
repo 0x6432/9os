@@ -140,6 +140,7 @@ int64_t sys_rt_sigreturn();
 int64_t sys_rt_sigsuspend();
 int64_t sys_rt_sigtimedwait();
 int64_t sys_sched_getaffinity();
+int64_t sys_sched_setaffinity();
 int64_t sys_sched_yield();
 int64_t sys_select();
 int64_t sys_sendfile();
@@ -433,7 +434,7 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_sched_getparam] = (syscall_fn)sys_zero,
 #endif
 #ifdef __NR_sched_setaffinity
-    [__NR_sched_setaffinity] = (syscall_fn)sys_zero,
+    [__NR_sched_setaffinity] = (syscall_fn)sys_sched_setaffinity,
 #endif
 #ifdef __NR_sched_getaffinity
     [__NR_sched_getaffinity] = (syscall_fn)sys_sched_getaffinity,

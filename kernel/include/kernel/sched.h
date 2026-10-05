@@ -50,6 +50,8 @@ struct thread {
     int tlb_batch_depth;           /* vmm_batch_begin nesting */
     int level;                     /* MLFQ priority level (0 = highest) */
     uint64_t run_ticks;            /* total ticks on CPU */
+    uint64_t affinity;             /* allowed CPUs (bit = cpu id) */
+    int rq_cpu;                    /* run queue it is (or was last) queued on */
     uint64_t utime_ticks, stime_ticks, sum_exec_ns, exec_start_ns, nvcsw, nivcsw;
     struct rusage_k reaped_ru;     /* last child reaped by do_wait (wait4 rusage) */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
@@ -68,6 +70,9 @@ const char *sched_policy_name(void);
 void sched_init_ap(struct cpu *c);     /* create the idle thread for an AP */
 __noreturn void sched_start_ap(struct cpu *c);
 int sched_runnable_count(void);
+int sched_rq_len(int cpu);
+uint64_t sched_rq_steals(int cpu);
+int sched_set_affinity(struct thread *t, uint64_t mask);
 
 void sched_init(void);
 void sched_finish_switch(void);    /* new threads call this first */

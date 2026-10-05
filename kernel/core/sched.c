@@ -43,23 +43,18 @@ static uint64_t sl_lock_irqsave(void) { uint64_t f = arch_irq_save(); sl_lock();
 static void sl_unlock_irqrestore(uint64_t f) { sl_unlock(); arch_irq_restore(f); }
 
 /* ---------------------------------------------------------------- policy */
+/*
+ * Run queues are per CPU (rqs[cpu id]); all of them are still guarded by sched_lock.
+ * A woken thread goes to an idle CPU it may run on (its last CPU first), otherwise back to
+ * its last CPU; a CPU whose queue is empty steals from the busiest queue. Each queue has
+ * RQ_LEVELS lists (one per MLFQ level; a single list for round-robin).
+ */
 #ifdef CONFIG_SCHED_MLFQ
-static struct list_node queues[MLFQ_LEVELS];
+#define RQ_LEVELS MLFQ_LEVELS
 static uint64_t last_boost;
-
 const char *sched_policy_name(void) { return "mlfq"; }
 static int quantum_for(struct thread *t) { return MLFQ_BASE_QUANTUM << t->level; }
-static void rq_init(void) { for (int i = 0; i < MLFQ_LEVELS; i++) list_init(&queues[i]); }
-static void rq_add(struct thread *t) { list_add_tail(&queues[t->level], &t->run_node); }
-static struct thread *rq_pick(void) {
-    for (int i = 0; i < MLFQ_LEVELS; i++)
-        if (!list_empty(&queues[i])) {
-            struct thread *t = list_first(&queues[i], struct thread, run_node);
-            list_del(&t->run_node);
-            return t;
-        }
-    return nullptr;
-}
+static int level_of(struct thread *t) { return t->level; }
 /* the running thread used up its allotment at this level */
 static void quantum_expired(struct thread *t) {
     if (t->level < MLFQ_LEVELS - 1) t->level++;
@@ -67,63 +62,137 @@ static void quantum_expired(struct thread *t) {
 }
 /* should a newly woken thread preempt the running one? */
 static bool wake_preempts(struct thread *woken, struct thread *running) { return woken->level <= running->level; }
+static void pick_reset_quantum(struct thread *t) { if (t->quantum <= 0) t->quantum = quantum_for(t); }
+#else
+#define RQ_LEVELS 1
+const char *sched_policy_name(void) { return "round-robin"; }
+static int quantum_for(struct thread *t) { return SCHED_QUANTUM; }
+static int level_of(struct thread *t) { return 0; }
+static void quantum_expired(struct thread *t) {}
+static bool wake_preempts(struct thread *woken, struct thread *running) { return true; }
+static void pick_reset_quantum(struct thread *t) { t->quantum = quantum_for(t); }
+#endif
+
+struct rq { struct list_node q[RQ_LEVELS]; int nr; uint64_t steals; };
+static struct rq rqs[MAX_CPUS];
+
+static void rq_init(void) {
+    for (int c = 0; c < MAX_CPUS; c++)
+        for (int i = 0; i < RQ_LEVELS; i++) list_init(&rqs[c].q[i]);
+}
+static bool allowed(struct thread *t, int cpu) { return (t->affinity >> cpu) & 1; }
+static void rq_add(int cpu, struct thread *t) {
+    list_add_tail(&rqs[cpu].q[level_of(t)], &t->run_node);
+    rqs[cpu].nr++;
+}
+/* highest-priority thread in rqs[from] that may run on 'cpu' */
+static struct thread *rq_take(int from, int cpu) {
+    struct rq *r = &rqs[from];
+    if (!r->nr) return nullptr;
+    for (int i = 0; i < RQ_LEVELS; i++)
+        list_for_each(it, &r->q[i]) {
+            struct thread *t = list_entry(it, struct thread, run_node);
+            if (!allowed(t, cpu)) continue;
+            list_del(&t->run_node);
+            r->nr--;
+            return t;
+        }
+    return nullptr;
+}
+
+#ifdef CONFIG_SCHED_MLFQ
 /* rule 5: every MLFQ_BOOST_MS move everything back to the top queue */
 static void policy_tick(void) {
     if (jiffies - last_boost < MLFQ_BOOST_MS) return;
     last_boost = jiffies;
-    for (int i = 1; i < MLFQ_LEVELS; i++)
-        list_for_each_safe(it, tmp, &queues[i]) { list_del(it); list_add_tail(&queues[0], it); }
+    for (int c = 0; c < ncpus; c++)
+        for (int i = 1; i < MLFQ_LEVELS; i++)
+            list_for_each_safe(it, tmp, &rqs[c].q[i]) { list_del(it); list_add_tail(&rqs[c].q[0], it); }
     list_for_each(it, &all_threads) {
         struct thread *t = list_entry(it, struct thread, all_node);
         if (t->level) { t->level = 0; t->quantum = quantum_for(t); }
     }
 }
-static void pick_reset_quantum(struct thread *t) { if (t->quantum <= 0) t->quantum = quantum_for(t); }
 #else
-static struct list_node run_queue;
-
-const char *sched_policy_name(void) { return "round-robin"; }
-static int quantum_for(struct thread *t) { return SCHED_QUANTUM; }
-static void rq_init(void) { list_init(&run_queue); }
-static void rq_add(struct thread *t) { list_add_tail(&run_queue, &t->run_node); }
-static struct thread *rq_pick(void) {
-    if (list_empty(&run_queue)) return nullptr;
-    struct thread *t = list_first(&run_queue, struct thread, run_node);
-    list_del(&t->run_node);
-    return t;
-}
-static void quantum_expired(struct thread *t) {}
-static bool wake_preempts(struct thread *woken, struct thread *running) { return true; }
 static void policy_tick(void) {}
-static void pick_reset_quantum(struct thread *t) { t->quantum = quantum_for(t); }
 #endif
 
-/* ---------------------------------------------------------------- run queue */
-static void enqueue(struct thread *t) {
-    t->state = T_RUNNABLE;
-    rq_add(t);
-    nr_runnable++;
+static bool cpu_idle(struct cpu *c) { return c->online && c->cur == c->idle && !rqs[c->id].nr; }
+
+/* where should a thread that just became runnable go? */
+static int select_cpu(struct thread *t) {
+    int last = t->cpu ? t->cpu->id : 0;
+    if (allowed(t, last) && cpu_idle(&cpus[last])) return last;
+    for (int i = 0; i < ncpus; i++)
+        if (allowed(t, i) && cpu_idle(&cpus[i])) return i;
+    if (allowed(t, last) && cpus[last].online) return last;
+    int best = -1;
+    for (int i = 0; i < ncpus; i++)
+        if (allowed(t, i) && cpus[i].online && (best < 0 || rqs[i].nr < rqs[best].nr)) best = i;
+    return best < 0 ? 0 : best;
 }
 
-static struct thread *dequeue(void) {
-    struct thread *t = rq_pick();
+/* ---------------------------------------------------------------- run queue */
+static void enqueue_on(int cpu, struct thread *t) {
+    t->state = T_RUNNABLE;
+    t->rq_cpu = cpu;
+    rq_add(cpu, t);
+    nr_runnable++;
+}
+static void enqueue(struct thread *t) { enqueue_on(select_cpu(t), t); }
+
+/* next thread for CPU c: its own queue, else steal from the busiest queue */
+static struct thread *dequeue(struct cpu *c) {
+    struct thread *t = rq_take(c->id, c->id);
+    if (!t) {
+        int victim = -1;
+        for (int i = 0; i < ncpus; i++)
+            if (i != c->id && rqs[i].nr && (victim < 0 || rqs[i].nr > rqs[victim].nr)) victim = i;
+        if (victim >= 0 && (t = rq_take(victim, c->id))) rqs[c->id].steals++;
+    }
     if (t) nr_runnable--;
     return t;
 }
 
 int sched_runnable_count(void) { return nr_runnable; }
 
-/* A thread became runnable: wake an idle CPU, or preempt this one if the policy says so. */
-static void kick_after_wake(struct thread *t) {
-    struct cpu *self = this_cpu();
-    for (int i = 0; i < ncpus; i++) {
-        struct cpu *c = &cpus[i];
-        if (c != self && c->online && c->cur == c->idle && !(c->ipi_pending & IPI_RESCHED)) {
-            smp_send_resched(c);
-            return;
-        }
+static void kick_after_wake(struct thread *t);
+static uint64_t online_mask(void) {
+    uint64_t m = 0;
+    for (int i = 0; i < ncpus && i < 64; i++) if (cpus[i].online) m |= 1ULL << i;
+    return m;
+}
+
+int sched_set_affinity(struct thread *t, uint64_t mask) {
+    mask &= online_mask();
+    if (!mask) return -EINVAL;
+    uint64_t f = sl_lock_irqsave();
+    t->affinity = mask;
+    if (t->state == T_RUNNABLE && !allowed(t, t->rq_cpu)) {          /* queued on a CPU it may no longer use */
+        list_del(&t->run_node);
+        rqs[t->rq_cpu].nr--;
+        nr_runnable--;
+        enqueue(t);
+        kick_after_wake(t);
+    } else if (t->state == T_RUNNING && t->cpu && !allowed(t, t->cpu->id)) {   /* migrate at next schedule() */
+        if (t->cpu == this_cpu()) this_cpu()->resched = true;
+        else smp_send_resched(t->cpu);
     }
-    if (self->cur == self->idle || !self->cur || wake_preempts(t, self->cur)) self->resched = true;
+    sl_unlock_irqrestore(f);
+    return 0;
+}
+int sched_rq_len(int cpu) { return rqs[cpu].nr; }
+uint64_t sched_rq_steals(int cpu) { return rqs[cpu].steals; }
+
+/* A thread was queued on t->rq_cpu: get that CPU to look at it (IPI or local resched). */
+static void kick_after_wake(struct thread *t) {
+    struct cpu *self = this_cpu(), *c = &cpus[t->rq_cpu];
+    if (c == self) {
+        if (self->cur == self->idle || !self->cur || wake_preempts(t, self->cur)) self->resched = true;
+        return;
+    }
+    if (c->cur == c->idle || !c->cur || wake_preempts(t, c->cur))
+        if (!(c->ipi_pending & IPI_RESCHED)) smp_send_resched(c);
 }
 
 struct thread *thread_alloc(const char *name) {
@@ -140,6 +209,8 @@ struct thread *thread_alloc(const char *name) {
     t->bkl_depth = 0;
     t->bkl_saved = 1;        /* new threads take the BKL in sched_finish_switch() before running */
     t->cpu = this_cpu();
+    t->affinity = current ? current->affinity : ~0ULL;
+    if (!t->affinity) t->affinity = ~0ULL;
     list_init(&t->run_node);
     list_init(&t->timer_node);
     list_init(&t->proc_node);
@@ -206,8 +277,11 @@ static void reap_zombies(void) {
               current->name, __builtin_return_address(0));
     bkl_drop_for_switch(prev);
     c->resched = false;
-    if (prev->state == T_RUNNING && prev != c->idle) enqueue(prev);
-    next = dequeue();
+    if (prev->state == T_RUNNING && prev != c->idle) {
+        if (allowed(prev, c->id)) enqueue_on(c->id, prev);   /* round robin stays local */
+        else enqueue(prev);                                    /* affinity changed */
+    }
+    next = dequeue(c);
     if (!next) next = c->idle;
     next->state = T_RUNNING;
     pick_reset_quantum(next);
@@ -467,6 +541,8 @@ void sched_init(void) {
     boot->state = T_RUNNING;
     boot->quantum = quantum_for(boot);
     boot->cpu = c;
+    boot->affinity = ~0ULL;
+    c->online = true;
     list_init(&boot->run_node);
     list_init(&boot->timer_node);
     list_init(&boot->proc_node);

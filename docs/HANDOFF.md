@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M23 complete, M24 (fine-grained locking) in progress — CI boots and tests every arch; scheduler has its own lock, the BKL is dropped across context switches and a set of syscalls runs lock-free
+## Current state: M23 complete, M24 (fine-grained locking) mostly done, M25 (per-CPU scheduling + accounting) in progress — CI boots and tests every arch; scheduler has its own lock, the BKL is dropped across context switches and a set of syscalls runs lock-free
 
 | Milestone | Status |
 |-----------|--------|
@@ -237,6 +237,12 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - Precise on-CPU time: `__schedule()` adds `now - exec_start_ns` to `thread->sum_exec_ns` and `proc->sum_exec_ns` on switch-out and counts voluntary/involuntary switches; `clock_gettime(CLOCK_PROCESS_CPUTIME_ID/THREAD_CPUTIME_ID)` = sum + current slice.
 - `times()`, `getrusage(SELF/CHILDREN/THREAD)`, `wait4()` rusage (`struct rusage_k` → `rusage_to_user()`), child totals accumulated into the parent on reap; minor faults counted in `mm_handle_fault`. `/proc/stat` has user/system/idle per CPU; `/proc/pid/stat` minflt/cminflt/utime/stime/cutime/cstime/num_threads; `/proc/pid/status` Threads + ctxt switches.
 - `timetest` in ci-tests; bash `time` reports real user/sys.
+
+## M25 part 2: per-CPU run queues
+- `rqs[cpu]` (core/sched.c), one list per MLFQ level (one for RR), still all under `sched_lock`. `select_cpu()` places a woken thread on an idle allowed CPU (last CPU first), else its last CPU, else the shortest allowed queue; `kick_after_wake()` IPIs that CPU (or sets local resched). A preempted thread is requeued locally; `dequeue(c)` takes from the own queue, else steals the highest-priority allowed thread from the busiest queue.
+- `thread->affinity` (inherited on fork/clone), real `sched_setaffinity`/`sched_getaffinity` (pid = tid; migration at next schedule). The boot CPU is now marked `online` (it never was).
+- `/proc/sched` shows queue length and steals per CPU. `afftest` (in ci-tests): pinning to each CPU sticks, offline-only mask rejected, busy threads spread over all CPUs.
+- Next for M25: per-CPU locks (split `sched_lock` into rq locks + a sleep-list lock), load balancing on tick for busy CPUs, nice/priorities.
 
 ## CI/CD
 - `.github/workflows/release.yml`: on every push to `main` (docs/markdown-only changes are ignored), on PRs (build only) and manually (`workflow_dispatch`, optional `ports: false` → `NO_PORTS=1`). A `stamp` job fixes one UTC timestamp, a matrix builds x86_64/riscv64/aarch64 on ubuntu-24.04 (clang 18; `scripts/fetch-deps.sh`, `userland/build-all.sh`, `make iso`; downloads cached via `TOOLS_DIR`), and `release` publishes `9os-<YYYYMMDD-HHMMSS>` with `9os-<ts>-<arch>.iso` + `SHA256SUMS`. Build scripts accept `TOOLS_DIR` (default `/data/tools`). First release: `9os-20261005-114810`.
