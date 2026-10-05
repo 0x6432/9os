@@ -30,7 +30,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
 | M23 CI boot tests | ✅ `scripts/qemu-test.py` (expect-style serial driver, panic detection, per-command exit status), `scripts/ci-tests.sh` (13 checks) run for all arches in GitHub Actions before a release; found and fixed a console race and a missing `__clear_cache` on riscv64 |
 | M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; per-mm lock, atomic page refcounts, page faults + user copies without BKL; IRQ-safe console lock; `sysbench`, `faulttest` |
-| M25 Scheduling (in progress) | ◐ per-CPU queues, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing; per-CPU queue locks/caches and tickless idle remain |
+| M25 Scheduling (in progress) | ◐ per-CPU queues, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing, bounded per-CPU order-0 page caches; per-CPU queue locks, slab caches and tickless idle remain |
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 
 ## Build environment used
@@ -279,7 +279,7 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
   normal workers. It checks sibling-TID scheduling queries, widens queued masks, observes
   periodic migrations while both CPUs stay busy, then narrows the masks and verifies
   workers execute only on CPU0. It skips cleanly on a single-CPU guest.
-- **Remaining M25:** split `sched_lock` into per-CPU run-queue locks with safe sleep/wait
+- **Remaining after part 4:** split `sched_lock` into per-CPU run-queue locks with safe sleep/wait
   coordination, per-CPU slab/pmm caches, and tickless idle. This increment does not
   remove the global scheduler lock or complete M24/M25.
 
@@ -301,6 +301,61 @@ The full riscv64 four-CPU run was stopped after boot/libctest/cowtest/ipctest pa
 it was very slow on the two-core host while ARM userland was building. The complete
 focused two-CPU run above passed after the builds settled. Full non-x86 and graphics-port
 suites still need an uncongested CI run; these results are not a claim that M25 is complete.
+
+## M25 part 5: per-CPU physical-page caches
+- Freed order-0 pages may stay on the freeing CPU's cache (16 pages / 64 KiB per CPU,
+  at most 2 MiB resident in caches at `MAX_CPUS=32`). Cache hits/puts avoid `buddy_lock`;
+  other orders, empty-cache misses and full-cache frees use the buddy allocator.
+  Caches are enabled only after `smp_init()`; bootstrap allocation remains unchanged.
+- Cached pages have a distinct `PG_PCPU` flag, no slab owner, order 0 and refcount 0.
+  Allocation restores flags 0/refcount 1. The flag is not `PG_FREE`, so buddy coalescing
+  cannot consume a cached page. Cache flag transitions/coalescer loads are atomic.
+- `free_pages` is atomic and includes cached pages. Moving a page between cache and
+  buddy does not change the total. `/proc/vmstat` reports `pmm_pcpu_cached`,
+  `pmm_pcpu_alloc_hits`, `pmm_pcpu_free_hits`, and `pmm_pcpu_drained`.
+- On a buddy allocation miss (including higher orders), drain all CPU caches and
+  retry once. This recovers remote cached pages and permits coalescing into large blocks.
+  Draining detaches under a cache lock, releases it, then coalesces under the buddy lock.
+  A rare-path drain lock serializes concurrent detach/transfer operations, so an OOM
+  retry cannot overlook an unfinished drain's detached pages.
+- Allocator lock waiters service TLB IPIs after cache enablement, including while an
+  mm/page-table lock is held by the caller. Cache selection is IRQ-off to prevent
+  migration; no cache lock is held while acquiring the buddy lock.
+- `pmm_cache_selftest()` runs at boot (reuse/metadata/counts/bounded overflow/drain).
+  `scripts/pmm-host-tests.sh` runs the actual allocator with synthetic page metadata:
+  19,629 UBSan-trap checks for bootstrap behavior, local reuse, remote-cache recovery,
+  cache bounds, high-order coalescing, paused overlapping drains, and four concurrent
+  alloc/free/drain workers. Ten additional stress repetitions passed.
+- `pcputest` (in CI's boot suite) pins up to eight workers to separate CPUs and repeatedly
+  maps/touches/unmaps private pages. It checks demand-zero on reuse, page/thread isolation,
+  observable cache hits, cache bounds and free-memory accounting.
+- `balancetest` now uses a 60-second safety deadline for its FIFO guard instead of five,
+  and explicitly checks `guard_expired`. The 400 ms balancing observation and affinity
+  assertions are unchanged. A mixed-emulator run hit its `bad_cpu` assertion; a too-short
+  guard can let workers run before mask narrowing under host contention. Final checks
+  are run serially rather than hiding such a failure behind a timing-dependent pass.
+- **Remaining M25:** per-CPU run-queue locks, per-CPU slab/object caches and tickless idle.
+  Order-0 PMM caching does not remove the BKL or global scheduler/slab locks.
+
+### Validation for part 5
+
+Final checks ran serially on the two-core host after adding explicit FIFO-guard timeout
+reporting. All three kernels built with clang 15.0.7 and booted with QEMU 11.1.2.
+For non-x86 tests, userland was reused from release `9os-20261005-183051` (target
+`0a3e922`), with `pcputest` and the updated `balancetest` rebuilt against each target's
+musl 1.2.5 / compiler-rt 15.0.7 toolchain. This avoids rebuilding unrelated ports.
+
+| Architecture / policy | Guest CPUs | Coverage | Result |
+|---|---:|---|---|
+| x86_64 / RR | 4 | Full boot suite (`NO_PORTS=1`) | 19/19 including boot |
+| x86_64 / MLFQ | 4 | pcputest, faulttest, cowtest, pipetest, balancetest | 6/6 including boot |
+| riscv64 / RR | 2 | pcputest, faulttest, cowtest, pipetest, balancetest | 6/6 including boot |
+| aarch64 / RR | 2 | pcputest, faulttest, cowtest, pipetest, balancetest | 6/6 including boot |
+| x86_64 / MLFQ | 1 | pcputest and balancetest single-CPU skip | 3/3 including boot |
+
+Host regressions passed: PMM 19,629 checks (plus ten repeated stress runs), scheduler
+4,467 checks for each of RR/MLFQ. The larger graphics-port suite and full non-x86
+regressions still belong in CI; these focused results do not imply M24/M25 completion.
 
 ## CI/CD
 - `.github/workflows/release.yml`: on every push to `main` (docs/markdown-only changes are ignored), on PRs (build only) and manually (`workflow_dispatch`, optional `ports: false` → `NO_PORTS=1`). A `stamp` job fixes one UTC timestamp, a matrix builds x86_64/riscv64/aarch64 on ubuntu-24.04 (clang 18; `scripts/fetch-deps.sh`, `userland/build-all.sh`, `make iso`; downloads cached via `TOOLS_DIR`), and `release` publishes `9os-<YYYYMMDD-HHMMSS>` with `9os-<ts>-<arch>.iso` + `SHA256SUMS`. Build scripts accept `TOOLS_DIR` (default `/data/tools`). First release: `9os-20261005-114810`.

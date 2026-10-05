@@ -243,6 +243,9 @@ static void gen(struct pinfo *pi, struct buf *b) {
                 fr, tot, cow_stats.shared, cow_stats.copied, cow_stats.reused);
         extern uint64_t pc_stats_mapped, pc_stats_exec;
         bprintf(b, "pagecache_private_mapped %lu\npagecache_exec_mapped %lu\n", pc_stats_mapped, pc_stats_exec);
+        struct pmm_cache_stats ps; pmm_cache_stats(&ps);
+        bprintf(b, "pmm_pcpu_cached %lu\npmm_pcpu_alloc_hits %lu\npmm_pcpu_free_hits %lu\npmm_pcpu_drained %lu\n",
+                ps.cached_pages, ps.alloc_hits, ps.free_hits, ps.drained_pages);
         break;
     }
     case G_SCHED:

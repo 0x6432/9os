@@ -14,7 +14,7 @@
 #define WORKERS 6
 static int fails;
 #define CHECK(c) do { if (c) printf("  [ok] %s\n", #c); else { printf("  [FAIL] %s (line %d)\n", #c, __LINE__); fails++; } } while (0)
-static int ready, gates[WORKERS], tids[WORKERS], guard_ready, guard_stop, bad_cpu;
+static int ready, gates[WORKERS], tids[WORKERS], guard_ready, guard_stop, guard_expired, bad_cpu;
 
 static double now(void) {
     struct timespec ts;
@@ -68,8 +68,13 @@ static void *guard(void *unused) {
     int ok = sched_setaffinity(0, sizeof set, &set) == 0 && policy(SCHED_FIFO, 20) == 0;
     __atomic_store_n(&guard_ready, ok ? 1 : -1, __ATOMIC_RELEASE);
     /* Safety deadline: even a broken coordinator cannot hold this CPU indefinitely. */
-    double end = now() + 5;
+    /* TCG vCPUs on an oversubscribed host can pause for seconds while the
+     * coordinator prints checks/takes the BKL. Keep the guard through setup
+     * and cleanup, not just the nominal 400 ms observation interval. */
+    double end = now() + 60;
     while (!__atomic_load_n(&guard_stop, __ATOMIC_ACQUIRE) && now() < end);
+    if (!__atomic_load_n(&guard_stop, __ATOMIC_ACQUIRE))
+        __atomic_store_n(&guard_expired, 1, __ATOMIC_RELEASE);
     policy(SCHED_OTHER, 0);
     return 0;
 }
@@ -123,6 +128,7 @@ int main(void) {
     CHECK(policy(SCHED_OTHER, 0) == 0);
     for (int i = 0; i < count; i++) CHECK(pthread_join(workers[i], 0) == 0);
     if (have_guard) CHECK(pthread_join(blocker, 0) == 0);
+    CHECK(!__atomic_load_n(&guard_expired, __ATOMIC_ACQUIRE));
     CHECK(!__atomic_load_n(&bad_cpu, __ATOMIC_RELAXED));
     cpu_set_t set;
     CPU_ZERO(&set); for (int i = 0; i < n; i++) CPU_SET(i, &set);

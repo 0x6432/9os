@@ -75,6 +75,8 @@ void kmain(void) {
     arch_init();
     arch_irq_enable();
     smp_init();
+    pmm_enable_cpu_caches();
+    pmm_cache_selftest();
     acpi_late_init();
     if (strstr_simple(boot_cmdline(), "selftest")) sched_selftest();
     vfs_init();

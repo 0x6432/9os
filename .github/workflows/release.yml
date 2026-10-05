@@ -73,9 +73,11 @@ jobs:
           mkdir -p "$TOOLS_DIR/dl"
           scripts/fetch-deps.sh
 
-      - name: Scheduler queue unit tests (RR + MLFQ)
+      - name: Allocator and scheduler host regressions
         if: matrix.arch == 'x86_64'
-        run: scripts/sched-host-tests.sh
+        run: |
+          scripts/pmm-host-tests.sh
+          scripts/sched-host-tests.sh
 
       - name: Build userland (musl, BusyBox, Bash, ports)
         run: userland/build-all.sh
