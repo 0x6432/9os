@@ -10,3 +10,5 @@ userland/sysroot/
 userland/root/
 userland/root-*/
 !userland/skel/etc/init.d/
+third_party/uACPI
+third_party/limine-bin
