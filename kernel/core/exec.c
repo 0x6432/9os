@@ -22,8 +22,11 @@ static int read_exact(struct file *f, void *buf, size_t n, off_t off) {
     return r == (ssize_t)n ? 0 : (r < 0 ? (int)r : -ENOEXEC);
 }
 
-static int load_elf(struct mm *mm, struct file *f, uint64_t *entry, uint64_t *phdr_va,
-                    uint16_t *phnum, uint64_t *brk) {
+/* Load an ELF image. The main program (is_interp false) goes to its link address or PIE_BASE;
+ * the dynamic linker (is_interp true) to a free range found by the mmap allocator. If the
+ * program has PT_INTERP, its path is returned in *interp (kmalloc'd). */
+static int load_elf(struct mm *mm, struct file *f, bool is_interp, uint64_t *entry, uint64_t *phdr_va,
+                    uint16_t *phnum, uint64_t *brk, uint64_t *base_out, char **interp) {
     Elf64_Ehdr eh;
     int r = read_exact(f, &eh, sizeof eh, 0);
     if (r) return r;
@@ -35,9 +38,31 @@ static int load_elf(struct mm *mm, struct file *f, uint64_t *entry, uint64_t *ph
     r = read_exact(f, ph, sizeof(Elf64_Phdr) * eh.e_phnum, eh.e_phoff);
     if (r) goto out;
     uint64_t bias = eh.e_type == ET_DYN ? PIE_BASE : 0, top = 0;
+    if (is_interp) {
+        if (eh.e_type != ET_DYN) { r = -ENOEXEC; goto out; }
+        uint64_t lo = UINT64_MAX, hi = 0;
+        for (int i = 0; i < eh.e_phnum; i++) if (ph[i].p_type == PT_LOAD) {
+            lo = MIN(lo, ALIGN_DOWN(ph[i].p_vaddr, PAGE_SIZE));
+            hi = MAX(hi, ALIGN_UP(ph[i].p_vaddr + ph[i].p_memsz, PAGE_SIZE));
+        }
+        if (lo >= hi) { r = -ENOEXEC; goto out; }
+        int64_t b = mm_map(mm, 0, hi - lo, VM_READ, VMA_ANON, false);   /* reserve a free range */
+        if (b < 0) { r = (int)b; goto out; }
+        mm_unmap(mm, b, hi - lo);
+        bias = b - lo;
+    }
+    if (base_out) *base_out = bias;
     *phdr_va = 0;
     for (int i = 0; i < eh.e_phnum; i++) {
-        if (ph[i].p_type == PT_INTERP) { r = -ENOEXEC; goto out; }   /* static binaries only */
+        if (ph[i].p_type == PT_INTERP) {
+            if (is_interp || !interp || ph[i].p_filesz < 2 || ph[i].p_filesz > 255) { r = -ENOEXEC; goto out; }
+            char *ip = kzalloc(ph[i].p_filesz + 1);
+            r = read_exact(f, ip, ph[i].p_filesz, ph[i].p_offset);
+            if (r) { kfree(ip); goto out; }
+            ip[ph[i].p_filesz] = 0;
+            *interp = ip;
+            continue;
+        }
         if (ph[i].p_type == PT_PHDR) *phdr_va = ph[i].p_vaddr + bias;
         if (ph[i].p_type != PT_LOAD || ph[i].p_memsz == 0) continue;
         uint64_t va = ph[i].p_vaddr + bias;
@@ -82,7 +107,7 @@ static int push(struct mm *mm, uint64_t *sp, const void *data, size_t n) {
 
 /* Build the System V initial process stack. */
 static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], uint64_t entry,
-                       uint64_t phdr, uint16_t phnum, const char *execfn, uint64_t *out_sp) {
+                       uint64_t phdr, uint16_t phnum, uint64_t interp_base, const char *execfn, uint64_t *out_sp) {
     int64_t r = mm_map(mm, USER_TOP - USER_STACK_SIZE, USER_STACK_SIZE, VM_READ | VM_WRITE,
                        VMA_ANON | VMA_STACK, true);
     if (r < 0) return (int)r;
@@ -115,7 +140,7 @@ static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], ui
     uint64_t plat_va = sp;
     uint64_t auxv[] = {
         AT_PHDR, phdr, AT_PHENT, sizeof(Elf64_Phdr), AT_PHNUM, phnum, AT_PAGESZ, PAGE_SIZE,
-        AT_BASE, 0, AT_FLAGS, 0, AT_ENTRY, entry, AT_UID, 0, AT_EUID, 0, AT_GID, 0, AT_EGID, 0,
+        AT_BASE, interp_base, AT_FLAGS, 0, AT_ENTRY, entry, AT_UID, 0, AT_EUID, 0, AT_GID, 0, AT_EGID, 0,
         AT_SECURE, 0, AT_RANDOM, random_va, AT_HWCAP, 0, AT_CLKTCK, 100, AT_PLATFORM, plat_va,
         AT_EXECFN, execfn_va, AT_NULL, 0,
     };
@@ -173,9 +198,23 @@ int do_execve(const char *path, char *const argv[], char *const envp[], struct t
     if (!mm) { vfs_close(f); return -ENOMEM; }
     uint64_t entry, phdr, brk, sp;
     uint16_t phnum;
-    r = load_elf(mm, f, &entry, &phdr, &phnum, &brk);
+    char *interp = nullptr;
+    uint64_t start, ibase = 0;
+    r = load_elf(mm, f, false, &entry, &phdr, &phnum, &brk, nullptr, &interp);
     vfs_close(f);
-    if (!r) r = setup_stack(mm, argv, envp, entry, phdr, phnum, path, &sp);
+    start = entry;
+    if (!r && interp) {          /* dynamic executable: load ld.so and start there */
+        struct file *fi;
+        r = vfs_open(interp, O_RDONLY, 0, &fi);
+        if (!r) {
+            uint64_t ient, iphdr, ibrk; uint16_t iphnum;
+            r = load_elf(mm, fi, true, &ient, &iphdr, &iphnum, &ibrk, &ibase, nullptr);
+            vfs_close(fi);
+            start = ient;
+        }
+        kfree(interp);
+    }
+    if (!r) r = setup_stack(mm, argv, envp, entry, phdr, phnum, ibase, path, &sp);
     if (r) { mm_put(mm); return r; }
     mm->brk_start = mm->brk = brk;
 
@@ -200,7 +239,7 @@ int do_execve(const char *path, char *const argv[], char *const envp[], struct t
     signals_reset_on_exec(p);
     arch_reset_fpu(current);
     arch_set_tls(current, 0);
-    frame_init_user(frame, entry, sp);
+    frame_init_user(frame, start, sp);
     if (p->vfork) { p->vfork->done = true; wake_up(&p->vfork->wq); p->vfork = nullptr; }
     return 0;
 }

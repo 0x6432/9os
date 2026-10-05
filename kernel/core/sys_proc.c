@@ -420,3 +420,14 @@ int64_t sys_arch_prctl_wrap(int code, uint64_t addr) {
 #endif
 }
 
+
+/* membarrier(2): every other CPU passes through the scheduler (a full barrier) soon after the
+ * reschedule IPI; QUERY reports GLOBAL and the PRIVATE_EXPEDITED family. */
+#include <kernel/cpu.h>
+int64_t sys_membarrier(int cmd, unsigned flags, int cpu_id) {
+    if (cmd == 0) return 1 | 2 | 8 | 16;    /* GLOBAL, GLOBAL_EXPEDITED, PRIVATE_EXPEDITED, REGISTER_PRIVATE_EXPEDITED */
+    if (cmd == 16 || cmd == 4) return 0;    /* REGISTER_* */
+    __atomic_thread_fence(__ATOMIC_SEQ_CST);
+    for (int i = 0; i < ncpus; i++) if (&cpus[i] != this_cpu()) smp_send_resched(&cpus[i]);
+    return 0;
+}

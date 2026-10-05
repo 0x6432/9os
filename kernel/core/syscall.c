@@ -90,6 +90,7 @@ int64_t sys_listen();
 int64_t sys_lseek();
 int64_t sys_lstat();
 int64_t sys_madvise();
+int64_t sys_membarrier();
 int64_t sys_memfd_create();
 int64_t sys_mkdir();
 int64_t sys_mkdirat();
@@ -667,6 +668,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_memfd_create
     [__NR_memfd_create] = (syscall_fn)sys_memfd_create,
+#endif
+#ifdef __NR_membarrier
+    [__NR_membarrier] = (syscall_fn)sys_membarrier,
 #endif
 #ifdef __NR_statx
     [__NR_statx] = (syscall_fn)sys_statx,

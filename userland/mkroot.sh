@@ -23,5 +23,23 @@ for src in "$TOP"/tests/*.c "$TOP"/demos/*.c; do
     [ "$n" = hello ] && continue
     "$TOP/musl-cc" -O2 -o "bin/$n" "$src" -lm
 done
+# dynamic linking: musl's libc.so is also its dynamic linker
+if [ -f "$TOP/sysroot/$ARCH/lib/libc.so" ]; then
+    mkdir -p lib
+    cp "$TOP/sysroot/$ARCH/lib/libc.so" lib/libc.so && llvm-strip lib/libc.so
+    ln -sf libc.so "lib/ld-musl-$ARCH.so.1"
+    for src in "$TOP"/dynlib/*.c; do
+        [ -f "$src" ] || continue
+        o=$(mktemp).o
+        "$TOP/musl-cc" -fPIC -O2 -c -o "$o" "$src"
+        "$TOP/musl-cc" -shared -nostdlib -o "lib/$(basename "$src" .c).so" "$o" -L"$TOP/sysroot/$ARCH/lib" -lc
+        rm -f "$o"
+    done
+    # dynamic test programs: userland/dyntests/*.c → /bin/<name> (linked against libc.so)
+    for src in "$TOP"/dyntests/*.c; do
+        [ -f "$src" ] || continue
+        DYNAMIC=1 "$TOP/musl-cc" -O2 -o "bin/$(basename "$src" .c)" "$src" -L"$R/lib" -ldemo -lm
+    done
+fi
 cp -r "$TOP/skel/." "$R/"
 echo "root populated: $(find . -type f | wc -l) files, $(du -sk . | cut -f1) KiB"

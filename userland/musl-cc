@@ -9,6 +9,12 @@ link=1
 for a in "$@"; do case "$a" in -c|-S|-E|-M|-MM) link=0;; -r|-Wl,-r|-nostdlib|-shared) link=2;; esac; done
 if [ $link = 2 ]; then
     exec clang --target=$ARCH-linux-musl -fuse-ld=lld "$@"
+elif [ $link = 1 ] && [ -n "$DYNAMIC" ]; then
+    # dynamically linked PIE using /lib/ld-musl-$ARCH.so.1 (musl's libc.so)
+    exec clang --target=$ARCH-linux-musl -nostdinc -isystem "$SYSROOT/include" \
+        -isystem "$(clang -print-resource-dir)/include" -fuse-ld=lld -fPIE -pie -nostdlib \
+        -Wl,-dynamic-linker,/lib/ld-musl-$ARCH.so.1 \
+        "$SYSROOT/lib/Scrt1.o" "$SYSROOT/lib/crti.o" "$@" -L"$SYSROOT/lib" -lc "$RT" "$SYSROOT/lib/crtn.o"
 elif [ $link = 1 ]; then
     exec clang --target=$ARCH-linux-musl -nostdinc -isystem "$SYSROOT/include" \
         -isystem "$(clang -print-resource-dir)/include" -fuse-ld=lld -static -nostdlib \
