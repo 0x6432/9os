@@ -1,6 +1,7 @@
 /*
  * wlkms: a small Wayland compositor for 9os.
- *   output : KMS through libdrm (two dumb buffers, page flips, vblank-paced frame callbacks)
+ *   output : KMS through libdrm (one dumb buffer, damage-clipped repaint + DIRTYFB clips,
+ *            vblank-event-paced frame callbacks)
  *   render : pixman (background, windows with title bars, cursor), copying surface contents
  *   input  : evdev (/dev/input/event*, grabbed): keyboard → focused wl_keyboard,
  *            tablet/mouse → cursor, wl_pointer enter/motion/button, click-to-focus/raise,
@@ -47,8 +48,12 @@ static struct {
     int drm, crtc, conn;
     drmModeModeInfo mode;
     int W, H;
-    struct fbuf buf[2];
-    int back, flip_pending, dirty, frames;
+    struct fbuf buf[1];
+    int back, vbl_pending, dirty, frames;
+    pixman_region32_t dmg;               /* screen damage since the last repaint */
+    int cur_x, cur_y;                    /* where the cursor was last drawn */
+    uint64_t pixels;                     /* repainted pixel count (stats) */
+    double render_ms;
     struct wl_list surfaces;
     struct wl_list pointers, keyboards;  /* resources */
     struct surface *focus, *hover, *drag;
@@ -82,7 +87,7 @@ static int kms_init(void) {
     C.crtc = r->crtcs[0];
     for (int i = 0; enc && i < r->count_crtcs; i++) if (enc->possible_crtcs & (1u << i)) { C.crtc = r->crtcs[i]; break; }
     drmModeFreeEncoder(enc); drmModeFreeConnector(conn); drmModeFreeResources(r);
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 1; i++) {
         struct drm_mode_create_dumb cd = { .width = C.W, .height = C.H, .bpp = 32 };
         if (drmIoctl(C.drm, DRM_IOCTL_MODE_CREATE_DUMB, &cd)) return -1;
         struct fbuf *b = &C.buf[i];
@@ -126,8 +131,17 @@ static void fill(pixman_image_t *dst, uint32_t argb, int x, int y, int w, int h)
     pixman_image_fill_boxes(PIXMAN_OP_OVER, dst, &col, 1, &box);
 }
 
+static void dmg(int x, int y, int w, int h) {
+    pixman_region32_union_rect(&C.dmg, &C.dmg, x, y, w, h);
+    C.dirty = 1;
+}
+static void win_dmg(struct surface *s) {       /* frame + shadow */
+    if (s && s->mapped) dmg(s->x, s->y, s->w + 2 * BORDER + 6, s->h + TITLE_H + BORDER + 6);
+}
 static void render(void) {
-    struct fbuf *b = &C.buf[C.back];
+    struct fbuf *b = &C.buf[0];
+    pixman_region32_intersect_rect(&C.dmg, &C.dmg, 0, 0, C.W, C.H);
+    pixman_image_set_clip_region32(b->img, &C.dmg);
     pixman_image_composite32(PIXMAN_OP_SRC, C.bg, NULL, b->img, 0, 0, 0, 0, 0, 0, C.W, C.H);
     struct surface *s;
     wl_list_for_each(s, &C.surfaces, link) {
@@ -143,6 +157,8 @@ static void render(void) {
                                  s->x + BORDER, s->y + TITLE_H, s->w, s->h);
     }
     pixman_image_composite32(PIXMAN_OP_OVER, C.cursor, NULL, b->img, 0, 0, 0, 0, C.cx, C.cy, 12, 19);
+    C.cur_x = C.cx; C.cur_y = C.cy;
+    pixman_image_set_clip_region32(b->img, NULL);
 }
 
 static void send_frame_done(void) {
@@ -157,29 +173,43 @@ static void send_frame_done(void) {
     }
 }
 
+static void wait_vblank(void) {
+    drmVBlank v = { .request = { .type = DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT, .sequence = 1 } };
+    if (drmWaitVBlank(C.drm, &v) == 0) C.vbl_pending = 1;
+}
 static void repaint(void) {
-    if (C.flip_pending || !C.dirty) return;
+    if (C.vbl_pending || !C.dirty) return;
+    struct timespec t0, t1; clock_gettime(CLOCK_MONOTONIC, &t0);
     render();
-    if (drmModePageFlip(C.drm, C.crtc, C.buf[C.back].fb, DRM_MODE_PAGE_FLIP_EVENT, NULL) == 0) {
-        C.flip_pending = 1;
-        C.back ^= 1;
-        C.dirty = 0;
-        C.frames++;
+    int n = 0;
+    pixman_box32_t *bx = pixman_region32_rectangles(&C.dmg, &n);
+    drmModeClip clips[64];
+    if (n > 64) { bx = pixman_region32_extents(&C.dmg); n = 1; }
+    for (int i = 0; i < n; i++) {
+        clips[i] = (drmModeClip){ bx[i].x1, bx[i].y1, bx[i].x2, bx[i].y2 };
+        C.pixels += (uint64_t)(bx[i].x2 - bx[i].x1) * (bx[i].y2 - bx[i].y1);
     }
+    if (n) drmModeDirtyFB(C.drm, C.buf[0].fb, clips, n);
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+    C.render_ms += (t1.tv_sec - t0.tv_sec) * 1e3 + (t1.tv_nsec - t0.tv_nsec) / 1e6;
+    pixman_region32_clear(&C.dmg);
+    C.dirty = 0;
+    C.frames++;
+    wait_vblank();
 }
 
-static void page_flip_handler(int fd, unsigned seq, unsigned sec, unsigned usec, void *data) {
-    C.flip_pending = 0;
+static void vblank_handler(int fd, unsigned seq, unsigned sec, unsigned usec, void *data) {
+    C.vbl_pending = 0;
     send_frame_done();
     repaint();
 }
 static int on_drm(int fd, uint32_t mask, void *data) {
-    drmEventContext ev = { .version = 2, .page_flip_handler = page_flip_handler };
+    drmEventContext ev = { .version = 2, .vblank_handler = vblank_handler };
     drmHandleEvent(fd, &ev);
     return 0;
 }
 static int on_idle_timer(void *data) {          /* frame callbacks keep flowing while idle */
-    if (!C.flip_pending) { send_frame_done(); repaint(); }
+    if (!C.vbl_pending) { send_frame_done(); repaint(); }
     wl_event_source_timer_update(*(struct wl_event_source **)data, 16);
     return 0;
 }
@@ -191,12 +221,12 @@ static void surf_free(struct wl_resource *r) {
     struct wl_resource *cb, *tmp;
     wl_resource_for_each_safe(cb, tmp, &s->frame_cbs) wl_resource_destroy(cb);
     wl_resource_for_each_safe(cb, tmp, &s->pending_cbs) wl_resource_destroy(cb);
+    win_dmg(s);
     if (s->img) pixman_image_unref(s->img);
     if (C.focus == s) C.focus = NULL;
     if (C.hover == s) C.hover = NULL;
     if (C.drag == s) C.drag = NULL;
     free(s);
-    C.dirty = 1;
 }
 static void res_destroy(struct wl_client *c, struct wl_resource *r) { wl_resource_destroy(r); }
 static void surf_attach(struct wl_client *c, struct wl_resource *r, struct wl_resource *buf, int32_t x, int32_t y) {
@@ -219,6 +249,7 @@ static void surf_commit(struct wl_client *c, struct wl_resource *r) {
             int w = wl_shm_buffer_get_width(b), h = wl_shm_buffer_get_height(b);
             uint32_t fmt = wl_shm_buffer_get_format(b);
             if (!s->img || s->w != w || s->h != h) {
+                win_dmg(s);
                 if (s->img) pixman_image_unref(s->img);
                 s->img = pixman_image_create_bits(PIXMAN_a8r8g8b8, w, h, NULL, 0);
                 s->w = w; s->h = h;
@@ -235,10 +266,10 @@ static void surf_commit(struct wl_client *c, struct wl_resource *r) {
                 C.focus = s;
             }
             s->mapped = 1;
+            win_dmg(s);
         }
         wl_buffer_send_release(s->pending_buf);
         s->pending_buf = NULL;
-        C.dirty = 1;
     }
     wl_list_insert_list(s->frame_cbs.prev, &s->pending_cbs);
     wl_list_init(&s->pending_cbs);
@@ -274,7 +305,7 @@ static void bind_comp(struct wl_client *c, void *d, uint32_t ver, uint32_t id) {
 static void raise_focus(struct surface *s);
 static void tl_set_parent(struct wl_client *c, struct wl_resource *r, struct wl_resource *p) {}
 static void tl_set_title(struct wl_client *c, struct wl_resource *r, const char *t) {
-    struct surface *s = wl_resource_get_user_data(r); snprintf(s->title, sizeof s->title, "%s", t); C.dirty = 1;
+    struct surface *s = wl_resource_get_user_data(r); snprintf(s->title, sizeof s->title, "%s", t); win_dmg(s);
 }
 static void tl_set_app_id(struct wl_client *c, struct wl_resource *r, const char *t) {}
 static void tl_menu(struct wl_client *c, struct wl_resource *r, struct wl_resource *seat, uint32_t serial, int32_t x, int32_t y) {}
@@ -292,7 +323,7 @@ static const struct xdg_toplevel_interface toplevel_impl = {
 };
 static void toplevel_gone(struct wl_resource *r) {
     struct surface *s = wl_resource_get_user_data(r);
-    if (s) { s->toplevel = NULL; s->mapped = 0; C.dirty = 1; }
+    if (s) { win_dmg(s); s->toplevel = NULL; s->mapped = 0; }
 }
 static void xs_get_toplevel(struct wl_client *c, struct wl_resource *r, uint32_t id) {
     struct surface *s = wl_resource_get_user_data(r);
@@ -386,9 +417,9 @@ static void send_kbd_focus(struct surface *old, struct surface *new) {
     wl_array_release(&keys);
 }
 static void raise_focus(struct surface *s) {
+    win_dmg(C.focus); win_dmg(s);
     if (s != C.focus) { send_kbd_focus(C.focus, s); C.focus = s; }
     wl_list_remove(&s->link); wl_list_insert(C.surfaces.prev, &s->link);
-    C.dirty = 1;
 }
 static struct surface *surface_at(int x, int y, int *in_title) {
     struct surface *s;
@@ -404,7 +435,7 @@ static struct surface *surface_at(int x, int y, int *in_title) {
 static void pointer_motion(void) {
     int in_title = 0;
     struct surface *s = C.drag ? C.drag : surface_at(C.cx, C.cy, &in_title);
-    if (C.drag) { C.drag->x = C.cx - C.drag_dx; C.drag->y = C.cy - C.drag_dy; }
+    if (C.drag) { win_dmg(C.drag); C.drag->x = C.cx - C.drag_dx; C.drag->y = C.cy - C.drag_dy; win_dmg(C.drag); }
     struct wl_resource *p;
     uint32_t t = now_ms();
     if (s != C.hover) {
@@ -421,7 +452,7 @@ static void pointer_motion(void) {
                 wl_pointer_send_motion(p, t, wl_fixed_from_int(C.cx - s->x - BORDER), wl_fixed_from_int(C.cy - s->y - TITLE_H));
     }
     wl_resource_for_each(p, &C.pointers) if (wl_resource_get_version(p) >= 5) wl_pointer_send_frame(p);
-    C.dirty = 1;
+    dmg(C.cur_x, C.cur_y, 12, 19); dmg(C.cx, C.cy, 12, 19);
 }
 static void pointer_button(int code, int pressed) {
     C.buttons += pressed ? 1 : -1;
@@ -521,9 +552,10 @@ int main(int argc, char **argv) {
     wl_event_source_timer_update(idle, 16);
     if (secs) wl_event_source_timer_update(wl_event_loop_add_timer(C.loop, on_quit_timer, NULL), secs * 1000);
     /* first frame: modeset */
+    pixman_region32_init_rect(&C.dmg, 0, 0, C.W, C.H);
     render();
+    pixman_region32_clear(&C.dmg);
     if (drmModeSetCrtc(C.drm, C.crtc, C.buf[0].fb, 0, 0, (uint32_t *)&C.conn, 1, &C.mode)) { perror("wlkms: SetCrtc"); return 1; }
-    C.back = 1;
     printf("wlkms: %dx%d on WAYLAND_DISPLAY=%s\n", C.W, C.H, sock);
     fflush(stdout);
     uint32_t t0 = now_ms();
@@ -533,7 +565,8 @@ int main(int argc, char **argv) {
     }
     uint32_t dt = now_ms() - t0;
     int nwin = 0; struct surface *s; wl_list_for_each(s, &C.surfaces, link) nwin += s->mapped;
-    printf("wlkms: %d frames in %.1f s (%.1f fps), %d windows at exit\n", C.frames, dt / 1000.0, C.frames * 1000.0 / (dt ? dt : 1), nwin);
+    printf("wlkms: %d frames in %.1f s (%.1f fps), %.1f Mpixels repainted (%.1f ms/frame), %d windows at exit\n", C.frames, dt / 1000.0,
+           C.frames * 1000.0 / (dt ? dt : 1), C.pixels / 1e6, C.frames ? C.render_ms / C.frames : 0, nwin);
     wl_display_destroy_clients(C.dpy);
     wl_display_destroy(C.dpy);
     drmModeSetCrtc(C.drm, C.crtc, 0, 0, 0, NULL, 0, NULL);   /* give the console back */

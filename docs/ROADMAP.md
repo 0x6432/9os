@@ -16,7 +16,7 @@ push, and back up on its own. **Bold** items are the current focus.
 
 ## Phase B: A "real" POSIX base (M16–M22)
 
-Done in M16: COW fork, `MAP_SHARED` (anonymous + tmpfs/memfd), AF_UNIX with `SCM_RIGHTS`, `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`. Done in M17: ptys (`/dev/ptmx` + `/dev/pts`), evdev input (virtio-input, PS/2) and VT/KD ioctls. Done in M19: dynamic linking (ld-musl, dlopen) and inotify. Done in M20: page cache for private mappings, ports framework, Lua/SQLite/libffi/expat/libwayland. Still open below: storage, networking, the rest of the graphics userland.
+Done in M16: COW fork, `MAP_SHARED` (anonymous + tmpfs/memfd), AF_UNIX with `SCM_RIGHTS`, `socketpair`, `epoll`, `eventfd`, `timerfd`, `signalfd`, `memfd_create`. Done in M17: ptys (`/dev/ptmx` + `/dev/pts`), evdev input (virtio-input, PS/2) and VT/KD ioctls. Done in M19: dynamic linking (ld-musl, dlopen) and inotify. Done in M20: page cache for private mappings, ports framework, Lua/SQLite/libffi/expat/libwayland. Done in M21: wayland-protocols, pixman, libxkbcommon, libdrm and the `wlkms` KMS Wayland compositor with xdg-shell clients. Still open below: storage, networking, the rest of the graphics userland.
 
 These features are what most ported software needs, in rough order of value:
 

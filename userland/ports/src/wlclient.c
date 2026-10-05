@@ -22,6 +22,7 @@ static struct xdg_surface *xsurf;
 static struct xdg_toplevel *top;
 static int W = 320, H = 240, configured, running = 1, palette;
 static unsigned frames;
+static double draw_s;
 struct buf { struct wl_buffer *b; uint32_t *px; int busy; };
 static struct buf bufs[2];
 
@@ -55,22 +56,26 @@ static void redraw(uint32_t t) {
     struct wl_callback *cb = wl_surface_frame(surf);
     wl_callback_add_listener(cb, &frame_l, 0);
     if (b) {
+        double d0 = now();
         uint32_t *px = b->px;
         int off = t / 8;
         static const uint32_t pal[3][2] = { { 0x2060c0, 0xffc040 }, { 0x30a050, 0xe04080 }, { 0x603090, 0x40e0e0 } };
-        for (int y = 0; y < H; y++)
-            for (int x = 0; x < W; x++) {
-                int v = ((x + off) ^ (y + off / 2)) & 63;
-                uint32_t a = pal[palette][0], c = pal[palette][1];
-                uint32_t r = (((a >> 16) & 255) * (63 - v) + ((c >> 16) & 255) * v) / 63;
-                uint32_t g = (((a >> 8) & 255) * (63 - v) + ((c >> 8) & 255) * v) / 63;
-                uint32_t bl = ((a & 255) * (63 - v) + (c & 255) * v) / 63;
-                px[y * W + x] = r << 16 | g << 8 | bl;
-            }
+        uint32_t lut[64], ca = pal[palette][0], cc = pal[palette][1];
+        for (int v = 0; v < 64; v++) {
+            uint32_t r = (((ca >> 16) & 255) * (63 - v) + ((cc >> 16) & 255) * v) / 63;
+            uint32_t g = (((ca >> 8) & 255) * (63 - v) + ((cc >> 8) & 255) * v) / 63;
+            uint32_t bl = ((ca & 255) * (63 - v) + (cc & 255) * v) / 63;
+            lut[v] = r << 16 | g << 8 | bl;
+        }
+        for (int y = 0; y < H; y++) {
+            uint32_t *row = px + y * W, yy = y + off / 2;
+            for (int x = 0; x < W; x++) row[x] = lut[((x + off) ^ yy) & 63];
+        }
         wl_surface_attach(surf, b->b, 0, 0);
         wl_surface_damage_buffer(surf, 0, 0, W, H);
         b->busy = 1;
         frames++;
+        draw_s += now() - d0;
     }
     wl_surface_commit(surf);
 }
@@ -163,7 +168,7 @@ int main(int argc, char **argv) {
     while (running && wl_display_dispatch(dpy) != -1)
         if (secs > 0 && now() - t0 >= secs) break;
     double el = now() - t0;
-    printf("wlclient: %u frames in %.2fs (%.1f fps)\n", frames, el, frames / (el > 0 ? el : 1));
+    printf("wlclient: %u frames in %.2fs (%.1f fps), %.1f ms/frame drawing\n", frames, el, frames / (el > 0 ? el : 1), frames ? draw_s * 1000 / frames : 0);
     wl_display_disconnect(dpy);
     return 0;
 }

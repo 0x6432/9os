@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M20 complete — real ports on the dynamic toolchain: Lua, SQLite, libffi, expat and libwayland (client+server test passes) on all three arches
+## Current state: M21 complete — a Wayland desktop on KMS-lite: `wlkms` compositor (libwayland-server + libdrm + pixman + evdev) running xdg-shell clients on all three arches
 
 | Milestone | Status |
 |-----------|--------|
@@ -27,6 +27,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M18 KMS-lite | ✅ `/dev/dri/card0`: legacy KMS (1 connector/encoder/CRTC/primary plane), GEM dumb buffers + mmap, ADDFB/ADDFB2/RMFB, SETCRTC, PAGE_FLIP with flip events, DIRTYFB, WAIT_VBLANK; `drmdemo` |
 | M19 Dynamic linking + inotify | ✅ `PT_INTERP` → musl `libc.so` as `/lib/ld-musl-<arch>.so.1`, shared libs + `dlopen`, `membarrier`; inotify with VFS hooks; `dyntest`, `inotifytest` |
 | M20 Ports + libwayland | ✅ page cache for private file mappings + exec (3.4× faster exec), `userland/ports` (meson/autotools cross helpers): Lua 5.4, SQLite 3.47 (FTS5), libffi, expat, wayland 1.23.1; `wltest`, `mapprivtest` |
+| M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -190,7 +191,15 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - Ports: Lua 5.4.7 (`liblua.so.5.4`, `lua`, `luac`), SQLite 3.47.2 (`libsqlite3.so.0`, `sqlite3` with FTS5 + math), libffi 3.4.6, expat 2.6.4, wayland 1.23.1 (client, server, cursor, egl libs).
 - `wltest` (`userland/ports/src/wltest.c`): a libwayland server (wl_shm + minimal wl_compositor/wl_surface/wl_region, timer and SIGCHLD event sources, client create/destroy listeners) and a forked client (registry, memfd pool through SCM_RIGHTS, ARGB8888 buffer, attach/damage/frame/commit, buffer release, roundtrips). Server reads the pixels via `wl_shm_buffer`. Passes on all three arches.
 
+## M21: Wayland compositor
+- Ports (`userland/ports/*.sh`, in `build-ports.sh` ALL): wayland-protocols 1.38, pixman 0.44.2, libxkbcommon 1.7.0 (needs host bison; no xkeyboard-config data yet), libdrm 2.4.123 (core only + test programs: `modetest -M 9os`, `vbltest`), `wlkms` (compositor + `wlclient`). xdg-shell glue is generated with the host `wayland-scanner` in `wlkms.sh`.
+- Kernel DRM: `SET_VERSION`; a vblank kthread with a 60 Hz deadline; WAIT_VBLANK events are queued until the target sequence; `MODE_DIRTYFB` honours clip rects (`present_rect`), and `fb_damage_rect()` feeds a damage box into virtio-gpu so only the dirty rectangle is transferred/flushed. `fb_explicit_damage` is set while a DRM master owns the CRTC (fbdev mmap clients still get full-screen 60 Hz flushes).
+- `wlkms [seconds]` (`userland/ports/src/wlkms.c`): DRM master on `/dev/dri/card0`, one dumb buffer, pixman compositing clipped to a damage region (background, shadows, title bars, close box, cursor), `drmModeDirtyFB` with the damage rects, frame callbacks paced by vblank events (+16 ms idle timer). Globals: wl_compositor v5, wl_shm, xdg_wm_base v5, wl_seat v7 (pointer + keyboard, `WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP`), wl_output v3. Input from grabbed `/dev/input/event*` (tablet abs → cursor, rel mice, keys). Click raises/focuses, drag a title bar to move, close box sends `xdg_toplevel.close`, Ctrl+Alt+Backspace quits. Prints frames, fps, repainted Mpixels and ms/frame at exit.
+- `XDG_RUNTIME_DIR=/run/user/0` comes from `/etc/profile` (wlkms creates it if unset).
+- `wlclient [seconds] [w h]`: xdg toplevel with two shm buffers, animated pattern on frame callbacks, click → palette change, `q` quits; prints fps.
+- Test: `wlkms 16 > /tmp/k.log 2>&1 &`, `wlclient 10 &`, `wlclient 9 200 150 &` then screendump through the QEMU monitor (`QEMUEXTRA="-monitor unix:/tmp/mon.sock,server,nowait"`, `python3 scripts/qemu-monitor.py "screendump /tmp/x.ppm"`). x86_64 (TCG): ~40 fps for one client; riscv64/aarch64 (TCG) 4–6 fps, bound by emulation speed.
+
 ## Next steps (see docs/ROADMAP.md)
-1. DRM properties/atomic + PRIME for wlroots; fine-grained locking / per-CPU run queues.
-2. Next ports: wayland-protocols, libxkbcommon (needs bison on the host), pixman, libdrm, then a small Wayland compositor on KMS-lite + evdev (own minimal one first, then tinywl/wlroots with the libinput/udev shims) and simple clients (weston-simple-shm style, foot later).
-3. Fine-grained locking + per-CPU run queues (M16 in the roadmap); interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2.
+1. xkeyboard-config data so libxkbcommon can compile real keymaps (wl_keyboard XKB_V1 keymaps for toolkits); a terminal client (foot needs fcft/freetype/fontconfig) or a tiny own one.
+2. DRM properties/atomic + PRIME for wlroots; libinput/libevdev/mtdev + a udev shim; seatd; then tinywl/wlroots and Sway.
+3. Mesa softpipe (EGL/GLES2/GBM) after that; fine-grained locking + per-CPU run queues; interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2; CPU time accounting (`times()` still reports 0).

@@ -13,6 +13,7 @@
 #include <kernel/string.h>
 #include <kernel/printk.h>
 #include <kernel/arch.h>
+#include <kernel/spinlock.h>
 
 #define QSIZE 16
 
@@ -32,7 +33,8 @@ static uint8_t *cmdbuf; static paddr_t cmdbuf_pa;   /* request at 0, response at
 
 static struct limine_framebuffer vfb;
 static uint32_t width, height;
-static volatile bool dirty;
+static spinlock_t dlock;
+static uint32_t dx0 = UINT32_MAX, dy0 = UINT32_MAX, dx1, dy1;   /* pending damage box */
 
 static bool gpu_cmd(size_t req_len, size_t resp_len) {
     vq.desc[0] = (struct vq_desc){ cmdbuf_pa, (uint32_t)req_len, VQ_NEXT, 1 };
@@ -52,24 +54,33 @@ static void *req(uint32_t type, size_t len) {
     return cmdbuf;
 }
 
-static void gpu_flush(void) {
+static void gpu_flush_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
     struct { struct gpu_hdr h; struct gpu_rect r; uint64_t off; uint32_t res, pad; } *t =
         req(CMD_TRANSFER_TO_HOST_2D, sizeof *t);
-    t->r = (struct gpu_rect){ 0, 0, width, height }; t->res = 1;
+    t->r = (struct gpu_rect){ x, y, w, h }; t->off = (uint64_t)y * width * 4 + x * 4; t->res = 1;
     gpu_cmd(sizeof *t, sizeof(struct gpu_hdr));
     struct { struct gpu_hdr h; struct gpu_rect r; uint32_t res, pad; } *fl = req(CMD_RESOURCE_FLUSH, sizeof *fl);
-    fl->r = (struct gpu_rect){ 0, 0, width, height }; fl->res = 1;
+    fl->r = (struct gpu_rect){ x, y, w, h }; fl->res = 1;
     gpu_cmd(sizeof *fl, sizeof(struct gpu_hdr));
 }
 
 static void flush_thread(void *arg) {
     for (;;) {
         sleep_ns(16 * 1000000ull);
-        if (dirty || fb_graphics_active()) { dirty = false; gpu_flush(); }
+        uint64_t fl = spin_lock_irqsave(&dlock);
+        uint32_t x0 = dx0, y0 = dy0, x1 = MIN(dx1, width), y1 = MIN(dy1, height);
+        dx0 = dy0 = UINT32_MAX; dx1 = dy1 = 0;
+        spin_unlock_irqrestore(&dlock, fl);
+        if (fb_graphics_active() && !fb_explicit_damage) { x0 = y0 = 0; x1 = width; y1 = height; }  /* mmap'd fbdev */
+        if (x1 > x0 && y1 > y0) gpu_flush_rect(x0, y0, x1 - x0, y1 - y0);
     }
 }
 
-static void vgpu_damage_flush(void) { dirty = true; }
+static void vgpu_damage_flush(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
+    uint64_t fl = spin_lock_irqsave(&dlock);
+    dx0 = MIN(dx0, x0); dy0 = MIN(dy0, y0); dx1 = MAX(dx1, x1); dy1 = MAX(dy1, y1);
+    spin_unlock_irqrestore(&dlock, fl);
+}
 
 void virtio_gpu_init(void) {
     struct pci_dev *d = pci_find(VIRTIO_VENDOR, VIRTIO_DEV_GPU);
@@ -116,7 +127,7 @@ void virtio_gpu_init(void) {
     };
     boot_set_framebuffer(&vfb);
     fb_flush_hook = vgpu_damage_flush;
-    gpu_flush();
+    gpu_flush_rect(0, 0, width, height);
     thread_create("vgpu-flush", flush_thread, nullptr);
     pr_info("virtio-gpu: %ux%u framebuffer at 0x%lx (%lu KiB)\n", width, height, fbpa, size / 1024);
 }

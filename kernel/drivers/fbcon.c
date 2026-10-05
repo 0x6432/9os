@@ -126,8 +126,12 @@ static void putc_fb(char ch) {
 }
 
 static bool graphics;     /* a client owns the framebuffer (/dev/fb0 open) */
-void (*fb_flush_hook)(void);
-void fb_damage(void) { if (fb_flush_hook) fb_flush_hook(); }
+void (*fb_flush_hook)(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1);
+bool fb_explicit_damage;
+void fb_damage(void) { if (fb_flush_hook) fb_flush_hook(0, 0, UINT32_MAX, UINT32_MAX); }
+void fb_damage_rect(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
+    if (fb_flush_hook && x1 > x0 && y1 > y0) fb_flush_hook(x0, y0, x1, y1);
+}
 bool fb_graphics_active(void) { return graphics; }
 
 void fbcon_set_graphics(bool on) {

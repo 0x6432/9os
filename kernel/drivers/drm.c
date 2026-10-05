@@ -68,24 +68,26 @@ static struct dumb *bo_lookup(uint32_t h) {
     return nullptr;
 }
 
-/* copy a framebuffer into the scanout memory */
-static void present(struct dfb *fb) {
+/* copy the rectangle [x0,x1) x [y0,y1) of a framebuffer into the scanout memory */
+static void present_rect(struct dfb *fb, uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
     if (!fb || !scan) return;
     uint8_t *dst = scan->address;
-    uint32_t w = MIN(fb->w, (uint32_t)scan->width), h = MIN(fb->h, (uint32_t)scan->height);
-    size_t rowb = (size_t)w * 4;
-    for (uint32_t y = 0; y < h; y++) {
-        size_t off = fb->offset + (size_t)y * fb->pitch, done = 0;
+    x1 = MIN(x1, MIN(fb->w, (uint32_t)scan->width)); y1 = MIN(y1, MIN(fb->h, (uint32_t)scan->height));
+    if (x0 >= x1 || y0 >= y1) return;
+    size_t rowb = (size_t)(x1 - x0) * 4;
+    for (uint32_t y = y0; y < y1; y++) {
+        size_t off = fb->offset + (size_t)y * fb->pitch + (size_t)x0 * 4, done = 0;
         while (done < rowb) {
             size_t pg = (off + done) / PAGE_SIZE, po = (off + done) % PAGE_SIZE;
             if (pg >= fb->bo->npages) return;
             size_t n = MIN(rowb - done, PAGE_SIZE - po);
-            memcpy(dst + (size_t)y * scan->pitch + done, (uint8_t *)PHYS_TO_VIRT(fb->bo->pages[pg]) + po, n);
+            memcpy(dst + (size_t)y * scan->pitch + (size_t)x0 * 4 + done, (uint8_t *)PHYS_TO_VIRT(fb->bo->pages[pg]) + po, n);
             done += n;
         }
     }
-    fb_damage();
+    fb_damage_rect(x0, y0, x1, y1);
 }
+static void present(struct dfb *fb) { present_rect(fb, 0, 0, UINT32_MAX, UINT32_MAX); }
 
 static void queue_event(struct dfile *f, uint32_t type, uint64_t user_data) {
     struct devent *e = kzalloc(sizeof *e);
@@ -299,14 +301,14 @@ static int drm_ioctl(struct file *file, uint64_t cmd, uint64_t uarg) {
         }
         if (!c.mode_valid || !c.fb_id) {                                     /* disable */
             crtc.active = false; crtc.fb_id = 0; crtc.owner = nullptr;
-            fbcon_set_graphics(false);
+            fb_explicit_damage = false; fbcon_set_graphics(false);
             return 0;
         }
         struct dfb *fb = c.fb_id == 0xffffffffu ? fb_lookup(crtc.fb_id) : fb_lookup(c.fb_id);
         if (!fb) return -ENOENT;
         if (c.mode.hdisplay != mode.hdisplay || c.mode.vdisplay != mode.vdisplay) return -EINVAL;
         crtc.mode = c.mode; crtc.active = true; crtc.fb_id = fb->id; crtc.owner = f;
-        fbcon_set_graphics(true);
+        fb_explicit_damage = true; fbcon_set_graphics(true);
         present(fb);
         return 0;
     }
@@ -373,11 +375,20 @@ static int drm_ioctl(struct file *file, uint64_t cmd, uint64_t uarg) {
         return 0;
     }
     case 0xB1: {                                                             /* MODE_DIRTYFB */
-        uint32_t d[4];
-        if (copy_from_user(d, arg, sizeof d)) return -EFAULT;
-        struct dfb *fb = fb_lookup(d[0]);
+        struct { uint32_t fb_id, flags, color, num_clips; uint64_t clips_ptr; } d;
+        if (copy_from_user(&d, arg, sizeof d)) return -EFAULT;
+        struct dfb *fb = fb_lookup(d.fb_id);
         if (!fb) return -ENOENT;
-        if (crtc.active && crtc.fb_id == fb->id) present(fb);
+        if (!crtc.active || crtc.fb_id != fb->id) return 0;
+        if (!d.num_clips || !d.clips_ptr) { present(fb); return 0; }
+        if (d.num_clips > 256) return -EINVAL;
+        /* DRM_MODE_FB_DIRTY_ANNOTATE_COPY (1): clips come in pairs (src, dst); use the dst rects */
+        unsigned step = (d.flags & 1) ? 2 : 1;
+        for (uint32_t i = (d.flags & 1) ? 1 : 0; i < d.num_clips; i += step) {
+            struct { uint16_t x1, y1, x2, y2; } c;
+            if (copy_from_user(&c, (void *)(uintptr_t)(d.clips_ptr + i * 8ull), sizeof c)) return -EFAULT;
+            present_rect(fb, c.x1, c.y1, c.x2, c.y2);
+        }
         return 0;
     }
     case 0xB2: return create_dumb(f, arg);                                   /* MODE_CREATE_DUMB */
@@ -430,7 +441,7 @@ static void drm_release(struct file *file) {
     }
     for (int i = 0; i < MAX_OBJ; i++) if (fbs[i] && fbs[i]->owner == f) fb_remove(i);
     for (int i = 0; i < MAX_OBJ; i++) if (dumbs[i] && dumbs[i]->owner == f) { bo_free(dumbs[i]); dumbs[i] = nullptr; }
-    if (crtc.owner == f) { crtc.active = false; crtc.fb_id = 0; crtc.owner = nullptr; fbcon_set_graphics(false); }
+    if (crtc.owner == f) { crtc.active = false; crtc.fb_id = 0; crtc.owner = nullptr; fb_explicit_damage = false; fbcon_set_graphics(false); }
     list_for_each_safe(it, tmp, &f->events) kfree(list_entry(it, struct devent, node));
     kfree(f);
 }
