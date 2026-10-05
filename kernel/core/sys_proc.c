@@ -383,16 +383,10 @@ int64_t sys_sched_rr_get_interval(int pid, struct timespec *uts) {
     struct timespec ts = { 0, (int64_t)ms * 1000000 };
     return copy_to_user(uts, &ts, sizeof ts);
 }
-/* pid 0 = calling thread; otherwise the thread with that tid in the process of that pid */
+/* pid 0 = calling thread; otherwise a TID, including a non-leader pthread. BKL held. */
 static struct thread *affinity_target(int pid) {
     if (!pid || pid == current->tid) return current;
-    struct process *p = process_find(pid);
-    if (!p) return nullptr;
-    list_for_each(it, &p->threads) {
-        struct thread *t = list_entry(it, struct thread, proc_node);
-        if (t->tid == pid) return t;
-    }
-    return nullptr;
+    return process_find_thread(pid);
 }
 
 int64_t sys_sched_getaffinity(int pid, size_t len, uint64_t *mask) {       /* lock-free syscall */

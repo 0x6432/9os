@@ -76,6 +76,7 @@ __noreturn void sched_start_ap(struct cpu *c);
 int sched_runnable_count(void);
 int sched_rq_len(int cpu);
 uint64_t sched_rq_steals(int cpu);
+uint64_t sched_rq_balances(int cpu);
 int sched_set_affinity(struct thread *t, uint64_t mask);
 int sched_set_policy(struct thread *t, int policy, int rt_prio, int nice);
 

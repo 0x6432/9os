@@ -18,3 +18,10 @@ make run                    # boot in QEMU (serial on stdio)
 ```
 
 See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [docs/HANDOFF.md](docs/HANDOFF.md) for the current state.
+
+## Scheduler regression tests
+
+`scripts/sched-host-tests.sh` checks the actual RR/MLFQ queue code on the host with
+undefined-behavior traps (no userland or QEMU needed). After building the userland,
+`python3 scripts/qemu-test.py x86_64 --smp 2 balancetest` checks busy-CPU balancing and
+sibling-thread affinity in the guest. `scripts/ci-tests.sh ARCH` runs the full boot suite.
