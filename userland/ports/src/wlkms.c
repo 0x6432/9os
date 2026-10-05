@@ -131,12 +131,30 @@ static void fill(pixman_image_t *dst, uint32_t argb, int x, int y, int w, int h)
     pixman_image_fill_boxes(PIXMAN_OP_OVER, dst, &col, 1, &box);
 }
 
+static void send_kbd_focus(struct surface *old, struct surface *new);
 static void dmg(int x, int y, int w, int h) {
     pixman_region32_union_rect(&C.dmg, &C.dmg, x, y, w, h);
     C.dirty = 1;
 }
 static void win_dmg(struct surface *s) {       /* frame + shadow */
     if (s && s->mapped) dmg(s->x, s->y, s->w + 2 * BORDER + 6, s->h + TITLE_H + BORDER + 6);
+}
+extern const uint8_t font8x16[128][16];
+static void draw_text(struct fbuf *b, const char *t, int x, int y, int maxw, uint32_t col) {
+    uint32_t *px = b->map;
+    int stride = b->pitch / 4;
+    for (int i = 0; t[i] && (i + 1) * 8 <= maxw; i++) {
+        const uint8_t *g = font8x16[(unsigned char)t[i] < 128 ? (unsigned char)t[i] : '?'];
+        for (int r = 0; r < 16; r++) {
+            int yy = y + r;
+            if (yy < 0 || yy >= C.H) continue;
+            for (int c = 0; c < 8; c++) {
+                int xx = x + i * 8 + c;
+                if (xx < 0 || xx >= C.W || !(g[r] & (0x80 >> c))) continue;
+                if (pixman_region32_contains_point(&C.dmg, xx, yy, NULL)) px[yy * stride + xx] = col;
+            }
+        }
+    }
 }
 static void render(void) {
     struct fbuf *b = &C.buf[0];
@@ -149,9 +167,7 @@ static void render(void) {
         int focused = s == C.focus;
         fill(b->img, 0x60000000, s->x + 6, s->y + 6, s->w + 2 * BORDER, s->h + TITLE_H + BORDER);       /* shadow */
         fill(b->img, focused ? 0xff3b6ea8 : 0xff5a5a66, s->x, s->y, s->w + 2 * BORDER, s->h + TITLE_H + BORDER);
-        int tl = strlen(s->title);                       /* "text": little blocks per character */
-        for (int i = 0; i < tl && i * 7 < s->w - 30; i++)
-            if (s->title[i] != ' ') fill(b->img, 0xffe8eef6, s->x + 8 + i * 7, s->y + 7, 5, 8);
+        draw_text(b, s->title, s->x + 8, s->y + 3, s->w - 30, 0xffe8eef6);
         fill(b->img, 0xffd05050, s->x + s->w + 2 * BORDER - 18, s->y + 5, 12, 12);                    /* close box */
         pixman_image_composite32(PIXMAN_OP_OVER, s->img, NULL, b->img, 0, 0, 0, 0,
                                  s->x + BORDER, s->y + TITLE_H, s->w, s->h);
@@ -263,6 +279,7 @@ static void surf_commit(struct wl_client *c, struct wl_resource *r) {
             if (!s->mapped && s->toplevel) {                         /* cascade new windows */
                 static int n;
                 s->x = 60 + (n % 6) * 60; s->y = 50 + (n % 6) * 50; n++;
+                send_kbd_focus(C.focus, s);
                 C.focus = s;
             }
             s->mapped = 1;
