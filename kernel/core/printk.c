@@ -2,6 +2,7 @@
 #include <kernel/printk.h>
 #include <kernel/arch.h>
 #include <kernel/spinlock.h>
+#include <kernel/cpu.h>
 
 #define MAX_CONSOLES 4
 static void (*consoles[MAX_CONSOLES])(const char *, size_t);
@@ -39,18 +40,33 @@ void console_register(void (*write)(const char *, size_t)) {
     spin_unlock_irqrestore(&printk_lock, f);
 }
 
+/* Console output can come from any CPU and from interrupt handlers (tty echo) that interrupt a
+ * write on the same CPU, so the console drivers (fbcon state, UART) are serialised here with
+ * interrupts off. A nested entry on the owning CPU (exception during output, panic) skips the lock. */
+static spinlock_t console_lock = SPINLOCK_INIT;
+static volatile int console_owner = -1;
+extern volatile bool panicking;
 void console_write(const char *s, size_t n) {
+    uint64_t f = arch_irq_save();
+    int me = this_cpu()->id;
+    bool nested = console_owner == me || panicking;
+    if (!nested) { spin_lock(&console_lock); console_owner = me; }
     for (int i = 0; i < nconsoles; i++) consoles[i](s, n);
+    if (!nested) { console_owner = -1; spin_unlock(&console_lock); }
+    arch_irq_restore(f);
 }
 
 void vprintk(const char *fmt, va_list ap) {
     char buf[512];
     int n = vsnprintf(buf, sizeof buf, fmt, ap);
     if (n > (int)sizeof buf - 1) n = sizeof buf - 1;
-    uint64_t f = spin_lock_irqsave(&printk_lock);
+    uint64_t f = arch_irq_save();
+    bool locked = !panicking;
+    if (locked) spin_lock(&printk_lock);
     log_append(buf, n);
     console_write(buf, n);
-    spin_unlock_irqrestore(&printk_lock, f);
+    if (locked) spin_unlock(&printk_lock);
+    arch_irq_restore(f);
 }
 
 void printk(const char *fmt, ...) {

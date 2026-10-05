@@ -101,7 +101,7 @@ $(ISO): $(KERNEL) $(INITRAMFS) limine.conf
 
 # UEFI firmware for riscv64/aarch64: searched in the usual distro locations (override with FW_CODE=...)
 FW_DIRS := $(dir $(shell which qemu-system-$(ARCH) 2>/dev/null))../share/qemu /usr/share/qemu /usr/share/edk2/riscv \
-           /usr/share/edk2/aarch64 /usr/share/qemu-efi-aarch64 /usr/share/AAVMF /usr/share/edk2-ovmf /usr/lib/u-boot/qemu-riscv64_smode
+           /usr/share/edk2/aarch64 /usr/share/qemu-efi-aarch64 /usr/share/AAVMF /usr/share/qemu-efi-riscv64 /usr/share/edk2-ovmf /usr/lib/u-boot/qemu-riscv64_smode
 FW_NAMES_riscv64 := edk2-riscv-code.fd RISCV_VIRT_CODE.fd
 FW_NAMES_aarch64 := edk2-aarch64-code.fd QEMU_EFI.fd AAVMF_CODE.fd
 FW_SIZE_riscv64 := 33554432
