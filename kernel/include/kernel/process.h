@@ -56,6 +56,7 @@ int rusage_to_user(void *u, const struct rusage_k *r);
 struct process *process_current(void);
 #define curproc (current->proc)
 struct process *process_find(int pid);
+struct thread *process_find_thread(int tid);  /* caller holds BKL */
 struct process *process_create_init(const char *path);
 int64_t do_wait(int pid, int *ustatus, int options, int *out_pid);
 __noreturn void thread_exit_only(void);

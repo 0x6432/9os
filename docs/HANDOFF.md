@@ -30,6 +30,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
 | M23 CI boot tests | ✅ `scripts/qemu-test.py` (expect-style serial driver, panic detection, per-command exit status), `scripts/ci-tests.sh` (13 checks) run for all arches in GitHub Actions before a release; found and fixed a console race and a missing `__clear_cache` on riscv64 |
 | M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; per-mm lock, atomic page refcounts, page faults + user copies without BKL; IRQ-safe console lock; `sysbench`, `faulttest` |
+| M25 Scheduling (in progress) | ◐ per-CPU queues, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing; per-CPU queue locks/caches and tickless idle remain |
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 
 ## Build environment used
@@ -252,6 +253,54 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - Tests: `nicetest` (in ci-tests); `afftest` checks CLOCK_MONOTONIC across CPUs; `timetest` checks cpu <= wall for a fresh child. `scripts/qemu-test.py` waits for the `#` prompt before each command and appends `QEMU_EXTRA`.
 - CI installs Alpine edge QEMU/edk2 (`scripts/install-qemu-alpine.sh`, also used by `sandbox-setup.sh`): Ubuntu's riscv64 firmware made Limine panic ("BSP hart does not advertise MMU support").
 - Timing tests (nicetest/afftest) can be flaky when the host has fewer cores than `--smp`.
+
+## M25 part 4: periodic balancing and affinity correctness
+- The cpu0 timer tick balances normal queued threads every 20 ms under `sched_lock`,
+  moving at most one thread per destination per interval. Load includes the running
+  non-idle thread, so balancing works between busy CPUs, not only when an idle CPU steals.
+  Affinity, policy, quantum and total runnable count are preserved. Balancing never
+  targets offline CPUs or selects live switch-out contexts or RT threads.
+- `/proc/sched` now reports `balances` (periodic migrations received) separately from
+  `steals` (idle pull migrations). RT placement still follows the existing wake/steal paths.
+- Fixed queued-affinity accounting: remove with the old mask, then reinsert with the
+  new one, even when the queue does not change. Previously `nr_mig` could be stale or
+  negative, hiding eligible work or causing unnecessary idle scans.
+- Stealing tries subsequent donors if the largest queue has no thread allowed on the
+  destination CPU; it no longer gives up despite eligible work in another queue.
+- Scheduling/affinity syscall target lookup now searches process thread lists by TID
+  (`process_find_thread`, BKL held), including non-leader pthreads. Previously only a
+  process leader or the calling thread was found.
+- `scripts/sched-host-tests.sh`: actual scheduler code with host IRQ/current/IPI shims,
+  UBSan traps, 4,467 assertions each for RR and MLFQ. Covers same-queue affinity changes,
+  migration accounting, multiple steal donors, busy balancing, pinned/offline/RT/live
+  exclusions and 200 rounds of affinity/balance churn. Reintroducing either queue bug
+  causes the suite to fail. CI runs it once on the x86_64 build job.
+- `balancetest` (in the boot suite) uses FIFO guards on CPUs 0/1 and individually gated
+  normal workers. It checks sibling-TID scheduling queries, widens queued masks, observes
+  periodic migrations while both CPUs stay busy, then narrows the masks and verifies
+  workers execute only on CPU0. It skips cleanly on a single-CPU guest.
+- **Remaining M25:** split `sched_lock` into per-CPU run-queue locks with safe sleep/wait
+  coordination, per-CPU slab/pmm caches, and tickless idle. This increment does not
+  remove the global scheduler lock or complete M24/M25.
+
+### Validation for part 4
+
+Kernel, userland and ISO builds passed for all three architectures with clang 15.0.7.
+Boot tests used QEMU 11.1.2 on a two-core host, with `NO_PORTS=1` (no `wltest`).
+
+| Architecture / policy | Guest CPUs | Coverage | Result |
+|---|---:|---|---|
+| x86_64 / RR | 4 | Full boot suite | 18/18 including boot |
+| x86_64 / RR | 2 | balancetest, afftest, nicetest | 4/4 including boot |
+| x86_64 / MLFQ | 4 | balancetest, afftest, nicetest, timetest, faulttest, pipetest | 7/7 including boot |
+| x86_64 / MLFQ | 1 | balancetest single-CPU skip | 2/2 including boot |
+| riscv64 / RR | 2 | balancetest, afftest, nicetest, timetest, faulttest, pipetest | 7/7 including boot |
+| aarch64 / RR | 2 | balancetest, afftest, nicetest, timetest, faulttest, pipetest | 7/7 including boot |
+
+The full riscv64 four-CPU run was stopped after boot/libctest/cowtest/ipctest passed:
+it was very slow on the two-core host while ARM userland was building. The complete
+focused two-CPU run above passed after the builds settled. Full non-x86 and graphics-port
+suites still need an uncongested CI run; these results are not a claim that M25 is complete.
 
 ## CI/CD
 - `.github/workflows/release.yml`: on every push to `main` (docs/markdown-only changes are ignored), on PRs (build only) and manually (`workflow_dispatch`, optional `ports: false` → `NO_PORTS=1`). A `stamp` job fixes one UTC timestamp, a matrix builds x86_64/riscv64/aarch64 on ubuntu-24.04 (clang 18; `scripts/fetch-deps.sh`, `userland/build-all.sh`, `make iso`; downloads cached via `TOOLS_DIR`), and `release` publishes `9os-<YYYYMMDD-HHMMSS>` with `9os-<ts>-<arch>.iso` + `SHA256SUMS`. Build scripts accept `TOOLS_DIR` (default `/data/tools`). First release: `9os-20261005-114810`.

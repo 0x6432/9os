@@ -3,7 +3,7 @@
  *   CONFIG_SCHED_RR   (default) round robin, fixed 10 ms quantum
  *   CONFIG_SCHED_MLFQ multilevel feedback queue: MLFQ_LEVELS levels, quantum doubles per level,
  *                     demotion after using a level's allotment, periodic boost to the top level.
- * SMP: one global run queue shared by all CPUs. Scheduler state (run queue, sleep list, wait
+ * SMP: per-CPU run queues. Scheduler state (run queues, sleep list, wait
  * queues, thread states, zombies) is protected by sched_lock, taken with interrupts disabled.
  * The lock is held across the context switch and released by the incoming thread in
  * sched_finish_switch(). A switch drops the big kernel lock of the outgoing thread and the
@@ -108,8 +108,10 @@ static bool wake_preempts(struct thread *woken, struct thread *running) {
     return policy_wake_preempts(woken, running);
 }
 
-struct rq { struct list_node rt; struct list_node q[RQ_LEVELS]; int nr, nr_mig; uint64_t steals; };   /* nr_mig: queued threads allowed elsewhere too */
+struct rq { struct list_node rt; struct list_node q[RQ_LEVELS]; int nr, nr_mig; uint64_t steals, balances; };   /* nr_mig: queued threads allowed elsewhere too */
 static struct rq rqs[MAX_CPUS];
+#define BALANCE_INTERVAL_NS 20000000ULL
+static uint64_t last_balance_ns;
 
 static void rq_init(void) {
     for (int c = 0; c < MAX_CPUS; c++) {
@@ -132,6 +134,12 @@ static void rq_add(int cpu, struct thread *t) {
     }
     list_add_tail(&rqs[cpu].q[level_of(t)], &t->run_node);
 }
+/* Remove before changing affinity: nr_mig must reflect the mask used at insertion. */
+static void rq_remove(int cpu, struct thread *t) {
+    list_del(&t->run_node);
+    rqs[cpu].nr--;
+    if (migratable(t, cpu)) rqs[cpu].nr_mig--;
+}
 /* highest-priority thread in rqs[from] that may run on 'cpu' */
 static struct thread *rq_take(int from, int cpu) {
     struct rq *r = &rqs[from];
@@ -139,9 +147,7 @@ static struct thread *rq_take(int from, int cpu) {
     list_for_each(it, &r->rt) {
         struct thread *t = list_entry(it, struct thread, run_node);
         if (!allowed(t, cpu)) continue;
-        list_del(&t->run_node);
-        r->nr--;
-        if (migratable(t, from)) r->nr_mig--;
+        rq_remove(from, t);
         return t;
     }
     for (int i = 0; i < RQ_LEVELS; i++) {
@@ -155,9 +161,7 @@ static struct thread *rq_take(int from, int cpu) {
         list_for_each(it, &r->q[i]) {
             struct thread *t = list_entry(it, struct thread, run_node);
             if (!allowed(t, cpu)) continue;
-            list_del(&t->run_node);
-            r->nr--;
-            if (migratable(t, from)) r->nr_mig--;
+            rq_remove(from, t);
             return t;
         }
     }
@@ -209,10 +213,18 @@ static void enqueue(struct thread *t) { enqueue_on(select_cpu(t), t); }
 static struct thread *dequeue(struct cpu *c) {
     struct thread *t = rq_take(c->id, c->id);
     if (!t) {
-        int victim = -1;
-        for (int i = 0; i < ncpus; i++)
-            if (i != c->id && rqs[i].nr && (victim < 0 || rqs[i].nr > rqs[victim].nr)) victim = i;
-        if (victim >= 0 && (t = rq_take(victim, c->id))) rqs[c->id].steals++;
+        uint64_t tried = 1ULL << c->id;
+        /* A busy queue may contain only pinned threads. Try the next donor rather than
+         * leaving this CPU idle when a smaller queue has eligible work. */
+        for (int pass = 0; pass < ncpus - 1; pass++) {
+            int victim = -1;
+            for (int i = 0; i < ncpus; i++)
+                if (!(tried & (1ULL << i)) && cpus[i].online && rqs[i].nr_mig &&
+                    (victim < 0 || rqs[i].nr > rqs[victim].nr)) victim = i;
+            if (victim < 0) break;
+            tried |= 1ULL << victim;
+            if ((t = rq_take(victim, c->id))) { rqs[c->id].steals++; break; }
+        }
     }
     if (t) nr_runnable--;
     return t;
@@ -235,6 +247,47 @@ static uint64_t online_mask(void) {
     return m;
 }
 
+/* cpu0 tick, sched_lock held. Move at most one normal thread per destination per
+ * interval, including to busy CPUs. Idle stealing alone cannot balance busy queues.
+ * Leave RT placement to wake-up/stealing, preserve affinity, and never move a context
+ * whose switch-out is still live. Search low-priority tails to preserve local latency. */
+static int rq_load(int cpu) {
+    struct cpu *c = &cpus[cpu];
+    return rqs[cpu].nr + (c->cur && c->cur != c->idle);
+}
+static struct thread *balance_candidate(int from, int to) {
+    for (int i = RQ_LEVELS - 1; i >= 0; i--) {
+        struct list_node *head = &rqs[from].q[i];
+        for (struct list_node *it = head->prev; it != head; it = it->prev) {
+            struct thread *t = list_entry(it, struct thread, run_node);
+            if (allowed(t, to) && !__atomic_load_n(&t->on_cpu, __ATOMIC_ACQUIRE)) return t;
+        }
+    }
+    return nullptr;
+}
+static void balance_tick(uint64_t now) {
+    if (now - last_balance_ns < BALANCE_INTERVAL_NS) return;
+    last_balance_ns = now;
+    for (int to = 0; to < ncpus; to++) {
+        if (!cpus[to].online) continue;
+        int from = -1, load = rq_load(to);
+        struct thread *chosen = nullptr;
+        for (int i = 0; i < ncpus; i++) {
+            if (i == to || !cpus[i].online || !rqs[i].nr_mig ||
+                rq_load(i) <= load + 1 || (from >= 0 && rq_load(i) <= rq_load(from))) continue;
+            struct thread *t = balance_candidate(i, to);
+            if (t) { from = i; chosen = t; }
+        }
+        if (!chosen) continue;
+        rq_remove(from, chosen);
+        chosen->rq_cpu = to;
+        rq_add(to, chosen);
+        rqs[to].balances++;
+        kick_after_wake(chosen);
+        /* nr_runnable and the thread's policy/slice/state are unchanged. */
+    }
+}
+
 /* change policy/priority; requeues the thread if it is waiting on a run queue */
 int sched_set_policy(struct thread *t, int policy, int rt_prio, int nice) {
     if (policy == SCHED_FIFO_ || policy == SCHED_RR_) { if (rt_prio < 1 || rt_prio > 99) return -EINVAL; }
@@ -244,7 +297,7 @@ int sched_set_policy(struct thread *t, int policy, int rt_prio, int nice) {
     if (nice > 19) nice = 19;
     uint64_t f = sl_lock_irqsave();
     bool queued = t->state == T_RUNNABLE && t != this_cpu()->idle;
-    if (queued) { list_del(&t->run_node); rqs[t->rq_cpu].nr--; if (migratable(t, t->rq_cpu)) rqs[t->rq_cpu].nr_mig--; }
+    if (queued) rq_remove(t->rq_cpu, t);
     t->policy = policy; t->rt_prio = rt_prio; t->nice = nice;
     t->quantum = quantum_for(t);
     if (queued) { rq_add(t->rq_cpu, t); kick_after_wake(t); }
@@ -260,13 +313,14 @@ int sched_set_affinity(struct thread *t, uint64_t mask) {
     mask &= online_mask();
     if (!mask) return -EINVAL;
     uint64_t f = sl_lock_irqsave();
+    bool queued = t->state == T_RUNNABLE && t != t->cpu->idle;
+    int old_cpu = t->rq_cpu;
+    if (queued) rq_remove(old_cpu, t);
     t->affinity = mask;
-    if (t->state == T_RUNNABLE && !allowed(t, t->rq_cpu)) {          /* queued on a CPU it may no longer use */
-        list_del(&t->run_node);
-        rqs[t->rq_cpu].nr--;
-        if (migratable(t, t->rq_cpu)) rqs[t->rq_cpu].nr_mig--;
-        nr_runnable--;
-        enqueue(t);
+    if (queued) {
+        /* Even if the queue does not change, narrowing/widening updates nr_mig. */
+        t->rq_cpu = allowed(t, old_cpu) ? old_cpu : select_cpu(t);
+        rq_add(t->rq_cpu, t);
         kick_after_wake(t);
     } else if (t->state == T_RUNNING && t->cpu && !allowed(t, t->cpu->id)) {   /* migrate at next schedule() */
         if (t->cpu == this_cpu()) this_cpu()->resched = true;
@@ -277,6 +331,7 @@ int sched_set_affinity(struct thread *t, uint64_t mask) {
 }
 int sched_rq_len(int cpu) { return rqs[cpu].nr; }
 uint64_t sched_rq_steals(int cpu) { return rqs[cpu].steals; }
+uint64_t sched_rq_balances(int cpu) { return rqs[cpu].balances; }
 
 /* A thread was queued on t->rq_cpu: get that CPU to look at it (IPI or local resched). */
 static void kick_after_wake(struct thread *t) {
@@ -488,6 +543,7 @@ void sched_tick(void) {
             }
         }
         policy_tick();
+        balance_tick(now);
         sl_unlock();
     }
     if (c->tick_accounted) { c->tick_accounted = false; return; }

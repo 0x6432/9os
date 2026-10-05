@@ -42,6 +42,19 @@ struct process *process_find(int pid) {
     return nullptr;
 }
 
+/* Linux scheduling syscalls take a TID, not necessarily a process leader's PID.
+ * Caller holds the BKL so the process/thread lists and returned pointer stay live. */
+struct thread *process_find_thread(int tid) {
+    list_for_each(it, &all_procs) {
+        struct process *p = list_entry(it, struct process, all_node);
+        list_for_each(ti, &p->threads) {
+            struct thread *t = list_entry(ti, struct thread, proc_node);
+            if (t->tid == tid) return t;
+        }
+    }
+    return nullptr;
+}
+
 void process_list(void (*fn)(struct process *, void *), void *ctx) {
     list_for_each_safe(it, tmp, &all_procs) fn(list_entry(it, struct process, all_node), ctx);
 }
