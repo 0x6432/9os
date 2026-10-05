@@ -27,8 +27,8 @@ _Updated after every milestone. Read this first when picking up the project._
 | M18 KMS-lite | ✅ `/dev/dri/card0`: legacy KMS (1 connector/encoder/CRTC/primary plane), GEM dumb buffers + mmap, ADDFB/ADDFB2/RMFB, SETCRTC, PAGE_FLIP with flip events, DIRTYFB, WAIT_VBLANK; `drmdemo` |
 | M19 Dynamic linking + inotify | ✅ `PT_INTERP` → musl `libc.so` as `/lib/ld-musl-<arch>.so.1`, shared libs + `dlopen`, `membarrier`; inotify with VFS hooks; `dyntest`, `inotifytest` |
 | M20 Ports + libwayland | ✅ page cache for private file mappings + exec (3.4× faster exec), `userland/ports` (meson/autotools cross helpers): Lua 5.4, SQLite 3.47 (FTS5), libffi, expat, wayland 1.23.1; `wltest`, `mapprivtest` |
-| M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 | M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
+| M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
