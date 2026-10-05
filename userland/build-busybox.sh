@@ -8,7 +8,10 @@ SYSROOT=$TOP/sysroot/$ARCH
 # Linux UAPI headers (BusyBox needs <linux/*.h>); copy from the host for x86_64.
 if [ ! -d "$SYSROOT/include/linux" ]; then
     cp -r /usr/include/linux /usr/include/asm-generic /usr/include/mtd "$SYSROOT/include/" 2>/dev/null || true
-    if [ "$ARCH" = x86_64 ]; then cp -r /usr/include/asm "$SYSROOT/include/"
+    if [ "$ARCH" = x86_64 ]; then
+        # Debian/Ubuntu keep <asm/*.h> under the multiarch directory
+        if [ -d /usr/include/asm ]; then cp -r /usr/include/asm "$SYSROOT/include/"
+        else cp -r /usr/include/x86_64-linux-gnu/asm "$SYSROOT/include/"; fi
     else
         # generic architectures: <asm/X.h> is <asm-generic/X.h>
         mkdir -p "$SYSROOT/include/asm"

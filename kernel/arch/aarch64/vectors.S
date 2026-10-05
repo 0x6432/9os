@@ -183,6 +183,9 @@ arch_enter_user:
     mov sp, x0
     b trap_return
 
+/* the kernel is built with -mgeneral-regs-only; only these helpers touch FP/SIMD state */
+.arch_extension fp
+.arch_extension simd
 /* fp_save(uint64_t buf[66]) / fp_restore: q0-q31, fpsr, fpcr */
 .global fp_save
 fp_save:
