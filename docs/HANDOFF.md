@@ -29,7 +29,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M20 Ports + libwayland | ✅ page cache for private file mappings + exec (3.4× faster exec), `userland/ports` (meson/autotools cross helpers): Lua 5.4, SQLite 3.47 (FTS5), libffi, expat, wayland 1.23.1; `wltest`, `mapprivtest` |
 | M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
 | M23 CI boot tests | ✅ `scripts/qemu-test.py` (expect-style serial driver, panic detection, per-command exit status), `scripts/ci-tests.sh` (13 checks) run for all arches in GitHub Actions before a release; found and fixed a console race and a missing `__clear_cache` on riscv64 |
-| M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; per-mm lock, atomic page refcounts, page faults + user copies without BKL; IRQ-safe console lock; lock-free read/write for pipes + eventfd; futex with hashed bucket locks; `sysbench`, `faulttest`, `pipetest`, `futextest`, `efdtest` |
+| M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; per-mm lock, atomic page refcounts, page faults + user copies without BKL; IRQ-safe console lock; lock-free read/write for pipes + eventfd + AF_UNIX (unix_lock); futex with hashed bucket locks; `sysbench`, `faulttest`, `pipetest`, `futextest`, `efdtest`, `socktest` |
 | M25 Scheduling | ✅ independent per-CPU run-queue locks, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing, bounded per-CPU PMM/slab caches, deadline-driven tickless idle |
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 
@@ -262,6 +262,32 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - Tests: `futextest` (futex mutex hammer, strict ping-pong, condvar broadcast, EAGAIN/EINVAL,
   relative/absolute/past timeouts, CMP_REQUEUE, 300 create/join for CLEARTID wakeups) and
   `efdtest` (MPMC semaphore eventfd with poll, blocking read, overflow EAGAIN/EINVAL) in ci-tests.
+
+## M24 part 7: AF_UNIX data path without the BKL
+- `sendmsg`, `recvmsg`, `sendto`, `recvfrom` are lock-free syscalls and `unix_fops` is `nobkl`
+  (read/write). All socket state — usock fields, receive queues, listener backlogs and
+  `bound_socks` — is guarded by one subsystem lock, `unix_lock` (IRQ-off, `spin_lock_ipi()`,
+  since recv copies to user memory under it). Setup syscalls (socket/bind/listen/connect/accept/
+  shutdown/[gs]etsockopt/get*name) still run under the BKL and take `unix_lock` around shared state.
+- The data path holds a file reference on its own socket (`sock_file_ref()` = `fd_get_ref()`);
+  peers are only dereferenced under `unix_lock` and re-resolved after every sleep, because a peer
+  can be destroyed (u_release → `usock_destroy()`) as soon as the lock is dropped.
+- Never under `unix_lock`: the BKL, VFS lookups (`name_inode()` resolves filesystem names under
+  the BKL first, `match_locked()` then searches `bound_socks`), `vfs_close()`/`iput()` (dequeued
+  chunks go on a local list and are freed after unlocking), `fd_alloc()` (SCM_RIGHTS files are
+  detached under the lock and installed afterwards under the BKL — `fd_alloc` scans the table
+  unlocked, so it must stay serialised by the BKL). Send chunks are allocated and filled from
+  user memory before taking the lock.
+- Sleeps sample `poll_seq` under `unix_lock` and call `poll_wait_seq()` after dropping it; every
+  state change is followed by `poll_notify()`, so wakeups cannot be lost.
+- Lock order: BKL → unix_lock → mm lock → pt/buddy/slab → sched_lock.
+- Fixed a use-after-free: `recv(MSG_TRUNC)` on a datagram returned `first->len` after freeing it.
+- `socktest` (ci-tests): SEQPACKET 2×2 senders/receivers with record checksums, cross-process stream
+  bulk copy, 200× SCM_RIGHTS pipe passing, 150× send racing the peer's close (EPIPE), accept/connect
+  churn from 3 client threads on an abstract listener, DGRAM fan-in with poll + recvfrom.
+- Remaining for M24: tty and the rest of VFS (tmpfs inode/dentry locks, fd table allocation),
+  procfs, epoll/poll without the BKL, sleeping mutexes, a debug lock-order checker; then drop the
+  BKL from the syscall entry for everything that no longer needs it.
 
 ## M25 part 1: CPU time accounting
 - Ticks are sampled as user or system (`cpu->tick_user`, set in `sched_tick_fast()`, which every arch calls first on each timer tick) and charged by `account_tick()` to the thread, process (atomic) and CPU (`user_ticks`/`sys_ticks`).
