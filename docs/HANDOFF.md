@@ -29,7 +29,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M20 Ports + libwayland | ✅ page cache for private file mappings + exec (3.4× faster exec), `userland/ports` (meson/autotools cross helpers): Lua 5.4, SQLite 3.47 (FTS5), libffi, expat, wayland 1.23.1; `wltest`, `mapprivtest` |
 | M21 Wayland compositor | ✅ ports wayland-protocols, pixman, libxkbcommon, libdrm (`modetest -M 9os`, `vbltest`); DRM SET_VERSION, 60 Hz deadline vblank, clipped DIRTYFB, rect damage → virtio-gpu partial transfers; `wlkms` compositor + `wlclient` |
 | M23 CI boot tests | ✅ `scripts/qemu-test.py` (expect-style serial driver, panic detection, per-command exit status), `scripts/ci-tests.sh` (13 checks) run for all arches in GitHub Actions before a release; found and fixed a console race and a missing `__clear_cache` on riscv64 |
-| M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; per-mm lock, atomic page refcounts, page faults + user copies without BKL; IRQ-safe console lock; `sysbench`, `faulttest` |
+| M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; per-mm lock, atomic page refcounts, page faults + user copies without BKL; IRQ-safe console lock; lock-free read/write for pipes + eventfd; futex with hashed bucket locks; `sysbench`, `faulttest`, `pipetest`, `futextest`, `efdtest` |
 | M25 Scheduling | ✅ independent per-CPU run-queue locks, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing, bounded per-CPU PMM/slab caches, deadline-driven tickless idle |
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 
@@ -232,6 +232,36 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - Rule: any lock held while taking an mm lock must be spun with `spin_lock_ipi()` (the mm lock holder may be waiting for TLB-shootdown acks).
 - `pipetest` (in ci-tests): 2 producers/2 consumers with 64-byte atomic records, 300 poll() wakeups from another thread, 2 MiB cross-process transfer.
 - Next: slab/kmalloc locks (already spinlocked; audit callers), tty/socket paths off the BKL, per-file/pipe/socket locks so read/write/poll can leave the BKL, then per-CPU run queues (M25).
+
+## M24 part 6: futex and eventfd without the BKL; LAPIC mode-switch livelock
+- `futex` is a lock-free syscall. Waiters live in 64 hashed buckets (`hash(mm, uaddr)`), each with
+  an IRQ-off lock spun with `spin_lock_ipi()` because FUTEX_WAIT reads the user word (mm lock)
+  under it. "Read word + enqueue" and "dequeue + set woken + wake_up" are both done under the
+  bucket lock; the sleep re-checks `woken` under `sched_lock` (wait_until_sl pattern), and a
+  waiter always retakes its bucket lock before returning so a waker never touches a dead stack
+  frame. Lock order: bucket → mm lock → sched_lock.
+- Fixed semantics: FUTEX_REQUEUE/CMP_REQUEUE used to wake waiters on *uaddr2* but never the
+  ones to be requeued from *uaddr*, so a musl condvar waiter parked on its barrier
+  (`unlock_requeue()` → `FUTEX_REQUEUE 0, 1`) could sleep forever. Requeue now wakes up to
+  val + val2 waiters on uaddr (a requeue is reported as a spurious wakeup, which musl/glibc
+  tolerate); CMP_REQUEUE checks `*uaddr == val3` under the bucket lock. Also EINVAL for
+  misaligned words, bad timespecs and an empty bitset; WAIT_BITSET honours FUTEX_CLOCK_REALTIME.
+- eventfd (`file_ops.nobkl`): counter updated by CAS, 8-byte copies via copy_{to,from}_user
+  (memcpy for kernel buffers), blocking with `wait_until_sl(&poll_wq, ...)`; every change is
+  followed by `poll_notify()`.
+- **x86 LAPIC livelock (M25 tickless idle, pre-existing):** `arch_timer_active()` wrote the LVT
+  periodic bit while a one-shot count (as small as 1) was still loaded. QEMU (TCG) then ran a
+  periodic timer with a period of a few bus cycles; its main loop re-fired it forever while
+  holding the BQL (host strace: endless `write(eventfd)`), so no vCPU reached the following
+  TMR_INIT write and the whole guest froze. Both mode switches now stop the counter first
+  (TMR_INIT = 0). Reproduced in 1 of ~3 `futextest` runs at `-smp 4`; 12/12 after the fix.
+- `/proc/sched` lists every thread: `thread <tid> <name> <R|X|B|S|Z> cpu rq syscall bkl depth/saved`
+  (useful to see who is blocked where when a guest test hangs).
+- Debugging a frozen guest: run with `QEMU_EXTRA="-monitor unix:/tmp/mon.sock,server,nowait"`;
+  if the monitor does not answer, QEMU itself is wedged — attach `gdb`/`strace` to the host process.
+- Tests: `futextest` (futex mutex hammer, strict ping-pong, condvar broadcast, EAGAIN/EINVAL,
+  relative/absolute/past timeouts, CMP_REQUEUE, 300 create/join for CLEARTID wakeups) and
+  `efdtest` (MPMC semaphore eventfd with poll, blocking read, overflow EAGAIN/EINVAL) in ci-tests.
 
 ## M25 part 1: CPU time accounting
 - Ticks are sampled as user or system (`cpu->tick_user`, set in `sched_tick_fast()`, which every arch calls first on each timer tick) and charged by `account_tick()` to the thread, process (atomic) and CPU (`user_ticks`/`sys_ticks`).
