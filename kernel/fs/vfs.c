@@ -37,10 +37,10 @@ struct inode *inode_alloc(uint32_t mode) {
     return i;
 }
 
-void iget(struct inode *i) { if (i) i->refcount++; }
+void iget(struct inode *i) { if (i) __atomic_add_fetch(&i->refcount, 1, __ATOMIC_RELAXED); }
 void iput(struct inode *i) {
     if (!i) return;
-    if (--i->refcount <= 0 && i->nlink == 0) {
+    if (__atomic_sub_fetch(&i->refcount, 1, __ATOMIC_ACQ_REL) <= 0 && i->nlink == 0) {
         if (i->iops && i->iops->evict) i->iops->evict(i);
         kfree(i);
     }

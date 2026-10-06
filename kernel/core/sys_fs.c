@@ -217,21 +217,29 @@ int64_t sys_write(int fd, const void *buf, size_t n) {
     return r;
 }
 
+/* lock-free like read/write: nobkl files (tmpfs) run as-is, others take the BKL */
 int64_t sys_pread64(int fd, void *buf, size_t n, off_t off) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
     if (!S_ISREG(f->inode->mode)) return -ESPIPE;
-    if (n && !user_range_ok(buf, n, true)) return -EFAULT;
-    return vfs_pread(f, buf, n, off);
+    if (f->fops && f->fops->nobkl) return vfs_pread(f, buf, n, off);
+    bkl_enter();
+    int64_t r = n && !user_range_ok(buf, n, true) ? -EFAULT : vfs_pread(f, buf, n, off);
+    bkl_exit();
+    return r;
 }
 
 int64_t sys_pwrite64(int fd, const void *buf, size_t n, off_t off) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
     if (!S_ISREG(f->inode->mode)) return -ESPIPE;
-    if (n && !user_range_ok(buf, n, false)) return -EFAULT;
+    if ((f->flags & O_ACCMODE) == O_RDONLY) return -EBADF;
     if (!f->fops || !f->fops->write) return -EINVAL;
-    return f->fops->write(f, buf, n, &off);
+    if (f->fops->nobkl) return f->fops->write(f, buf, n, &off);
+    bkl_enter();
+    int64_t r = n && !user_range_ok(buf, n, false) ? -EFAULT : f->fops->write(f, buf, n, &off);
+    bkl_exit();
+    return r;
 }
 
 struct iovec { void *base; size_t len; };

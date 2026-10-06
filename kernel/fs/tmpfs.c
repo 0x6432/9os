@@ -6,10 +6,25 @@
 #include <kernel/pmm.h>
 #include <kernel/boot.h>
 #include <kernel/list.h>
+#include <kernel/mutex.h>
+#include <kernel/mm.h>
 
 struct dirent_t { struct list_node node; struct inode *ino; char name[]; };
 struct tdir { struct list_node entries; uint64_t count; };
-struct tfile { paddr_t *pages; size_t npages; };
+/* Regular-file data (page array, size) is guarded by the per-inode mutex, so read/write/
+ * pread/pwrite/mmap of tmpfs files run without the BKL (M24). Namespace operations (lookup,
+ * create, unlink, rename) are still serialised by the BKL. */
+struct tfile { struct mutex lock; paddr_t *pages; size_t npages; };
+static const struct lock_class tfile_class = { "tmpfs_inode", LR_MUTEX_INODE, false };
+
+static int copy_out(void *dst, const void *src, size_t n) {
+    if ((vaddr_t)dst >= USER_TOP) { memcpy(dst, src, n); return 0; }
+    return copy_to_user(dst, src, n);
+}
+static int copy_in(void *dst, const void *src, size_t n) {
+    if ((vaddr_t)src >= USER_TOP) { memcpy(dst, src, n); return 0; }
+    return copy_from_user(dst, src, n);
+}
 
 static const struct inode_ops tmpfs_iops;
 static const struct file_ops tmpfs_fops, tmpfs_dir_fops;
@@ -49,7 +64,9 @@ static struct inode *tmpfs_new(uint32_t mode, uint64_t rdev) {
         i->fops = &tmpfs_dir_fops;
         i->nlink = 1;          /* "." */
     } else if (S_ISREG(mode)) {
-        i->priv = kzalloc(sizeof(struct tfile));
+        struct tfile *tf = kzalloc(sizeof(struct tfile));
+        if (tf) mutex_init(&tf->lock, &tfile_class);
+        i->priv = tf;
         i->fops = &tmpfs_fops;
     }
     return i;
@@ -171,8 +188,16 @@ static int ensure_pages(struct tfile *f, size_t n) {
     return 0;
 }
 
+static int t_truncate_locked(struct inode *i, uint64_t size);
 static int t_truncate(struct inode *i, uint64_t size) {
     if (!S_ISREG(i->mode)) return -EINVAL;
+    struct tfile *f = i->priv;
+    mutex_lock(&f->lock);
+    int r = t_truncate_locked(i, size);
+    mutex_unlock(&f->lock);
+    return r;
+}
+static int t_truncate_locked(struct inode *i, uint64_t size) {
     struct tfile *f = i->priv;
     size_t need = (size + PAGE_SIZE - 1) / PAGE_SIZE;
     if (size < i->size) {
@@ -209,27 +234,38 @@ static ssize_t t_read(struct file *fl, void *buf, size_t n, off_t *off) {
     struct inode *i = fl->inode;
     struct tfile *f = i->priv;
     if (*off < 0) return -EINVAL;
-    if ((uint64_t)*off >= i->size) return 0;
+    mutex_lock(&f->lock);
+    if ((uint64_t)*off >= i->size) { mutex_unlock(&f->lock); return 0; }
     n = MIN(n, i->size - *off);
     size_t done = 0;
+    static const uint8_t zero[256];
+    int err = 0;
     while (done < n) {
         uint64_t pos = *off + done;
         size_t pg = pos / PAGE_SIZE, po = pos % PAGE_SIZE, chunk = MIN(n - done, PAGE_SIZE - po);
-        if (pg < f->npages && f->pages[pg]) memcpy((uint8_t *)buf + done, (uint8_t *)PHYS_TO_VIRT(f->pages[pg]) + po, chunk);
-        else memset((uint8_t *)buf + done, 0, chunk);
+        if (pg < f->npages && f->pages[pg]) err = copy_out((uint8_t *)buf + done, (uint8_t *)PHYS_TO_VIRT(f->pages[pg]) + po, chunk);
+        else {
+            chunk = MIN(chunk, sizeof zero);
+            err = copy_out((uint8_t *)buf + done, zero, chunk);
+        }
+        if (err) break;
         done += chunk;
     }
     *off += done;
-    return done;
+    mutex_unlock(&f->lock);
+    return !done && err ? -EFAULT : (ssize_t)done;
 }
 
 static ssize_t t_write(struct file *fl, const void *buf, size_t n, off_t *off) {
     struct inode *i = fl->inode;
     struct tfile *f = i->priv;
-    if (*off < 0) return -EINVAL;
+    mutex_lock(&f->lock);
+    if (fl->flags & O_APPEND) *off = i->size;
+    if (*off < 0) { mutex_unlock(&f->lock); return -EINVAL; }
     uint64_t end = *off + n;
-    if (ensure_pages(f, (end + PAGE_SIZE - 1) / PAGE_SIZE)) return -ENOSPC;
+    if (ensure_pages(f, (end + PAGE_SIZE - 1) / PAGE_SIZE)) { mutex_unlock(&f->lock); return -ENOSPC; }
     size_t done = 0;
+    int err = 0;
     while (done < n) {
         uint64_t pos = *off + done;
         size_t pg = pos / PAGE_SIZE, po = pos % PAGE_SIZE, chunk = MIN(n - done, PAGE_SIZE - po);
@@ -237,13 +273,14 @@ static ssize_t t_write(struct file *fl, const void *buf, size_t n, off_t *off) {
             f->pages[pg] = pmm_alloc_zeroed(0);
             if (!f->pages[pg]) break;
         }
-        memcpy((uint8_t *)PHYS_TO_VIRT(f->pages[pg]) + po, (const uint8_t *)buf + done, chunk);
+        if ((err = copy_in((uint8_t *)PHYS_TO_VIRT(f->pages[pg]) + po, (const uint8_t *)buf + done, chunk))) break;
         done += chunk;
     }
-    if (!done && n) return -ENOSPC;
+    if (!done && n) { mutex_unlock(&f->lock); return err ? -EFAULT : -ENOSPC; }
     *off += done;
     if ((uint64_t)*off > i->size) i->size = *off;
     i->mtime = i->ctime = now_timespec();
+    mutex_unlock(&f->lock);
     return done;
 }
 
@@ -257,12 +294,15 @@ static const struct inode_ops tmpfs_iops = {
 /* MAP_SHARED: hand out the page cache page itself (allocating holes). */
 static int t_mmap_page(struct file *fl, uint64_t pgoff, paddr_t *pa) {
     struct tfile *f = fl->inode->priv;
-    if (ensure_pages(f, pgoff + 1)) return -ENOMEM;
-    if (!f->pages[pgoff] && !(f->pages[pgoff] = pmm_alloc_zeroed(0))) return -ENOMEM;
-    *pa = f->pages[pgoff];
-    return 0;
+    mutex_lock(&f->lock);
+    int r = 0;
+    if (ensure_pages(f, pgoff + 1)) r = -ENOMEM;
+    else if (!f->pages[pgoff] && !(f->pages[pgoff] = pmm_alloc_zeroed(0))) r = -ENOMEM;
+    else *pa = f->pages[pgoff];          /* callers (mmap/exec, under the BKL like truncate) take the reference */
+    mutex_unlock(&f->lock);
+    return r;
 }
-static const struct file_ops tmpfs_fops = { .read = t_read, .write = t_write, .poll = t_poll, .mmap_page = t_mmap_page };
+static const struct file_ops tmpfs_fops = { .nobkl = true, .read = t_read, .write = t_write, .poll = t_poll, .mmap_page = t_mmap_page };
 
 /* unlinked regular file (memfd_create, O_TMPFILE) */
 struct inode *tmpfs_create_anon(uint32_t mode) { return tmpfs_new(mode, 0); }

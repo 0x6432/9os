@@ -609,7 +609,15 @@ void fsnotify_inode_(struct inode *i, uint32_t mask) {
     notify(i, mask | (S_ISDIR(i->mode) ? IN_ISDIR : 0), 0, nullptr);
 }
 /* object event, also reported to the parent directory with the entry name (from f->path) */
+static void fsnotify_file_locked(struct file *f, uint32_t mask);
+/* watch lists and path walks still need the BKL; lock-free read/write paths take it here */
 void fsnotify_file_(struct file *f, uint32_t mask) {
+    bool took = !bkl_held();
+    if (took) bkl_enter();
+    fsnotify_file_locked(f, mask);
+    if (took) bkl_exit();
+}
+static void fsnotify_file_locked(struct file *f, uint32_t mask) {
     struct inode *i = f->inode;
     if (!i) return;
     fsnotify_inode_(i, mask);
