@@ -74,7 +74,7 @@ extern struct cow_stats cow_stats;
 struct vm_stats {
     uint64_t file_faults, anon_faults, zero_eof_faults, cow_faults, oom_retries, oom_kills;
     uint64_t reclaim_scanned, reclaim_freed, reclaim_runs, kswapd_wakeups, rmap_unmapped;
-    uint64_t madv_zapped, mremap_moved, populated;
+    uint64_t madv_zapped, mremap_moved, populated, copy_slowpath;
 };
 extern struct vm_stats vm_stats;
 

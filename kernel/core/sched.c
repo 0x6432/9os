@@ -7,6 +7,7 @@
  * waits, wakeups and cross-CPU migration. Only the incoming CPU's rq lock spans
  * a context switch, and sched_finish_switch releases it before retaking the BKL.
  */
+#include <kernel/uaccess.h>
 #include <kernel/sched.h>
 #include <kernel/arch.h>
 #include <kernel/pmm.h>
@@ -566,6 +567,7 @@ void sched_finish_switch(void) {
             kick_after_wake(old);
         __atomic_fetch_sub(&old->handoff_refs, 1, __ATOMIC_RELEASE);
     }
+    uaccess_restore_after_switch();
     bkl_retake_after_switch(current);
 }
 

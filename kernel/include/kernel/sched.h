@@ -51,6 +51,8 @@ struct thread {
     int bkl_depth;                 /* big kernel lock nesting */
     int bkl_saved;                 /* depth dropped across a context switch, retaken after it */
     int tlb_batch_depth;           /* vmm_batch_begin nesting */
+    int uaccess;                   /* user_access_begin nesting (SMAP/PAN/SUM window open) */
+    int pagefault_disabled;        /* in a user copy under the mm lock: faults never reclaim/OOM */
     int level;                     /* MLFQ priority level (0 = highest) */
     uint64_t run_ticks;            /* total ticks on CPU */
     uint64_t affinity;             /* allowed CPUs (bit = cpu id) */

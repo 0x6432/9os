@@ -109,8 +109,8 @@ void arch_early_init(void) {
     csr_write(sscratch, 0);
     csr_write(stvec, (uint64_t)trap_entry);
     csr_write(sie, 0);
-    /* user memory access from S-mode, FPU usable (user state saved eagerly on switch) */
-    csr_set(sstatus, SSTATUS_SUM | SSTATUS_FS_INITIAL);
+    /* FPU usable; user memory only inside user_access_begin/end (SUM, M27) (user state saved eagerly on switch) */
+    csr_set(sstatus, SSTATUS_FS_INITIAL);
 }
 
 void arch_init(void) {
@@ -137,7 +137,7 @@ __noreturn void riscv_ap_entry(struct limine_mp_info *info) {
     csr_write(sscratch, 0);
     csr_write(stvec, (uint64_t)trap_entry);
     csr_write(sie, 0);
-    csr_set(sstatus, SSTATUS_SUM | SSTATUS_FS_INITIAL);
+    csr_set(sstatus, SSTATUS_FS_INITIAL);
     vmm_switch(kernel_pt);
     set_timer(rdtime() + tick_delta);
     csr_set(sie, SIE_STIE | SIE_SSIE);

@@ -1,3 +1,4 @@
+#include <kernel/uaccess.h>
 #include <kernel/mm.h>
 #include <kernel/arch.h>
 #include <kernel/boot.h>
@@ -48,6 +49,7 @@ static void sched_selftest(void) {
 }
 
 void kmain(void) {
+    stack_guard_init();
     arch_early_init();
     boot_check();
     fbcon_init();
@@ -69,6 +71,7 @@ void kmain(void) {
     pmm_init();
     pmm_selftest();
     vmm_init();
+    harden_init();
     slab_init();
     slab_selftest();
     acpi_early_init();

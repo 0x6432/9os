@@ -24,6 +24,8 @@ trap_entry:
     csrr t0, sscratch               /* user tp */
     sd t0, 32(sp)
     csrw sscratch, zero
+    li t0, 0x40000                  /* SSTATUS.SUM: the user-access window starts closed */
+    csrc sstatus, t0
 2:
     sd x1, 8(sp)
     sd x3, 24(sp)

@@ -45,6 +45,9 @@ static void fill_zero(uint8_t *p, size_t n) { memset(p, 0, n); }
 
 /* lock-free splitmix64 over an atomic counter, perturbed by the clock */
 static uint64_t rng_state = 0x9e3779b97f4a7c15ULL;
+void rng_mix(uint64_t v) {
+    __atomic_fetch_xor(&rng_state, v * 0xff51afd7ed558ccdULL, __ATOMIC_RELAXED);
+}
 uint64_t random_u64(void) {
     uint64_t x = __atomic_add_fetch(&rng_state, 0x9e3779b97f4a7c15ULL, __ATOMIC_RELAXED) ^ time_ns();
     x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;

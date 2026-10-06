@@ -1,4 +1,5 @@
 /* ELF64 loader and execve. */
+#include <kernel/uaccess.h>
 #include <kernel/exec.h>
 #include <kernel/elf.h>
 #include <kernel/mm.h>
@@ -13,7 +14,14 @@
 #include <kernel/pmm.h>
 #include <arch/syscall.h>
 
+uint64_t random_u64(void);
 #define PIE_BASE 0x400000ULL
+/* ASLR entropy in pages (M27; cmdline norandmaps disables): PIE base 64 GiB, mmap base
+ * 1 TiB, stack top 16 GiB (+ sub-page sp offset), brk start 32 MiB */
+#define ASLR_PIE_BITS   24
+#define ASLR_MMAP_BITS  28
+#define ASLR_STACK_BITS 22
+#define ASLR_BRK_BITS   13
 #define MAX_ARG_BYTES (256 * 1024)
 
 void arch_reset_fpu(struct thread *t);
@@ -41,7 +49,14 @@ static int load_elf(struct mm *mm, struct file *f, bool is_interp, uint64_t *ent
     Elf64_Phdr *ph = kmalloc(sizeof(Elf64_Phdr) * eh.e_phnum);
     r = read_exact(f, ph, sizeof(Elf64_Phdr) * eh.e_phnum, eh.e_phoff);
     if (r) goto out;
-    uint64_t bias = eh.e_type == ET_DYN ? PIE_BASE : 0, top = 0;
+    uint64_t bias = 0, top = 0;
+    if (eh.e_type == ET_DYN) {
+        uint64_t align = PAGE_SIZE;
+        for (int i = 0; i < eh.e_phnum; i++)
+            if (ph[i].p_type == PT_LOAD && ph[i].p_align > align && !(ph[i].p_align & (ph[i].p_align - 1)))
+                align = MIN(ph[i].p_align, 1ULL << 30);
+        bias = PIE_BASE + ALIGN_DOWN(aslr_offset(ASLR_PIE_BITS), align);
+    }
     if (is_interp) {
         if (eh.e_type != ET_DYN) { r = -ENOEXEC; goto out; }
         uint64_t lo = UINT64_MAX, hi = 0;
@@ -73,6 +88,7 @@ static int load_elf(struct mm *mm, struct file *f, bool is_interp, uint64_t *ent
         uint64_t s = ALIGN_DOWN(va, PAGE_SIZE), e = ALIGN_UP(va + ph[i].p_memsz, PAGE_SIZE);
         unsigned prot = (ph[i].p_flags & PF_R ? VM_READ : 0) | (ph[i].p_flags & PF_W ? VM_WRITE : 0) |
                         (ph[i].p_flags & PF_X ? VM_EXEC : 0);
+        if ((r = wx_check(prot))) goto out;     /* W+X segment: counted, or refused under wx=strict */
         /* read-only segments are private file mappings of the page cache, demand-faulted and
          * shared by every process running this file (reclaimable under memory pressure) */
         if (!(ph[i].p_flags & PF_W) && f->fops && f->fops->fault_page && S_ISREG(f->inode->mode) &&
@@ -97,7 +113,11 @@ static int load_elf(struct mm *mm, struct file *f, bool is_interp, uint64_t *ent
         for (uint64_t p = s; p < e; ) {
             mm_lock(mm);
             struct vma *v = vma_find(mm, p);
-            if (v) { v->prot |= prot; p = v->end; mm_unlock(mm); continue; }
+            if (v) {
+                unsigned np = v->prot | prot;
+                if (np != v->prot && (r = wx_check(np))) { mm_unlock(mm); goto out; }
+                v->prot = np; p = v->end; mm_unlock(mm); continue;
+            }
             uint64_t q = p;
             while (q < e && !vma_find(mm, q)) q += PAGE_SIZE;
             mm_unlock(mm);
@@ -135,14 +155,16 @@ static int push(struct mm *mm, uint64_t *sp, const void *data, size_t n) {
 /* Build the System V initial process stack. */
 static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], uint64_t entry,
                        uint64_t phdr, uint16_t phnum, uint64_t interp_base, const char *execfn, uint64_t *out_sp) {
-    int64_t r = mm_map(mm, USER_TOP - USER_STACK_SIZE, USER_STACK_SIZE, VM_READ | VM_WRITE,
+    uint64_t stack_top = USER_TOP - aslr_offset(ASLR_STACK_BITS);
+    int64_t r = mm_map(mm, stack_top - USER_STACK_SIZE, USER_STACK_SIZE, VM_READ | VM_WRITE,
                        VMA_ANON | VMA_STACK, true);
     if (r < 0) return (int)r;
-    uint64_t sp = USER_TOP;
+    uint64_t sp = stack_top;
+    if (randomize_va_space) sp -= random_u64() & 0xff0;     /* sub-page offset */
 #ifdef ARCH_SIGTRAMP_CODE
     {   /* tiny "vDSO": rt_sigreturn trampoline used as the signal handler return address */
         static const uint32_t code[] = { ARCH_SIGTRAMP_CODE };
-        vaddr_t va = USER_TOP - USER_STACK_SIZE - 0x10000;
+        vaddr_t va = stack_top - USER_STACK_SIZE - 0x10000;
         if (mm_map(mm, va, PAGE_SIZE, VM_READ | VM_EXEC, VMA_ANON, true) == (int64_t)va &&
             !mm_write(mm, va, code, sizeof code))
             mm->sigtramp = va;
@@ -158,7 +180,7 @@ static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], ui
     for (int i = envc - 1; i >= 0; i--) { push(mm, &sp, envp[i], strlen(envp[i]) + 1); uenvp[i] = sp; }
     for (int i = argc - 1; i >= 0; i--) { push(mm, &sp, argv[i], strlen(argv[i]) + 1); uargv[i] = sp; }
     uargv[argc] = 0; uenvp[envc] = 0;
-    uint64_t rnd[2] = { time_ns() * 6364136223846793005ULL + 1442695040888963407ULL, (uint64_t)uargv ^ time_ns() };
+    uint64_t rnd[2] = { random_u64(), random_u64() };      /* AT_RANDOM: musl's canary + pointer guard */
     sp &= ~15ULL;
     push(mm, &sp, rnd, 16);
     uint64_t random_va = sp;
@@ -223,6 +245,7 @@ int do_execve(const char *path, char *const argv[], char *const envp[], struct t
 
     struct mm *mm = mm_create();
     if (!mm) { vfs_close(f); return -ENOMEM; }
+    mm->mmap_hint = USER_MMAP_BASE - aslr_offset(ASLR_MMAP_BITS);
     uint64_t entry, phdr, brk, sp;
     uint16_t phnum;
     char *interp = nullptr;
@@ -243,7 +266,7 @@ int do_execve(const char *path, char *const argv[], char *const envp[], struct t
     }
     if (!r) r = setup_stack(mm, argv, envp, entry, phdr, phnum, ibase, path, &sp);
     if (r) { mm_put(mm); return r; }
-    mm->brk_start = mm->brk = brk;
+    mm->brk_start = mm->brk = ALIGN_UP(brk, PAGE_SIZE) + aslr_offset(ASLR_BRK_BITS);
 
     /* point of no return */
     struct process *p = curproc;

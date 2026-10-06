@@ -208,3 +208,21 @@ void vmm_init(void) {
     vmm_switch(kernel_pt);
     pr_info("vmm: Sv48 kernel page tables active (root %lx)\n", kernel_pt.root);
 }
+
+/* M27 W^X audit: count kernel-half pages that are both writable and executable */
+static uint64_t wx_scan(paddr_t table, int level, int first) {
+    uint64_t *t = PHYS_TO_VIRT(table), n = 0;
+    for (int i = first; i < 512; i++) {
+        uint64_t e = t[i];
+        if (!(e & PTE_V)) continue;
+        if (e & PTE_LEAF) {
+            if ((e & PTE_W) && (e & PTE_X)) n += 1ULL << (9 * level);
+        } else if (level > 0) n += wx_scan(PTE_PA(e), level - 1, 0);
+    }
+    return n;
+}
+uint64_t arch_kernel_wx_pages(void) { return wx_scan(kernel_pt.root, 3, 256); }
+
+/* S-mode can never execute U pages; SUM stays clear outside user_access_begin/end */
+void arch_harden_cpu(void) { csr_clear(sstatus, SSTATUS_SUM); }
+const char *arch_harden_features(void) { return "sum-gate u-nx"; }

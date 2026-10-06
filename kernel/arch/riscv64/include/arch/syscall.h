@@ -21,7 +21,7 @@ static inline void frame_init_user(struct trap_frame *f, uint64_t entry, uint64_
     for (uint64_t *p = (uint64_t *)f; p < (uint64_t *)(f + 1); p++) *p = 0;
     f->sepc = entry;
     f->regs[2] = sp;
-    f->sstatus = (csr_read(sstatus) & ~(SSTATUS_SPP | SSTATUS_SIE | SSTATUS_FS)) | SSTATUS_SPIE | SSTATUS_FS_INITIAL | SSTATUS_SUM;
+    f->sstatus = (csr_read(sstatus) & ~(SSTATUS_SPP | SSTATUS_SIE | SSTATUS_FS)) | SSTATUS_SPIE | SSTATUS_FS_INITIAL;
 }
 /* Re-execute the ecall (for SA_RESTART): a7 still holds the number, a0 was clobbered. */
 static inline void frame_restart_syscall(struct trap_frame *f, uint64_t nr) {

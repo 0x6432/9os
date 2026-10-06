@@ -1549,6 +1549,9 @@ isr_common:
     pushq %r13
     pushq %r14
     pushq %r15
+    pushfq                      /* close the SMAP window (EFLAGS.AC): user mode may set AC, */
+    andq $~0x40000, (%rsp)      /* and an interrupted copy gets it back from its iret frame */
+    popfq
     movq %rsp, %rdi
     call trap_dispatch
 .global trap_return

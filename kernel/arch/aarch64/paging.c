@@ -250,3 +250,30 @@ void vmm_init(void) {
     bsp_tcr = sysreg_read(tcr_el1);
     pr_info("vmm: TTBR1 kernel tables active (root %lx), MAIR %lx\n", kernel_pt.root, mair);
 }
+
+/* M27 W^X audit: count kernel-half (TTBR1) pages that are both writable and EL1-executable */
+static uint64_t wx_scan(paddr_t table, int level) {
+    uint64_t *t = PHYS_TO_VIRT(table), n = 0;
+    for (int i = 0; i < 512; i++) {
+        uint64_t e = t[i];
+        if (!(e & D_VALID)) continue;
+        if (level == 3 || !(e & D_TABLE)) {
+            if (!(e & D_AP_RO) && !(e & D_PXN)) n += 1ULL << (9 * (3 - level));
+        } else n += wx_scan(e & D_ADDR, level + 1);
+    }
+    return n;
+}
+uint64_t arch_kernel_wx_pages(void) { return wx_scan(kernel_pt.root, 0); }
+
+bool a64_pan, a64_rndr;
+void arch_harden_cpu(void) {
+    uint64_t mmfr1 = sysreg_read(id_aa64mmfr1_el1);
+    if ((mmfr1 >> 20) & 0xf) {          /* PAN: set on every exception entry (SCTLR.SPAN = 0) */
+        sysreg_write(sctlr_el1, sysreg_read(sctlr_el1) & ~(1ULL << 23));
+        isb();
+        a64_pan = true;
+        __asm__ volatile(".inst 0xd500419f" ::: "memory");   /* msr pan, #1 */
+    }
+    if ((sysreg_read(id_aa64isar0_el1) >> 60) & 0xf) a64_rndr = true;
+}
+const char *arch_harden_features(void) { return a64_pan ? "pan pxn uxn" : "pxn uxn"; }

@@ -28,6 +28,12 @@ SECTIONS
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     __rodata_start = .;
     .rodata : { *(.rodata .rodata.*) } :rodata
+    . = ALIGN(16);
+    __ex_table : {
+        __start___ex_table = .;
+        KEEP(*(__ex_table))
+        __stop___ex_table = .;
+    } :rodata
     .eh_frame : { *(.eh_frame*) } :rodata
     __rodata_end = .;
 

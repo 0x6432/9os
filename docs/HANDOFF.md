@@ -669,3 +669,63 @@ not remotely executed as part of this local completion run.
 - Known limits: no swap and no anonymous rmap; truncating a file does not unmap pages already
   mapped past the new EOF (they stay valid but detached from the cache); `MADV_REMOVE` does not
   punch holes; mlock has no RLIMIT_MEMLOCK.
+
+## M27: Hardening
+- **User-access gate** (kernel/uaccess.h, mm/uaccess.c, `arch/uaccess.h`): every kernel
+  dereference of a user pointer sits between `user_access_begin()`/`user_access_end()`. The window
+  nests per thread (`thread.uaccess`) and is re-applied by `sched_finish_switch()` (a driver may
+  sleep inside it). x86: SMEP+SMAP in CR4 when CPUID has them, the window is `STAC`/`CLAC`;
+  interrupt entry clears EFLAGS.AC (user mode may set it; an interrupted copy gets it back from
+  its iret frame) and SYSCALL's FMASK already does. aarch64: PAN (ID_AA64MMFR1) with
+  SCTLR.SPAN = 0 so every exception entry sets PSTATE.PAN; user PTEs are PXN, kernel PTEs UXN.
+  riscv64: SSTATUS.SUM is no longer always on — it is cleared at boot, on every trap from user
+  mode and outside the window (S-mode can never execute U pages). QEMU now runs x86 with
+  `-cpu qemu64,+smep,+smap,+rdrand` and aarch64 with `-cpu cortex-a76` (PAN; override
+  `QEMU_CPU=`).
+- Users of the window: `copy_{to,from}_user`/`strncpy_from_user` and the BKL driver path of
+  read/write/pread64/pwrite64 (sys_fs.c `uaccess_call`). Those four syscalls now reject buffers
+  outside the user half with `access_ok()` up front — the file-op copy helpers (tty, pipe, tmpfs,
+  eventfd, devices) treat kernel addresses as in-kernel buffers (sendfile, exec), so before this
+  `write(1, kernel_addr, n)` leaked kernel memory.
+- **Fault triage** (`kernel_fault_check`, called by each arch before the lock-free fault path):
+  a kernel-mode instruction fetch from a user address panics (SMEP/PXN); a kernel data access to
+  a user address with the window closed is counted (`uaccess_violations`), fixed up if its PC is
+  in the exception table, else panics with "SMAP/PAN/SUM violation". Also fixed: a user-mode x86
+  #PF on a kernel address now raises SIGSEGV instead of panicking.
+- **Exception table**: `__copy_user(dst, src, n)` (arch `uaccess.S`: rep movs / ld-sd / ldr-str
+  loops) returns the bytes not copied; its loads/stores have `__ex_table` entries (linker scripts
+  collect them in rodata, `__start/__stop___ex_table`). `user_copy()` now runs it under the mm
+  lock *without* prefaulting: absent/COW pages are faulted in place by the ordinary fault path
+  (recursive mm lock); with `thread.pagefault_disabled` set that path makes one attempt and never
+  reclaims/OOM-kills, so bad addresses and allocation failures land in the fixup. The remainder
+  goes through the old slow path (VMA permission check + prefault, OOM retry outside the lock;
+  `user_copy_slowpath` in /proc/vmstat). `kernel_fault_fixup()` is the last resort before the
+  BKL/panic for any kernel-mode fault.
+- **Stack protector**: `-fstack-protector-strong` (x86 `-mstack-protector-guard=global`; the
+  others default to the global guard). `stack_guard_init()` (no_stack_protector) randomizes
+  `__stack_chk_guard` from `arch_entropy()` (RDTSC+RDRAND / CNTVCT+RNDR / rdtime) first thing in
+  kmain, low byte zero; `__stack_chk_fail` panics. `CONFIG_HARDEN=1` is in CONFIG_FLAGS so the
+  config stamp forces a full rebuild.
+- **ASLR** (exec.c, cmdline `norandmaps` disables): PIE base `0x400000 + rand(2^24 pages)`
+  (aligned to the largest PT_LOAD p_align), mmap base `USER_MMAP_BASE - rand(2^28 pages)` (so
+  ld.so/libc and every non-fixed mmap move), stack top `USER_TOP - rand(2^22 pages)` plus a
+  sub-page sp offset (the sigreturn trampoline sits below the stack), brk start
+  `+ rand(2^13 pages)`. AT_RANDOM comes from `random_u64()`, whose state is now mixed with
+  `arch_entropy()` at boot (`rng_mix`). fork inherits the layout.
+- **W^X**: the boot CPU audits the kernel half of the page tables (`arch_kernel_wx_pages`, all
+  three arches) and panics on any writable+executable kernel page (0 today: text RX, rodata R,
+  data/physmap/MMIO RW NX). User W+X mappings (mmap, mprotect, ELF segments, segments widened to
+  share a page) go through `wx_check()`: counted and logged (first 4) by default, refused with
+  -EACCES under `wx=strict`, ignored with `wx=off`.
+- `/proc/hardening`: features, stack guard state, randomize_va_space, W^X policy and the
+  kernel_wx_pages / wx_mappings / wx_denied / extable_fixups / uaccess_violations counters.
+- `hardentest` (dynamic PIE, ci-tests): three exec'd children must differ in PIE text, stack,
+  mmap, brk, libc and AT_RANDOM; bad and kernel pointers to write/open/fstatat/read (pipe, tmpfs,
+  /dev/zero, tty) return EFAULT and go through the exception table; reads into PROT_READ pages
+  fail, reads into fresh demand-zero pages work; the W+X counter moves for RWX but not for RX.
+- Fixed on the way: two CPUs shooting down each other's TLBs with IRQs off deadlocked in
+  `arch_tlb_remote()` (each waited for the other's ack; seen as a faulttest hang with munmap on one
+  CPU and an exiting mm's gather flush on another). The ack wait now serves its own pending IPIs.
+- Known limits: no KASLR (the kernel stays at 0xffffffff80000000); no per-thread kernel stack
+  canaries or shadow stacks/CET/BTI/PAC; the in-kernel buffer convention of the file-op helpers
+  (kernel address = kernel buffer) remains, guarded by `access_ok()` at the four syscall entries.

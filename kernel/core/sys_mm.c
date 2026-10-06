@@ -3,6 +3,7 @@
  * syscall.c.in): the address space is protected by mm->lock (mm/mm.c). Device mappings
  * (file_ops.mmap / mmap_page, e.g. fbdev and DRM) still call into their drivers under the BKL.
  */
+#include <kernel/uaccess.h>
 #include <kernel/pmm.h>
 #include <kernel/syscall.h>
 #include <kernel/kmalloc.h>
@@ -107,6 +108,8 @@ int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t o
     }
     if ((flags & MAP_FIXED) && (addr & (PAGE_SIZE - 1))) return -EINVAL;
     unsigned vp = prot_to_vm(prot), vflags = (shared ? VMA_SHARED : 0) | (flags & MAP_LOCKED ? VMA_LOCKED : 0);
+    int wx = wx_check(vp);
+    if (wx) return wx;
     struct file *f = nullptr, *own = nullptr;
     if (!(flags & MAP_ANONYMOUS)) {
         f = fd_get(fd);
@@ -143,6 +146,8 @@ int64_t sys_munmap(uint64_t addr, size_t len) {
 int64_t sys_mprotect(uint64_t addr, size_t len, int prot) {
     if (addr & (PAGE_SIZE - 1) || prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC | PROT_GROWSDOWN | PROT_GROWSUP)) return -EINVAL;
     if (!len) return 0;
+    int wx = wx_check(prot_to_vm(prot));
+    if (wx) return wx;
     return mm_protect(curproc->mm, addr, len, prot_to_vm(prot));
 }
 

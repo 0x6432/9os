@@ -14,6 +14,7 @@
  * PTE alone and may be written in place; anything else is copied on write (fork COW and
  * private file mappings).
  */
+#include <kernel/uaccess.h>
 #include <kernel/cpu.h>
 #include <kernel/mm.h>
 #include <kernel/pmm.h>
@@ -470,6 +471,7 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
             return true;
         }
         if (r == FLT_SEGV) return false;
+        if (current && current->pagefault_disabled) return false;   /* inside a user copy: fixup + slow path */
         if (!oom_retry(tries, true)) return false;
         if (tries >= 2) return true;      /* OOM killer ran: let the fault happen again */
     }
@@ -1040,20 +1042,46 @@ bool user_range_ok(const void *uaddr, size_t n, bool write) {
 }
 
 /*
- * User copies hold the mm lock (IRQs off) from the range check through the memcpy, so a
- * concurrent munmap/mprotect/reclaim cannot pull the pages out from under it and no fault
- * can occur during the copy. Chunked so IRQs are not held off for long on big transfers.
+ * User copies (M27): the arch __copy_user runs inside the SMAP/PAN/SUM window with the mm
+ * lock held (IRQs off), so a concurrent munmap/mprotect/reclaim cannot pull pages out from
+ * under it. Absent or COW pages are faulted in place by the ordinary fault path (the mm lock
+ * is recursive); with pagefault_disabled set that path makes a single attempt and never
+ * reclaims or OOM-kills, so a bad address or an allocation failure lands in the exception
+ * table fixup and __copy_user returns short. The remainder then goes through the slow path:
+ * an explicit VMA/permission check and prefault, OOM retries outside the lock. Chunked so
+ * IRQs are not held off for long on big transfers.
  */
 #define COPY_CHUNK (64 * 1024)
+static int copy_chunk_locked(struct mm *mm, void *dst, const void *src, vaddr_t uaddr, size_t c, bool write) {
+    struct thread *t = current;
+    t->pagefault_disabled++;
+    user_access_begin();
+    size_t left = __copy_user(dst, src, c);
+    user_access_end();
+    int r = FLT_OK;
+    if (left) {
+        size_t done = c - left;
+        __atomic_fetch_add(&vm_stats.copy_slowpath, 1, __ATOMIC_RELAXED);
+        r = range_fault_locked(mm, uaddr + done, left, write);
+        if (r == FLT_OK) {
+            user_access_begin();
+            if (__copy_user((uint8_t *)dst + done, (const uint8_t *)src + done, left)) r = FLT_SEGV;
+            user_access_end();
+        }
+    }
+    t->pagefault_disabled--;
+    return r;
+}
+
 static int user_copy(void *dst, const void *src, vaddr_t uaddr, size_t n, bool write) {
     if (!current || !current->proc) return -EFAULT;
+    if (uaddr + n < uaddr || uaddr + n > USER_TOP) return -EFAULT;     /* never a kernel address */
     struct mm *mm = current->proc->mm;
     int tries = 0;
     while (n) {
         size_t c = MIN(n, (size_t)COPY_CHUNK);
         mm_lock(mm);
-        int r = range_fault_locked(mm, uaddr, c, write);
-        if (r == FLT_OK) memcpy(dst, src, c);
+        int r = copy_chunk_locked(mm, dst, src, uaddr, c, write);
         mm_unlock(mm);
         if (r == FLT_OOM && oom_retry(tries++, false)) continue;
         if (r) return -EFAULT;
@@ -1070,26 +1098,22 @@ int copy_to_user(void *udst, const void *src, size_t n) {
     return n ? user_copy(udst, src, (vaddr_t)udst, n, true) : 0;
 }
 
+/* page by page: the bytes after the NUL that get copied stay within an already valid page */
 int64_t strncpy_from_user(char *dst, const char *usrc, size_t max) {
     if (!current || !current->proc) return -EFAULT;
     struct mm *mm = current->proc->mm;
     size_t i = 0;
     int tries = 0;
     while (i < max) {
-        /* one page at a time under the lock */
-        size_t lim = MIN(max, i + (PAGE_SIZE - ((vaddr_t)(usrc + i) & (PAGE_SIZE - 1))));
+        vaddr_t ua = (vaddr_t)(usrc + i);
+        if (ua >= USER_TOP || ua < (vaddr_t)usrc) return -EFAULT;
+        size_t lim = MIN(max, i + (PAGE_SIZE - (ua & (PAGE_SIZE - 1))));
         mm_lock(mm);
-        int r = range_fault_locked(mm, (vaddr_t)(usrc + i), 1, false);
-        if (r) {
-            mm_unlock(mm);
-            if (r == FLT_OOM && oom_retry(tries++, false)) continue;
-            return -EFAULT;
-        }
-        for (; i < lim; i++) {
-            dst[i] = usrc[i];
-            if (!dst[i]) { mm_unlock(mm); return (int64_t)i; }
-        }
+        int r = copy_chunk_locked(mm, dst + i, usrc + i, ua, lim - i, false);
         mm_unlock(mm);
+        if (r == FLT_OOM && oom_retry(tries++, false)) continue;
+        if (r) return -EFAULT;
+        for (; i < lim; i++) if (!dst[i]) return (int64_t)i;
     }
     return -ENAMETOOLONG;
 }

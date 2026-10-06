@@ -221,3 +221,33 @@ void vmm_init(void) {
     write_cr3(kernel_pt.root);
     pr_info("vmm: kernel page tables active (root %lx)\n", kernel_pt.root);
 }
+
+/* M27 W^X audit: count kernel-half pages that are both writable and executable */
+static uint64_t wx_scan(paddr_t table, int level, int first) {
+    uint64_t *t = PHYS_TO_VIRT(table), n = 0;
+    for (int i = first; i < 512; i++) {
+        uint64_t e = t[i];
+        if (!(e & PTE_P)) continue;
+        if (level == 0 || (e & PTE_PS)) {
+            if ((e & PTE_W) && !(e & PTE_NX)) n += 1ULL << (9 * level);
+        } else n += wx_scan(e & PTE_ADDR, level - 1, 0);
+    }
+    return n;
+}
+uint64_t arch_kernel_wx_pages(void) { return wx_scan(kernel_pt.root, 3, 256); }
+
+bool x86_smap, x86_smep;
+void arch_harden_cpu(void) {
+    uint32_t a, b, c, d;
+    cpuid(0, 0, &a, &b, &c, &d);
+    if (a < 7) return;
+    cpuid(7, 0, &a, &b, &c, &d);
+    uint64_t cr4 = read_cr4();
+    if (b & (1u << 7)) { cr4 |= 1ULL << 20; x86_smep = true; }     /* SMEP */
+    if (b & (1u << 20)) { cr4 |= 1ULL << 21; x86_smap = true; }    /* SMAP */
+    write_cr4(cr4);
+    if (x86_smap) __asm__ volatile("clac" ::: "cc");
+}
+const char *arch_harden_features(void) {
+    return x86_smap ? (x86_smep ? "smep smap nx" : "smap nx") : (x86_smep ? "smep nx" : "nx");
+}

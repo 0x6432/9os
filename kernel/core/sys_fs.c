@@ -1,4 +1,5 @@
 /* File-system related system calls. */
+#include <kernel/uaccess.h>
 #include <kernel/syscall.h>
 #include <kernel/kmalloc.h>
 #include <kernel/string.h>
@@ -187,16 +188,19 @@ int64_t sys_close_range(unsigned first, unsigned last, unsigned flags) {
 /*
  * read/write are dispatched without the BKL (lockfree_names in syscall.c.in). Files whose
  * ops are marked nobkl (pipes) run as-is and copy with copy_{to,from}_user; everything else
- * takes the BKL here, and its drivers may then touch the (pre-faulted) user buffer directly.
+ * takes the BKL here, and its drivers may then touch the (pre-faulted) user buffer directly,
+ * inside a user-access window (SMAP/PAN/SUM open, M27).
  */
+#define uaccess_call(e) ({ user_access_begin(); int64_t __r = (e); user_access_end(); __r; })
 int64_t sys_read(int fd, void *buf, size_t n) {
+    if (!access_ok(buf, n)) return -EFAULT;      /* file ops treat kernel addresses as kernel buffers */
     struct file *f = fd_get_ref(fd);
     if (!f) return -EBADF;
     int64_t r;
     if (f->fops && f->fops->nobkl) r = vfs_read(f, buf, n);
     else {
         bkl_enter();
-        r = n && !user_range_ok(buf, n, true) ? -EFAULT : vfs_read(f, buf, n);
+        r = n && !user_range_ok(buf, n, true) ? -EFAULT : uaccess_call(vfs_read(f, buf, n));
         bkl_exit();
     }
     vfs_close(f);
@@ -204,13 +208,14 @@ int64_t sys_read(int fd, void *buf, size_t n) {
 }
 
 int64_t sys_write(int fd, const void *buf, size_t n) {
+    if (!access_ok(buf, n)) return -EFAULT;      /* file ops treat kernel addresses as kernel buffers */
     struct file *f = fd_get_ref(fd);
     if (!f) return -EBADF;
     int64_t r;
     if (f->fops && f->fops->nobkl) r = vfs_write(f, buf, n);
     else {
         bkl_enter();
-        r = n && !user_range_ok(buf, n, false) ? -EFAULT : vfs_write(f, buf, n);
+        r = n && !user_range_ok(buf, n, false) ? -EFAULT : uaccess_call(vfs_write(f, buf, n));
         bkl_exit();
     }
     vfs_close(f);
@@ -219,17 +224,19 @@ int64_t sys_write(int fd, const void *buf, size_t n) {
 
 /* lock-free like read/write: nobkl files (tmpfs) run as-is, others take the BKL */
 int64_t sys_pread64(int fd, void *buf, size_t n, off_t off) {
+    if (!access_ok(buf, n)) return -EFAULT;      /* file ops treat kernel addresses as kernel buffers */
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
     if (!S_ISREG(f->inode->mode)) return -ESPIPE;
     if (f->fops && f->fops->nobkl) return vfs_pread(f, buf, n, off);
     bkl_enter();
-    int64_t r = n && !user_range_ok(buf, n, true) ? -EFAULT : vfs_pread(f, buf, n, off);
+    int64_t r = n && !user_range_ok(buf, n, true) ? -EFAULT : uaccess_call(vfs_pread(f, buf, n, off));
     bkl_exit();
     return r;
 }
 
 int64_t sys_pwrite64(int fd, const void *buf, size_t n, off_t off) {
+    if (!access_ok(buf, n)) return -EFAULT;      /* file ops treat kernel addresses as kernel buffers */
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
     if (!S_ISREG(f->inode->mode)) return -ESPIPE;
@@ -237,7 +244,7 @@ int64_t sys_pwrite64(int fd, const void *buf, size_t n, off_t off) {
     if (!f->fops || !f->fops->write) return -EINVAL;
     if (f->fops->nobkl) return f->fops->write(f, buf, n, &off);
     bkl_enter();
-    int64_t r = n && !user_range_ok(buf, n, false) ? -EFAULT : f->fops->write(f, buf, n, &off);
+    int64_t r = n && !user_range_ok(buf, n, false) ? -EFAULT : uaccess_call(f->fops->write(f, buf, n, &off));
     bkl_exit();
     return r;
 }

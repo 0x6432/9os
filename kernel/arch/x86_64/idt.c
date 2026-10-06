@@ -1,3 +1,4 @@
+#include <kernel/uaccess.h>
 #include <kernel/types.h>
 #include <kernel/printk.h>
 #include <kernel/irq.h>
@@ -91,10 +92,12 @@ void trap_dispatch(struct trap_frame *f) {
         timer_tick();
         goto out;
     }
+    if (v == 14 && kernel_fault_check(f, read_cr2(), f->error & 16)) return;   /* SMEP/SMAP triage */
     if (v == 14 && page_fault_fast(f)) {     /* resolved without the BKL */
         if (trap_from_user(f)) user_return_work(f);
         return;
     }
+    if (v == 14 && kernel_fault_fixup(f)) return;   /* __copy_user fault: exception table */
     bkl_enter();
     if (v < 32) {
         if (v == 14 && page_fault_handler(f)) goto out;

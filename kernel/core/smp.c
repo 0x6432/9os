@@ -8,6 +8,7 @@
  * serialised; IPI handlers run without the lock. CPUs spinning for the BKL keep servicing TLB
  * shootdown requests so a lock holder waiting for acknowledgements cannot deadlock.
  */
+#include <kernel/uaccess.h>
 #include <kernel/sched.h>
 #include <kernel/cpu.h>
 #include <kernel/boot.h>
@@ -132,7 +133,11 @@ void smp_send_resched(struct cpu *c) {
         }
     for (int i = 0; i < ncpus; i++)
         if (mask & (1ULL << i))
-            while (__atomic_load_n(&cpus[i].ipi_pending, __ATOMIC_ACQUIRE) & IPI_TLB_FLUSH) arch_cpu_relax();
+            while (__atomic_load_n(&cpus[i].ipi_pending, __ATOMIC_ACQUIRE) & IPI_TLB_FLUSH) {
+                /* two CPUs shooting down each other with IRQs off must serve each other's flush */
+                if (this_cpu()->ipi_pending) ipi_handle();
+                arch_cpu_relax();
+            }
 }
 
 void tlb_shootdown(paddr_t root, vaddr_t va) {
@@ -154,6 +159,7 @@ static int cmdline_has(const char *w) {
 }
 
 __noreturn void smp_ap_main(struct cpu *c) {
+    arch_harden_cpu();
     sched_start_ap(c);
 }
 

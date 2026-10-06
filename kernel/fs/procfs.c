@@ -1,3 +1,4 @@
+#include <kernel/uaccess.h>
 #include <kernel/mutex.h>
 /* procfs: process and system information (enough for BusyBox ps/top/free/mount). */
 #include <kernel/vfs.h>
@@ -16,7 +17,7 @@
 
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP };
+             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
 static struct thread *main_thread(struct process *p) {
@@ -53,7 +54,7 @@ static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum 
 static const struct { const char *name; enum pfile f; } global_files[] = {
     { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cpuinfo", G_CPUINFO },
     { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS }, { "sched", G_SCHED },
-    { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP },
+    { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP }, { "hardening", G_HARDEN },
 };
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
@@ -272,17 +273,28 @@ static void gen(struct pinfo *pi, struct buf *b) {
                 pagecache_pages, pagecache_lru_pages, pagecache_filled, pagecache_reclaimed);
         bprintf(b, "pgfault_file %lu\npgfault_anon %lu\npgfault_zero_eof %lu\npgfault_cow %lu\noom_retries %lu\noom_kill %lu\n"
                    "pgscan %lu\npgsteal %lu\nreclaim_runs %lu\nkswapd_wakeups %lu\nrmap_unmapped %lu\n"
-                   "madvise_zapped %lu\nmremap_moved %lu\npopulated %lu\n",
+                   "madvise_zapped %lu\nmremap_moved %lu\npopulated %lu\nuser_copy_slowpath %lu\n",
                 vm_stats.file_faults, vm_stats.anon_faults, vm_stats.zero_eof_faults, vm_stats.cow_faults,
                 vm_stats.oom_retries, vm_stats.oom_kills, vm_stats.reclaim_scanned, vm_stats.reclaim_freed,
                 vm_stats.reclaim_runs, vm_stats.kswapd_wakeups, vm_stats.rmap_unmapped, vm_stats.madv_zapped,
-                vm_stats.mremap_moved, vm_stats.populated);
+                vm_stats.mremap_moved, vm_stats.populated, vm_stats.copy_slowpath);
         struct pmm_cache_stats ps; pmm_cache_stats(&ps);
         bprintf(b, "pmm_pcpu_cached %lu\npmm_pcpu_alloc_hits %lu\npmm_pcpu_free_hits %lu\npmm_pcpu_drained %lu\n",
                 ps.cached_pages, ps.alloc_hits, ps.free_hits, ps.drained_pages);
         struct slab_cpu_stats ss; slab_cpu_stats(&ss);
         bprintf(b, "slab_pcpu_cached %lu\nslab_pcpu_alloc_hits %lu\nslab_pcpu_free_hits %lu\nslab_pcpu_drained %lu\n",
                 ss.cached_objects, ss.alloc_hits, ss.free_hits, ss.drained_objects);
+        break;
+    }
+    case G_HARDEN: {
+        extern uintptr_t __stack_chk_guard;
+        bprintf(b, "features %s\nstack_protector strong\nstack_guard_random %d\nrandomize_va_space %d\n"
+                   "wx_policy %s\nkernel_wx_pages %lu\nwx_mappings %lu\nwx_denied %lu\nextable_fixups %lu\n"
+                   "uaccess_violations %lu\n",
+                arch_harden_features(), __stack_chk_guard != 0x595e9fbd94fda766ULL, randomize_va_space,
+                wx_policy == 2 ? "strict" : wx_policy ? "warn" : "off", harden_stats.kernel_wx_pages,
+                harden_stats.wx_mappings, harden_stats.wx_denied, harden_stats.extable_fixups,
+                harden_stats.uaccess_violations);
         break;
     }
     case G_LOCKDEP: {

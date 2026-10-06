@@ -30,6 +30,7 @@ void arch_timer_active(void) { timer_restarts++; }
 void bkl_drop_for_switch(struct thread *t) {
     if (t->bkl_depth) { t->bkl_saved = t->bkl_depth; t->bkl_depth = 0; __atomic_fetch_add(&bkl_drops, 1, __ATOMIC_RELAXED); }
 }
+void uaccess_restore_after_switch(void) {}
 void bkl_retake_after_switch(struct thread *t) {
     CHECK(!rqs[this_cpu()->id].lock.locked && sched_owner != this_cpu()->id);
     if (t->bkl_saved) { t->bkl_depth = t->bkl_saved; t->bkl_saved = 0; }

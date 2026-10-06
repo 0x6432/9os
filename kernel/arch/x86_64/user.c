@@ -89,9 +89,9 @@ bool page_fault_fast(struct trap_frame *f) {
 /* #PF: demand paging for user addresses */
 bool page_fault_handler(struct trap_frame *f) {
     uint64_t addr = read_cr2();
-    if (addr >= USER_TOP || !current || !current->proc) return false;
+    if (!current || !current->proc) return false;
     bool write = f->error & 2, exec = f->error & 16;
-    if (mm_handle_fault(current->proc->mm, addr, write, exec)) return true;
+    if (addr < USER_TOP && mm_handle_fault(current->proc->mm, addr, write, exec)) return true;
     if (trap_from_user(f)) {
         pr_debug("segfault pid %d at %lx rip %lx\n", current->proc->pid, addr, f->rip);
         signal_force(current, SIGSEGV);

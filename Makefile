@@ -7,7 +7,7 @@ LD := ld.lld
 # Prefer real C23, fall back to C2x on older clang.
 CSTD := $(shell echo 'int x;' | $(CC) -std=c23 -x c -fsyntax-only - 2>/dev/null && echo c23 || echo c2x)
 
-CFLAGS := -std=$(CSTD) -ffreestanding -fno-builtin -nostdlib -fno-stack-protector \
+CFLAGS := -std=$(CSTD) -ffreestanding -fno-builtin -nostdlib -fstack-protector-strong \
           -fno-stack-check -fno-lto -fno-pic -fno-omit-frame-pointer \
           -Wall -Wextra -Wno-unused-parameter -O2 -g -MMD -MP \
           -Ikernel/include -Ithird_party/limine -Ikernel/arch/$(ARCH)/include \
@@ -23,14 +23,14 @@ QEMU_GPU_aarch64 := -device virtio-gpu-pci
 QEMU_GPU ?= $(QEMU_GPU_$(ARCH))
 # virtio-input keyboard + tablet (evdev /dev/input/eventN); PS/2 keyboard is also present on x86
 QEMU_INPUT ?= -device virtio-keyboard-pci -device virtio-tablet-pci
-CONFIG_FLAGS := -DCONFIG_SCHED_$(shell echo $(SCHED) | tr a-z A-Z)=1
+CONFIG_FLAGS := -DCONFIG_SCHED_$(shell echo $(SCHED) | tr a-z A-Z)=1 -DCONFIG_HARDEN=1
 CFLAGS += $(CONFIG_FLAGS)
 CONFIG_STAMP := $(BUILD)/config.stamp
 $(shell mkdir -p $(BUILD); echo '$(CONFIG_FLAGS)' | cmp -s - $(CONFIG_STAMP) 2>/dev/null || echo '$(CONFIG_FLAGS)' > $(CONFIG_STAMP))
 
 ifeq ($(ARCH),x86_64)
 CFLAGS += --target=x86_64-unknown-none-elf -march=x86-64 -mno-red-zone -mcmodel=kernel \
-          -mgeneral-regs-only -mno-mmx -mno-sse -mno-sse2 -mno-80387
+          -mgeneral-regs-only -mno-mmx -mno-sse -mno-sse2 -mno-80387 -mstack-protector-guard=global
 LDFLAGS := -m elf_x86_64
 endif
 ifeq ($(ARCH),riscv64)
@@ -107,12 +107,17 @@ FW_NAMES_aarch64 := edk2-aarch64-code.fd QEMU_EFI.fd AAVMF_CODE.fd
 FW_SIZE_riscv64 := 33554432
 FW_SIZE_aarch64 := 67108864
 FW_CODE ?= $(firstword $(wildcard $(foreach d,$(FW_DIRS),$(foreach n,$(FW_NAMES_$(ARCH)),$(d)/$(n)))))
-QEMU_x86_64 := qemu-system-x86_64 -M q35 -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_INPUT) -cdrom $(ISO)
-QEMU_riscv64 := qemu-system-riscv64 -M virt -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) \
+# CPU models with the M27 hardening features (SMEP/SMAP; PAN needs ARMv8.1+)
+QEMU_CPU_x86_64 := -cpu qemu64,+smep,+smap,+rdrand
+QEMU_CPU_riscv64 :=
+QEMU_CPU_aarch64 := -cpu cortex-a76
+QEMU_CPU ?= $(QEMU_CPU_$(ARCH))
+QEMU_x86_64 := qemu-system-x86_64 -M q35 $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_INPUT) -cdrom $(ISO)
+QEMU_riscv64 := qemu-system-riscv64 -M virt $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd
-QEMU_aarch64 := qemu-system-aarch64 -M virt -cpu cortex-a72 -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) \
+QEMU_aarch64 := qemu-system-aarch64 -M virt $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd
