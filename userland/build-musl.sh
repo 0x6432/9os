@@ -8,7 +8,11 @@ SRC=$TOP/build/musl-$MUSL_VER
 SYSROOT=$TOP/sysroot/$ARCH
 mkdir -p "$TOP/build"
 if [ ! -d "$SRC" ]; then
-    (cd "$TOP/build" && { [ -f ${TOOLS_DIR:-/data/tools}/musl-$MUSL_VER.tar.gz ] && tar xzf ${TOOLS_DIR:-/data/tools}/musl-$MUSL_VER.tar.gz || curl -sL https://musl.libc.org/releases/musl-$MUSL_VER.tar.gz | tar xz; })
+    T=${TOOLS_DIR:-/data/tools}/musl-$MUSL_VER.tar.gz
+    [ -f "$T" ] || { T=${TOOLS_DIR:-/data/tools}/dl/musl-$MUSL_VER.tar.gz
+        "$TOP/fetch.sh" "$T" https://musl.libc.org/releases/musl-$MUSL_VER.tar.gz \
+            https://git.musl-libc.org/cgit/musl/snapshot/musl-$MUSL_VER.tar.gz; }
+    (cd "$TOP/build" && tar xzf "$T")
 fi
 B=$TOP/build/musl-$ARCH
 rm -rf "$B" && mkdir -p "$B" && cd "$B"

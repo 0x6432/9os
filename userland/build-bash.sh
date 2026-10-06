@@ -6,7 +6,15 @@ VER=5.2.37
 TOP=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$TOP/build"
 SRC=$TOP/build/bash-$VER
-[ -d "$SRC" ] || (cd "$TOP/build" && { [ -f ${TOOLS_DIR:-/data/tools}/bash-$VER.tar.gz ] && tar xzf ${TOOLS_DIR:-/data/tools}/bash-$VER.tar.gz || curl -sL https://ftp.gnu.org/gnu/bash/bash-$VER.tar.gz | tar xz; })
+if [ ! -d "$SRC" ]; then
+    T=${TOOLS_DIR:-/data/tools}/bash-$VER.tar.gz
+    [ -f "$T" ] || { T=${TOOLS_DIR:-/data/tools}/dl/bash-$VER.tar.gz
+        "$TOP/fetch.sh" "$T" https://ftp.gnu.org/gnu/bash/bash-$VER.tar.gz \
+            https://mirrors.kernel.org/gnu/bash/bash-$VER.tar.gz \
+            https://ftpmirror.gnu.org/bash/bash-$VER.tar.gz \
+            https://mirror.csclub.uwaterloo.ca/gnu/bash/bash-$VER.tar.gz; }
+    (cd "$TOP/build" && tar xzf "$T")
+fi
 B=$TOP/build/bash-$ARCH
 rm -rf "$B" && mkdir -p "$B" && cd "$B"
 export ARCH
