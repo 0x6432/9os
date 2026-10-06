@@ -17,29 +17,44 @@ static struct pty *ptys[PTY_MAX];
 
 static size_t m_count(struct pty *p) { return p->mtail - p->mhead; }
 
-static ssize_t pty_out(struct tty *t, const char *s, size_t n, bool may_block) {
-    struct pty *p = t->drv;
+/* p->t.lock held. Post-processes and queues as much of s as fits; returns bytes consumed. */
+static size_t pty_put_locked(struct pty *p, const char *s, size_t n) {
+    struct tty *t = &p->t;
     size_t done = 0;
     while (done < n) {
-        if (!p->master_open) return done ? (ssize_t)done : -EIO;
         char c = s[done];
         bool crlf = c == '\n' && (t->t.c_oflag & OPOST) && (t->t.c_oflag & ONLCR);
         size_t need = crlf ? 2 : 1;
-        if (PTY_BUF - m_count(p) < need) {
-            if (!may_block) break;                          /* echo: drop */
-            poll_notify();
-            uint64_t fl = arch_irq_save();
-            int r = 0;
-            if (PTY_BUF - m_count(p) < need && p->master_open) r = wait_event(&poll_wq);
-            arch_irq_restore(fl);
-            if (r) return done ? (ssize_t)done : r;
-            continue;
-        }
+        if (PTY_BUF - m_count(p) < need) break;
         if (crlf) p->mbuf[p->mtail++ % PTY_BUF] = '\r';
         p->mbuf[p->mtail++ % PTY_BUF] = c;
         done++;
     }
-    poll_notify();
+    return done;
+}
+
+/* Echo (may_block false) comes from the line discipline with t->lock held and drops what
+ * does not fit; slave writes (kernel buffer from tty_write) block until the master reads. */
+static ssize_t pty_out(struct tty *t, const char *s, size_t n, bool may_block) {
+    struct pty *p = t->drv;
+    if (!may_block) {
+        if (!p->master_open) return -EIO;
+        size_t d = pty_put_locked(p, s, n);
+        poll_notify();
+        return d;
+    }
+    size_t done = 0;
+    while (done < n) {
+        uint64_t seq = poll_seq_read();
+        uint64_t f = tlock(t);
+        if (!p->master_open) { tunlock(t, f); return done ? (ssize_t)done : -EIO; }
+        size_t d = pty_put_locked(p, s + done, n - done);
+        tunlock(t, f);
+        done += d;
+        if (d) { poll_notify(); continue; }
+        int r = poll_wait_seq(seq, UINT64_MAX);
+        if (r) return done ? (ssize_t)done : r;
+    }
     return done;
 }
 
@@ -55,23 +70,35 @@ static void pty_maybe_free(struct pty *p) {
 /* ---- master (/dev/ptmx) */
 static ssize_t ptm_read(struct file *f, void *buf, size_t n, off_t *off) {
     struct pty *p = f->priv;
-    while (!m_count(p)) {
-        if (p->slave_ever && !p->slave_opens) return -EIO;
+    uint64_t fl;
+    for (;;) {
+        uint64_t seq = poll_seq_read();
+        fl = tlock(&p->t);
+        if (m_count(p)) break;                              /* keep the lock */
+        bool hup = p->slave_ever && !p->slave_opens;
+        tunlock(&p->t, fl);
+        if (hup) return -EIO;
         if (f->flags & O_NONBLOCK) return -EAGAIN;
-        uint64_t fl = arch_irq_save();
-        int r = 0;
-        if (!m_count(p) && !(p->slave_ever && !p->slave_opens)) r = wait_event(&poll_wq);
-        arch_irq_restore(fl);
+        int r = poll_wait_seq(seq, UINT64_MAX);
         if (r) return r;
     }
-    size_t got = 0;
-    while (got < n && m_count(p)) ((char *)buf)[got++] = p->mbuf[p->mhead++ % PTY_BUF];
-    poll_notify();
+    char kb[512];
+    size_t got = 0, lim = MIN(n, sizeof kb);
+    while (got < lim && m_count(p)) kb[got++] = p->mbuf[p->mhead++ % PTY_BUF];
+    tunlock(&p->t, fl);
+    poll_notify();                                          /* blocked slave writers */
+    if (copy_out(buf, kb, got)) return -EFAULT;
     return got;
 }
 static ssize_t ptm_write(struct file *f, const void *buf, size_t n, off_t *off) {
     struct pty *p = f->priv;
-    for (size_t i = 0; i < n; i++) tty_input(&p->t, ((const char *)buf)[i]);
+    char kb[256];
+    for (size_t done = 0; done < n; ) {
+        size_t c = MIN(n - done, sizeof kb);
+        if (copy_in(kb, (const char *)buf + done, c)) return done ? (ssize_t)done : -EFAULT;
+        for (size_t i = 0; i < c; i++) tty_input_ctx(&p->t, kb[i], true);
+        done += c;
+    }
     poll_notify();
     return n;
 }
@@ -99,8 +126,10 @@ static int ptm_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
 }
 static void ptm_release(struct file *f) {
     struct pty *p = f->priv;
+    uint64_t fl = tlock(&p->t);
     p->master_open = false;
     p->t.hup = true;
+    tunlock(&p->t, fl);
     wake_up(&p->t.rq);
     if (p->t.pgrp > 0) signal_send_pgrp(p->t.pgrp, SIGHUP);
     char path[32]; snprintf(path, sizeof path, "/dev/pts/%d", p->index);
@@ -128,7 +157,7 @@ static int ptm_open(struct inode *ino, struct file *f) {
     return 0;
 }
 static const struct file_ops ptmx_ops = {
-    .open = ptm_open, .read = ptm_read, .write = ptm_write, .poll = ptm_poll, .ioctl = ptm_ioctl, .release = ptm_release,
+    .nobkl = true, .open = ptm_open, .read = ptm_read, .write = ptm_write, .poll = ptm_poll, .ioctl = ptm_ioctl, .release = ptm_release,
 };
 
 /* ---- slave (/dev/pts/N) */
@@ -149,7 +178,7 @@ static void pts_release(struct file *f) {
     pty_maybe_free(p);
 }
 static const struct file_ops pts_ops = {
-    .open = pts_open, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll, .release = pts_release,
+    .nobkl = true, .open = pts_open, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll, .release = pts_release,
 };
 
 static int pts_open_peer(struct pty *p, int flags) {

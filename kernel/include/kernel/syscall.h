@@ -8,6 +8,9 @@
 
 struct file *fd_get(int fd);
 struct file *fd_get_ref(int fd);
+void fd_borrow_release(void);      /* drop this syscall's fd_get() pins */
+bool fd_cloexec_get(int fd);
+int fd_cloexec_set(int fd, bool v);
 struct process;
 struct file *fd_slot_set(struct process *p, int fd, struct file *f);
 int fd_alloc(struct file *f, int min, bool cloexec);

@@ -59,9 +59,11 @@ void process_list(void (*fn)(struct process *, void *), void *ctx) {
     list_for_each_safe(it, tmp, &all_procs) fn(list_entry(it, struct process, all_node), ctx);
 }
 
+static const struct lock_class fd_class = { "fd_table", LR_FD, false };
 static struct process *proc_alloc(void) {
     struct process *p = kzalloc(sizeof *p);
     if (!p) return nullptr;
+    spin_lock_init_class(&p->fd_lock, &fd_class);
     list_init(&p->children);
     list_init(&p->sibling);
     list_init(&p->threads);
@@ -140,8 +142,12 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
             p->mm = mm_clone(parent->mm);
             if (!p->mm) { list_del(&p->all_node); kfree(p); thread_free(t); return -ENOMEM; }
         }
-        for (int i = 0; i < MAX_FDS; i++) if (parent->fds[i]) p->fds[i] = file_get(parent->fds[i]);
-        memcpy(p->cloexec, parent->cloexec, sizeof p->cloexec);
+        {   /* sibling threads may close/dup without the BKL */
+            uint64_t fl = spin_lock_irqsave(&parent->fd_lock);
+            for (int i = 0; i < MAX_FDS; i++) if (parent->fds[i]) p->fds[i] = file_get(parent->fds[i]);
+            memcpy(p->cloexec, parent->cloexec, sizeof p->cloexec);
+            spin_unlock_irqrestore(&parent->fd_lock, fl);
+        }
         p->cwd = parent->cwd; iget(p->cwd);
         p->root = parent->root; iget(p->root);
         struct process *pp = (flags & CLONE_PARENT) && parent->parent ? parent->parent : parent;
@@ -197,6 +203,7 @@ static void release_thread_tid(struct thread *t) {
 }
 
 __noreturn void thread_exit_only(void) {
+    fd_borrow_release();
     release_thread_tid(current);
     arch_irq_disable();
     list_del(&current->proc_node);
@@ -206,6 +213,7 @@ __noreturn void thread_exit_only(void) {
 __noreturn void process_exit(int status) {
     struct process *p = curproc;
     if (p == init_proc) panic("init exited with status %x", status);
+    fd_borrow_release();
     /* other threads of this process are killed on their next return to user mode */
     list_for_each(it, &p->threads) {
         struct thread *t = list_entry(it, struct thread, proc_node);

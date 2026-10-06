@@ -60,6 +60,8 @@ struct thread {
     struct rusage_k reaped_ru;     /* last child reaped by do_wait (wait4 rusage) */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
     int handoff_refs;              /* pins saved contexts until all finish-switch readers retire */
+    struct file *fd_borrow[16];    /* fd_get() references, dropped at syscall exit */
+    int nborrow;
     bool nointr;                   /* uninterruptible sleep (mutex): signals do not wake it */
     const struct lock_class *ld_held[8];   /* lockdep: sleeping locks held */
     int ld_nheld;

@@ -1,6 +1,7 @@
 #pragma once
 #include <kernel/types.h>
 #include <kernel/sched.h>
+#include <kernel/spinlock.h>
 
 #define NCCS 19
 struct termios {
@@ -23,6 +24,9 @@ struct tty {
     bool eof;
     struct wait_queue rq;
     int pgrp, sid;
+    /* M24: IRQ-off lock for the line discipline state (termios, line, rbuf, eof/hup) and,
+     * for a pty, the master's buffer. Input from IRQ context, read/write without the BKL. */
+    spinlock_t lock;
 };
 
 extern struct tty console_tty;

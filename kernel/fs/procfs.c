@@ -94,6 +94,16 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
     return -ENOTDIR;
 }
 
+/* another process's fd slot, referenced (its threads may close it without the BKL) */
+static struct file *proc_fd_ref(struct process *p, int fd) {
+    if (fd < 0 || fd >= MAX_FDS) return nullptr;
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+    struct file *f = p->fds[fd];
+    if (f) file_get(f);
+    spin_unlock_irqrestore(&p->fd_lock, fl);
+    return f;
+}
+
 static int p_follow(struct inode *i, struct inode **out) {
     struct pinfo *pi = i->priv;
     if (pi->kind == P_SELF) {
@@ -104,10 +114,11 @@ static int p_follow(struct inode *i, struct inode **out) {
     struct process *p = process_find(pi->pid);
     if (!p) return -ENOENT;
     if (pi->kind == P_FD) {
-        struct file *f = pi->fd < MAX_FDS ? p->fds[pi->fd] : nullptr;
+        struct file *f = proc_fd_ref(p, pi->fd);
         if (!f) return -ENOENT;
         iget(f->inode);
         *out = f->inode;
+        vfs_close(f);
         return 0;
     }
     if (pi->kind == P_CWD) { if (!p->cwd) return -ENOENT; iget(p->cwd); *out = p->cwd; return 0; }
@@ -123,10 +134,11 @@ static int p_readlink(struct inode *i, char *buf, size_t size) {
         struct process *p = process_find(pi->pid);
         if (!p) return -ENOENT;
         if (pi->kind == P_FD) {
-            struct file *f = p->fds[pi->fd];
+            struct file *f = proc_fd_ref(p, pi->fd);
             if (!f) return -ENOENT;
             if (S_ISFIFO(f->inode->mode)) snprintf(tmp, sizeof tmp, "pipe:[%lu]", f->inode->ino);
             else snprintf(tmp, sizeof tmp, "%s", f->path ? f->path : "anon_inode:[unknown]");
+            vfs_close(f);
         } else if (pi->kind == P_CWD) {
             int r = vfs_getcwd(p->cwd, tmp, sizeof tmp);
             if (r < 0) return r;

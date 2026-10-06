@@ -2041,7 +2041,7 @@ static const char *const lockfree_names[] = {
     "clock_gettime", "clock_getres", "gettimeofday", "time", "sched_yield", "nanosleep",
     "clock_nanosleep", "uname", "getcpu", "sched_getaffinity", "read", "write", "futex",
     "sendmsg", "recvmsg", "sendto", "recvfrom", "poll", "ppoll", "select", "pselect6",
-    "epoll_ctl", "epoll_wait", "epoll_pwait", "epoll_pwait2", nullptr,
+    "epoll_ctl", "epoll_wait", "epoll_pwait", "epoll_pwait2", "close", "dup", "dup2", "dup3", "fcntl", nullptr,
 };
 static uint8_t lockfree[NR_SYSCALLS];
 static volatile bool lockfree_ready;
@@ -2059,6 +2059,7 @@ void syscall_dispatch(struct trap_frame *f) {
         syscalls_lockfree++;
         current->last_syscall = nr;
         SC_SET_RET(f, syscall_table[nr](SC_ARG0(f), SC_ARG1(f), SC_ARG2(f), SC_ARG3(f), SC_ARG4(f), SC_ARG5(f)));
+        if (current->nborrow) fd_borrow_release();
         arch_irq_disable();
         user_return_work(f);
         return;
@@ -2081,6 +2082,7 @@ void syscall_dispatch(struct trap_frame *f) {
         ret = -ENOSYS;
     }
     SC_SET_RET(f, ret);
+    if (current->nborrow) fd_borrow_release();
     arch_irq_disable();
     user_return_work(f);
     bkl_exit();

@@ -24,9 +24,32 @@ static inline void cloexec_set(struct process *p, int fd, bool v) {
     if (v) p->cloexec[fd / 64] |= 1ULL << (fd % 64); else p->cloexec[fd / 64] &= ~(1ULL << (fd % 64));
 }
 
+/*
+ * Borrowed lookup (M24): the file is pinned until the current syscall returns
+ * (fd_borrow_release() in syscall_dispatch and the exit paths), so a concurrent close() by
+ * another thread can no longer free it under a syscall, with or without the BKL.
+ */
 struct file *fd_get(int fd) {
     if (fd < 0 || fd >= MAX_FDS) return nullptr;
-    return curproc->fds[fd];
+    struct thread *t = current;
+    if (!t || t->nborrow >= (int)(sizeof t->fd_borrow / sizeof t->fd_borrow[0])) {
+        static bool warned;
+        if (!warned) { warned = true; pr_warn("fd_get: borrow table full in %s\n", t ? t->name : "?"); }
+        return curproc->fds[fd];          /* unpinned (only safe while close needs the BKL) */
+    }
+    struct file *f = fd_get_ref(fd);
+    if (f) t->fd_borrow[t->nborrow++] = f;
+    return f;
+}
+
+void fd_borrow_release(void) {
+    struct thread *t = current;
+    if (!t) return;
+    while (t->nborrow > 0) {
+        struct file *f = t->fd_borrow[--t->nborrow];
+        t->fd_borrow[t->nborrow] = nullptr;
+        vfs_close(f);
+    }
 }
 
 /* reference-taking lookup for syscalls running without the BKL; drop with vfs_close() */
@@ -49,33 +72,70 @@ struct file *fd_slot_set(struct process *p, int fd, struct file *f) {
     return old;
 }
 
+/* All fd-table mutations (slots and close-on-exec bits) happen under p->fd_lock. */
 int fd_install(int fd, struct file *f, bool cloexec) {
     struct process *p = curproc;
-    struct file *old = fd_slot_set(p, fd, f);
-    if (old) vfs_close(old);
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+    struct file *old = p->fds[fd];
+    p->fds[fd] = f;
     cloexec_set(p, fd, cloexec);
+    spin_unlock_irqrestore(&p->fd_lock, fl);
+    if (old) vfs_close(old);
     return fd;
 }
 
 int fd_alloc(struct file *f, int min, bool cloexec) {
     struct process *p = curproc;
+    if (min < 0) return -EINVAL;
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
     for (int i = min; i < MAX_FDS; i++)
-        if (!p->fds[i]) return fd_install(i, f, cloexec);
+        if (!p->fds[i]) {
+            p->fds[i] = f;
+            cloexec_set(p, i, cloexec);
+            spin_unlock_irqrestore(&p->fd_lock, fl);
+            return i;
+        }
+    spin_unlock_irqrestore(&p->fd_lock, fl);
     return -EMFILE;
 }
 
 int fd_close(int fd) {
-    struct file *f = fd_get(fd);
+    if (fd < 0 || fd >= MAX_FDS) return -EBADF;
+    struct process *p = curproc;
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+    struct file *f = p->fds[fd];
+    p->fds[fd] = nullptr;
+    cloexec_set(p, fd, false);
+    spin_unlock_irqrestore(&p->fd_lock, fl);
     if (!f) return -EBADF;
-    fd_slot_set(curproc, fd, nullptr);
-    cloexec_set(curproc, fd, false);
     vfs_close(f);
     return 0;
 }
 
+bool fd_cloexec_get(int fd) {
+    struct process *p = curproc;
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+    bool v = fd >= 0 && fd < MAX_FDS && cloexec_get(p, fd);
+    spin_unlock_irqrestore(&p->fd_lock, fl);
+    return v;
+}
+int fd_cloexec_set(int fd, bool v) {
+    struct process *p = curproc;
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+    int r = fd >= 0 && fd < MAX_FDS && p->fds[fd] ? 0 : -EBADF;
+    if (!r) cloexec_set(p, fd, v);
+    spin_unlock_irqrestore(&p->fd_lock, fl);
+    return r;
+}
+
 void files_close_on_exec(struct process *p) {
-    for (int i = 0; i < MAX_FDS; i++)
-        if (p->fds[i] && cloexec_get(p, i)) { vfs_close(fd_slot_set(p, i, nullptr)); cloexec_set(p, i, false); }
+    for (int i = 0; i < MAX_FDS; i++) {
+        uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+        struct file *f = nullptr;
+        if (p->fds[i] && cloexec_get(p, i)) { f = p->fds[i]; p->fds[i] = nullptr; cloexec_set(p, i, false); }
+        spin_unlock_irqrestore(&p->fd_lock, fl);
+        if (f) vfs_close(f);
+    }
 }
 
 int user_path(const char *upath, char *kpath) {
@@ -118,7 +178,7 @@ int64_t sys_close(int fd) { return fd_close(fd); }
 
 int64_t sys_close_range(unsigned first, unsigned last, unsigned flags) {
     for (unsigned i = first; i <= last && i < MAX_FDS; i++) {
-        if (flags & 4) { if (curproc->fds[i]) cloexec_set(curproc, i, true); }
+        if (flags & 4) fd_cloexec_set(i, true);
         else fd_close(i);
     }
     return 0;
@@ -354,11 +414,12 @@ int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
     if (cmd == 0x5421) {           /* FIONBIO */
         int v;
         if (copy_from_user(&v, (void *)arg, sizeof v)) return -EFAULT;
-        if (v) f->flags |= O_NONBLOCK; else f->flags &= ~O_NONBLOCK;
+        if (v) __atomic_fetch_or(&f->flags, O_NONBLOCK, __ATOMIC_RELAXED);
+        else __atomic_fetch_and(&f->flags, ~O_NONBLOCK, __ATOMIC_RELAXED);
         return 0;
     }
-    if (cmd == 0x5451) { cloexec_set(curproc, fd, true); return 0; }   /* FIOCLEX */
-    if (cmd == 0x5450) { cloexec_set(curproc, fd, false); return 0; }  /* FIONCLEX */
+    if (cmd == 0x5451) return fd_cloexec_set(fd, true);   /* FIOCLEX */
+    if (cmd == 0x5450) return fd_cloexec_set(fd, false);  /* FIONCLEX */
     if (!f->fops || !f->fops->ioctl) return -ENOTTY;
     return f->fops->ioctl(f, cmd, arg);
 }
@@ -373,10 +434,15 @@ int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
         if (r < 0) vfs_close(f);
         return r;
     }
-    case F_GETFD: return cloexec_get(curproc, fd) ? FD_CLOEXEC : 0;
-    case F_SETFD: cloexec_set(curproc, fd, arg & FD_CLOEXEC); return 0;
+    case F_GETFD: return fd_cloexec_get(fd) ? FD_CLOEXEC : 0;
+    case F_SETFD: return fd_cloexec_set(fd, arg & FD_CLOEXEC);
     case F_GETFL: return f->flags;
-    case F_SETFL: f->flags = (f->flags & ~(O_APPEND | O_NONBLOCK)) | (arg & (O_APPEND | O_NONBLOCK)); return 0;
+    case F_SETFL: {                       /* atomic: lock-free readers/writers test O_NONBLOCK */
+        uint32_t o = __atomic_load_n(&f->flags, __ATOMIC_RELAXED), n;
+        do n = (o & ~(uint32_t)(O_APPEND | O_NONBLOCK)) | (uint32_t)(arg & (O_APPEND | O_NONBLOCK));
+        while (!__atomic_compare_exchange_n(&f->flags, &o, n, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED));
+        return 0;
+    }
     case F_GETLK: {
         struct { int16_t type, whence; int64_t start, len; int32_t pid; } fl;
         if (copy_from_user(&fl, (void *)arg, sizeof fl)) return -EFAULT;

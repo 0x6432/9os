@@ -39,6 +39,19 @@
 #define VWERASE 14
 
 struct tty console_tty;
+static const struct lock_class tty_class = { "tty", LR_TTY, false };
+static uint64_t tlock(struct tty *t) { uint64_t f = arch_irq_save(); spin_lock_ipi(&t->lock); return f; }
+static void tunlock(struct tty *t, uint64_t f) { spin_unlock(&t->lock); arch_irq_restore(f); }
+
+/* read/write buffers are user pointers for read(2)/write(2), kernel ones for sendfile */
+static int copy_out(void *dst, const void *src, size_t n) {
+    if ((vaddr_t)dst >= USER_TOP) { memcpy(dst, src, n); return 0; }
+    return copy_to_user(dst, src, n);
+}
+static int copy_in(void *dst, const void *src, size_t n) {
+    if ((vaddr_t)src >= USER_TOP) { memcpy(dst, src, n); return 0; }
+    return copy_from_user(dst, src, n);
+}
 
 static size_t rb_count(struct tty *t) { return t->rtail - t->rhead; }
 static void rb_put(struct tty *t, char c) {
@@ -64,15 +77,17 @@ void tty_init_struct(struct tty *t) {
     memcpy(t->t.c_cc, cc, NCCS);
     t->ws = (struct winsize){ 25, 80, 0, 0 };
     wait_queue_init(&t->rq);
+    spin_lock_init_class(&t->lock, &tty_class);
 }
 
 void fbcon_get_size(int *cols, int *rows);
 
 static void input_ready(struct tty *t) { wake_up(&t->rq); poll_notify(); }
 
-void tty_input(struct tty *t, char c) {
+/* t->lock held; returns a job-control signal for the foreground group, or 0 */
+static int tty_input_locked(struct tty *t, char c) {
     struct termios *tm = &t->t;
-    if (c == '\r') { if (tm->c_iflag & IGNCR) return; if (tm->c_iflag & ICRNL) c = '\n'; }
+    if (c == '\r') { if (tm->c_iflag & IGNCR) return 0; if (tm->c_iflag & ICRNL) c = '\n'; }
     else if (c == '\n' && (tm->c_iflag & INLCR)) c = '\r';
 
     if (tm->c_lflag & ISIG) {
@@ -83,8 +98,7 @@ void tty_input(struct tty *t, char c) {
         if (sig) {
             if (tm->c_lflag & ECHO) { char e[3] = { '^', (char)(c + 64), '\n' }; tty_echo(t, e, 2); }
             t->line_len = 0;
-            if (t->pgrp > 0) signal_send_pgrp(t->pgrp, sig);
-            return;
+            return sig;
         }
     }
 
@@ -94,23 +108,23 @@ void tty_input(struct tty *t, char c) {
                 t->line_len--;
                 if (tm->c_lflag & ECHO) tty_echo(t, "\b \b", 3);
             }
-            return;
+            return 0;
         }
         if ((uint8_t)c == tm->c_cc[VKILL]) {
             while (t->line_len) { t->line_len--; if (tm->c_lflag & ECHO) tty_echo(t, "\b \b", 3); }
-            return;
+            return 0;
         }
         if ((uint8_t)c == tm->c_cc[VWERASE] && (tm->c_lflag & IEXTEN)) {
             while (t->line_len && t->line[t->line_len - 1] == ' ') { t->line_len--; if (tm->c_lflag & ECHO) tty_echo(t, "\b \b", 3); }
             while (t->line_len && t->line[t->line_len - 1] != ' ') { t->line_len--; if (tm->c_lflag & ECHO) tty_echo(t, "\b \b", 3); }
-            return;
+            return 0;
         }
         if ((uint8_t)c == tm->c_cc[VEOF]) {
             for (size_t i = 0; i < t->line_len; i++) rb_put(t, t->line[i]);
             if (!t->line_len) t->eof = true;
             t->line_len = 0;
             input_ready(t);
-            return;
+            return 0;
         }
         if (c == '\n') {
             if (tm->c_lflag & (ECHO | ECHONL)) tty_echo(t, "\n", 1);
@@ -118,7 +132,7 @@ void tty_input(struct tty *t, char c) {
             rb_put(t, '\n');
             t->line_len = 0;
             input_ready(t);
-            return;
+            return 0;
         }
         if (t->line_len < sizeof t->line - 1) {
             t->line[t->line_len++] = c;
@@ -127,53 +141,83 @@ void tty_input(struct tty *t, char c) {
                 else tty_echo(t, &c, 1);
             }
         }
-        return;
+        return 0;
     }
     rb_put(t, c);
     if (tm->c_lflag & ECHO) tty_echo(t, &c, 1);
     input_ready(t);
+    return 0;
 }
+
+static void tty_input_ctx(struct tty *t, char c, bool process_ctx) {
+    uint64_t f = tlock(t);
+    int sig = tty_input_locked(t, c);
+    int pg = t->pgrp;
+    tunlock(t, f);
+    if (!sig || pg <= 0) return;
+    /* the process list is BKL-protected; interrupt context cannot take it (as before) */
+    if (process_ctx) bkl_enter();
+    signal_send_pgrp(pg, sig);
+    if (process_ctx) bkl_exit();
+}
+
+void tty_input(struct tty *t, char c) { tty_input_ctx(t, c, false); }
 
 void tty_input_str(struct tty *t, const char *s) { while (*s) tty_input(t, *s++); }
 
+/* Lock-free read (file_ops.nobkl): state is sampled under t->lock, sleeps use the
+ * sched-lock recheck (wait_until_sl) against input_ready()'s wake_up. */
 static ssize_t tty_read(struct file *f, void *buf, size_t n, off_t *off) {
     struct tty *t = tty_of(f);
     if (!n) return 0;
-    if (t->hup && !rb_count(t)) return 0;
-    bool canon = t->t.c_lflag & ICANON;
-    uint8_t vmin = t->t.c_cc[VMIN], vtime = t->t.c_cc[VTIME];
-    if (!rb_count(t)) {
-        if (canon && t->eof) { t->eof = false; return 0; }
+    uint64_t deadline = 0;
+    uint64_t fl;
+    for (;;) {
+        fl = tlock(t);
+        if (rb_count(t)) break;                         /* keep the lock */
+        bool canon = t->t.c_lflag & ICANON;
+        uint8_t vmin = t->t.c_cc[VMIN], vtime = t->t.c_cc[VTIME];
+        if (t->hup) { tunlock(t, fl); return 0; }
+        if (canon && t->eof) { t->eof = false; tunlock(t, fl); return 0; }
+        tunlock(t, fl);
         if (f->flags & O_NONBLOCK) return -EAGAIN;
         if (!canon && vmin == 0) {
-            uint64_t deadline = time_ns() + (uint64_t)vtime * 100000000ULL;
-            while (!rb_count(t) && time_ns() < deadline) {
-                if (signal_pending(current)) return -EINTR;
-                sleep_ns(5000000);
-            }
-            if (!rb_count(t)) return 0;
-        } else {
-            int r = wait_until(&t->rq, rb_count(t) || (canon && t->eof) || t->hup);
-            if (r) return r;
-            if (!rb_count(t)) { t->eof = false; return 0; }
+            if (!deadline) deadline = time_ns() + (uint64_t)vtime * 100000000ULL + 1;
+            if (time_ns() >= deadline) return 0;
+            if (signal_pending(current)) return -EINTR;
+            sleep_ns(5000000);
+            continue;
         }
+        int r = wait_until_sl(&t->rq, rb_count(t) || t->eof || t->hup);
+        if (r) return r;
     }
-    size_t got = 0;
-    char *b = buf;
-    uint64_t fl = arch_irq_save();
-    while (got < n && rb_count(t)) {
+    char kb[512];
+    size_t got = 0, lim = MIN(n, sizeof kb);
+    bool canon = t->t.c_lflag & ICANON;
+    while (got < lim && rb_count(t)) {
         char c = t->rbuf[t->rhead++ % sizeof t->rbuf];
-        b[got++] = c;
+        kb[got++] = c;
         if (canon && c == '\n') break;
     }
-    arch_irq_restore(fl);
+    tunlock(t, fl);
+    if (copy_out(buf, kb, got)) return -EFAULT;
     return got;
 }
 
 static ssize_t tty_write(struct file *f, const void *buf, size_t n, off_t *off) {
     struct tty *t = tty_of(f);
     if (t->hup) return -EIO;
-    return t->output(t, buf, n, !(f->flags & O_NONBLOCK));
+    char kb[512];
+    size_t done = 0;
+    while (done < n) {
+        size_t c = MIN(n - done, sizeof kb);
+        if (copy_in(kb, (const char *)buf + done, c)) return done ? (ssize_t)done : -EFAULT;
+        ssize_t r = t->output(t, kb, c, !(f->flags & O_NONBLOCK));
+        if (r < 0) return done ? (ssize_t)done : r;
+        done += r;
+        if ((size_t)r < c) break;
+    }
+    return done;
 }
 
 static unsigned tty_poll(struct file *f) {
@@ -189,17 +233,24 @@ static int tty_ioctl(struct file *f, uint64_t cmd, uint64_t arg) { return tty_io
 static int tty_ioctl_t(struct tty *t, struct file *f, uint64_t cmd, uint64_t arg) {
     struct process *p = curproc;
     switch (cmd) {
-    case 0x5401: /* TCGETS */
-        return copy_to_user((void *)arg, &t->t, sizeof t->t);
+    case 0x5401: { /* TCGETS */
+        uint64_t fl = tlock(t);
+        struct termios tm = t->t;
+        tunlock(t, fl);
+        return copy_to_user((void *)arg, &tm, sizeof tm);
+    }
     case 0x5402: case 0x5403: case 0x5404: { /* TCSETS, TCSETSW, TCSETSF */
         struct termios nt;
         if (copy_from_user(&nt, (void *)arg, sizeof nt)) return -EFAULT;
+        uint64_t fl = tlock(t);
         if (cmd == 0x5404) { t->rhead = t->rtail; t->line_len = 0; }
         if ((t->t.c_lflag & ICANON) && !(nt.c_lflag & ICANON) && t->line_len) {
             for (size_t i = 0; i < t->line_len; i++) rb_put(t, t->line[i]);
             t->line_len = 0;
+            input_ready(t);
         }
         t->t = nt;
+        tunlock(t, fl);
         return 0;
     }
     case 0x5413: { /* TIOCGWINSZ */
@@ -239,7 +290,7 @@ static int tty_ioctl_t(struct tty *t, struct file *f, uint64_t cmd, uint64_t arg
         return copy_to_user((void *)arg, &n, sizeof n);
     }
     case 0x540B: /* TCFLSH */
-        if (arg == 0 || arg == 2) { t->rhead = t->rtail; t->line_len = 0; }
+        if (arg == 0 || arg == 2) { uint64_t fl = tlock(t); t->rhead = t->rtail; t->line_len = 0; tunlock(t, fl); }
         return 0;
     case 0x5409: case 0x540A: case 0x5421: return 0;   /* TCSBRK, TCXONC, FIONBIO */
     }
@@ -286,7 +337,7 @@ static int tty_open(struct inode *ino, struct file *f) {
 }
 
 static const struct file_ops tty_ops = {
-    .open = tty_open, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll,
+    .nobkl = true, .open = tty_open, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll,
 };
 
 #include "pty.inc"
