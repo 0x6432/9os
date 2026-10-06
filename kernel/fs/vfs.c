@@ -1,3 +1,4 @@
+#include <kernel/mutex.h>
 /* Virtual file system: path resolution, open files, generic operations. */
 #include <kernel/vfs.h>
 #include <kernel/process.h>
@@ -11,6 +12,25 @@
 struct inode *vfs_root;
 struct wait_queue poll_wq = WAIT_QUEUE_INIT(poll_wq);
 static uint64_t next_ino = 1;
+
+/*
+ * Namespace mutex (M24): path walks, directory contents, mounts and process cwd/root changes
+ * are serialised by this recursive sleeping mutex instead of the BKL (cf. Linux's early
+ * dcache_lock/rename_lock). File data has per-inode locks (tmpfs.c); filesystems whose
+ * callbacks still need the BKL (procfs) take it themselves.
+ */
+static const struct lock_class ns_class = { "vfs_ns", LR_MUTEX_VFS, false };
+static struct mutex ns_mtx = MUTEX_INIT(ns_mtx, &ns_class);
+static int ns_depth;
+void vfs_ns_lock(void) {
+    if (mutex_owned(&ns_mtx)) { ns_depth++; return; }
+    mutex_lock(&ns_mtx);
+    ns_depth = 1;
+}
+void vfs_ns_unlock(void) {
+    if (--ns_depth > 0) return;
+    mutex_unlock(&ns_mtx);
+}
 
 uint64_t poll_seq;
 void poll_notify(void) { __atomic_add_fetch(&poll_seq, 1, __ATOMIC_SEQ_CST); wake_up(&poll_wq); }
@@ -31,7 +51,7 @@ struct inode *inode_alloc(uint32_t mode) {
     struct inode *i = kzalloc(sizeof *i);
     if (!i) return nullptr;
     i->mode = mode;
-    i->ino = next_ino++;
+    i->ino = __atomic_fetch_add(&next_ino, 1, __ATOMIC_RELAXED);
     i->refcount = 1;
     i->atime = i->mtime = i->ctime = now_timespec();
     return i;
@@ -54,6 +74,7 @@ static struct inode *proc_cwd(void) {
 }
 
 static int walk(struct inode *base, const char *path, bool follow_last, int depth, struct inode **out);
+static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size);
 
 static int lookup_child(struct inode *dir, const char *name, struct inode **out) {
     if (!S_ISDIR(dir->mode)) return -ENOTDIR;
@@ -122,13 +143,13 @@ static int walk(struct inode *base, const char *path, bool follow_last, int dept
     return 0;
 }
 
-int vfs_lookup_at(struct inode *base, const char *path, bool follow, struct inode **out) {
+static int vfs_lookup_at_l(struct inode *base, const char *path, bool follow, struct inode **out) {
     return walk(base, path, follow, 0, out);
 }
-int vfs_lookup(const char *path, bool follow, struct inode **out) { return walk(nullptr, path, follow, 0, out); }
+static int vfs_lookup_l(const char *path, bool follow, struct inode **out) { return walk(nullptr, path, follow, 0, out); }
 
 /* Resolve all but the last component. last receives the final name ("." for "/"). */
-int vfs_lookup_parent_at(struct inode *base, const char *path, struct inode **dir, char *last) {
+static int vfs_lookup_parent_at_l(struct inode *base, const char *path, struct inode **dir, char *last) {
     size_t len = strlen(path);
     if (!len) return -ENOENT;
     while (len > 1 && path[len - 1] == '/') len--;
@@ -161,12 +182,12 @@ struct file *file_open_inode(struct inode *ino, int flags) {
     return f;
 }
 
-int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, struct file **out) {
+static int open_prepare(struct inode *base, const char *path, int flags, uint32_t mode, struct file **out) {
     struct inode *ino;
     int r = walk(base, path, !(flags & O_NOFOLLOW), 0, &ino);
     if (r == -ENOENT && (flags & O_CREAT)) {
         struct inode *dir; char last[256];
-        r = vfs_lookup_parent_at(base, path, &dir, last);
+        r = vfs_lookup_parent_at_l(base, path, &dir, last);
         if (r) return r;
         uint32_t um = curproc ? curproc->umask : 022;
         if (!dir->iops->create) { iput(dir); return -EROFS; }
@@ -191,7 +212,7 @@ int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, 
     if (path[0] == '/') f->path = strdup(path);
     else {
         char *cwd = kmalloc(4096);
-        int l = vfs_getcwd(base ? base : proc_cwd(), cwd, 4096);
+        int l = vfs_getcwd_l(base ? base : proc_cwd(), cwd, 4096);
         if (l > 0) {
             size_t pl = strlen(path);
             char *full = kmalloc(l + pl + 2);
@@ -201,14 +222,30 @@ int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, 
         kfree(cwd);
     }
     if (S_ISCHR(ino->mode) && !f->fops) { vfs_close(f); return -ENXIO; }
+    *out = f;
+    return 0;
+}
+
+/* The walk/create/truncate run under the namespace mutex; the driver's ->open runs after it
+ * is dropped (it may block, e.g. a FIFO, or create nodes itself, e.g. ptmx), under the BKL. */
+int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, struct file **out) {
+    struct file *f;
+    vfs_ns_lock();
+    int r = open_prepare(base, path, flags, mode, &f);
+    vfs_ns_unlock();
+    if (r) return r;
     if (f->fops && f->fops->open && !(flags & O_PATH)) {
-        r = f->fops->open(ino, f);
+        bool took = !bkl_held();
+        if (took) bkl_enter();
+        r = f->fops->open(f->inode, f);
+        if (took) bkl_exit();
         if (r) { f->fops = nullptr; vfs_close(f); return r; }
     }
     if (!(flags & O_PATH)) fsnotify_file(f, IN_OPEN);
     *out = f;
     return 0;
 }
+
 int vfs_open(const char *path, int flags, uint32_t mode, struct file **out) {
     return vfs_open_at(nullptr, path, flags, mode, out);
 }
@@ -250,9 +287,9 @@ ssize_t vfs_pread(struct file *f, void *buf, size_t n, off_t off) {
     return f->fops->read(f, buf, n, &off);
 }
 
-int vfs_mknod_at(struct inode *base, const char *path, uint32_t mode, uint64_t rdev) {
+static int vfs_mknod_at_l(struct inode *base, const char *path, uint32_t mode, uint64_t rdev) {
     struct inode *dir, *ino; char last[256];
-    int r = vfs_lookup_parent_at(base, path, &dir, last);
+    int r = vfs_lookup_parent_at_l(base, path, &dir, last);
     if (r) return r;
     if (!dir->iops->create) { iput(dir); return -EROFS; }
     struct inode *ex;
@@ -268,9 +305,9 @@ int vfs_mkdir_at(struct inode *base, const char *path, uint32_t mode) {
     return vfs_mknod_at(base, path, S_IFDIR | (mode & 07777 & ~um), 0);
 }
 
-int vfs_unlink_at(struct inode *base, const char *path, bool rmdir) {
+static int vfs_unlink_at_l(struct inode *base, const char *path, bool rmdir) {
     struct inode *dir; char last[256];
-    int r = vfs_lookup_parent_at(base, path, &dir, last);
+    int r = vfs_lookup_parent_at_l(base, path, &dir, last);
     if (r) return r;
     if (!strcmp(last, ".") || !strcmp(last, "..")) { iput(dir); return rmdir ? -EINVAL : -EISDIR; }
     struct inode *victim = nullptr;
@@ -285,9 +322,9 @@ int vfs_unlink_at(struct inode *base, const char *path, bool rmdir) {
     return r;
 }
 
-int vfs_symlink_at(struct inode *base, const char *target, const char *path) {
+static int vfs_symlink_at_l(struct inode *base, const char *target, const char *path) {
     struct inode *dir; char last[256];
-    int r = vfs_lookup_parent_at(base, path, &dir, last);
+    int r = vfs_lookup_parent_at_l(base, path, &dir, last);
     if (r) return r;
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); iput(dir); return -EEXIST; }
@@ -297,13 +334,13 @@ int vfs_symlink_at(struct inode *base, const char *target, const char *path) {
     return r;
 }
 
-int vfs_link_at(struct inode *ob, const char *opath, struct inode *nb, const char *npath, bool follow) {
+static int vfs_link_at_l(struct inode *ob, const char *opath, struct inode *nb, const char *npath, bool follow) {
     struct inode *src;
     int r = walk(ob, opath, follow, 0, &src);
     if (r) return r;
     if (S_ISDIR(src->mode)) { iput(src); return -EPERM; }
     struct inode *dir; char last[256];
-    r = vfs_lookup_parent_at(nb, npath, &dir, last);
+    r = vfs_lookup_parent_at_l(nb, npath, &dir, last);
     if (r) { iput(src); return r; }
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); r = -EEXIST; }
@@ -313,11 +350,11 @@ int vfs_link_at(struct inode *ob, const char *opath, struct inode *nb, const cha
     return r;
 }
 
-int vfs_rename_at(struct inode *ob, const char *opath, struct inode *nb, const char *npath) {
+static int vfs_rename_at_l(struct inode *ob, const char *opath, struct inode *nb, const char *npath) {
     struct inode *od, *nd; char ol[256], nl[256];
-    int r = vfs_lookup_parent_at(ob, opath, &od, ol);
+    int r = vfs_lookup_parent_at_l(ob, opath, &od, ol);
     if (r) return r;
-    r = vfs_lookup_parent_at(nb, npath, &nd, nl);
+    r = vfs_lookup_parent_at_l(nb, npath, &nd, nl);
     if (r) { iput(od); return r; }
     struct inode *moved = nullptr;
     if (fsnotify_nwatches && lookup_child(od, ol, &moved)) moved = nullptr;
@@ -335,7 +372,7 @@ int vfs_rename_at(struct inode *ob, const char *opath, struct inode *nb, const c
     return r;
 }
 
-int vfs_readlink_at(struct inode *base, const char *path, char *buf, size_t size) {
+static int vfs_readlink_at_l(struct inode *base, const char *path, char *buf, size_t size) {
     struct inode *i;
     int r = walk(base, path, false, 0, &i);
     if (r) return r;
@@ -358,9 +395,9 @@ void vfs_stat(struct inode *i, struct kstat *st) {
     st->atime = i->atime; st->mtime = i->mtime; st->ctime = i->ctime;
 }
 
-int vfs_mount(const char *path, struct inode *root) {
+static int vfs_mount_l(const char *path, struct inode *root) {
     struct inode *mp;
-    int r = vfs_lookup(path, true, &mp);
+    int r = vfs_lookup_l(path, true, &mp);
     if (r) return r;
     if (!S_ISDIR(mp->mode)) { iput(mp); return -ENOTDIR; }
     mp->mounted = root;
@@ -380,7 +417,7 @@ static int find_fill(void *c, const char *name, size_t len, uint64_t ino, unsign
     return 0;
 }
 
-int vfs_getcwd(struct inode *cwd, char *buf, size_t size) {
+static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size) {
     char *tmp = kmalloc(4096), name[256];
     size_t pos = 4095;
     tmp[pos] = 0;
@@ -413,3 +450,17 @@ void vfs_init(void) {
     vfs_root->parent = vfs_root;
     pr_info("vfs: tmpfs root mounted\n");
 }
+
+/* ---- public entry points: take the namespace mutex ---- */
+#define NS_WRAP(call) ({ vfs_ns_lock(); int __r = (call); vfs_ns_unlock(); __r; })
+int vfs_lookup_at(struct inode *base, const char *path, bool follow, struct inode **out) { return NS_WRAP(vfs_lookup_at_l(base, path, follow, out)); }
+int vfs_lookup(const char *path, bool follow, struct inode **out) { return NS_WRAP(vfs_lookup_l(path, follow, out)); }
+int vfs_lookup_parent_at(struct inode *base, const char *path, struct inode **dir, char *last) { return NS_WRAP(vfs_lookup_parent_at_l(base, path, dir, last)); }
+int vfs_mknod_at(struct inode *base, const char *path, uint32_t mode, uint64_t rdev) { return NS_WRAP(vfs_mknod_at_l(base, path, mode, rdev)); }
+int vfs_unlink_at(struct inode *base, const char *path, bool rmdir) { return NS_WRAP(vfs_unlink_at_l(base, path, rmdir)); }
+int vfs_symlink_at(struct inode *base, const char *target, const char *path) { return NS_WRAP(vfs_symlink_at_l(base, target, path)); }
+int vfs_link_at(struct inode *ob, const char *opath, struct inode *nb, const char *npath, bool follow) { return NS_WRAP(vfs_link_at_l(ob, opath, nb, npath, follow)); }
+int vfs_rename_at(struct inode *ob, const char *opath, struct inode *nb, const char *npath) { return NS_WRAP(vfs_rename_at_l(ob, opath, nb, npath)); }
+int vfs_readlink_at(struct inode *base, const char *path, char *buf, size_t size) { return NS_WRAP(vfs_readlink_at_l(base, path, buf, size)); }
+int vfs_mount(const char *path, struct inode *root) { return NS_WRAP(vfs_mount_l(path, root)); }
+int vfs_getcwd(struct inode *cwd, char *buf, size_t size) { return NS_WRAP(vfs_getcwd_l(cwd, buf, size)); }

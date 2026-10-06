@@ -593,13 +593,17 @@ static void watch_remove(struct iwatch *w, bool notify) {
     fsnotify_nwatches--;
 }
 
+/* watch lists are BKL-protected; hooks fire from lock-free VFS paths too */
 static void notify(struct inode *i, uint32_t mask, uint32_t cookie, const char *name) {
+    bool took = !bkl_held();
+    if (took) bkl_enter();
     list_for_each_safe(it, tmp, &all_watches) {
         struct iwatch *w = list_entry(it, struct iwatch, inode_node);
         if (w->ino != i || !(w->mask & mask & IN_ALL_EVENTS)) continue;
         in_queue(w->in, w->wd, mask & (IN_ALL_EVENTS | IN_ISDIR), cookie, name);
         if (w->mask & IN_ONESHOT) watch_remove(w, true);
     }
+    if (took) bkl_exit();
 }
 
 void fsnotify_dirent_(struct inode *dir, const char *name, uint32_t mask, bool isdir, uint32_t cookie) {
@@ -637,6 +641,8 @@ void fsnotify_path_(struct inode *base, const char *path, struct inode *i, uint3
 }
 /* the inode lost a link: DELETE_SELF + IGNORED once it is gone */
 void fsnotify_unlinked_(struct inode *i) {
+    bool took = !bkl_held();
+    if (took) bkl_enter();
     if (S_ISDIR(i->mode) || i->nlink == 0) {
         fsnotify_inode_(i, 0x400 /* IN_DELETE_SELF */);
         list_for_each_safe(it, tmp, &all_watches) {
@@ -646,8 +652,9 @@ void fsnotify_unlinked_(struct inode *i) {
     } else {
         fsnotify_inode_(i, 0x4 /* IN_ATTRIB */);
     }
+    if (took) bkl_exit();
 }
-uint32_t fsnotify_cookie(void) { return next_cookie++; }
+uint32_t fsnotify_cookie(void) { return __atomic_fetch_add(&next_cookie, 1, __ATOMIC_RELAXED); }
 
 static ssize_t in_read(struct file *f, void *buf, size_t n, off_t *off) {
     struct inotify *in = f->priv;

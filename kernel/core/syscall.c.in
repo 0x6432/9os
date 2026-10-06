@@ -49,7 +49,14 @@ static const char *const lockfree_names[] = {
     "clock_nanosleep", "uname", "getcpu", "sched_getaffinity", "read", "write", "futex",
     "sendmsg", "recvmsg", "sendto", "recvfrom", "poll", "ppoll", "select", "pselect6",
     "epoll_ctl", "epoll_wait", "epoll_pwait", "epoll_pwait2", "close", "dup", "dup2", "dup3", "fcntl",
-    "pread64", "pwrite64", "readv", "writev", "lseek", nullptr,
+    "pread64", "pwrite64", "readv", "writev", "lseek",
+    /* path syscalls: namespace mutex + per-inode locks (fs/vfs.c, fs/tmpfs.c) */
+    "openat", "open", "creat", "newfstatat", "fstatat64", "stat", "lstat", "fstat", "statx",
+    "faccessat", "faccessat2", "access", "readlinkat", "readlink", "getdents64", "getdents",
+    "mkdirat", "mkdir", "mknodat", "mknod", "unlinkat", "unlink", "rmdir", "symlinkat", "symlink",
+    "linkat", "link", "renameat2", "renameat", "rename", "chdir", "fchdir", "getcwd",
+    "fchmodat", "chmod", "fchmod", "fchownat", "chown", "lchown", "fchown", "utimensat",
+    "truncate", "ftruncate", "statfs", "fstatfs", nullptr,
 };
 static uint8_t lockfree[NR_SYSCALLS];
 static volatile bool lockfree_ready;

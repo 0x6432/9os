@@ -193,6 +193,8 @@ int vfs_readlink_at(struct inode *base, const char *path, char *buf, size_t size
 void vfs_stat(struct inode *i, struct kstat *st);
 int vfs_mount(const char *path, struct inode *root);
 int vfs_getcwd(struct inode *cwd, char *buf, size_t size);
+void vfs_ns_lock(void);            /* recursive namespace mutex (see vfs.c) */
+void vfs_ns_unlock(void);
 
 /* filesystems */
 struct inode *tmpfs_create_root(void);

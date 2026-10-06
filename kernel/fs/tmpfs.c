@@ -9,8 +9,10 @@
 #include <kernel/mutex.h>
 #include <kernel/mm.h>
 
-struct dirent_t { struct list_node node; struct inode *ino; char name[]; };
-struct tdir { struct list_node entries; uint64_t count; };
+/* Entries are kept in insertion order with a per-directory increasing cookie; readdir positions
+ * are cookies, so unlinking or renaming entries during a readdir never skips survivors. */
+struct dirent_t { struct list_node node; struct inode *ino; uint64_t cookie; char name[]; };
+struct tdir { struct list_node entries; uint64_t count; uint64_t next_cookie; };
 /* Regular-file data (page array, size) is guarded by the per-inode mutex, so read/write/
  * pread/pwrite/mmap of tmpfs files run without the BKL (M24). Namespace operations (lookup,
  * create, unlink, rename) are still serialised by the BKL. */
@@ -45,6 +47,7 @@ static int dir_add(struct inode *dir, const char *name, struct inode *ino) {
     memcpy(e->name, name, l + 1);
     e->ino = ino;
     struct tdir *d = dir->priv;
+    e->cookie = d->next_cookie++;
     list_add_tail(&d->entries, &e->node);
     d->count++;
     ino->nlink++;
@@ -213,7 +216,6 @@ static int t_truncate_locked(struct inode *i, uint64_t size) {
 
 static int t_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx) {
     struct tdir *d = dir->priv;
-    uint64_t idx = 0;
     if (*pos == 0) { if (fill(ctx, ".", 1, dir->ino, 4)) return 0; (*pos)++; }
     if (*pos == 1) {
         struct inode *p = dir->parent ? dir->parent : dir;
@@ -221,11 +223,11 @@ static int t_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
         (*pos)++;
     }
     list_for_each(it, &d->entries) {
-        if (idx++ < *pos - 2) continue;
         struct dirent_t *e = list_entry(it, struct dirent_t, node);
+        if (e->cookie < *pos - 2) continue;
         unsigned type = (e->ino->mode & S_IFMT) >> 12;
         if (fill(ctx, e->name, strlen(e->name), e->ino->ino, type)) return 0;
-        (*pos)++;
+        *pos = e->cookie + 3;
     }
     return 0;
 }

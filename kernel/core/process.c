@@ -148,8 +148,10 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
             memcpy(p->cloexec, parent->cloexec, sizeof p->cloexec);
             spin_unlock_irqrestore(&parent->fd_lock, fl);
         }
+        vfs_ns_lock();                    /* cwd/root change under the namespace mutex */
         p->cwd = parent->cwd; iget(p->cwd);
         p->root = parent->root; iget(p->root);
+        vfs_ns_unlock();
         struct process *pp = (flags & CLONE_PARENT) && parent->parent ? parent->parent : parent;
         p->parent = pp;
         list_add_tail(&pp->children, &p->sibling);
@@ -221,8 +223,10 @@ __noreturn void process_exit(int status) {
     }
     release_thread_tid(current);
     for (int i = 0; i < MAX_FDS; i++) if (p->fds[i]) vfs_close(fd_slot_set(p, i, nullptr));
+    vfs_ns_lock();
     iput(p->cwd); iput(p->root);
     p->cwd = p->root = nullptr;
+    vfs_ns_unlock();
     if (p->ctty && p->sid == p->pid) { p->ctty->sid = 0; p->ctty->pgrp = 0; }
     vmm_switch(kernel_pt);
     struct mm *mm = p->mm;

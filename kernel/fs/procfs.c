@@ -341,8 +341,15 @@ static void pf_release(struct file *f) {
 }
 static unsigned pf_poll(struct file *f) { return POLLIN | POLLRDNORM; }
 
+/* process lists and fields are still BKL-protected: procfs takes it itself, so the VFS can
+ * walk into /proc from lock-free path syscalls (under the namespace mutex: BKL inside is ok) */
+#define PBKL(call) ({ bool __t = !bkl_held(); if (__t) bkl_enter(); int __r = (call); if (__t) bkl_exit(); __r; })
+static int pl_lookup(struct inode *d, const char *n, struct inode **o) { return PBKL(p_lookup(d, n, o)); }
+static int pl_readlink(struct inode *i, char *b, size_t s) { return PBKL(p_readlink(i, b, s)); }
+static int pl_iterate(struct inode *d, uint64_t *pos, filldir_t fill, void *c) { return PBKL(p_iterate(d, pos, fill, c)); }
+static int pl_follow(struct inode *i, struct inode **o) { return PBKL(p_follow(i, o)); }
 static const struct inode_ops proc_iops = {
-    .lookup = p_lookup, .readlink = p_readlink, .iterate = p_iterate, .evict = p_evict, .follow_link = p_follow,
+    .lookup = pl_lookup, .readlink = pl_readlink, .iterate = pl_iterate, .evict = p_evict, .follow_link = pl_follow,
 };
 static const struct file_ops proc_file_fops = { .open = pf_open, .read = pf_read, .release = pf_release, .poll = pf_poll };
 static const struct file_ops proc_dir_fops = { .poll = pf_poll };

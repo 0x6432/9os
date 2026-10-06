@@ -327,7 +327,12 @@ int64_t sys_newfstatat(int dirfd, const char *upath, void *ubuf, int flags) {
     int64_t r;
     if (!path[0] && (flags & AT_EMPTY_PATH)) {
         kfree(path);
-        if (dirfd == AT_FDCWD) return stat_out(curproc->cwd, ubuf);
+        if (dirfd == AT_FDCWD) {
+            vfs_ns_lock(); struct inode *c = curproc->cwd; iget(c); vfs_ns_unlock();
+            r = stat_out(c, ubuf);
+            iput(c);
+            return r;
+        }
         struct file *f = fd_get(dirfd);
         return f ? stat_out(f->inode, ubuf) : -EBADF;
     }
@@ -352,7 +357,7 @@ int64_t sys_statx(int dirfd, const char *upath, int flags, unsigned mask, void *
     int64_t r = 0;
     if (!path[0] && (flags & AT_EMPTY_PATH)) {
         struct file *f = dirfd == AT_FDCWD ? nullptr : fd_get(dirfd);
-        if (dirfd == AT_FDCWD) { ino = curproc->cwd; iget(ino); }
+        if (dirfd == AT_FDCWD) { vfs_ns_lock(); ino = curproc->cwd; iget(ino); vfs_ns_unlock(); }
         else if (f) { ino = f->inode; iget(ino); }
         else r = -EBADF;
     } else {
@@ -407,9 +412,11 @@ static int64_t do_getdents(int fd, void *buf, size_t size, bool old) {
     if (!S_ISDIR(f->inode->mode)) return -ENOTDIR;
     if (!f->inode->iops || !f->inode->iops->iterate) return 0;
     struct gd_ctx g = { buf, size, 0, false, old };
+    vfs_ns_lock();                        /* directory contents */
     uint64_t pos = f->pos;
     f->inode->iops->iterate(f->inode, &pos, gd_fill, &g);
     f->pos = pos;
+    vfs_ns_unlock();
     if (g.full && !g.used) return -EINVAL;
     return g.used;
 }
@@ -502,8 +509,10 @@ int64_t sys_chdir(const char *upath) {
     kfree(path);
     if (r) return r;
     if (!S_ISDIR(i->mode)) { iput(i); return -ENOTDIR; }
+    vfs_ns_lock();
     iput(curproc->cwd);
     curproc->cwd = i;
+    vfs_ns_unlock();
     return 0;
 }
 int64_t sys_fchdir(int fd) {
@@ -511,8 +520,10 @@ int64_t sys_fchdir(int fd) {
     if (!f) return -EBADF;
     if (!S_ISDIR(f->inode->mode)) return -ENOTDIR;
     iget(f->inode);
+    vfs_ns_lock();
     iput(curproc->cwd);
     curproc->cwd = f->inode;
+    vfs_ns_unlock();
     return 0;
 }
 int64_t sys_chroot(const char *upath) {
@@ -522,14 +533,18 @@ int64_t sys_chroot(const char *upath) {
     kfree(path);
     if (r) return r;
     if (!S_ISDIR(i->mode)) { iput(i); return -ENOTDIR; }
+    vfs_ns_lock();
     iput(curproc->root);
     curproc->root = i;
+    vfs_ns_unlock();
     return 0;
 }
 
 int64_t sys_getcwd(char *ubuf, size_t size) {
     char *k = kmalloc(PATH_MAX);
+    vfs_ns_lock();
     int r = vfs_getcwd(curproc->cwd, k, MIN(size, PATH_MAX));
+    vfs_ns_unlock();
     if (r > 0 && copy_to_user(ubuf, k, r)) r = -EFAULT;
     kfree(k);
     return r;
