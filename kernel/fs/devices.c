@@ -4,6 +4,7 @@
 #include <kernel/errno.h>
 #include <kernel/time.h>
 #include <kernel/printk.h>
+#include <kernel/mm.h>
 
 struct chrdev { unsigned major, minor; const struct file_ops *ops; };
 static struct chrdev chrdevs[32];
@@ -18,31 +19,54 @@ const struct file_ops *chrdev_get(uint64_t rdev) {
     return nullptr;
 }
 
-static ssize_t null_read(struct file *f, void *b, size_t n, off_t *o) { return 0; }
-static ssize_t null_write(struct file *f, const void *b, size_t n, off_t *o) { return n; }
-static ssize_t zero_read(struct file *f, void *b, size_t n, off_t *o) { memset(b, 0, n); return n; }
-static unsigned always_ready(struct file *f) { return POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM; }
+/*
+ * null/zero/random run without the BKL (file_ops.nobkl): the buffer may be a user pointer,
+ * so output is staged in a small stack buffer and copied out with copy_to_user (kernel
+ * callers, e.g. exec of /dev/zero mappings, pass kernel pointers and get a memcpy).
+ */
+static int dev_copy_out(void *dst, const void *src, size_t n) {
+    if ((uintptr_t)dst < USER_TOP) return copy_to_user(dst, src, n) ? -EFAULT : 0;
+    memcpy(dst, src, n);
+    return 0;
+}
+typedef void (*fill_fn)(uint8_t *, size_t);
+static ssize_t fill_read(void *b, size_t n, fill_fn fill) {
+    uint8_t tmp[256];
+    size_t done = 0;
+    while (done < n) {
+        size_t c = MIN(sizeof tmp, n - done);
+        fill(tmp, c);
+        if (dev_copy_out((uint8_t *)b + done, tmp, c)) return done ? (ssize_t)done : -EFAULT;
+        done += c;
+    }
+    return done;
+}
+static void fill_zero(uint8_t *p, size_t n) { memset(p, 0, n); }
 
+/* lock-free splitmix64 over an atomic counter, perturbed by the clock */
 static uint64_t rng_state = 0x9e3779b97f4a7c15ULL;
 uint64_t random_u64(void) {
-    rng_state ^= time_ns();
-    uint64_t x = rng_state;
-    x ^= x >> 12; x ^= x << 25; x ^= x >> 27;
-    rng_state = x;
-    return x * 0x2545F4914F6CDD1DULL;
+    uint64_t x = __atomic_add_fetch(&rng_state, 0x9e3779b97f4a7c15ULL, __ATOMIC_RELAXED) ^ time_ns();
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    return x ^ (x >> 31);
 }
-static ssize_t random_read(struct file *f, void *b, size_t n, off_t *o) {
-    uint8_t *p = b;
+static void fill_random(uint8_t *p, size_t n) {
     for (size_t i = 0; i < n; i += 8) {
         uint64_t r = random_u64();
         memcpy(p + i, &r, MIN(8, n - i));
     }
-    return n;
 }
 
-static const struct file_ops null_ops = { .read = null_read, .write = null_write, .poll = always_ready };
-static const struct file_ops zero_ops = { .read = zero_read, .write = null_write, .poll = always_ready };
-static const struct file_ops random_ops = { .read = random_read, .write = null_write, .poll = always_ready };
+static ssize_t null_read(struct file *f, void *b, size_t n, off_t *o) { return 0; }
+static ssize_t null_write(struct file *f, const void *b, size_t n, off_t *o) { return n; }
+static ssize_t zero_read(struct file *f, void *b, size_t n, off_t *o) { return fill_read(b, n, fill_zero); }
+static ssize_t random_read(struct file *f, void *b, size_t n, off_t *o) { return fill_read(b, n, fill_random); }
+static unsigned always_ready(struct file *f) { return POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM; }
+
+static const struct file_ops null_ops = { .nobkl = true, .read = null_read, .write = null_write, .poll = always_ready };
+static const struct file_ops zero_ops = { .nobkl = true, .read = zero_read, .write = null_write, .poll = always_ready };
+static const struct file_ops random_ops = { .nobkl = true, .read = random_read, .write = null_write, .poll = always_ready };
 
 void tty_register_devices(void);
 

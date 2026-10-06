@@ -436,7 +436,12 @@ int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
     if (cmd == 0x5451) return fd_cloexec_set(fd, true);   /* FIOCLEX */
     if (cmd == 0x5450) return fd_cloexec_set(fd, false);  /* FIONCLEX */
     if (!f->fops || !f->fops->ioctl) return -ENOTTY;
-    return f->fops->ioctl(f, cmd, arg);
+    /* ioctl is dispatched lock-free; driver ioctls still run under the BKL */
+    bool took = !bkl_held();
+    if (took) bkl_enter();
+    int64_t r = f->fops->ioctl(f, cmd, arg);
+    if (took) bkl_exit();
+    return r;
 }
 
 int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {

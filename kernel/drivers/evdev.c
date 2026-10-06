@@ -198,8 +198,9 @@ static ssize_t evdev_write(struct file *f, const void *buf, size_t n, off_t *off
         struct input_event_abi e;
         if (copy_from_user(&e, (const char *)buf + done, sizeof e)) return done ? (ssize_t)done : -EFAULT;
         if (e.type == EV_LED && e.code <= LED_MAX) {
-            if (e.value) input_set_bit(c->dev->ledstate, e.code);
-            else c->dev->ledstate[0] &= ~(1ull << e.code);
+            /* atomic: evdev runs without the BKL (LED_MAX < 64, so word 0 only) */
+            if (e.value) __atomic_fetch_or(&c->dev->ledstate[0], 1ull << e.code, __ATOMIC_RELAXED);
+            else __atomic_fetch_and(&c->dev->ledstate[0], ~(1ull << e.code), __ATOMIC_RELAXED);
         }
     }
     return done;
@@ -291,7 +292,9 @@ static int evdev_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
     return -EINVAL;
 }
 
+/* read/write/poll are lock-free (queue under dev->lock); ioctls take the BKL in sys_ioctl */
 static const struct file_ops evdev_ops = {
+    .nobkl = true,
     .open = evdev_open, .release = evdev_release, .read = evdev_read, .write = evdev_write,
     .poll = evdev_poll, .ioctl = evdev_ioctl,
 };
