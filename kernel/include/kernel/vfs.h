@@ -1,6 +1,7 @@
 #pragma once
 #include <kernel/types.h>
 #include <kernel/sched.h>
+#include <kernel/spinlock.h>
 
 #define S_IFMT   0170000
 #define S_IFSOCK 0140000
@@ -96,8 +97,12 @@ struct file_ops {
     void (*release)(struct file *f);
     /* device memory mapping: physical address backing [off, off+len), or -errno */
     int (*mmap)(struct file *f, uint64_t off, size_t len, paddr_t *pa);
-    /* MAP_SHARED of page-cache backed files: page at pgoff (caller takes a reference) */
+    /* eagerly mapped page-backed files (DRM buffers): page at pgoff, returned with a reference */
     int (*mmap_page)(struct file *f, uint64_t pgoff, paddr_t *pa);
+    /* demand-faulted file mappings (M26, tmpfs): page-cache page at pgoff, returned with a
+     * reference. Runs under mm->lock (IRQs off, must not sleep). Pages past EOF: -ENXIO for
+     * private mappings (shared=false; the fault maps a zero page), allocated for shared ones. */
+    int (*fault_page)(struct inode *ino, uint64_t pgoff, bool shared, paddr_t *pa);
 };
 
 struct inode {
@@ -111,6 +116,8 @@ struct inode {
     struct inode *covered;     /* fs root: the mount point it covers */
     void *priv;
     int refcount;
+    struct list_node i_mmap;   /* file VMAs mapping this inode (rmap for page reclaim) */
+    spinlock_t i_mmap_lock;
 };
 
 struct file {

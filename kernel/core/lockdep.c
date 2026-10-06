@@ -64,6 +64,22 @@ out:
     arch_irq_restore(f);
 }
 
+void lockdep_acquire_try(const struct lock_class *c, bool sleeping) {
+    uint64_t f = arch_irq_save();
+    struct cpu *cpu = this_cpu();
+    struct thread *t = current;
+    if (cpu && !cpu->ld_busy) {
+        cpu->ld_busy = true;
+        if (sleeping) {
+            if (t && t->ld_nheld < (int)(sizeof t->ld_held / sizeof t->ld_held[0])) t->ld_held[t->ld_nheld++] = c;
+            else ld_overflows++;
+        } else if (cpu->ld_nspin < (int)(sizeof cpu->ld_spin / sizeof cpu->ld_spin[0])) cpu->ld_spin[cpu->ld_nspin++] = c;
+        else ld_overflows++;
+        cpu->ld_busy = false;
+    }
+    arch_irq_restore(f);
+}
+
 static void pop(const struct lock_class **st, int *n, const struct lock_class *c) {
     for (int i = *n - 1; i >= 0; i--)
         if (st[i] == c) {

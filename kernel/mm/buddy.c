@@ -83,6 +83,7 @@ static struct page *alloc_block_locked(unsigned order) {
     p->order = order;
     p->refcount = 1;
     p->slab = nullptr;
+    p->uflags = 0; p->mapping = nullptr; p->index = 0; p->mapcount = 0;
     __atomic_fetch_sub(&free_pages, 1ULL << order, __ATOMIC_RELAXED);
     return p;
 }
@@ -102,6 +103,7 @@ struct page *page_alloc(unsigned order) {
             __atomic_store_n(&p->flags, 0, __ATOMIC_RELAXED);
             p->refcount = 1;
             p->slab = nullptr;
+            p->uflags = 0; p->mapping = nullptr; p->index = 0; p->mapcount = 0;
             __atomic_fetch_sub(&cached_pages, 1, __ATOMIC_RELAXED);
             __atomic_fetch_sub(&free_pages, 1, __ATOMIC_RELAXED);
             __atomic_fetch_add(&c->alloc_hits, 1, __ATOMIC_RELAXED);

@@ -97,13 +97,20 @@ int64_t sys_lstat();
 int64_t sys_madvise();
 int64_t sys_membarrier();
 int64_t sys_memfd_create();
+int64_t sys_mincore();
 int64_t sys_mkdir();
 int64_t sys_mkdirat();
 int64_t sys_mknod();
 int64_t sys_mknodat();
+int64_t sys_mlock();
+int64_t sys_mlock2();
+int64_t sys_mlockall();
 int64_t sys_mmap();
 int64_t sys_mprotect();
 int64_t sys_mremap();
+int64_t sys_msync();
+int64_t sys_munlock();
+int64_t sys_munlockall();
 int64_t sys_munmap();
 int64_t sys_nanosleep();
 int64_t sys_newfstatat();
@@ -675,13 +682,22 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_mprotect] = (syscall_fn)sys_mprotect,
 #endif
 #ifdef __NR_msync
-    [__NR_msync] = (syscall_fn)sys_zero,
+    [__NR_msync] = (syscall_fn)sys_msync,
 #endif
 #ifdef __NR_mlock
-    [__NR_mlock] = (syscall_fn)sys_zero,
+    [__NR_mlock] = (syscall_fn)sys_mlock,
 #endif
 #ifdef __NR_munlock
-    [__NR_munlock] = (syscall_fn)sys_zero,
+    [__NR_munlock] = (syscall_fn)sys_munlock,
+#endif
+#ifdef __NR_mlockall
+    [__NR_mlockall] = (syscall_fn)sys_mlockall,
+#endif
+#ifdef __NR_munlockall
+    [__NR_munlockall] = (syscall_fn)sys_munlockall,
+#endif
+#ifdef __NR_mincore
+    [__NR_mincore] = (syscall_fn)sys_mincore,
 #endif
 #ifdef __NR_madvise
     [__NR_madvise] = (syscall_fn)sys_madvise,
@@ -709,6 +725,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_membarrier
     [__NR_membarrier] = (syscall_fn)sys_membarrier,
+#endif
+#ifdef __NR_mlock2
+    [__NR_mlock2] = (syscall_fn)sys_mlock2,
 #endif
 #ifdef __NR_statx
     [__NR_statx] = (syscall_fn)sys_statx,
@@ -2018,7 +2037,7 @@ void signal_deliver(struct trap_frame *f);
 
 /* Runs with interrupts off, with or without the BKL; signal work takes it (recursively). */
 void user_return_work(struct trap_frame *f) {
-    if (need_resched && current && (trap_from_user(f) || sched_kernel_preemptible())) schedule();
+    if (need_resched && current) schedule();
     if (!trap_from_user(f) || !current || !current->proc) return;
     struct process *p = current->proc;
     if ((p->alarm_ns && time_ns() >= p->alarm_ns) || signal_pending(current) || current->restore_mask) {
@@ -2049,7 +2068,12 @@ static const char *const lockfree_names[] = {
     "mkdirat", "mkdir", "mknodat", "mknod", "unlinkat", "unlink", "rmdir", "symlinkat", "symlink",
     "linkat", "link", "renameat2", "renameat", "rename", "chdir", "fchdir", "getcwd",
     "fchmodat", "chmod", "fchmod", "fchownat", "chown", "lchown", "fchown", "utimensat",
-    "truncate", "ftruncate", "statfs", "fstatfs", nullptr,
+    "truncate", "ftruncate", "statfs", "fstatfs",
+    /* FIONBIO/FIOCLEX handled atomically; driver ioctls take the BKL (sys_fs.c) */
+    "ioctl",
+    /* memory management: mm->lock (mm/mm.c); device mappings take the BKL (sys_mm.c) */
+    "mmap", "munmap", "mprotect", "mremap", "brk", "madvise", "mlock", "mlock2", "munlock",
+    "mlockall", "munlockall", "msync", "mincore", nullptr,
 };
 static uint8_t lockfree[NR_SYSCALLS];
 static volatile bool lockfree_ready;

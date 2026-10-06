@@ -13,11 +13,98 @@
  * are cookies, so unlinking or renaming entries during a readdir never skips survivors. */
 struct dirent_t { struct list_node node; struct inode *ino; uint64_t cookie; char name[]; };
 struct tdir { struct list_node entries; uint64_t count; uint64_t next_cookie; };
-/* Regular-file data (page array, size) is guarded by the per-inode mutex, so read/write/
- * pread/pwrite/mmap of tmpfs files run without the BKL (M24). Namespace operations (lookup,
- * create, unlink, rename) are still serialised by the BKL. */
-struct tfile { struct mutex lock; paddr_t *pages; size_t npages; };
+/*
+ * Regular files keep their data in a page array (the page cache; M26). Locking:
+ *  - tf->lock (mutex) serialises read/write/truncate/reclaim of the file data and size;
+ *  - tf->pglock (IRQ-off spinlock) guards the page-array entries: they are only changed with
+ *    it held, so the fault path (file_ops.fault_page, under mm->lock) can look up and fill
+ *    pages without the mutex. The array itself is only reallocated with both held.
+ * Files unpacked from the initramfs are backed by the (permanently reserved) archive image:
+ * pages are filled on demand, and clean backed pages sit on a global LRU from which
+ * tmpfs_reclaim() drops them under memory pressure after unmapping them through the inode's
+ * i_mmap reverse map. Written (dirty) and unbacked pages are never reclaimed (no swap).
+ */
+struct tfile {
+    struct mutex lock;
+    spinlock_t pglock;
+    paddr_t *pages; size_t npages;
+    struct inode *inode;
+    const uint8_t *backing; size_t backing_len;
+};
 static const struct lock_class tfile_class = { "tmpfs_inode", LR_MUTEX_INODE, false };
+static const struct lock_class pglock_class = { "tmpfs_pages", LR_PAGECACHE, false };
+static const struct lock_class lru_class = { "lru", LR_LRU, false };
+
+static struct list_node lru = LIST_INIT(lru);
+static spinlock_t lru_lock = SPINLOCK_INIT_CLASS(&lru_class);
+uint64_t pagecache_pages, pagecache_lru_pages, pagecache_filled, pagecache_reclaimed;
+
+static uint64_t pg_lock(struct tfile *f) { uint64_t fl = arch_irq_save(); spin_lock_ipi(&f->pglock); return fl; }
+static void pg_unlock(struct tfile *f, uint64_t fl) { spin_unlock(&f->pglock); arch_irq_restore(fl); }
+
+static void lru_add(struct page *pg) {
+    uint64_t f = arch_irq_save();
+    spin_lock_ipi(&lru_lock);
+    if (!page_uflag_test(pg, PGU_LRU | PGU_DIRTY)) {
+        page_uflag_set(pg, PGU_LRU);
+        list_add_tail(&lru, &pg->node);
+        pagecache_lru_pages++;
+    }
+    spin_unlock(&lru_lock);
+    arch_irq_restore(f);
+}
+static void lru_del_locked(struct page *pg) {
+    if (!page_uflag_test(pg, PGU_LRU)) return;
+    list_del(&pg->node);
+    page_uflag_clear(pg, PGU_LRU);
+    pagecache_lru_pages--;
+}
+void pagecache_mark_dirty(struct page *pg) {
+    if (page_uflag_test(pg, PGU_DIRTY)) return;
+    uint64_t f = arch_irq_save();
+    spin_lock_ipi(&lru_lock);
+    page_uflag_set(pg, PGU_DIRTY);
+    lru_del_locked(pg);
+    spin_unlock(&lru_lock);
+    arch_irq_restore(f);
+}
+void pagecache_mark_referenced(struct page *pg) {
+    if (!page_uflag_test(pg, PGU_REFERENCED)) page_uflag_set(pg, PGU_REFERENCED);
+}
+
+/* new page-cache page for index idx, filled from the backing image or zeroed; caller holds
+ * pglock (and stores it in the array) */
+static paddr_t cache_fill(struct tfile *f, uint64_t idx) {
+    paddr_t pa = pmm_alloc_pages(0);
+    if (!pa) return 0;
+    uint8_t *d = PHYS_TO_VIRT(pa);
+    uint64_t off = idx * PAGE_SIZE;
+    size_t n = off < f->backing_len ? MIN((size_t)PAGE_SIZE, f->backing_len - off) : 0;
+    if (n) memcpy(d, f->backing + off, n);
+    if (n < PAGE_SIZE) memset(d + n, 0, PAGE_SIZE - n);
+    struct page *pg = phys_to_page(pa);
+    pg->mapping = f->inode;
+    pg->index = (uint32_t)idx;
+    page_uflag_set(pg, PGU_CACHE | PGU_REFERENCED);
+    __atomic_fetch_add(&pagecache_pages, 1, __ATOMIC_RELAXED);
+    if (n) { __atomic_fetch_add(&pagecache_filled, 1, __ATOMIC_RELAXED); lru_add(pg); }
+    else page_uflag_set(pg, PGU_DIRTY);       /* no backing: only copy of the data */
+    return pa;
+}
+
+/* drop the cache's reference on a page leaving the cache; caller holds pglock */
+static void cache_drop(paddr_t pa) {
+    struct page *pg = phys_to_page(pa);
+    uint64_t f = arch_irq_save();
+    spin_lock_ipi(&lru_lock);
+    lru_del_locked(pg);
+    spin_unlock(&lru_lock);
+    arch_irq_restore(f);
+    page_uflag_clear(pg, PGU_CACHE);
+    pg->mapping = nullptr;
+    __atomic_fetch_sub(&pagecache_pages, 1, __ATOMIC_RELAXED);
+    page_put(pg);
+}
 
 static int copy_out(void *dst, const void *src, size_t n) {
     if ((vaddr_t)dst >= USER_TOP) { memcpy(dst, src, n); return 0; }
@@ -68,7 +155,7 @@ static struct inode *tmpfs_new(uint32_t mode, uint64_t rdev) {
         i->nlink = 1;          /* "." */
     } else if (S_ISREG(mode)) {
         struct tfile *tf = kzalloc(sizeof(struct tfile));
-        if (tf) mutex_init(&tf->lock, &tfile_class);
+        if (tf) { mutex_init(&tf->lock, &tfile_class); spin_lock_init_class(&tf->pglock, &pglock_class); tf->inode = i; }
         i->priv = tf;
         i->fops = &tmpfs_fops;
     }
@@ -97,7 +184,11 @@ static int t_create(struct inode *dir, const char *name, uint32_t mode, uint64_t
 static void t_evict(struct inode *i) {
     if (S_ISREG(i->mode)) {
         struct tfile *f = i->priv;
-        for (size_t k = 0; k < f->npages; k++) if (f->pages[k]) page_put_pa(f->pages[k]);
+        mutex_lock(&f->lock);                 /* reclaim may hold it (trylock under the LRU lock) */
+        uint64_t fl = pg_lock(f);
+        for (size_t k = 0; k < f->npages; k++) if (f->pages[k]) { cache_drop(f->pages[k]); f->pages[k] = 0; }
+        pg_unlock(f, fl);
+        mutex_unlock(&f->lock);
         kfree(f->pages);
         kfree(f);
     } else if (S_ISLNK(i->mode) || S_ISDIR(i->mode)) {
@@ -185,9 +276,13 @@ static int ensure_pages(struct tfile *f, size_t n) {
     size_t cap = MAX(n, f->npages * 2);
     paddr_t *np = kzalloc(cap * sizeof(paddr_t));
     if (!np) return -ENOMEM;
-    if (f->pages) { memcpy(np, f->pages, f->npages * sizeof(paddr_t)); kfree(f->pages); }
+    uint64_t fl = pg_lock(f);
+    paddr_t *old = f->pages;
+    if (old) memcpy(np, old, f->npages * sizeof(paddr_t));
     f->pages = np;
     f->npages = cap;
+    pg_unlock(f, fl);
+    kfree(old);
     return 0;
 }
 
@@ -204,10 +299,15 @@ static int t_truncate_locked(struct inode *i, uint64_t size) {
     struct tfile *f = i->priv;
     size_t need = (size + PAGE_SIZE - 1) / PAGE_SIZE;
     if (size < i->size) {
+        uint64_t fl = pg_lock(f);
         for (size_t k = need; k < f->npages; k++)
-            if (f->pages[k]) { page_put_pa(f->pages[k]); f->pages[k] = 0; }
-        if (size % PAGE_SIZE && need && f->pages[need - 1])
+            if (f->pages[k]) { cache_drop(f->pages[k]); f->pages[k] = 0; }
+        if (size % PAGE_SIZE && need && f->pages[need - 1]) {
+            pagecache_mark_dirty(phys_to_page(f->pages[need - 1]));
             memset((uint8_t *)PHYS_TO_VIRT(f->pages[need - 1]) + size % PAGE_SIZE, 0, PAGE_SIZE - size % PAGE_SIZE);
+        }
+        if (f->backing_len > size) f->backing_len = size;   /* unfilled tail pages read as zero */
+        pg_unlock(f, fl);
     } else if (ensure_pages(f, need)) return -ENOMEM;
     i->size = size;
     i->mtime = i->ctime = now_timespec();
@@ -245,8 +345,14 @@ static ssize_t t_read(struct file *fl, void *buf, size_t n, off_t *off) {
     while (done < n) {
         uint64_t pos = *off + done;
         size_t pg = pos / PAGE_SIZE, po = pos % PAGE_SIZE, chunk = MIN(n - done, PAGE_SIZE - po);
-        if (pg < f->npages && f->pages[pg]) err = copy_out((uint8_t *)buf + done, (uint8_t *)PHYS_TO_VIRT(f->pages[pg]) + po, chunk);
-        else {
+        paddr_t pa = pg < f->npages ? __atomic_load_n(&f->pages[pg], __ATOMIC_ACQUIRE) : 0;
+        if (pa) {
+            pagecache_mark_referenced(phys_to_page(pa));
+            err = copy_out((uint8_t *)buf + done, (uint8_t *)PHYS_TO_VIRT(pa) + po, chunk);
+        } else if (pos < f->backing_len) {       /* not cached: straight from the image */
+            chunk = MIN(chunk, f->backing_len - pos);
+            err = copy_out((uint8_t *)buf + done, f->backing + pos, chunk);
+        } else {
             chunk = MIN(chunk, sizeof zero);
             err = copy_out((uint8_t *)buf + done, zero, chunk);
         }
@@ -271,11 +377,13 @@ static ssize_t t_write(struct file *fl, const void *buf, size_t n, off_t *off) {
     while (done < n) {
         uint64_t pos = *off + done;
         size_t pg = pos / PAGE_SIZE, po = pos % PAGE_SIZE, chunk = MIN(n - done, PAGE_SIZE - po);
-        if (!f->pages[pg]) {
-            f->pages[pg] = pmm_alloc_zeroed(0);
-            if (!f->pages[pg]) break;
-        }
-        if ((err = copy_in((uint8_t *)PHYS_TO_VIRT(f->pages[pg]) + po, (const uint8_t *)buf + done, chunk))) break;
+        uint64_t fl = pg_lock(f);
+        paddr_t pa = f->pages[pg];
+        if (!pa) pa = f->pages[pg] = cache_fill(f, pg);
+        pg_unlock(f, fl);
+        if (!pa) break;
+        pagecache_mark_dirty(phys_to_page(pa));
+        if ((err = copy_in((uint8_t *)PHYS_TO_VIRT(pa) + po, (const uint8_t *)buf + done, chunk))) break;
         done += chunk;
     }
     if (!done && n) { mutex_unlock(&f->lock); return err ? -EFAULT : -ENOSPC; }
@@ -293,18 +401,86 @@ static const struct inode_ops tmpfs_iops = {
     .readlink = t_readlink, .link = t_link, .rename = t_rename, .truncate = t_truncate,
     .iterate = t_iterate, .evict = t_evict,
 };
-/* MAP_SHARED: hand out the page cache page itself (allocating holes). */
-static int t_mmap_page(struct file *fl, uint64_t pgoff, paddr_t *pa) {
-    struct tfile *f = fl->inode->priv;
-    mutex_lock(&f->lock);
+/* file_ops.fault_page: runs under mm->lock (atomic). Returns the page with a reference. */
+static int t_fault_page(struct inode *ino, uint64_t pgoff, bool shared, paddr_t *out) {
+    struct tfile *f = ino->priv;
+    if (pgoff >= (__atomic_load_n(&ino->size, __ATOMIC_RELAXED) + PAGE_SIZE - 1) / PAGE_SIZE) return -ENXIO;
+    uint64_t fl = pg_lock(f);
     int r = 0;
-    if (ensure_pages(f, pgoff + 1)) r = -ENOMEM;
-    else if (!f->pages[pgoff] && !(f->pages[pgoff] = pmm_alloc_zeroed(0))) r = -ENOMEM;
-    else *pa = f->pages[pgoff];          /* callers (mmap/exec, under the BKL like truncate) take the reference */
-    mutex_unlock(&f->lock);
+    paddr_t pa = pgoff < f->npages ? f->pages[pgoff] : 0;
+    if (pgoff >= f->npages) r = -ENXIO;
+    else if (!pa && !(pa = f->pages[pgoff] = cache_fill(f, pgoff))) r = -ENOMEM;
+    else {
+        struct page *pg = phys_to_page(pa);
+        page_ref_inc(pg);
+        pagecache_mark_referenced(pg);
+        *out = pa;
+    }
+    pg_unlock(f, fl);
     return r;
 }
-static const struct file_ops tmpfs_fops = { .nobkl = true, .read = t_read, .write = t_write, .poll = t_poll, .mmap_page = t_mmap_page };
+
+/* lazily filled from an initramfs image that stays mapped (fs/initramfs.c) */
+void tmpfs_set_backing(struct inode *i, const void *data, size_t len) {
+    struct tfile *f = i->priv;
+    mutex_lock(&f->lock);
+    t_truncate_locked(i, 0);
+    if (!ensure_pages(f, (len + PAGE_SIZE - 1) / PAGE_SIZE)) {
+        f->backing = data;
+        f->backing_len = len;
+        i->size = len;
+    }
+    mutex_unlock(&f->lock);
+}
+
+/*
+ * Drop up to want clean, backed pages from the LRU (second chance: referenced pages are
+ * rotated once), unmapping them from every address space through the reverse map. Never
+ * sleeps: inode mutexes and mm locks are only trylocked, so it can run from the fault path
+ * and with arbitrary mutexes held.
+ */
+static int reclaim_busy;
+uint64_t tmpfs_reclaim(uint64_t want) {
+    if (__atomic_exchange_n(&reclaim_busy, 1, __ATOMIC_ACQUIRE)) return 0;
+    uint64_t freed = 0, scanned = 0, budget = __atomic_load_n(&pagecache_lru_pages, __ATOMIC_RELAXED) * 2 + 16;
+    while (freed < want && scanned++ < budget) {
+        uint64_t irq = arch_irq_save();
+        spin_lock_ipi(&lru_lock);
+        if (list_empty(&lru)) { spin_unlock(&lru_lock); arch_irq_restore(irq); break; }
+        struct page *pg = list_first(&lru, struct page, node);
+        list_del(&pg->node);
+        list_add_tail(&lru, &pg->node);        /* rotate */
+        if (page_uflag_test(pg, PGU_REFERENCED)) {
+            page_uflag_clear(pg, PGU_REFERENCED);
+            spin_unlock(&lru_lock); arch_irq_restore(irq);
+            continue;
+        }
+        struct inode *ino = pg->mapping;
+        struct tfile *f = ino->priv;
+        /* while pg is on the LRU its inode cannot be evicted without this mutex */
+        bool locked = mutex_trylock(&f->lock);
+        spin_unlock(&lru_lock);
+        arch_irq_restore(irq);
+        if (!locked) continue;
+        __atomic_fetch_add(&vm_stats.reclaim_scanned, 1, __ATOMIC_RELAXED);
+        uint64_t fl = pg_lock(f);
+        uint64_t idx = pg->index;
+        paddr_t pa = page_to_phys(pg);
+        bool ok = idx < f->npages && f->pages[idx] == pa && !page_uflag_test(pg, PGU_DIRTY) &&
+                  page_uflag_test(pg, PGU_LRU) && rmap_unmap_file_page(pg) && page_ref_read(pg) == 1;
+        if (ok) {
+            f->pages[idx] = 0;
+            cache_drop(pa);                       /* frees it */
+            freed++;
+            __atomic_fetch_add(&pagecache_reclaimed, 1, __ATOMIC_RELAXED);
+        }
+        pg_unlock(f, fl);
+        mutex_unlock(&f->lock);
+    }
+    __atomic_store_n(&reclaim_busy, 0, __ATOMIC_RELEASE);
+    return freed;
+}
+static const struct file_ops tmpfs_fops = { .nobkl = true, .read = t_read, .write = t_write, .poll = t_poll, .fault_page = t_fault_page };
 
 /* unlinked regular file (memfd_create, O_TMPFILE) */
 struct inode *tmpfs_create_anon(uint32_t mode) { return tmpfs_new(mode, 0); }

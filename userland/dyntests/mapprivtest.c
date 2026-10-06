@@ -21,11 +21,11 @@ int main(void) {
     char buf[3 * 4096 + 100];
     for (size_t i = 0; i < sizeof buf; i++) buf[i] = 'a' + i % 26;
     write(fd, buf, sizeof buf);
-    long before = vmstat("pagecache_private_mapped");
     char *m = mmap(NULL, 4 * 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     CHECK(m != MAP_FAILED);
-    CHECK(vmstat("pagecache_private_mapped") - before == 4);
+    long before = vmstat("pgfault_file");                            /* demand-faulted from the page cache */
     CHECK(!memcmp(m, buf, sizeof buf));
+    CHECK(vmstat("pgfault_file") - before >= 4);
     CHECK(m[sizeof buf] == 0 && m[4 * 4096 - 1] == 0);              /* tail of the last page */
     m[5] = 'X';                                                       /* COW: file unchanged */
     char c; pread(fd, &c, 1, 5);

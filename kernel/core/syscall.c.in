@@ -56,7 +56,12 @@ static const char *const lockfree_names[] = {
     "mkdirat", "mkdir", "mknodat", "mknod", "unlinkat", "unlink", "rmdir", "symlinkat", "symlink",
     "linkat", "link", "renameat2", "renameat", "rename", "chdir", "fchdir", "getcwd",
     "fchmodat", "chmod", "fchmod", "fchownat", "chown", "lchown", "fchown", "utimensat",
-    "truncate", "ftruncate", "statfs", "fstatfs", nullptr,
+    "truncate", "ftruncate", "statfs", "fstatfs",
+    /* FIONBIO/FIOCLEX handled atomically; driver ioctls take the BKL (sys_fs.c) */
+    "ioctl",
+    /* memory management: mm->lock (mm/mm.c); device mappings take the BKL (sys_mm.c) */
+    "mmap", "munmap", "mprotect", "mremap", "brk", "madvise", "mlock", "mlock2", "munlock",
+    "mlockall", "munlockall", "msync", "mincore", nullptr,
 };
 static uint8_t lockfree[NR_SYSCALLS];
 static volatile bool lockfree_ready;

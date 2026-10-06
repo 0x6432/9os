@@ -17,7 +17,7 @@ static bool try_take(struct mutex *m) {
 
 bool mutex_trylock(struct mutex *m) {
     if (!try_take(m)) return false;
-    if (m->cls) lockdep_acquire(m->cls, true);
+    if (m->cls) lockdep_acquire_try(m->cls, true);
     return true;
 }
 

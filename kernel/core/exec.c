@@ -73,42 +73,37 @@ static int load_elf(struct mm *mm, struct file *f, bool is_interp, uint64_t *ent
         uint64_t s = ALIGN_DOWN(va, PAGE_SIZE), e = ALIGN_UP(va + ph[i].p_memsz, PAGE_SIZE);
         unsigned prot = (ph[i].p_flags & PF_R ? VM_READ : 0) | (ph[i].p_flags & PF_W ? VM_WRITE : 0) |
                         (ph[i].p_flags & PF_X ? VM_EXEC : 0);
+        /* read-only segments are private file mappings of the page cache, demand-faulted and
+         * shared by every process running this file (reclaimable under memory pressure) */
+        if (!(ph[i].p_flags & PF_W) && f->fops && f->fops->fault_page && S_ISREG(f->inode->mode) &&
+            (va - ph[i].p_offset) % PAGE_SIZE == 0 && ph[i].p_filesz) {
+            uint64_t fe = MIN(e, ALIGN_UP(va + ph[i].p_filesz, PAGE_SIZE));
+            if (mm_range_free(mm, s, fe - s)) {
+                int64_t m = mm_map_file(mm, s, fe - s, prot, 0, true, f, ALIGN_DOWN(ph[i].p_offset, PAGE_SIZE) / PAGE_SIZE);
+                if (m < 0) { r = (int)m; goto out; }
+                pc_stats_exec += (fe - s) / PAGE_SIZE;
+                if (fe < e) {            /* bss of a read-only segment */
+                    if (mm_range_free(mm, fe, e - fe)) {
+                        m = mm_map(mm, fe, e - fe, prot, VMA_ANON, true);
+                        if (m < 0) { r = (int)m; goto out; }
+                    }
+                    uint64_t fend = va + ph[i].p_filesz;
+                    if (fend < fe && (r = mm_zero(mm, fend, fe - fend))) goto out;
+                }
+                goto mapped;
+            }
+        }
         /* segments may share a page: map only the uncovered part, widen protection otherwise */
         for (uint64_t p = s; p < e; ) {
+            mm_lock(mm);
             struct vma *v = vma_find(mm, p);
-            if (v) { v->prot |= prot; p = v->end; continue; }
+            if (v) { v->prot |= prot; p = v->end; mm_unlock(mm); continue; }
             uint64_t q = p;
             while (q < e && !vma_find(mm, q)) q += PAGE_SIZE;
+            mm_unlock(mm);
             int64_t m = mm_map(mm, p, q - p, prot, VMA_ANON, true);
             if (m < 0) { r = (int)m; goto out; }
             p = q;
-        }
-        /* read-only segments come straight from the page cache (shared by every process
-         * running this file); a page already present (shared with a previous segment) is
-         * filled by copying, which breaks COW as usual */
-        if (!(ph[i].p_flags & PF_W) && f->fops && f->fops->mmap_page && S_ISREG(f->inode->mode) &&
-            (va - ph[i].p_offset) % PAGE_SIZE == 0) {
-            uint64_t pva = ALIGN_DOWN(va, PAGE_SIZE), foff = ALIGN_DOWN(ph[i].p_offset, PAGE_SIZE);
-            bool ok = true;
-            for (; pva < va + ph[i].p_filesz; pva += PAGE_SIZE, foff += PAGE_SIZE) {
-                paddr_t pa;
-                if (vmm_query(mm->pt, pva, nullptr, nullptr) || f->fops->mmap_page(f, foff / PAGE_SIZE, &pa)) { ok = false; break; }
-                page_ref_inc(phys_to_page(pa));
-                if (vmm_map(mm->pt, pva, pa, (prot & ~VM_WRITE) | VM_USER)) { page_put_pa(pa); r = -ENOMEM; goto out; }
-                pc_stats_exec++;
-            }
-            if (ok) goto mapped;
-            /* fall back to copying the rest of the segment */
-            uint64_t done = pva > va ? pva - va : 0;
-            uint8_t *buf = kmalloc(PAGE_SIZE);
-            for (uint64_t off = done; off < ph[i].p_filesz; off += PAGE_SIZE) {
-                size_t n = MIN(PAGE_SIZE, ph[i].p_filesz - off);
-                r = read_exact(f, buf, n, ph[i].p_offset + off);
-                if (!r) r = mm_write(mm, va + off, buf, n);
-                if (r) { kfree(buf); goto out; }
-            }
-            kfree(buf);
-            goto mapped;
         }
         /* copy file contents in chunks */
         uint8_t *buf = kmalloc(PAGE_SIZE);

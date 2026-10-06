@@ -214,12 +214,16 @@ static char pstate(struct process *p) {
     return 'S';
 }
 
+extern uint64_t pagecache_pages, pagecache_lru_pages, pagecache_filled, pagecache_reclaimed;
 static uint64_t vm_size(struct process *p) {
     uint64_t s = 0;
     if (!p->mm) return 0;
+    mm_lock(p->mm);
     list_for_each(it, &p->mm->vmas) { struct vma *v = list_entry(it, struct vma, node); s += v->end - v->start; }
+    mm_unlock(p->mm);
     return s;
 }
+static uint64_t vm_rss(struct process *p) { return p->mm ? (uint64_t)__atomic_load_n(&p->mm->rss, __ATOMIC_RELAXED) : 0; }
 
 static void sched_thread_line(struct thread *t, void *arg) {
     static const char st[] = "RXBSZ";
@@ -237,8 +241,8 @@ static void gen(struct pinfo *pi, struct buf *b) {
     switch (pi->file) {
     case G_MEMINFO:
         bprintf(b, "MemTotal:       %8lu kB\nMemFree:        %8lu kB\nMemAvailable:   %8lu kB\n"
-                   "Buffers:               0 kB\nCached:                0 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\n",
-                totalp * 4, freep * 4, freep * 4);
+                   "Buffers:               0 kB\nCached:         %8lu kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\n",
+                totalp * 4, freep * 4, (freep + pagecache_lru_pages) * 4, pagecache_pages * 4);
         break;
     case G_UPTIME: { uint64_t ms = time_ns() / 1000000; bprintf(b, "%lu.%02lu %lu.%02lu\n", ms / 1000, (ms % 1000) / 10, ms / 1000, (ms % 1000) / 10); break; }
     case G_VERSION: bprintf(b, "Linux version 6.1.0-9os (9os hobby kernel) #1\n"); break;
@@ -264,6 +268,15 @@ static void gen(struct pinfo *pi, struct buf *b) {
                 fr, tot, cow_stats.shared, cow_stats.copied, cow_stats.reused);
         extern uint64_t pc_stats_mapped, pc_stats_exec;
         bprintf(b, "pagecache_private_mapped %lu\npagecache_exec_mapped %lu\n", pc_stats_mapped, pc_stats_exec);
+        bprintf(b, "nr_pagecache %lu\nnr_pagecache_lru %lu\npagecache_filled %lu\npagecache_reclaimed %lu\n",
+                pagecache_pages, pagecache_lru_pages, pagecache_filled, pagecache_reclaimed);
+        bprintf(b, "pgfault_file %lu\npgfault_anon %lu\npgfault_zero_eof %lu\npgfault_cow %lu\noom_retries %lu\noom_kill %lu\n"
+                   "pgscan %lu\npgsteal %lu\nreclaim_runs %lu\nkswapd_wakeups %lu\nrmap_unmapped %lu\n"
+                   "madvise_zapped %lu\nmremap_moved %lu\npopulated %lu\n",
+                vm_stats.file_faults, vm_stats.anon_faults, vm_stats.zero_eof_faults, vm_stats.cow_faults,
+                vm_stats.oom_retries, vm_stats.oom_kills, vm_stats.reclaim_scanned, vm_stats.reclaim_freed,
+                vm_stats.reclaim_runs, vm_stats.kswapd_wakeups, vm_stats.rmap_unmapped, vm_stats.madv_zapped,
+                vm_stats.mremap_moved, vm_stats.populated);
         struct pmm_cache_stats ps; pmm_cache_stats(&ps);
         bprintf(b, "pmm_pcpu_cached %lu\npmm_pcpu_alloc_hits %lu\npmm_pcpu_free_hits %lu\npmm_pcpu_drained %lu\n",
                 ps.cached_pages, ps.alloc_hits, ps.free_hits, ps.drained_pages);
@@ -292,13 +305,13 @@ static void gen(struct pinfo *pi, struct buf *b) {
                 p->pid, p->name, pstate(p), p->parent ? p->parent->pid : 0, p->pgid, p->sid,
                 p->ctty ? 0x0501 : 0, p->ctty ? p->ctty->pgrp : -1, p->min_flt, p->cmin_flt,
                 p->utime_ns / 10000000, p->stime_ns / 10000000, p->cutime_ns / 10000000, p->cstime_ns / 10000000,
-                main_prio(p), main_nice(p), nthreads(p), p->start_ticks / 10, vm_size(p), vm_size(p) / PAGE_SIZE / 4);
+                main_prio(p), main_nice(p), nthreads(p), p->start_ticks / 10, vm_size(p), vm_rss(p));
         break;
     case F_STATUS:
-        bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nUid:\t%u\t%u\t%u\t%u\nGid:\t%u\t%u\t%u\t%u\nVmSize:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
+        bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nUid:\t%u\t%u\t%u\t%u\nGid:\t%u\t%u\t%u\t%u\nVmSize:\t%8lu kB\nVmLck:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
                    "voluntary_ctxt_switches:\t%lu\nnonvoluntary_ctxt_switches:\t%lu\n",
                 p->name, pstate(p), p->pid, p->pid, p->parent ? p->parent->pid : 0,
-                p->uid, p->euid, p->euid, p->euid, p->gid, p->egid, p->egid, p->egid, vm_size(p) >> 10, vm_size(p) >> 12,
+                p->uid, p->euid, p->euid, p->euid, p->gid, p->egid, p->egid, p->egid, vm_size(p) >> 10, p->mm ? p->mm->locked_vm >> 10 : 0, vm_rss(p) * (PAGE_SIZE / 1024),
                 nthreads(p), p->nvcsw, p->nivcsw);
         break;
     case F_CMDLINE:
@@ -311,11 +324,18 @@ static void gen(struct pinfo *pi, struct buf *b) {
     case F_COMM: bprintf(b, "%s\n", p->name); break;
     case F_ENVIRON: break;
     case F_MAPS:
-        if (p->mm) list_for_each(it, &p->mm->vmas) {
-            struct vma *v = list_entry(it, struct vma, node);
-            bprintf(b, "%012lx-%012lx %c%c%cp 00000000 00:00 0 %s\n", v->start, v->end,
-                    v->prot & VM_READ ? 'r' : '-', v->prot & VM_WRITE ? 'w' : '-', v->prot & VM_EXEC ? 'x' : '-',
-                    v->flags & VMA_STACK ? "[stack]" : "");
+        if (p->mm) {
+            mm_lock(p->mm);
+            list_for_each(it, &p->mm->vmas) {
+                struct vma *v = list_entry(it, struct vma, node);
+                const char *name = v->flags & VMA_STACK ? "[stack]" : v->flags & VMA_HEAP ? "[heap]" : "";
+                const char *path = v->file && v->file->path ? v->file->path : "";
+                bprintf(b, "%012lx-%012lx %c%c%c%c %08lx 00:%02x %lu %s%s\n", v->start, v->end,
+                        v->prot & VM_READ ? 'r' : '-', v->prot & VM_WRITE ? 'w' : '-', v->prot & VM_EXEC ? 'x' : '-',
+                        v->flags & VMA_SHARED ? 's' : 'p', v->file ? v->pgoff * PAGE_SIZE : 0,
+                        v->file ? 1 : 0, v->file ? v->file->inode->ino : 0, name, path);
+            }
+            mm_unlock(p->mm);
         }
         break;
     }

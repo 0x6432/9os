@@ -14,14 +14,28 @@ enum {
 };
 
 struct kmem_slab;
+/* page-cache/user state (M26), see mm/mm.c and fs/tmpfs.c */
+enum {
+    PGU_LRU        = 1 << 0,  /* on the page-cache LRU (node is the LRU link) */
+    PGU_REFERENCED = 1 << 1,  /* accessed since the last LRU scan (second chance) */
+    PGU_DIRTY      = 1 << 2,  /* differs from its backing store: never reclaimed */
+    PGU_CACHE      = 1 << 3,  /* page-cache page (mapping/index valid) */
+};
+
 struct page {
-    struct list_node node;
+    struct list_node node;    /* buddy/PCP free lists; page-cache LRU while allocated */
     uint8_t order;
     uint8_t flags;
-    uint16_t _pad;
+    uint16_t uflags;          /* PGU_*, changed atomically */
     int32_t refcount;
     struct kmem_slab *slab;
+    void *mapping;            /* page cache: owning inode */
+    uint32_t index;           /* page cache: page index in the file */
+    int32_t mapcount;         /* user page-table entries mapping this page */
 };
+static inline void page_uflag_set(struct page *p, uint16_t f) { __atomic_fetch_or(&p->uflags, f, __ATOMIC_RELAXED); }
+static inline void page_uflag_clear(struct page *p, uint16_t f) { __atomic_fetch_and(&p->uflags, (uint16_t)~f, __ATOMIC_RELAXED); }
+static inline bool page_uflag_test(struct page *p, uint16_t f) { return __atomic_load_n(&p->uflags, __ATOMIC_RELAXED) & f; }
 
 extern struct page *page_array;
 extern uint64_t max_pfn;

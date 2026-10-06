@@ -1,4 +1,8 @@
-/* Memory-management system calls. */
+/*
+ * Memory-management system calls (M26). All of them run without the BKL (lockfree_names in
+ * syscall.c.in): the address space is protected by mm->lock (mm/mm.c). Device mappings
+ * (file_ops.mmap / mmap_page, e.g. fbdev and DRM) still call into their drivers under the BKL.
+ */
 #include <kernel/pmm.h>
 #include <kernel/syscall.h>
 #include <kernel/kmalloc.h>
@@ -7,121 +11,127 @@
 #define PROT_READ 1
 #define PROT_WRITE 2
 #define PROT_EXEC 4
+#define PROT_GROWSDOWN 0x01000000
+#define PROT_GROWSUP 0x02000000
 #define MAP_SHARED 1
 #define MAP_PRIVATE 2
+#define MAP_SHARED_VALIDATE 3
+#define MAP_TYPE 0xf
 #define MAP_FIXED 0x10
 #define MAP_ANONYMOUS 0x20
+#define MAP_GROWSDOWN 0x100
+#define MAP_DENYWRITE 0x800
+#define MAP_EXECUTABLE 0x1000
+#define MAP_LOCKED 0x2000
+#define MAP_NORESERVE 0x4000
+#define MAP_POPULATE 0x8000
+#define MAP_NONBLOCK 0x10000
+#define MAP_STACK 0x20000
+#define MAP_HUGETLB 0x40000
+#define MAP_SYNC 0x80000
 #define MAP_FIXED_NOREPLACE 0x100000
+
+struct inode *tmpfs_create_anon(uint32_t mode);
 
 static unsigned prot_to_vm(int prot) {
     return (prot & PROT_READ ? VM_READ : 0) | (prot & PROT_WRITE ? VM_WRITE : 0) | (prot & PROT_EXEC ? VM_EXEC : 0);
 }
 
-int64_t sys_brk(uint64_t addr) {
+int64_t sys_brk(uint64_t addr) { return mm_brk(curproc->mm, addr); }
+
+uint64_t pc_stats_mapped;   /* file pages mapped through eager mmap_page (DRM) */
+
+/* device memory (file_ops.mmap): one physically contiguous range, prefaulted */
+static int64_t map_device(struct file *f, uint64_t addr, size_t len, int prot, int flags, off_t off) {
     struct mm *mm = curproc->mm;
-    if (addr < mm->brk_start) return mm->brk;
-    uint64_t old_end = ALIGN_UP(mm->brk, PAGE_SIZE), new_end = ALIGN_UP(addr, PAGE_SIZE);
-    if (new_end > old_end) {
-        for (uint64_t a = old_end; a < new_end; a += PAGE_SIZE)
-            if (vma_find(mm, a)) return mm->brk;
-        int64_t r = mm_map(mm, old_end, new_end - old_end, VM_READ | VM_WRITE, VMA_ANON, true);
-        if (r < 0) return mm->brk;
-    } else if (new_end < old_end) {
-        mm_unmap(mm, new_end, old_end - new_end);
-    }
-    mm->brk = addr;
-    return addr;
-}
-
-uint64_t pc_stats_mapped;   /* page-cache pages mapped privately (shown in /proc/vmstat) */
-
-/* Install a page into a freshly created mapping. A lock-free fault from another thread may
- * have demand-filled the slot already; that page wins (returns 1, caller drops its ref). */
-static int install_page(struct mm *mm, vaddr_t va, paddr_t pa, unsigned fl) {
+    paddr_t pa;
+    bkl_enter();
+    int e = f->fops->mmap(f, off, len, &pa);
+    bkl_exit();
+    if (e) return e;
+    int64_t r = mm_map(mm, addr, len, prot_to_vm(prot), VMA_PHYS | VMA_SHARED, flags & MAP_FIXED);
+    if (r < 0) return r;
     mm_lock(mm);
-    int r = vmm_query(mm->pt, va, nullptr, nullptr) ? 1 : (vmm_map(mm->pt, va, pa, fl) ? -ENOMEM : 0);
+    for (size_t o = 0; o < len; o += PAGE_SIZE)
+        vmm_map(mm->pt, r + o, pa + o, prot_to_vm(prot) | VM_USER | VM_WC);
     mm_unlock(mm);
     return r;
 }
 
+/* drivers that hand out pages one by one (DRM dumb buffers): mapped eagerly */
+static int64_t map_driver_pages(struct file *f, uint64_t addr, size_t len, int prot, int flags, off_t off) {
+    struct mm *mm = curproc->mm;
+    int64_t r = mm_map(mm, addr, len, prot_to_vm(prot), VMA_SHARED, flags & MAP_FIXED);
+    if (r < 0) return r;
+    for (size_t o = 0; o < len; o += PAGE_SIZE) {
+        paddr_t pa;
+        bkl_enter();
+        int e = f->fops->mmap_page(f, (off + o) / PAGE_SIZE, &pa);
+        bkl_exit();
+        if (e) { mm_unmap(mm, r, len); return e; }
+        page_ref_inc(phys_to_page(pa));          /* the PTE's reference */
+        int ir = mm_install_page(mm, r + o, pa, prot_to_vm(prot) | VM_USER);
+        if (ir < 0) { mm_unmap(mm, r, len); return -ENOMEM; }
+        if (!ir) pc_stats_mapped++;
+    }
+    return r;
+}
+
+/* MAP_SHARED|MAP_ANONYMOUS and MAP_SHARED of /dev/zero: an unlinked tmpfs file (shmem) */
+static struct file *shmem_file(size_t len) {
+    struct inode *i = tmpfs_create_anon(S_IFREG | 0600);
+    if (!i) return nullptr;
+    int e = i->iops->truncate(i, len);
+    struct file *f = e ? nullptr : file_open_inode(i, O_RDWR);
+    iput(i);
+    return f;
+}
+
 int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t off) {
     struct mm *mm = curproc->mm;
-    if (!len) return -EINVAL;
-    if (off & (PAGE_SIZE - 1)) return -EINVAL;
-    struct file *f = nullptr;
+    if (!len || off & (PAGE_SIZE - 1) || prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC | PROT_GROWSDOWN | PROT_GROWSUP))
+        return -EINVAL;
+    int type = flags & MAP_TYPE;
+    if (type != MAP_SHARED && type != MAP_PRIVATE && type != MAP_SHARED_VALIDATE) return -EINVAL;
+    if (type == MAP_SHARED_VALIDATE &&
+        flags & ~(MAP_TYPE | MAP_FIXED | MAP_ANONYMOUS | MAP_GROWSDOWN | MAP_DENYWRITE | MAP_EXECUTABLE | MAP_LOCKED |
+                  MAP_NORESERVE | MAP_POPULATE | MAP_NONBLOCK | MAP_STACK | MAP_HUGETLB | MAP_FIXED_NOREPLACE))
+        return -EOPNOTSUPP;
+    bool shared = type != MAP_PRIVATE;
+    len = ALIGN_UP(len, PAGE_SIZE);
+    if (!len || len > USER_TOP) return -ENOMEM;
+    if (flags & MAP_FIXED_NOREPLACE) {
+        flags |= MAP_FIXED;
+        if (addr & (PAGE_SIZE - 1)) return -EINVAL;
+        if (!mm_range_free(mm, addr, len)) return -EEXIST;
+    }
+    if ((flags & MAP_FIXED) && (addr & (PAGE_SIZE - 1))) return -EINVAL;
+    unsigned vp = prot_to_vm(prot), vflags = (shared ? VMA_SHARED : 0) | (flags & MAP_LOCKED ? VMA_LOCKED : 0);
+    struct file *f = nullptr, *own = nullptr;
     if (!(flags & MAP_ANONYMOUS)) {
         f = fd_get(fd);
         if (!f) return -EBADF;
-        if (f->fops && f->fops->mmap) {          /* device memory (e.g. /dev/fb0) */
-            paddr_t pa;
-            int e = f->fops->mmap(f, off, ALIGN_UP(len, PAGE_SIZE), &pa);
-            if (e) return e;
-            bool fx = flags & (MAP_FIXED | MAP_FIXED_NOREPLACE);
-            int64_t r = mm_map(curproc->mm, addr, len, prot_to_vm(prot), VMA_PHYS | VMA_SHARED, fx);
-            if (r < 0) return r;
-            mm_lock(mm);
-            for (size_t o = 0; o < ALIGN_UP(len, PAGE_SIZE); o += PAGE_SIZE)
-                vmm_map(mm->pt, r + o, pa + o, prot_to_vm(prot) | VM_USER | VM_WC);
-            mm_unlock(mm);
-            return r;
+        unsigned acc = f->flags & O_ACCMODE;
+        if (acc == O_WRONLY) return -EACCES;
+        if (shared && (prot & PROT_WRITE) && acc != O_RDWR) return -EACCES;
+        if (f->fops && f->fops->mmap) return map_device(f, addr, len, prot, flags, off);
+        if (shared && f->fops && f->fops->mmap_page && !f->fops->fault_page) return map_driver_pages(f, addr, len, prot, flags, off);
+        if (!f->fops || !f->fops->fault_page) {
+            /* character devices without mmap support: /dev/zero behaves like anonymous memory */
+            if (!S_ISCHR(f->inode->mode) || !f->fops || !f->fops->read) return -ENODEV;
+            f = nullptr;
         }
-        if ((flags & MAP_SHARED) && f->fops && f->fops->mmap_page) {   /* shared file pages (tmpfs/memfd) */
-            bool fx = flags & (MAP_FIXED | MAP_FIXED_NOREPLACE);
-            int64_t r = mm_map(mm, addr, len, prot_to_vm(prot), VMA_SHARED, fx);
-            if (r < 0) return r;
-            for (size_t o = 0; o < ALIGN_UP(len, PAGE_SIZE); o += PAGE_SIZE) {
-                paddr_t pa;
-                int e = f->fops->mmap_page(f, (off + o) / PAGE_SIZE, &pa);
-                if (e) { mm_unmap(mm, r, len); return e; }
-                page_ref_inc(phys_to_page(pa));
-                int ir = install_page(mm, r + o, pa, prot_to_vm(prot) | VM_USER);
-                if (ir) page_put_pa(pa);
-                if (ir < 0) { mm_unmap(mm, r, len); return -ENOMEM; }
-            }
-            return r;
-        }
-        if (!(flags & MAP_SHARED) && f->fops && f->fops->mmap_page && S_ISREG(f->inode->mode)) {
-            /* private file mapping from the page cache: map the file's pages read-only and let
-             * the COW fault path copy a page on the first write (the cache holds a reference,
-             * so the page is never written in place). Pages past EOF are demand-zero. */
-            bool fx = flags & (MAP_FIXED | MAP_FIXED_NOREPLACE);
-            if ((flags & MAP_FIXED_NOREPLACE)) {
-                for (uint64_t a = addr; a < addr + len; a += PAGE_SIZE) if (vma_find(mm, a)) return -EEXIST;
-            }
-            unsigned vp = prot_to_vm(prot);
-            int64_t r = mm_map(mm, addr, len, vp, VMA_ANON, fx);
-            if (r < 0) return r;
-            uint64_t fsize = f->inode->size;
-            for (size_t o = 0; o < ALIGN_UP(len, PAGE_SIZE) && off + o < fsize; o += PAGE_SIZE) {
-                paddr_t pa;
-                if (f->fops->mmap_page(f, (off + o) / PAGE_SIZE, &pa)) break;
-                page_ref_inc(phys_to_page(pa));
-                int ir = install_page(mm, r + o, pa, (vp & ~VM_WRITE) | VM_USER);
-                if (ir) page_put_pa(pa);
-                if (ir < 0) { mm_unmap(mm, r, len); return -ENOMEM; }
-                if (!ir) pc_stats_mapped++;
-            }
-            return r;
-        }
-        if (!f->fops || !f->fops->read) return -ENODEV;
     }
-    bool fixed = flags & (MAP_FIXED | MAP_FIXED_NOREPLACE);
-    if ((flags & MAP_FIXED_NOREPLACE)) {
-        for (uint64_t a = addr; a < addr + len; a += PAGE_SIZE) if (vma_find(mm, a)) return -EEXIST;
+    if (!f && shared) {
+        own = f = shmem_file(len);
+        if (!f) return -ENOMEM;
+        off = 0;
     }
-    int64_t r = mm_map(mm, addr, len, prot_to_vm(prot), VMA_ANON | (flags & MAP_SHARED ? VMA_SHARED : 0), fixed);
+    int64_t r = f ? mm_map_file(mm, addr, len, vp, vflags, flags & MAP_FIXED, f, off / PAGE_SIZE)
+                  : mm_map(mm, addr, len, vp, VMA_ANON | vflags, flags & MAP_FIXED);
+    if (own) vfs_close(own);           /* the VMA holds its own reference */
     if (r < 0) return r;
-    if (f) {
-        /* private snapshot of the file contents */
-        uint8_t *buf = kmalloc(PAGE_SIZE);
-        for (size_t done = 0; done < len; done += PAGE_SIZE) {
-            ssize_t n = vfs_pread(f, buf, PAGE_SIZE, off + done);
-            if (n <= 0) break;
-            mm_write(mm, r + done, buf, n);
-            if (n < (ssize_t)PAGE_SIZE) break;
-        }
-        kfree(buf);
-    }
+    if (flags & (MAP_POPULATE | MAP_LOCKED)) mm_populate(mm, r, len, false);
     return r;
 }
 
@@ -131,46 +141,39 @@ int64_t sys_munmap(uint64_t addr, size_t len) {
 }
 
 int64_t sys_mprotect(uint64_t addr, size_t len, int prot) {
-    if (addr & (PAGE_SIZE - 1)) return -EINVAL;
+    if (addr & (PAGE_SIZE - 1) || prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC | PROT_GROWSDOWN | PROT_GROWSUP)) return -EINVAL;
     if (!len) return 0;
     return mm_protect(curproc->mm, addr, len, prot_to_vm(prot));
 }
 
-static int64_t mremap_locked(struct mm *mm, uint64_t old, size_t olen, size_t nlen, int flags) {
-    struct vma *v = vma_find(mm, old);
-    if (!v) return -EFAULT;
-    if (nlen <= olen) {
-        if (nlen < olen) mm_unmap(mm, old + nlen, olen - nlen);
-        return old;
-    }
-    /* try to grow in place */
-    bool free_after = true;
-    for (uint64_t a = old + olen; a < old + nlen; a += PAGE_SIZE) if (vma_find(mm, a)) { free_after = false; break; }
-    if (free_after && v->end == old + olen) {
-        v->end = old + nlen;
-        return old;
-    }
-    if (!(flags & 1)) return -ENOMEM;   /* MREMAP_MAYMOVE */
-    int64_t n = mm_map(mm, 0, nlen, v->prot, v->flags, false);
-    if (n < 0) return n;
-    /* move pages */
-    for (uint64_t off = 0; off < olen; off += PAGE_SIZE) {
-        paddr_t pa; unsigned fl;
-        if (vmm_query(mm->pt, old + off, &pa, &fl)) {
-            vmm_unmap(mm->pt, old + off);
-            vmm_map(mm->pt, n + off, ALIGN_DOWN(pa, PAGE_SIZE), fl);
-        }
-    }
-    mm_unmap(mm, old, olen);
-    return n;
+int64_t sys_mremap(uint64_t old, size_t olen, size_t nlen, int flags, uint64_t naddr) {
+    return mm_remap(curproc->mm, old, olen, nlen, flags, naddr);
 }
 
-int64_t sys_mremap(uint64_t old, size_t olen, size_t nlen, int flags, uint64_t naddr) {
-    struct mm *mm = curproc->mm;
-    if (old & (PAGE_SIZE - 1)) return -EINVAL;
-    olen = ALIGN_UP(olen, PAGE_SIZE); nlen = ALIGN_UP(nlen, PAGE_SIZE);
-    mm_lock(mm);
-    int64_t r = mremap_locked(mm, old, olen, nlen, flags);
-    mm_unlock(mm);
-    return r;
+int64_t sys_madvise(uint64_t addr, size_t len, int advice) { return mm_advise(curproc->mm, addr, len, advice); }
+
+#define MLOCK_ONFAULT 1
+int64_t sys_mlock(uint64_t addr, size_t len) { return mm_mlock(curproc->mm, addr, len, true, true); }
+int64_t sys_mlock2(uint64_t addr, size_t len, unsigned flags) {
+    if (flags & ~MLOCK_ONFAULT) return -EINVAL;
+    return mm_mlock(curproc->mm, addr, len, true, !(flags & MLOCK_ONFAULT));
+}
+int64_t sys_munlock(uint64_t addr, size_t len) { return mm_mlock(curproc->mm, addr, len, false, false); }
+int64_t sys_mlockall(int flags) { return mm_mlockall(curproc->mm, flags); }
+int64_t sys_munlockall(void) { return mm_munlockall(curproc->mm); }
+int64_t sys_msync(uint64_t addr, size_t len, int flags) { return mm_msync(curproc->mm, addr, len, flags); }
+
+int64_t sys_mincore(uint64_t addr, size_t len, uint8_t *uvec) {
+    if (addr & (PAGE_SIZE - 1)) return -EINVAL;
+    if (addr + len < addr || addr + len > USER_TOP) return -ENOMEM;
+    size_t pages = ALIGN_UP(len, PAGE_SIZE) / PAGE_SIZE;
+    uint8_t buf[512];
+    for (size_t done = 0; done < pages;) {
+        size_t n = MIN(pages - done, sizeof buf);
+        int r = mm_mincore(curproc->mm, addr + done * PAGE_SIZE, n * PAGE_SIZE, buf);
+        if (r) return r;
+        if (copy_to_user(uvec + done, buf, n)) return -EFAULT;
+        done += n;
+    }
+    return 0;
 }

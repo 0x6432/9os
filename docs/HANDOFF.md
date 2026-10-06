@@ -215,7 +215,7 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - `userland/install-uapi.sh` now runs right after musl (compiler-rt's `clear_cache.c` needs `<asm/unistd.h>`; without it libffi had an undefined `__clear_cache` on riscv64 after a clean build).
 - `scripts/sandbox-setup.sh` rebuilds the agent sandbox (dnf packages, Alpine QEMU, Limine/uACPI, userland).
 
-## M24: fine-grained locking (in progress)
+## M24: fine-grained locking
 - Lock order: BKL → `sched_lock` → (`buddy_lock`, `pt_lock`, console lock). `sched_lock` (core/sched.c) guards the run queue, sleep list, wait queues, thread states and zombies; it is taken with IRQs off, held across `arch_switch_to` and released by the incoming thread in `sched_finish_switch()`.
 - Context switches drop the outgoing thread's BKL (`bkl_drop_for_switch`, depth saved in `bkl_saved`) and the incoming thread retakes its own (`bkl_retake_after_switch`). New threads start with `bkl_saved = 1`; idle threads run with no BKL (IRQ handlers on an idle CPU take it).
 - `wait_event*` check `signal_pending()` under `sched_lock`; signals wake sleepers with `thread_interrupt()` (no lost wakeups).
@@ -285,9 +285,52 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - `socktest` (ci-tests): SEQPACKET 2×2 senders/receivers with record checksums, cross-process stream
   bulk copy, 200× SCM_RIGHTS pipe passing, 150× send racing the peer's close (EPIPE), accept/connect
   churn from 3 client threads on an abstract listener, DGRAM fan-in with poll + recvfrom.
-- Remaining for M24: tty and the rest of VFS (tmpfs inode/dentry locks, fd table allocation),
-  procfs, epoll/poll without the BKL, sleeping mutexes, a debug lock-order checker; then drop the
-  BKL from the syscall entry for everything that no longer needs it.
+
+## M24 part 8: sleeping mutexes, lockdep-lite, poll/select/epoll without the BKL
+- `struct mutex` (core/mutex.c, kernel/mutex.h): sleeping, non-recursive, owner-tracked; contended
+  lockers block on the mutex wait queue. A context switch drops the BKL, so mutex-vs-BKL cannot
+  deadlock. `mutex_trylock()` never sleeps.
+- Lock classes with ranks (kernel/spinlock.h) and a debug order checker (core/lockdep.c): taking a
+  lock whose rank is not above every lock held on this CPU (spinlocks) / by this thread (mutexes),
+  a mutex under a spinlock, or the BKL under a classified spinlock is reported once per pair on the
+  console and in `/proc/lockdep`. `ci-tests.sh` ends with `grep -q '^violations 0' /proc/lockdep`.
+  Successful trylocks (`spin_trylock`, `mutex_trylock`, `mm_trylock`) skip the order check
+  (`lockdep_acquire_try`) — reclaim relies on that.
+- poll/ppoll/select/pselect6/epoll_* run lock-free; `->poll` methods of files not marked `nobkl`
+  are called under the BKL (taken once per scan). `polltest`.
+
+## M24 part 9: tty/pty and the fd table
+- tty/pty line discipline under a per-tty IRQ-safe lock; read/write/poll are lock-free and copy
+  through bounce buffers (never touch user memory under the tty lock).
+- fd table under `fd_lock` (fd_alloc/close/dup*/fcntl/cloexec); `fd_get()` pins the file until
+  syscall exit (`fd_borrow_release()` in the lock-free dispatch path). close/dup/dup2/dup3/fcntl
+  are lock-free. `fdtest`.
+
+## M24 part 10: tmpfs file data, VFS namespace
+- tmpfs file data under a per-inode mutex; read/write/pread/pwrite/readv/writev/lseek lock-free,
+  atomic inode refcounts. `filetest`.
+- The VFS namespace (lookup/create/unlink/rename/link/symlink/readlink/cwd) is under a recursive
+  namespace mutex; driver `->open` runs outside it. Path syscalls (open*/stat*/access/mkdir/unlink/
+  rename/link/symlink/chdir/getcwd/getdents/chmod/chown/utimensat/truncate/statfs) are lock-free;
+  procfs and inotify take the BKL themselves. tmpfs readdir positions are stable per-directory
+  cookies (unlinking during readdir no longer skips entries). `vfstest`.
+
+## M24 part 11: devices and ioctl
+- /dev/null, zero, random, urandom and evdev are `nobkl`: output is staged in a stack buffer and
+  copied with `copy_to_user`; `random_u64()` is a lock-free splitmix64 over an atomic counter;
+  evdev LED bits are updated atomically.
+- `ioctl` is dispatched lock-free: FIONBIO/FIOCLEX/FIONCLEX are handled atomically, driver
+  `->ioctl` methods are called under the BKL (sys_fs.c). The mm syscalls are lock-free too (M26).
+
+## M24 status / lock order
+- Global order (outer → inner): BKL → sleeping mutexes (tty, epoll, VFS namespace, tmpfs inode)
+  → fd table → futex buckets → pipe → tty → unix → mm->lock → tmpfs page array → inode i_mmap →
+  page-cache LRU → page tables → slab → buddy/PCP → sched_lock/rq locks → console. Spinlocks that
+  can be held while a TLB shootdown is issued, or spun on with IRQs off by someone who must answer
+  one (mm, page array, i_mmap, LRU), are taken with `spin_lock_ipi()`.
+- Still under the BKL: process lifecycle and signals (fork/exec/exit/wait/kill/sigaction), socket
+  setup calls, mount, DRM/fbdev/driver ioctls, procfs file generation, inotify. The data paths
+  (read/write/poll/epoll/futex/mmap/faults/path lookup) no longer take it.
 
 ## M25 part 1: CPU time accounting
 - Ticks are sampled as user or system (`cpu->tick_user`, set in `sched_tick_fast()`, which every arch calls first on each timer tick) and charged by `account_tick()` to the thread, process (atomic) and CPU (`user_ticks`/`sys_ticks`).
@@ -574,3 +617,55 @@ not remotely executed as part of this local completion run.
 1. xkeyboard-config data so libxkbcommon can compile real keymaps (wl_keyboard XKB_V1 keymaps for toolkits); a terminal client (foot needs fcft/freetype/fontconfig) or a tiny own one.
 2. DRM properties/atomic + PRIME for wlroots; libinput/libevdev/mtdev + a udev shim; seatd; then tinywl/wlroots and Sway.
 3. Mesa softpipe (EGL/GLES2/GBM) after that; fine-grained locking + per-CPU run queues; interrupt-driven virtio (PLIC/GIC), virtio-blk + ext2; CPU time accounting (done in M25 part 1).
+
+## M26: VMM v2
+- **VMA tree** (mm/mm.c, kernel/mm.h): VMAs live in an augmented red-black tree
+  (kernel/lib/rbtree.c, host-tested by `scripts/rbtree-host-tests.sh`) keyed by start, plus an
+  address-ordered list. Each node caches `gap` (free space down to the previous VMA) and
+  `max_gap` (subtree maximum); `gap_search()` finds the highest fitting hole below `mmap_hint` in
+  O(log n), keeping `STACK_GUARD_GAP` (1 MiB) below stack VMAs. `vma_find`/`vma_lower_bound` are
+  tree descents. Adjacent compatible VMAs are merged after mmap/mprotect/mlock/brk.
+- **Page state**: `struct page` gained `uflags` (PGU_LRU/REFERENCED/DIRTY/CACHE), `mapping`,
+  `index` and `mapcount`; every user PTE holds one reference and one mapcount, `mm->rss` counts
+  resident pages (`VmRSS`, `/proc/pid/stat`). PTE installs/removals go through
+  `pte_install()`/`pte_zap()`; unmaps under TLB batching gather pages and free them only after
+  the batch flush.
+- **File mappings** are demand-faulted: a VMA holds a file reference and `pgoff`;
+  `file_ops.fault_page` (tmpfs: `t_fault_page`) returns the page-cache page under `mm->lock`
+  (atomic, no mutex). Private mappings map the cache page read-only and copy on write; pages past
+  EOF are zero pages. Shared mappings map the cache page itself (writable shared pages are marked
+  dirty). MAP_SHARED anonymous memory and MAP_SHARED of /dev/zero are unlinked tmpfs files
+  (shmem). exec maps read-only ELF segments as private file VMAs. DRM keeps the eager
+  `mmap_page` path, fbdev the physical `mmap` path (both under the BKL).
+- **Reverse map**: file VMAs are on `inode->i_mmap` (spinlock); `rmap_unmap_file_page()` walks it
+  and unmaps a page from every mm with `mm_trylock()` (fails on mlocked VMAs or busy mms).
+  Anonymous pages have no reverse map (there is no swap device to evict them to).
+- **Page cache and reclaim** (fs/tmpfs.c): initramfs files are no longer copied — the archive stays
+  reserved and `tmpfs_set_backing()` makes reads/faults fill pages lazily from it (boot RAM use
+  dropped by the size of the initramfs). Clean backed pages are on a global LRU (second chance via
+  PGU_REFERENCED); `tmpfs_reclaim()` trylocks the inode mutex under the LRU lock (an LRU page's
+  inode cannot be evicted without that mutex), unmaps via rmap, and frees the page if only the
+  cache still references it. Written or unbacked pages are dirty and never reclaimed. The page
+  array entries are guarded by `tf->pglock`, so faults need no mutex.
+- **Pressure**: `kswapd` (started by `mm_pressure_init()`) wakes every 50 ms and reclaims up to the
+  high watermark (total/32) when free memory is below total/64. Allocation failures inside a
+  fault or user copy drop `mm->lock` and call `oom_retry()`: direct reclaim, PCP drain, then the
+  OOM killer (largest RSS, never pid 1, one victim at a time, `SIGKILL` under the BKL). Faults
+  retry after the kill; copies return -EFAULT.
+- **Syscalls** (core/sys_mm.c, all lock-free): mmap (MAP_SHARED_VALIDATE, FIXED_NOREPLACE,
+  POPULATE, LOCKED, access checks → EACCES), munmap, mprotect, `mremap` (in-place grow/shrink,
+  MAYMOVE, FIXED, DONTUNMAP), `madvise` (DONTNEED/FREE/REMOVE zap, WILLNEED/POPULATE_READ/WRITE
+  prefault, the rest validated no-ops), `mlock`/`mlock2(MLOCK_ONFAULT)`/`munlock`/`mlockall`
+  (CURRENT/FUTURE/ONFAULT)/`munlockall` (VMA_LOCKED, populated, never reclaimed, `VmLck`), `msync`
+  (validation only: tmpfs is the backing store and shared mappings are coherent), `mincore`, brk
+  (`[heap]` VMA).
+- `/proc/pid/maps` shows offsets, shared/private, file inode/path, `[heap]`/`[stack]`;
+  `/proc/meminfo` Cached; `/proc/vmstat` page-cache, fault, reclaim, OOM and rmap counters.
+- 2 MiB pages for the direct map already existed (`vmm_map_range` uses 2 MiB leaves).
+- `vmtest` (ci-tests): mremap variants, madvise on anon and private file mappings, shared file
+  coherence, msync/mincore errors, mlock accounting, shared anon and /dev/zero across fork,
+  FIXED_NOREPLACE, 1500 split-and-merged VMAs, the stack guard gap, and memory pressure: a hog is
+  OOM-killed while page-cache pages are reclaimed, after which binaries checksum the same and run.
+- Known limits: no swap and no anonymous rmap; truncating a file does not unmap pages already
+  mapped past the new EOF (they stay valid but detached from the cache); `MADV_REMOVE` does not
+  punch holes; mlock has no RLIMIT_MEMLOCK.

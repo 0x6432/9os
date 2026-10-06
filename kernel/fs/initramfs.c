@@ -5,6 +5,8 @@
 #include <kernel/kmalloc.h>
 #include <kernel/printk.h>
 
+void tmpfs_set_backing(struct inode *i, const void *data, size_t len);
+
 static uint32_t hex8(const char *s) {
     uint32_t v = 0;
     for (int i = 0; i < 8; i++) {
@@ -38,7 +40,9 @@ void initramfs_load(void) {
                 struct file *f;
                 vfs_mknod_at(nullptr, path, mode, 0);
                 if (!vfs_open(path, O_WRONLY, 0, &f)) {
-                    vfs_write(f, data, fsize);
+                    /* tmpfs pages are filled lazily from the archive, which stays reserved */
+                    if (f->inode->fops && f->inode->fops->fault_page) tmpfs_set_backing(f->inode, data, fsize);
+                    else vfs_write(f, data, fsize);
                     vfs_close(f);
                 }
                 files++;

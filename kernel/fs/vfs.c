@@ -47,6 +47,7 @@ struct timespec now_timespec(void) {
     return (struct timespec){ boot_epoch + (int64_t)(ns / 1000000000ULL), (int64_t)(ns % 1000000000ULL) };
 }
 
+static const struct lock_class i_mmap_class = { "i_mmap", LR_I_MMAP, false };
 struct inode *inode_alloc(uint32_t mode) {
     struct inode *i = kzalloc(sizeof *i);
     if (!i) return nullptr;
@@ -54,6 +55,8 @@ struct inode *inode_alloc(uint32_t mode) {
     i->ino = __atomic_fetch_add(&next_ino, 1, __ATOMIC_RELAXED);
     i->refcount = 1;
     i->atime = i->mtime = i->ctime = now_timespec();
+    list_init(&i->i_mmap);
+    spin_lock_init_class(&i->i_mmap_lock, &i_mmap_class);
     return i;
 }
 

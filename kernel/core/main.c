@@ -1,3 +1,4 @@
+#include <kernel/mm.h>
 #include <kernel/arch.h>
 #include <kernel/boot.h>
 #include <kernel/printk.h>
@@ -94,6 +95,7 @@ void kmain(void) {
     vfs_mkdir_at(nullptr, "/proc", 0555);
     vfs_mount("/proc", procfs_create_root());
     input_init();
+    mm_pressure_init();    /* kswapd: page-cache reclaim below the low watermark */
     syscall_trace = strstr_simple(boot_cmdline(), "strace") != nullptr;
     static char init_path[128];
     const char *ip = strstr_simple(boot_cmdline(), "init=");

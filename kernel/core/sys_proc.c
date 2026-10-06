@@ -432,7 +432,6 @@ int64_t sys_syslog(int type, char *buf, int len) {
     kfree(k);
     return r ? r : (int64_t)n;
 }
-int64_t sys_madvise(void) { return 0; }
 int64_t sys_zero(void) { return 0; }
 
 int64_t sys_alarm(unsigned secs) {
