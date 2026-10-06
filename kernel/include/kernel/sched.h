@@ -96,6 +96,7 @@ void thread_free(struct thread *t);
 __noreturn void thread_exit(void);
 void schedule(void);
 void sched_yield(void);
+void sched_for_each_thread(void (*fn)(struct thread *, void *), void *arg);
 void sched_tick(void);
 bool sched_tick_fast(bool from_user);   /* secondary CPUs: tick without the BKL */
 void thread_wake(struct thread *t);

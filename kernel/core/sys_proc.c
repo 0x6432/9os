@@ -466,55 +466,126 @@ int64_t sys_reboot(int m1, int m2, unsigned cmd, void *arg) {
     return 0;
 }
 
-/* ---- futex (process-private, keyed by virtual address) ---- */
+/* ---- futex (process-private, keyed by mm + virtual address) ----
+ * futex(2) runs without the BKL. Waiters hang off one of FUTEX_BUCKETS hashed buckets; each
+ * bucket has an IRQ-off lock spun with spin_lock_ipi() because FUTEX_WAIT reads the user word
+ * (mm lock, possibly TLB-shootdown waits) while holding it. Holding the bucket lock across
+ * "read *uaddr, enqueue" and across "dequeue, set woken, wake_up" makes the value check and
+ * the wakeup atomic with respect to each other. The sleep itself uses the wait_until_sl()
+ * pattern (woken is re-checked under sched_lock). A waiter always retakes its bucket lock
+ * before returning, so a waker that still holds the lock never touches a dead stack frame. */
 #define FUTEX_BUCKETS 64
 struct futex_waiter { struct list_node node; struct mm *mm; uint32_t *addr; struct wait_queue wq; bool woken; };
-static struct list_node futex_list = LIST_INIT(futex_list);
+struct futex_bucket { spinlock_t lock; struct list_node head; } __attribute__((aligned(64)));
+static struct futex_bucket futex_buckets[FUTEX_BUCKETS];
+static volatile bool futex_ready;
+static spinlock_t futex_init_lock = SPINLOCK_INIT;
+uint64_t futex_waits, futex_wakes;      /* approximate counters for /proc/sched-style debugging */
 
-int futex_wake(uint32_t *uaddr, int n) {
-    int woken = 0;
-    uint64_t f = arch_irq_save();
-    list_for_each_safe(it, tmp, &futex_list) {
-        struct futex_waiter *w = list_entry(it, struct futex_waiter, node);
-        if (w->addr == uaddr && w->mm == curproc->mm && woken < n) {
-            list_del(&w->node);
-            w->woken = true;
-            wake_up(&w->wq);
-            woken++;
+static struct futex_bucket *futex_bucket(struct mm *mm, uint32_t *uaddr) {
+    if (!__atomic_load_n(&futex_ready, __ATOMIC_ACQUIRE)) {
+        uint64_t f = spin_lock_irqsave(&futex_init_lock);
+        if (!futex_ready) {
+            for (int i = 0; i < FUTEX_BUCKETS; i++) { futex_buckets[i].lock = (spinlock_t)SPINLOCK_INIT; list_init(&futex_buckets[i].head); }
+            __atomic_store_n(&futex_ready, true, __ATOMIC_RELEASE);
         }
+        spin_unlock_irqrestore(&futex_init_lock, f);
     }
-    arch_irq_restore(f);
+    uint64_t k = ((uint64_t)(uintptr_t)uaddr >> 2) ^ ((uint64_t)(uintptr_t)mm >> 6);
+    k *= 0x9e3779b97f4a7c15ULL;
+    return &futex_buckets[k >> 58];      /* top 6 bits: 64 buckets */
+}
+static uint64_t fb_lock(struct futex_bucket *b) { uint64_t f = arch_irq_save(); spin_lock_ipi(&b->lock); return f; }
+static void fb_unlock(struct futex_bucket *b, uint64_t f) { spin_unlock(&b->lock); arch_irq_restore(f); }
+
+static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
+    if (n <= 0) return 0;
+    struct futex_bucket *b = futex_bucket(mm, uaddr);
+    int woken = 0;
+    uint64_t f = fb_lock(b);
+    list_for_each_safe(it, tmp, &b->head) {
+        if (woken >= n) break;
+        struct futex_waiter *w = list_entry(it, struct futex_waiter, node);
+        if (w->addr != uaddr || w->mm != mm) continue;
+        list_del(&w->node);
+        __atomic_store_n(&w->woken, true, __ATOMIC_RELEASE);
+        wake_up(&w->wq);            /* under the bucket lock: w stays alive until we drop it */
+        woken++;
+    }
+    fb_unlock(b, f);
+    __atomic_fetch_add(&futex_wakes, (uint64_t)woken, __ATOMIC_RELAXED);
     return woken;
+}
+int futex_wake(uint32_t *uaddr, int n) { return futex_wake_mm(curproc->mm, uaddr, n); }
+
+static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns) {
+    struct mm *mm = curproc->mm;
+    if ((uintptr_t)uaddr & 3) return -EINVAL;
+    struct futex_bucket *b = futex_bucket(mm, uaddr);
+    struct futex_waiter w = { .mm = mm, .addr = uaddr };
+    wait_queue_init(&w.wq);
+    uint64_t f = fb_lock(b);
+    uint32_t cur;
+    if (copy_from_user(&cur, uaddr, 4)) { fb_unlock(b, f); return -EFAULT; }
+    if (cur != val) { fb_unlock(b, f); return -EAGAIN; }
+    list_add_tail(&b->head, &w.node);
+    fb_unlock(b, f);
+    __atomic_fetch_add(&futex_waits, 1, __ATOMIC_RELAXED);
+
+    uint64_t deadline = ns == UINT64_MAX ? UINT64_MAX : time_ns() + ns;
+    int r = 0;
+    for (;;) {
+        if (__atomic_load_n(&w.woken, __ATOMIC_ACQUIRE)) break;
+        uint64_t g = sched_wait_lock();
+        if (__atomic_load_n(&w.woken, __ATOMIC_ACQUIRE)) { sched_wait_unlock(g); break; }
+        uint64_t left = UINT64_MAX;
+        if (deadline != UINT64_MAX) {
+            uint64_t now = time_ns();
+            if (now >= deadline) { sched_wait_unlock(g); r = -ETIMEDOUT; break; }
+            left = deadline - now;
+        }
+        if ((r = wait_event_timeout_locked(&w.wq, left, g))) break;
+    }
+    f = fb_lock(b);
+    bool woken = w.woken;
+    if (!woken) list_del(&w.node);
+    fb_unlock(b, f);
+    return woken ? 0 : r;
 }
 
 int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *uts, uint32_t *uaddr2, uint32_t val3) {
-    int cmd = op & 0x7f;
+    int cmd = op & 0x7f;    /* FUTEX_PRIVATE_FLAG (128) / CLOCK_REALTIME (256) masked off */
     switch (cmd) {
     case 0: case 9: {    /* FUTEX_WAIT, FUTEX_WAIT_BITSET */
         uint64_t ns = UINT64_MAX;
+        if (cmd == 9 && !val3) return -EINVAL;
         if (uts) {
             struct timespec ts;
             if (copy_from_user(&ts, uts, sizeof ts)) return -EFAULT;
+            if (ts.tv_sec < 0 || ts.tv_nsec < 0 || ts.tv_nsec >= 1000000000L) return -EINVAL;
             ns = ts.tv_sec * 1000000000ULL + ts.tv_nsec;
-            if (cmd == 9) { uint64_t now = time_ns(); ns = ns > now ? ns - now : 0; }
+            if (cmd == 9) {     /* absolute deadline */
+                uint64_t now = (op & 256) ? time_ns() + (uint64_t)boot_epoch * 1000000000ULL : time_ns();
+                ns = ns > now ? ns - now : 0;
+            }
         }
-        uint64_t f = arch_irq_save();
-        uint32_t cur;
-        if (copy_from_user(&cur, uaddr, 4)) { arch_irq_restore(f); return -EFAULT; }
-        if (cur != val) { arch_irq_restore(f); return -EAGAIN; }
-        struct futex_waiter w = { .mm = curproc->mm, .addr = uaddr };
-        wait_queue_init(&w.wq);
-        list_add_tail(&futex_list, &w.node);
-        int r = wait_event_timeout(&w.wq, ns);
-        if (!w.woken) list_del(&w.node);
-        arch_irq_restore(f);
-        if (w.woken) return 0;
-        return r == -ETIMEDOUT ? -ETIMEDOUT : r ? r : 0;
+        return futex_wait(uaddr, val, ns);
     }
-    case 1: case 10: return futex_wake(uaddr, (int)val);     /* FUTEX_WAKE(_BITSET) */
-    case 3: case 4: {    /* FUTEX_REQUEUE / CMP_REQUEUE: wake all as a simplification */
-        int n = futex_wake(uaddr, (int)val);
-        return n + futex_wake(uaddr2, INT32_MAX);
+    case 1: case 10:     /* FUTEX_WAKE(_BITSET) */
+        if (cmd == 10 && !val3) return -EINVAL;
+        return futex_wake(uaddr, (int)MIN(val, (uint32_t)INT32_MAX));
+    case 3: case 4: {    /* FUTEX_REQUEUE / CMP_REQUEUE: wake val, then wake (instead of move) the rest */
+        if (cmd == 4) {
+            struct futex_bucket *b = futex_bucket(curproc->mm, uaddr);
+            uint64_t f = fb_lock(b);
+            uint32_t cur;
+            int e = copy_from_user(&cur, uaddr, 4) ? -EFAULT : cur != val3 ? -EAGAIN : 0;
+            fb_unlock(b, f);
+            if (e) return e;
+        }
+        int n = futex_wake(uaddr, (int)MIN(val, (uint32_t)INT32_MAX));
+        int lim = (int)MIN((uint64_t)(uintptr_t)uts, (uint64_t)INT32_MAX);    /* val2 travels in the timeout slot */
+        return n + futex_wake(uaddr, lim);     /* "requeued" waiters see a spurious wakeup */
     }
     default: return -ENOSYS;
     }

@@ -208,6 +208,13 @@ static uint64_t vm_size(struct process *p) {
     return s;
 }
 
+static void sched_thread_line(struct thread *t, void *arg) {
+    static const char st[] = "RXBSZ";
+    bprintf(arg, "thread %d %s %c cpu %d rq %d syscall %lu bkl %d/%d\n", t->tid, t->name,
+            t->state <= T_ZOMBIE ? st[t->state] : '?', t->cpu ? t->cpu->id : -1, t->rq_cpu,
+            t->last_syscall, t->bkl_depth, t->bkl_saved);
+}
+
 static void gen(struct pinfo *pi, struct buf *b) {
     uint64_t freep, totalp;
     pmm_stats(&freep, &totalp);
@@ -259,6 +266,7 @@ static void gen(struct pinfo *pi, struct buf *b) {
                     cpus[i].ticks, sched_idle_ticks(i), cpus[i].ctx_switches, sched_rq_len(i), sched_rq_steals(i),
                     sched_rq_balances(i), sched_rq_local(i), sched_rq_coordinated(i), cpus[i].idle_sleeps,
                     cpus[i].cur ? cpus[i].cur->name : "-");
+        sched_for_each_thread(sched_thread_line, b);
         break;
     case G_FILESYSTEMS: bprintf(b, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n"); break;
     case F_STAT:

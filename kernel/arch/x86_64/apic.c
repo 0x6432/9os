@@ -159,7 +159,13 @@ void lapic_cpu_init(void) {
     lapic_write(LAPIC_LVT_TMR, VEC_TIMER | (1 << 17));  /* periodic */
     lapic_write(LAPIC_TMR_INIT, lapic_per_tick);
 }
+/* Stop the counter before changing the LVT mode: switching a running one-shot count (possibly
+ * just 1 left over from a short idle) to periodic mode would briefly run a periodic timer with
+ * a period of a few bus cycles. QEMU then spends its main loop re-firing that timer while
+ * holding the BQL, so no vCPU ever reaches the following INIT write (a host livelock seen
+ * under futex/idle churn with -smp 4). */
 void arch_timer_active(void) {
+    lapic_write(LAPIC_TMR_INIT, 0);
     lapic_write(LAPIC_LVT_TMR, VEC_TIMER | (1 << 17));
     lapic_write(LAPIC_TMR_INIT, lapic_per_tick);
 }
@@ -173,6 +179,7 @@ void arch_timer_idle(uint64_t deadline) {
     uint64_t max_ns = 0xffffffffULL * 1000000 / MAX(lapic_per_tick, 1u);
     delta = MIN(delta, max_ns);
     uint64_t count = (delta * lapic_per_tick + 999999) / 1000000;
+    lapic_write(LAPIC_TMR_INIT, 0);               /* stop before the mode change (see above) */
     lapic_write(LAPIC_LVT_TMR, VEC_TIMER);        /* one shot, not periodic */
     lapic_write(LAPIC_TMR_INIT, (uint32_t)MAX(count, 1ULL));
 }

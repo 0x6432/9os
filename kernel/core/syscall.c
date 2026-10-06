@@ -2039,7 +2039,7 @@ void user_return_work(struct trap_frame *f) {
 static const char *const lockfree_names[] = {
     "getpid", "gettid", "getuid", "geteuid", "getgid", "getegid", "getresuid", "getresgid",
     "clock_gettime", "clock_getres", "gettimeofday", "time", "sched_yield", "nanosleep",
-    "clock_nanosleep", "uname", "getcpu", "sched_getaffinity", "read", "write", nullptr,
+    "clock_nanosleep", "uname", "getcpu", "sched_getaffinity", "read", "write", "futex", nullptr,
 };
 static uint8_t lockfree[NR_SYSCALLS];
 static volatile bool lockfree_ready;

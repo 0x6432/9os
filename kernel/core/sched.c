@@ -200,6 +200,11 @@ static void policy_tick(void) {
 static void policy_tick(void) {}
 #endif
 
+/* /proc/sched thread listing (caller holds the BKL, which protects all_threads) */
+void sched_for_each_thread(void (*fn)(struct thread *, void *), void *arg) {
+    list_for_each(it, &all_threads) fn(list_entry(it, struct thread, all_node), arg);
+}
+
 static bool cpu_idle(struct cpu *c) { return c->online && c->cur == c->idle && !rqs[c->id].nr; }
 
 /* where should a thread that just became runnable go? */

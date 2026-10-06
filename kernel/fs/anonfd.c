@@ -43,36 +43,63 @@ static int anon_fd(const struct file_ops *ops, void *priv, int flags, unsigned m
     } __r; })
 
 /* ------------------------------------------------------------------ eventfd */
+/* eventfd runs without the BKL (file_ops.nobkl): the counter is updated with compare-and-swap,
+ * the 8-byte value is copied with copy_{to,from}_user (or memcpy for kernel buffers), and
+ * blocking uses wait_until_sl() on poll_wq, whose condition is re-checked under sched_lock;
+ * every counter change is followed by poll_notify(), so no wakeup can be lost. */
 struct eventfd { uint64_t count; bool semaphore; };
+
+static int efd_copy_out(void *dst, const void *src) {
+    if ((vaddr_t)dst >= USER_TOP) { memcpy(dst, src, 8); return 0; }
+    return copy_to_user(dst, src, 8) ? -EFAULT : 0;
+}
+static int efd_copy_in(void *dst, const void *src) {
+    if ((vaddr_t)src >= USER_TOP) { memcpy(dst, src, 8); return 0; }
+    return copy_from_user(dst, src, 8) ? -EFAULT : 0;
+}
+static uint64_t efd_count(struct eventfd *e) { return __atomic_load_n(&e->count, __ATOMIC_ACQUIRE); }
 
 static ssize_t efd_read(struct file *f, void *buf, size_t n, off_t *off) {
     struct eventfd *e = f->priv;
     if (n < 8) return -EINVAL;
-    int r = WAIT_READY(f, e->count > 0);
-    if (r) return r;
-    uint64_t v = e->semaphore ? 1 : e->count;
-    e->count -= v;
-    memcpy(buf, &v, 8);
-    poll_notify();
-    return 8;
+    for (;;) {
+        uint64_t c = efd_count(e);
+        if (c) {
+            uint64_t v = e->semaphore ? 1 : c;
+            if (!__atomic_compare_exchange_n(&e->count, &c, c - v, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) continue;
+            poll_notify();
+            return efd_copy_out(buf, &v) ?: 8;
+        }
+        if (f->flags & O_NONBLOCK) return -EAGAIN;
+        int r = wait_until_sl(&poll_wq, efd_count(e) != 0);
+        if (r) return r;
+    }
 }
 static ssize_t efd_write(struct file *f, const void *buf, size_t n, off_t *off) {
     struct eventfd *e = f->priv;
     if (n < 8) return -EINVAL;
-    uint64_t v; memcpy(&v, buf, 8);
+    uint64_t v;
+    if (efd_copy_in(&v, buf)) return -EFAULT;
     if (v == UINT64_MAX) return -EINVAL;
-    int r = WAIT_READY(f, UINT64_MAX - 1 - e->count >= v);
-    if (r) return r;
-    e->count += v;
-    poll_notify();
-    return 8;
+    for (;;) {
+        uint64_t c = efd_count(e);
+        if (UINT64_MAX - 1 - c >= v) {
+            if (!__atomic_compare_exchange_n(&e->count, &c, c + v, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) continue;
+            if (v) poll_notify();
+            return 8;
+        }
+        if (f->flags & O_NONBLOCK) return -EAGAIN;
+        int r = wait_until_sl(&poll_wq, UINT64_MAX - 1 - efd_count(e) >= v);
+        if (r) return r;
+    }
 }
 static unsigned efd_poll(struct file *f) {
     struct eventfd *e = f->priv;
-    return (e->count ? POLLIN | POLLRDNORM : 0) | (e->count < UINT64_MAX - 1 ? POLLOUT | POLLWRNORM : 0);
+    uint64_t c = efd_count(e);
+    return (c ? POLLIN | POLLRDNORM : 0) | (c < UINT64_MAX - 1 ? POLLOUT | POLLWRNORM : 0);
 }
 static void priv_release(struct file *f) { kfree(f->priv); f->priv = nullptr; }
-static const struct file_ops eventfd_fops = { .read = efd_read, .write = efd_write, .poll = efd_poll, .release = priv_release };
+static const struct file_ops eventfd_fops = { .nobkl = true, .read = efd_read, .write = efd_write, .poll = efd_poll, .release = priv_release };
 
 #define EFD_SEMAPHORE 1
 int64_t sys_eventfd2(unsigned initval, int flags) {
