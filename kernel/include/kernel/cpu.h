@@ -28,6 +28,10 @@ struct cpu {
     uint32_t idle_seq;             /* stable snapshots of a still-halted idle span */
     bool tick_stopped;
     uint64_t idle_start_ns, idle_remainder_ns, idle_sleeps;
+    /* lockdep: classified spinlocks held on this CPU (IRQ-off locks never migrate) */
+    const struct lock_class *ld_spin[16];
+    int ld_nspin;
+    bool ld_busy;
 };
 
 #define IPI_TLB_FLUSH (1u << 0)

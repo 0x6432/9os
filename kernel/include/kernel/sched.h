@@ -60,6 +60,9 @@ struct thread {
     struct rusage_k reaped_ru;     /* last child reaped by do_wait (wait4 rusage) */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
     int handoff_refs;              /* pins saved contexts until all finish-switch readers retire */
+    bool nointr;                   /* uninterruptible sleep (mutex): signals do not wake it */
+    const struct lock_class *ld_held[8];   /* lockdep: sleeping locks held */
+    int ld_nheld;
 };
 
 struct wait_queue { struct list_node head; };
@@ -114,6 +117,7 @@ void wake_up_one(struct wait_queue *q);
 uint64_t sched_wait_lock(void);
 void sched_wait_unlock(uint64_t f);
 int wait_event_locked(struct wait_queue *q, uint64_t f);
+void wait_event_uninterruptible_locked(struct wait_queue *q, uint64_t f);
 int wait_event_timeout_locked(struct wait_queue *q, uint64_t ns, uint64_t f);
 #define wait_until_sl(q, cond) ({ int __r = 0; \
     for (;;) { if (cond) break; uint64_t __g = sched_wait_lock(); \

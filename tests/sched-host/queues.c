@@ -17,6 +17,8 @@ static struct thread idle[MAX_CPUS], running[MAX_CPUS], threads[16];
 static int checks;
 #define CHECK(c) do { __atomic_fetch_add(&checks, 1, __ATOMIC_RELAXED); if (!(c)) { printf("FAIL line %d: %s\n", __LINE__, #c); abort(); } } while (0)
 void smp_send_resched(struct cpu *c) { c->resched = true; c->ipi_pending |= IPI_RESCHED; }
+void lockdep_acquire(const struct lock_class *c, bool sleeping) { (void)c; (void)sleeping; }
+void lockdep_release(const struct lock_class *c, bool sleeping) { (void)c; (void)sleeping; }
 void spin_lock_ipi(spinlock_t *l) { spin_lock(l); }
 
 static uint64_t fake_now, fake_fd = UINT64_MAX, fake_poll = UINT64_MAX;

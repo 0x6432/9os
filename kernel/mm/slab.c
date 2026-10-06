@@ -14,7 +14,10 @@ static const char *kmalloc_names[] = { "kmalloc-16", "kmalloc-32", "kmalloc-64",
                                        "kmalloc-256", "kmalloc-512", "kmalloc-1024", "kmalloc-2048" };
 static struct kmem_cache cache_cache;   /* cache of kmem_cache structs */
 static struct list_node all_caches = LIST_INIT(all_caches);
-static spinlock_t registry_lock = SPINLOCK_INIT;
+static const struct lock_class slab_reg_class = { "slab_registry", LR_SLAB_REG, false };
+static const struct lock_class slab_mag_class = { "slab_magazine", LR_SLAB - 1, false };
+static const struct lock_class slab_class = { "slab_cache", LR_SLAB, false };
+static spinlock_t registry_lock = SPINLOCK_INIT_CLASS(&slab_reg_class);
 static bool cpu_caches_enabled;
 
 static uint64_t cache_lock(spinlock_t *lock) {
@@ -41,6 +44,8 @@ void kmem_cache_init(struct kmem_cache *c, const char *name, size_t size, size_t
     c->objs_per_slab = ((PAGE_SIZE << order) - c->first_off) / c->obj_size;
     assert(c->objs_per_slab);
     list_init(&c->partial); list_init(&c->full); list_init(&c->empty);
+    spin_lock_init_class(&c->lock, &slab_class);
+    for (int i = 0; i < MAX_CPUS; i++) spin_lock_init_class(&c->cpu[i].lock, &slab_mag_class);
     uint64_t f = cache_lock(&registry_lock);
     list_add_tail(&all_caches, &c->registry_node);
     spin_unlock_irqrestore(&registry_lock, f);

@@ -29,7 +29,9 @@ static struct list_node all_threads = LIST_INIT(all_threads);
 static struct kmem_cache *thread_cache;
 static int next_tid = 1;
 static int nr_runnable;
-static spinlock_t sched_lock = SPINLOCK_INIT;
+static const struct lock_class sched_class = { "sched_lock", LR_SCHED, false };
+static const struct lock_class rq_class = { "rq", LR_RQ, true };
+static spinlock_t sched_lock = SPINLOCK_INIT_CLASS(&sched_class);
 static volatile int sched_owner = -1;          /* CPU holding sched_lock (debugging) */
 void bkl_drop_for_switch(struct thread *t);
 void bkl_retake_after_switch(struct thread *t);
@@ -121,6 +123,7 @@ static uint64_t last_balance_ns;
 static void rq_init(void) {
     for (int c = 0; c < MAX_CPUS; c++) {
         rqs[c].owner = -1;
+        spin_lock_init_class(&rqs[c].lock, &rq_class);
         list_init(&rqs[c].rt);
         for (int i = 0; i < RQ_LEVELS; i++) list_init(&rqs[c].q[i]);
     }
@@ -676,7 +679,7 @@ void thread_wake(struct thread *t) {
 
 void thread_interrupt(struct thread *t) {
     uint64_t f = sl_lock_irqsave();
-    if (t->state == T_BLOCKED || t->state == T_SLEEPING) {
+    if ((t->state == T_BLOCKED || t->state == T_SLEEPING) && !t->nointr) {
         t->interrupted = true;
         list_del(&t->run_node);
         if (t->timer_active) { list_del(&t->timer_node); t->timer_active = false; }
@@ -715,6 +718,17 @@ int wait_event_locked(struct wait_queue *q, uint64_t f) {
     bool intr = current->interrupted;
     arch_irq_restore(f);
     return intr ? -EINTR : 0;
+}
+
+/* like wait_event_locked, but signals neither prevent nor end the sleep (sleeping mutexes) */
+void wait_event_uninterruptible_locked(struct wait_queue *q, uint64_t f) {
+    current->state = T_BLOCKED;
+    current->interrupted = false;
+    current->nointr = true;
+    list_add_tail(&q->head, &current->run_node);
+    __schedule();
+    current->nointr = false;
+    arch_irq_restore(f);
 }
 
 int wait_event_timeout(struct wait_queue *q, uint64_t ns) {

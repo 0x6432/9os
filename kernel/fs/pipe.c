@@ -128,11 +128,13 @@ static void pipe_evict(struct inode *i) {
     kfree(p);
 }
 
+static const struct lock_class pipe_class = { "pipe", LR_PIPE, false };
 static const struct file_ops pipe_fops = { .nobkl = true, .read = pipe_read, .write = pipe_write, .poll = pipe_poll, .release = pipe_release };
 static const struct inode_ops pipe_iops = { .evict = pipe_evict };
 
 struct inode *pipe_create(struct file **rd, struct file **wr) {
     struct pipe *p = kzalloc(sizeof *p);
+    if (p) spin_lock_init_class(&p->lock, &pipe_class);
     if (!p) return nullptr;
     p->buf = kmalloc(PIPE_SIZE);
     if (!p->buf) { kfree(p); return nullptr; }

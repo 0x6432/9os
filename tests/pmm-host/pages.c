@@ -15,6 +15,8 @@ static int owners[512], checks;
 static int pause_drain, drain_ready, release_drain, waiter_ready, pressure_done;
 static struct page *pressure_result;
 #define CHECK(c) do { __atomic_fetch_add(&checks, 1, __ATOMIC_RELAXED); if (!(c)) { fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #c); abort(); } } while (0)
+void lockdep_acquire(const struct lock_class *c, bool sleeping) { (void)c; (void)sleeping; }
+void lockdep_release(const struct lock_class *c, bool sleeping) { (void)c; (void)sleeping; }
 void spin_lock_ipi(spinlock_t *lock) {
     if (__atomic_load_n(&pause_drain, __ATOMIC_RELAXED)) {
         if (test_cpu == 1 && lock == &buddy_lock) {

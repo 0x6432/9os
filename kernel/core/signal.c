@@ -274,7 +274,13 @@ int64_t sys_tgkill(int tgid, int tid, int sig) {
     if (sig) {
         list_for_each(it, &p->threads) {
             struct thread *t = list_entry(it, struct thread, proc_node);
-            if (t->tid == tid) { t->sig_pending |= SIGBIT(sig); kick_thread(t); return 0; }
+            if (t->tid == tid) {
+                t->sig_pending |= SIGBIT(sig);
+                /* a blocked signal stays pending without interrupting the thread's sleep */
+                if (!(t->sig_mask & SIGBIT(sig)) || (SIGBIT(sig) & UNBLOCKABLE)) kick_thread(t);
+                poll_notify();               /* signalfd readers */
+                return 0;
+            }
         }
         signal_send(p, sig);
     }

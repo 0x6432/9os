@@ -8,6 +8,8 @@
 #include <kernel/printk.h>
 #include <kernel/process.h>
 
+static const struct lock_class mm_class = { "mm", LR_MM, true };
+
 static struct vma *vma_new(vaddr_t s, vaddr_t e, unsigned prot, unsigned flags) {
     struct vma *v = kzalloc(sizeof *v);
     if (!v) return nullptr;
@@ -48,6 +50,7 @@ struct mm *mm_create(void) {
     mm->pt = vmm_new_user_pagetable();
     if (!mm->pt.root) { kfree(mm); return nullptr; }
     list_init(&mm->vmas);
+    spin_lock_init_class(&mm->lock, &mm_class);
     mm->refcount = 1;
     mm->mmap_hint = USER_MMAP_BASE;
     return mm;

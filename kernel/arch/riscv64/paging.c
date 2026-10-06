@@ -24,7 +24,8 @@
 #define SATP_SV48 (9ULL << 60)
 
 pagetable_t kernel_pt;
-static spinlock_t pt_lock = SPINLOCK_INIT;
+static const struct lock_class pt_class = { "pt_lock", LR_PT, false };
+static spinlock_t pt_lock = SPINLOCK_INIT_CLASS(&pt_class);
 static uint64_t pt_lock_irqsave(void) { uint64_t f = arch_irq_save(); spin_lock_ipi(&pt_lock); return f; }
 
 static uint64_t to_pte(paddr_t pa, unsigned fl) {

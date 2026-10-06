@@ -1,3 +1,4 @@
+#include <kernel/mutex.h>
 /*
  * Anonymous-inode file descriptors used by event loops (libwayland, wlroots, glib, systemd-ish
  * code): eventfd, timerfd, signalfd, epoll and memfd.
@@ -300,55 +301,85 @@ struct epoll_event_u { uint32_t events; uint64_t data; };
 #endif
 
 struct epitem { struct list_node node; int fd; struct file *f; uint32_t events; uint64_t data; bool disabled; unsigned last; };
-struct epoll { struct list_node items; int depth; };
+/*
+ * epoll without the BKL (M24): the item list and per-item edge state are protected by the
+ * instance's sleeping mutex. Items hold no file reference; a scan pins each candidate with
+ * fd_get_ref() and drops items whose fd no longer names the registered file. ->poll methods
+ * that still need the BKL get it lazily for the rest of the scan (BKL inside a mutex is fine:
+ * a mutex sleep drops the BKL). Nested epoll instances are locked outer -> inner; epoll_ctl
+ * refuses loops (ELOOP) so that order is acyclic.
+ */
+struct epoll { struct list_node items; struct mutex mtx; };
+static const struct lock_class epoll_class = { "epoll", LR_MUTEX_EPOLL, true };
 
-static unsigned file_poll(struct file *f) {
-    return f->fops && f->fops->poll ? f->fops->poll(f) : (POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM);
+static const struct file_ops epoll_fops;
+
+/* scan state: whether this scan took the BKL for a non-nobkl ->poll */
+struct ep_scan_ctx { bool took_bkl; int depth; };
+
+static unsigned ep_file_poll(struct file *f, struct ep_scan_ctx *x);
+
+/* Pin the item's file if its fd still refers to it; nullptr if the registration is stale. */
+static struct file *item_get(struct epitem *it) {
+    struct file *f = fd_get_ref(it->fd);
+    if (f && f != it->f) { vfs_close(f); f = nullptr; }
+    return f;
 }
 
-static bool item_live(struct epitem *it) { return fd_get(it->fd) == it->f; }
-
 /* Collect ready events. Edge-triggered items are level-triggered for input (consumers drain
- * to EAGAIN anyway) but only report EPOLLOUT on a not-writable -> writable transition. */
-static int ep_scan(struct epoll *ep, struct epoll_event_u *out, int max) {
+ * to EAGAIN anyway) but only report EPOLLOUT on a not-writable -> writable transition.
+ * out == nullptr: peek only (no edge/oneshot state change), stop at the first ready item. */
+static int ep_scan_locked(struct epoll *ep, struct epoll_event_u *out, int max, struct ep_scan_ctx *x) {
     int n = 0;
-    if (ep->depth > 4) return 0;
-    ep->depth++;
     list_for_each_safe(i, tmp, &ep->items) {
         struct epitem *it = list_entry(i, struct epitem, node);
-        if (!item_live(it)) { list_del(&it->node); kfree(it); continue; }
-        if (it->disabled) continue;
-        unsigned ready = file_poll(it->f) & (it->events | EPOLLERR | EPOLLHUP);
+        struct file *f = item_get(it);
+        if (!f) { list_del(&it->node); kfree(it); continue; }
+        if (it->disabled) { vfs_close(f); continue; }
+        unsigned ready = ep_file_poll(f, x) & (it->events | EPOLLERR | EPOLLHUP);
+        vfs_close(f);
+        if (!out) {
+            if (ready & ~EPOLLET) { n = 1; break; }
+            continue;
+        }
         if (it->events & EPOLLET) {
             unsigned prev = it->last;
             it->last = ready;
             if ((ready & EPOLLOUT) && (prev & EPOLLOUT)) ready &= ~EPOLLOUT;
         }
         if (!ready) continue;
-        if (out) {
-            if (n >= max) break;
-            out[n] = (struct epoll_event_u){ ready, it->data };
-            if (it->events & EPOLLONESHOT) it->disabled = true;
-        }
+        if (n >= max) break;
+        out[n] = (struct epoll_event_u){ ready, it->data };
+        if (it->events & EPOLLONESHOT) it->disabled = true;
         n++;
-        if (!out) break;
     }
-    ep->depth--;
     return n;
+}
+
+static unsigned ep_file_poll(struct file *f, struct ep_scan_ctx *x) {
+    if (!f->fops || !f->fops->poll) return POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM;
+    if (f->fops == &epoll_fops) {                   /* nested instance: peek, outer -> inner */
+        struct epoll *in = f->priv;
+        if (x->depth >= 4 || mutex_owned(&in->mtx)) return 0;
+        x->depth++;
+        mutex_lock(&in->mtx);
+        int r = ep_scan_locked(in, nullptr, 0, x);
+        mutex_unlock(&in->mtx);
+        x->depth--;
+        return r ? POLLIN | POLLRDNORM : 0;
+    }
+    if (!f->fops->nobkl && !x->took_bkl && !bkl_held()) { bkl_enter(); x->took_bkl = true; }
+    return f->fops->poll(f);
 }
 
 static unsigned ep_poll(struct file *f) {
     struct epoll *ep = f->priv;
-    if (ep->depth) return 0;
-    /* peek without consuming edge state */
-    int n = 0;
-    ep->depth++;
-    list_for_each(i, &ep->items) {
-        struct epitem *it = list_entry(i, struct epitem, node);
-        if (it->disabled || !item_live(it)) continue;
-        if (file_poll(it->f) & (it->events | EPOLLERR | EPOLLHUP) & ~EPOLLET) { n = 1; break; }
-    }
-    ep->depth--;
+    if (mutex_owned(&ep->mtx)) return 0;
+    struct ep_scan_ctx x = { false, 1 };
+    mutex_lock(&ep->mtx);
+    int n = ep_scan_locked(ep, nullptr, 0, &x);
+    mutex_unlock(&ep->mtx);
+    if (x.took_bkl) bkl_exit();
     return n ? POLLIN | POLLRDNORM : 0;
 }
 static void ep_release(struct file *f) {
@@ -356,89 +387,125 @@ static void ep_release(struct file *f) {
     list_for_each_safe(i, tmp, &ep->items) { list_del(i); kfree(list_entry(i, struct epitem, node)); }
     kfree(ep);
 }
-static const struct file_ops epoll_fops = { .poll = ep_poll, .release = ep_release };
+static const struct file_ops epoll_fops = { .nobkl = true, .poll = ep_poll, .release = ep_release };
 
 int64_t sys_epoll_create1(int flags) {
+    if (flags & ~O_CLOEXEC) return -EINVAL;
     struct epoll *ep = kzalloc(sizeof *ep);
     if (!ep) return -ENOMEM;
     list_init(&ep->items);
+    mutex_init(&ep->mtx, &epoll_class);
     int fd = anon_fd(&epoll_fops, ep, flags & O_CLOEXEC, 0600);
     if (fd < 0) kfree(ep);
     return fd;
 }
 int64_t sys_epoll_create(int size) { return size <= 0 ? -EINVAL : sys_epoll_create1(0); }
 
+/* does epoll instance 'from' (transitively) watch instance 'target'? */
+static bool ep_reaches(struct epoll *from, struct epoll *target, int depth) {
+    if (from == target) return true;
+    if (depth > 4) return true;                     /* too deep: treat as a loop */
+    bool hit = false;
+    mutex_lock(&from->mtx);
+    list_for_each(i, &from->items) {
+        struct epitem *it = list_entry(i, struct epitem, node);
+        struct file *f = item_get(it);
+        if (!f) continue;
+        if (f->fops == &epoll_fops) hit = ep_reaches(f->priv, target, depth + 1);
+        vfs_close(f);
+        if (hit) break;
+    }
+    mutex_unlock(&from->mtx);
+    return hit;
+}
+
 int64_t sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event_u *uev) {
-    struct file *ef = fd_get(epfd);
-    if (!ef) return -EBADF;
-    if (ef->fops != &epoll_fops) return -EINVAL;
-    struct file *f = fd_get(fd);
-    if (!f) return -EBADF;
-    if (f == ef) return -EINVAL;
-    struct epoll *ep = ef->priv;
     struct epoll_event_u ev = {0};
     if (op != 2 && copy_from_user(&ev, uev, sizeof ev)) return -EFAULT;
+    struct file *ef = fd_get_ref(epfd);
+    if (!ef) return -EBADF;
+    struct file *f = fd_get_ref(fd);
+    int64_t r = 0;
+    if (!f) { vfs_close(ef); return -EBADF; }
+    if (ef->fops != &epoll_fops || f == ef) { r = -EINVAL; goto out; }
+    if (f->fops && !f->fops->poll && f->inode && (S_ISREG(f->inode->mode) || S_ISDIR(f->inode->mode))) { r = -EPERM; goto out; }
+    struct epoll *ep = ef->priv;
+    if (op == 1 && f->fops == &epoll_fops && ep_reaches(f->priv, ep, 0)) { r = -ELOOP; goto out; }
+    mutex_lock(&ep->mtx);
     struct epitem *found = nullptr;
     list_for_each_safe(i, tmp, &ep->items) {
         struct epitem *it = list_entry(i, struct epitem, node);
-        if (!item_live(it)) { list_del(&it->node); kfree(it); continue; }
-        if (it->fd == fd && it->f == f) found = it;
+        if (it->fd == fd && it->f == f) { found = it; continue; }
+        struct file *g = item_get(it);
+        if (!g) { list_del(&it->node); kfree(it); continue; }
+        vfs_close(g);
     }
     switch (op) {
     case 1:                                                   /* EPOLL_CTL_ADD */
-        if (found) return -EEXIST;
+        if (found) { r = -EEXIST; break; }
         found = kzalloc(sizeof *found);
-        if (!found) return -ENOMEM;
+        if (!found) { r = -ENOMEM; break; }
         found->fd = fd; found->f = f;
         found->events = ev.events; found->data = ev.data;
         list_add_tail(&ep->items, &found->node);
         break;
     case 2:                                                   /* EPOLL_CTL_DEL */
-        if (!found) return -ENOENT;
+        if (!found) { r = -ENOENT; break; }
         list_del(&found->node); kfree(found);
         break;
     case 3:                                                   /* EPOLL_CTL_MOD */
-        if (!found) return -ENOENT;
+        if (!found) { r = -ENOENT; break; }
         found->events = ev.events; found->data = ev.data; found->disabled = false; found->last = 0;
         break;
-    default: return -EINVAL;
+    default: r = -EINVAL;
     }
-    poll_notify();
-    return 0;
+    mutex_unlock(&ep->mtx);
+    if (!r) poll_notify();
+out:
+    vfs_close(f);
+    vfs_close(ef);
+    return r;
+}
+
+static void ep_set_mask(uint64_t m) {     /* signal_send() samples sig_mask under the BKL */
+    bkl_enter();
+    current->sig_mask = m;
+    bkl_exit();
 }
 
 int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms, const uint64_t *usig, size_t sz) {
-    struct file *ef = fd_get(epfd);
-    if (!ef) return -EBADF;
-    if (ef->fops != &epoll_fops) return -EINVAL;
     if (max <= 0 || max > 4096) return -EINVAL;
+    uint64_t m = 0;
+    if (usig && copy_from_user(&m, usig, 8)) return -EFAULT;
+    struct file *ef = fd_get_ref(epfd);
+    if (!ef) return -EBADF;
+    if (ef->fops != &epoll_fops) { vfs_close(ef); return -EINVAL; }
     struct epoll *ep = ef->priv;
-    uint64_t oldmask = current->sig_mask;
-    if (usig) {
-        uint64_t m;
-        if (copy_from_user(&m, usig, 8)) return -EFAULT;
-        current->sig_mask = m & ~(SIGBIT(SIGKILL) | SIGBIT(SIGSTOP));
-    }
     struct epoll_event_u *ev = kmalloc(sizeof *ev * max);
-    if (!ev) return -ENOMEM;
+    if (!ev) { vfs_close(ef); return -ENOMEM; }
+    uint64_t oldmask = current->sig_mask;
+    if (usig) ep_set_mask(m & ~(SIGBIT(SIGKILL) | SIGBIT(SIGSTOP)));
     uint64_t deadline = timeout_ms < 0 ? UINT64_MAX : time_ns() + (uint64_t)timeout_ms * 1000000ull;
     int64_t r;
     for (;;) {
-        uint64_t fl = arch_irq_save();
         uint64_t pseq = poll_seq_read();
-        r = ep_scan(ep, ev, max);
-        if (r || timeout_ms == 0) { arch_irq_restore(fl); break; }
+        struct ep_scan_ctx x = { false, 1 };
+        mutex_lock(&ep->mtx);
+        r = ep_scan_locked(ep, ev, max, &x);
+        mutex_unlock(&ep->mtx);
+        if (x.took_bkl) bkl_exit();
+        if (r || timeout_ms == 0) break;
         uint64_t now = time_ns();
-        if (now >= deadline) { arch_irq_restore(fl); r = 0; break; }
+        if (now >= deadline) { r = 0; break; }
         int w = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
-        arch_irq_restore(fl);
         if (w == -EINTR) { r = -EINTR; break; }
     }
     if (r > 0 && copy_to_user(uev, ev, sizeof *ev * r)) r = -EFAULT;
     kfree(ev);
+    vfs_close(ef);
     if (usig) {
         if (r == -EINTR) { current->saved_mask = oldmask; current->restore_mask = true; }
-        else current->sig_mask = oldmask;
+        else ep_set_mask(oldmask);
     }
     return r;
 }

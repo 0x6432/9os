@@ -12,7 +12,10 @@ uint64_t max_pfn;
 static struct list_node free_lists[MAX_ORDER];
 static uint64_t free_count[MAX_ORDER];
 static uint64_t total_pages, free_pages;
-static spinlock_t buddy_lock = SPINLOCK_INIT;
+static const struct lock_class buddy_class = { "buddy", LR_BUDDY, false };
+static const struct lock_class pcp_class = { "pcp", LR_PCP, false };
+static const struct lock_class drain_class = { "pcp_drain", LR_BUDDY_DRAIN, false };
+static spinlock_t buddy_lock = SPINLOCK_INIT_CLASS(&buddy_class);
 
 #define PCP_HIGH 16             /* at most 64 KiB per CPU, 2 MiB at MAX_CPUS */
 struct page_cpu_cache {
@@ -24,7 +27,7 @@ struct page_cpu_cache {
 static struct page_cpu_cache pcaches[MAX_CPUS];
 static bool pcaches_enabled;
 static uint64_t cached_pages;
-static spinlock_t cache_drain_lock = SPINLOCK_INIT;
+static spinlock_t cache_drain_lock = SPINLOCK_INIT_CLASS(&drain_class);
 void slab_reclaim_cpu_caches(void) __attribute__((weak));
 
 /* Before SMP setup there may be no valid per-CPU pointer. Once enabled, lock
@@ -158,7 +161,7 @@ void page_free(struct page *p, unsigned order) {
 
 void pmm_enable_cpu_caches(void) {
     assert(!__atomic_load_n(&pcaches_enabled, __ATOMIC_RELAXED));
-    for (int i = 0; i < MAX_CPUS; i++) list_init(&pcaches[i].pages);
+    for (int i = 0; i < MAX_CPUS; i++) { list_init(&pcaches[i].pages); spin_lock_init_class(&pcaches[i].lock, &pcp_class); }
     __atomic_store_n(&pcaches_enabled, true, __ATOMIC_RELEASE);
     pr_info("pmm: per-CPU order-0 caches enabled (%d pages/CPU)\n", PCP_HIGH);
 }

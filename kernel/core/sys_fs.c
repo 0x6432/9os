@@ -680,18 +680,38 @@ int64_t sys_fstatfs(int fd, void *ubuf) { return sys_statfs(nullptr, ubuf); }
 
 struct pollfd { int fd; int16_t events, revents; };
 
+/*
+ * Lock-free readiness scan (M24): each fd is pinned with fd_get_ref() so a concurrent close
+ * cannot free it under us. ->poll methods marked nobkl (pipes, eventfd, AF_UNIX) run without
+ * the BKL; the first fd whose poll still needs it takes the BKL for the rest of this scan.
+ * Callers sleep on poll_seq, which every wake-up source bumps.
+ */
 static int poll_once(struct pollfd *pf, size_t n) {
     int count = 0;
+    bool took = false;
     for (size_t i = 0; i < n; i++) {
         pf[i].revents = 0;
         if (pf[i].fd < 0) continue;
-        struct file *f = fd_get(pf[i].fd);
+        struct file *f = fd_get_ref(pf[i].fd);
         if (!f) { pf[i].revents = POLLNVAL; count++; continue; }
-        unsigned ev = f->fops && f->fops->poll ? f->fops->poll(f) : (POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM);
+        unsigned ev = POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM;
+        if (f->fops && f->fops->poll) {
+            if (!f->fops->nobkl && !took && !bkl_held()) { bkl_enter(); took = true; }
+            ev = f->fops->poll(f);
+        }
+        vfs_close(f);
         pf[i].revents = ev & (pf[i].events | POLLERR | POLLHUP | POLLNVAL);
         if (pf[i].revents) count++;
     }
+    if (took) bkl_exit();
     return count;
+}
+
+/* ppoll/pselect mask swap: signal_send() samples sig_mask under the BKL */
+static void poll_set_mask(uint64_t m) {
+    bkl_enter();
+    current->sig_mask = m;
+    bkl_exit();
 }
 
 static int64_t do_poll(struct pollfd *upf, size_t n, int64_t timeout_ns) {
@@ -701,14 +721,12 @@ static int64_t do_poll(struct pollfd *upf, size_t n, int64_t timeout_ns) {
     uint64_t deadline = timeout_ns < 0 ? UINT64_MAX : time_ns() + timeout_ns;
     int64_t r;
     for (;;) {
-        uint64_t f = arch_irq_save();
         uint64_t pseq = poll_seq_read();
         r = poll_once(pf, n);
-        if (r || timeout_ns == 0) { arch_irq_restore(f); break; }
+        if (r || timeout_ns == 0) break;
         uint64_t now = time_ns();
-        if (now >= deadline) { arch_irq_restore(f); r = 0; break; }
+        if (now >= deadline) { r = 0; break; }
         int w = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
-        arch_irq_restore(f);
         if (w == -EINTR) { r = -EINTR; break; }
     }
     if (r >= 0 && copy_to_user(upf, pf, sizeof(*pf) * n)) r = -EFAULT;
@@ -731,12 +749,12 @@ int64_t sys_ppoll(struct pollfd *upf, size_t n, const struct timespec *uts, cons
     if (usig) {
         uint64_t m;
         if (copy_from_user(&m, usig, 8)) return -EFAULT;
-        current->sig_mask = m;
+        poll_set_mask(m);
     }
     int64_t r = do_poll(upf, n, t);
     if (usig) {
         if (r == -EINTR) { current->saved_mask = old; current->restore_mask = true; }
-        else current->sig_mask = old;
+        else poll_set_mask(old);
     }
     return r;
 }
@@ -760,14 +778,12 @@ static int64_t do_select(int nfds, uint64_t *ur, uint64_t *uw, uint64_t *ue, int
     uint64_t deadline = timeout_ns < 0 ? UINT64_MAX : time_ns() + timeout_ns;
     int64_t res;
     for (;;) {
-        uint64_t fl = arch_irq_save();
         uint64_t pseq = poll_seq_read();
         res = poll_once(pf, n);
-        if (res || timeout_ns == 0) { arch_irq_restore(fl); break; }
+        if (res || timeout_ns == 0) break;
         uint64_t now = time_ns();
-        if (now >= deadline) { arch_irq_restore(fl); res = 0; break; }
+        if (now >= deadline) { res = 0; break; }
         int wr = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
-        arch_irq_restore(fl);
         if (wr == -EINTR) { res = -EINTR; break; }
     }
     if (res >= 0) {
@@ -810,12 +826,12 @@ int64_t sys_pselect6(int nfds, uint64_t *r, uint64_t *w, uint64_t *e, const stru
     if (usig && !copy_from_user(sigdata, usig, 16) && sigdata[0]) {
         uint64_t m;
         if (copy_from_user(&m, (void *)sigdata[0], 8)) return -EFAULT;
-        current->sig_mask = m;
+        poll_set_mask(m);
     }
     int64_t res = do_select(nfds, r, w, e, t);
     if (current->sig_mask != old) {
         if (res == -EINTR) { current->saved_mask = old; current->restore_mask = true; }
-        else current->sig_mask = old;
+        else poll_set_mask(old);
     }
     return res;
 }

@@ -1,3 +1,4 @@
+#include <kernel/mutex.h>
 /* procfs: process and system information (enough for BusyBox ps/top/free/mount). */
 #include <kernel/vfs.h>
 #include <kernel/process.h>
@@ -15,7 +16,7 @@
 
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT };
+             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
 static struct thread *main_thread(struct process *p) {
@@ -52,7 +53,7 @@ static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum 
 static const struct { const char *name; enum pfile f; } global_files[] = {
     { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cpuinfo", G_CPUINFO },
     { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS }, { "sched", G_SCHED },
-    { "vmstat", G_VMSTAT },
+    { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP },
 };
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
@@ -257,6 +258,11 @@ static void gen(struct pinfo *pi, struct buf *b) {
         struct slab_cpu_stats ss; slab_cpu_stats(&ss);
         bprintf(b, "slab_pcpu_cached %lu\nslab_pcpu_alloc_hits %lu\nslab_pcpu_free_hits %lu\nslab_pcpu_drained %lu\n",
                 ss.cached_objects, ss.alloc_hits, ss.free_hits, ss.drained_objects);
+        break;
+    }
+    case G_LOCKDEP: {
+        char *t = kmalloc(4096);
+        if (t) { int n = lockdep_report(t, 4096); bprintf(b, "%.*s", n, t); kfree(t); }
         break;
     }
     case G_SCHED:

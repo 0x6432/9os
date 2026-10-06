@@ -41,10 +41,12 @@ static void bkl_unlock(void) {
 
 /* The lock is taken with interrupts off: an interrupt arriving while we spin must not see
  * a non-zero depth and assume the lock is already held. */
+extern const struct lock_class bkl_class;
 void bkl_enter(void) {
     struct thread *t = current;
     if (!t) return;
     if (t->bkl_depth) { t->bkl_depth++; return; }
+    lockdep_acquire(&bkl_class, false);
     uint64_t f = arch_irq_save();
     bkl_lock();
     t->bkl_depth = 1;
@@ -218,6 +220,7 @@ void vmm_batch_end(void) {
 /* Spin with interrupts disabled while still answering TLB-shootdown IPIs: the holder may be
  * waiting for this CPU's acknowledgement. */
 void spin_lock_ipi(spinlock_t *l) {
+    if (l->cls) lockdep_acquire(l->cls, false);
     while (__atomic_exchange_n(&l->locked, 1, __ATOMIC_ACQUIRE))
         while (__atomic_load_n(&l->locked, __ATOMIC_RELAXED)) {
             if (this_cpu()->ipi_pending || panicking) ipi_handle();

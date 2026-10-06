@@ -480,13 +480,14 @@ struct futex_bucket { spinlock_t lock; struct list_node head; } __attribute__((a
 static struct futex_bucket futex_buckets[FUTEX_BUCKETS];
 static volatile bool futex_ready;
 static spinlock_t futex_init_lock = SPINLOCK_INIT;
+static const struct lock_class futex_class = { "futex_bucket", LR_FUTEX, false };
 uint64_t futex_waits, futex_wakes;      /* approximate counters for /proc/sched-style debugging */
 
 static struct futex_bucket *futex_bucket(struct mm *mm, uint32_t *uaddr) {
     if (!__atomic_load_n(&futex_ready, __ATOMIC_ACQUIRE)) {
         uint64_t f = spin_lock_irqsave(&futex_init_lock);
         if (!futex_ready) {
-            for (int i = 0; i < FUTEX_BUCKETS; i++) { futex_buckets[i].lock = (spinlock_t)SPINLOCK_INIT; list_init(&futex_buckets[i].head); }
+            for (int i = 0; i < FUTEX_BUCKETS; i++) { spin_lock_init_class(&futex_buckets[i].lock, &futex_class); list_init(&futex_buckets[i].head); }
             __atomic_store_n(&futex_ready, true, __ATOMIC_RELEASE);
         }
         spin_unlock_irqrestore(&futex_init_lock, f);

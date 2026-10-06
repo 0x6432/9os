@@ -18,6 +18,8 @@ uint64_t hhdm_offset;
 static int checks, stop_drain;
 static struct kmem_cache custom;
 #define CHECK(c) do { __atomic_fetch_add(&checks, 1, __ATOMIC_RELAXED); if (!(c)) { fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #c); abort(); } } while (0)
+void lockdep_acquire(const struct lock_class *c, bool sleeping) { (void)c; (void)sleeping; }
+void lockdep_release(const struct lock_class *c, bool sleeping) { (void)c; (void)sleeping; }
 void spin_lock_ipi(spinlock_t *lock) { spin_lock(lock); }
 void printk(const char *fmt, ...) {}
 void panic(const char *fmt, ...) {

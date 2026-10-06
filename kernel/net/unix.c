@@ -85,7 +85,8 @@ struct usock {
  * change is followed by poll_notify(), so wakeups cannot be lost.
  * Lock order: BKL -> unix_lock -> mm lock -> pt/buddy/slab -> sched_lock.
  */
-static spinlock_t unix_lock = SPINLOCK_INIT;
+static const struct lock_class unix_class = { "unix_lock", LR_UNIX, false };
+static spinlock_t unix_lock = SPINLOCK_INIT_CLASS(&unix_class);
 static uint64_t ulock(void) { uint64_t f = arch_irq_save(); spin_lock_ipi(&unix_lock); return f; }
 static void uunlock(uint64_t f) { spin_unlock(&unix_lock); arch_irq_restore(f); }
 
