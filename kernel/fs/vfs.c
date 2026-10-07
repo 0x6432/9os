@@ -7,6 +7,9 @@
 #include <kernel/errno.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
+#include <kernel/blk.h>
+#include <kernel/pagecache.h>
+#include <kernel/pmm.h>
 #include <kernel/printk.h>
 
 struct inode *vfs_root;
@@ -48,25 +51,136 @@ struct timespec now_timespec(void) {
 }
 
 static const struct lock_class i_mmap_class = { "i_mmap", LR_I_MMAP, false };
-struct inode *inode_alloc(uint32_t mode) {
-    struct inode *i = kzalloc(sizeof *i);
-    if (!i) return nullptr;
+static const struct lock_class icache_class = { "icache", LR_ICACHE, false };
+
+void inode_init(struct inode *i, uint32_t mode) {
     i->mode = mode;
-    i->ino = __atomic_fetch_add(&next_ino, 1, __ATOMIC_RELAXED);
     i->refcount = 1;
     i->atime = i->mtime = i->ctime = now_timespec();
     list_init(&i->i_mmap);
+    list_init(&i->i_hash);
+    list_init(&i->i_lru);
     spin_lock_init_class(&i->i_mmap_lock, &i_mmap_class);
+}
+
+struct inode *inode_alloc(uint32_t mode) {
+    struct inode *i = kzalloc(sizeof *i);
+    if (!i) return nullptr;
+    inode_init(i, mode);
+    i->ino = __atomic_fetch_add(&next_ino, 1, __ATOMIC_RELAXED);
     return i;
+}
+
+/* ---- inode cache of disk filesystems (see vfs.h) ---- */
+#define ICACHE_HASH 512
+#define ICACHE_MAX_UNUSED 4096
+uint64_t icache_hits, icache_misses, icache_evictions;
+
+void sb_init(struct super_block *sb, const struct super_ops *ops, const char *type) {
+    sb->ops = ops;
+    sb->type = type;
+    spin_lock_init_class(&sb->icache_lock, &icache_class);
+    sb->ihash = kmalloc(ICACHE_HASH * sizeof *sb->ihash);
+    for (int k = 0; k < ICACHE_HASH; k++) list_init(&sb->ihash[k]);
+    list_init(&sb->ilru);
+}
+static uint64_t ic_lock(struct super_block *sb) { uint64_t f = arch_irq_save(); spin_lock_ipi(&sb->icache_lock); return f; }
+static void ic_unlock(struct super_block *sb, uint64_t f) { spin_unlock(&sb->icache_lock); arch_irq_restore(f); }
+
+struct inode *icache_find(struct super_block *sb, uint64_t ino) {
+    uint64_t f = ic_lock(sb);
+    list_for_each(it, &sb->ihash[ino % ICACHE_HASH]) {
+        struct inode *i = list_entry(it, struct inode, i_hash);
+        if (i->ino != ino) continue;
+        if (__atomic_add_fetch(&i->refcount, 1, __ATOMIC_ACQ_REL) == 1 && (i->i_state & I_LRU)) {
+            list_del(&i->i_lru); list_init(&i->i_lru);
+            i->i_state &= ~I_LRU;
+            sb->nunused--;
+        }
+        ic_unlock(sb, f);
+        icache_hits++;
+        return i;
+    }
+    ic_unlock(sb, f);
+    icache_misses++;
+    return nullptr;
+}
+
+void icache_insert(struct super_block *sb, struct inode *i) {
+    i->sb = sb;
+    uint64_t f = ic_lock(sb);
+    list_add(&sb->ihash[i->ino % ICACHE_HASH], &i->i_hash);
+    sb->ninodes++;
+    ic_unlock(sb, f);
+}
+
+/* unhash (lock held); the caller evicts */
+static void ic_unhash(struct super_block *sb, struct inode *i) {
+    list_del(&i->i_hash); list_init(&i->i_hash);
+    if (i->i_state & I_LRU) { list_del(&i->i_lru); list_init(&i->i_lru); i->i_state &= ~I_LRU; sb->nunused--; }
+    sb->ninodes--;
+}
+
+static bool ic_detach(struct inode *i, bool discard) {
+    return i->mapping ? mapping_detach(i->mapping, &i->refcount, discard) : __atomic_load_n(&i->refcount, __ATOMIC_ACQUIRE) == 0;
+}
+
+/* evict up to n clean unused inodes, oldest first */
+static void icache_prune(struct super_block *sb, unsigned n) {
+    uint64_t f = ic_lock(sb);
+    if (sb->pruning) { ic_unlock(sb, f); return; }
+    sb->pruning = true;
+    for (unsigned scanned = 0; n && scanned < 4 * n + 16 && !list_empty(&sb->ilru); scanned++) {
+        struct inode *i = list_first(&sb->ilru, struct inode, i_lru);
+        list_del(&i->i_lru); list_init(&i->i_lru);
+        i->i_state &= ~I_LRU;
+        sb->nunused--;
+        if (__atomic_load_n(&i->refcount, __ATOMIC_ACQUIRE) || i == sb->root) continue;   /* in use again */
+        if (!ic_detach(i, false)) {         /* dirty data: keep it until written back */
+            list_add_tail(&sb->ilru, &i->i_lru); i->i_state |= I_LRU; sb->nunused++;
+            continue;
+        }
+        ic_unhash(sb, i);
+        ic_unlock(sb, f);
+        icache_evictions++;
+        sb->ops->evict_inode(i);
+        n--;
+        f = ic_lock(sb);
+    }
+    sb->pruning = false;
+    ic_unlock(sb, f);
+}
+
+static void sb_iput(struct inode *i) {
+    struct super_block *sb = i->sb;
+    uint64_t f = ic_lock(sb);
+    if (__atomic_sub_fetch(&i->refcount, 1, __ATOMIC_ACQ_REL) > 0) { ic_unlock(sb, f); return; }
+    bool dying = i->nlink == 0 || (sb->flags & SB_DYING);
+    if (dying && i != sb->root) {
+        if (!ic_detach(i, i->nlink == 0)) { ic_unlock(sb, f); return; }   /* raced with writeback's iget */
+        ic_unhash(sb, i);
+        ic_unlock(sb, f);
+        sb->ops->evict_inode(i);
+        return;
+    }
+    if (!(i->i_state & I_LRU)) { list_add_tail(&sb->ilru, &i->i_lru); i->i_state |= I_LRU; sb->nunused++; }
+    bool prune = sb->nunused > ICACHE_MAX_UNUSED;
+    ic_unlock(sb, f);
+    if (prune) icache_prune(sb, 64);
 }
 
 void iget(struct inode *i) { if (i) __atomic_add_fetch(&i->refcount, 1, __ATOMIC_RELAXED); }
 void iput(struct inode *i) {
     if (!i) return;
+    if (i->sb) { sb_iput(i); return; }
     if (__atomic_sub_fetch(&i->refcount, 1, __ATOMIC_ACQ_REL) <= 0 && i->nlink == 0) {
         if (i->iops && i->iops->evict) i->iops->evict(i);
         kfree(i);
     }
+}
+
+void mark_inode_dirty(struct inode *i) {
+    if (i->sb && i->sb->ops->write_inode) i->sb->ops->write_inode(i);
 }
 
 static struct inode *proc_root(void) {
@@ -74,6 +188,86 @@ static struct inode *proc_root(void) {
 }
 static struct inode *proc_cwd(void) {
     return (current && current->proc && current->proc->cwd) ? current->proc->cwd : vfs_root;
+}
+
+
+/*
+ * Directory-entry cache (M30) for filesystems with SB_DCACHE (ext2): (dir, name) -> inode, or
+ * a negative entry for a name known not to exist (PATH searches, failed opens). Entries pin
+ * their inode and directory; the cache is bounded by an LRU. Everything runs under the
+ * namespace mutex, which every name-changing operation also holds, so the wrappers below
+ * invalidate the affected names before/after calling the filesystem.
+ */
+#define DC_HASH 1024
+#define DC_MAX 8192
+struct dentry { struct list_node hnode, lru; struct inode *dir, *ino; uint32_t hash; char name[]; };
+static struct list_node dc_hash[DC_HASH];
+static struct list_node dc_lru = LIST_INIT(dc_lru);
+static unsigned dc_count;
+uint64_t dcache_hits, dcache_neg_hits, dcache_misses;
+
+static uint32_t dc_hashfn(struct inode *dir, const char *name) {
+    uint32_t h = (uint32_t)((uintptr_t)dir >> 4) * 2654435761u;
+    for (; *name; name++) h = (h ^ (uint8_t)*name) * 16777619u;
+    return h;
+}
+static struct dentry *dc_find(struct inode *dir, const char *name, uint32_t h) {
+    if (!dc_hash[0].next) return nullptr;
+    list_for_each(it, &dc_hash[h % DC_HASH]) {
+        struct dentry *d = list_entry(it, struct dentry, hnode);
+        if (d->hash == h && d->dir == dir && !strcmp(d->name, name)) return d;
+    }
+    return nullptr;
+}
+static void dc_drop(struct dentry *d) {
+    list_del(&d->hnode); list_del(&d->lru);
+    dc_count--;
+    struct inode *i = d->ino, *dir = d->dir;
+    kfree(d);
+    iput(i); iput(dir);
+}
+static void dc_add(struct inode *dir, const char *name, uint32_t h, struct inode *i) {
+    if (!dc_hash[0].next) for (int k = 0; k < DC_HASH; k++) list_init(&dc_hash[k]);
+    size_t l = strlen(name);
+    struct dentry *d = kmalloc(sizeof *d + l + 1);
+    if (!d) return;
+    memcpy(d->name, name, l + 1);
+    d->dir = dir; d->ino = i; d->hash = h;
+    iget(dir); iget(i);
+    list_add(&dc_hash[h % DC_HASH], &d->hnode);
+    list_add_tail(&dc_lru, &d->lru);
+    if (++dc_count > DC_MAX) dc_drop(list_first(&dc_lru, struct dentry, lru));
+}
+static int dcache_lookup(struct inode *dir, const char *name, struct inode **out) {
+    uint32_t h = dc_hashfn(dir, name);
+    struct dentry *d = dc_find(dir, name, h);
+    if (d) {
+        list_del(&d->lru); list_add_tail(&dc_lru, &d->lru);
+        if (!d->ino) { dcache_neg_hits++; return -ENOENT; }
+        dcache_hits++;
+        iget(d->ino); *out = d->ino;
+        return 0;
+    }
+    dcache_misses++;
+    int r = dir->iops->lookup(dir, name, out);
+    if (!r) dc_add(dir, name, h, *out);
+    else if (r == -ENOENT) dc_add(dir, name, h, nullptr);
+    return r;
+}
+void dcache_forget(struct inode *dir, const char *name) {
+    if (!dir->sb || !(dir->sb->flags & SB_DCACHE)) return;
+    struct dentry *d = dc_find(dir, name, dc_hashfn(dir, name));
+    if (d) dc_drop(d);
+}
+/* every entry in directory dir (it was removed), or of filesystem sb */
+static void dcache_purge(struct inode *dir, struct super_block *sb) {
+    if (!dc_hash[0].next) return;
+    for (int k = 0; k < DC_HASH; k++)
+        for (struct list_node *it = dc_hash[k].next, *nx; it != &dc_hash[k]; it = nx) {
+            nx = it->next;
+            struct dentry *d = list_entry(it, struct dentry, hnode);
+            if (d->dir == dir || (sb && d->dir->sb == sb)) dc_drop(d);
+        }
 }
 
 static int walk(struct inode *base, const char *path, bool follow_last, int depth, struct inode **out);
@@ -92,7 +286,9 @@ static int lookup_child(struct inode *dir, const char *name, struct inode **out)
     }
     if (!dir->iops || !dir->iops->lookup) return -ENOENT;
     struct inode *c;
-    int r = dir->iops->lookup(dir, name, &c);
+    int r;
+    if (dir->sb && (dir->sb->flags & SB_DCACHE)) r = dcache_lookup(dir, name, &c);
+    else r = dir->iops->lookup(dir, name, &c);
     if (r) return r;
     while (c->mounted) { struct inode *m = c->mounted; iget(m); iput(c); c = m; }
     *out = c;
@@ -181,7 +377,7 @@ struct file *file_open_inode(struct inode *ino, int flags) {
     iget(ino);
     f->flags = flags & ~(O_CREAT | O_EXCL | O_TRUNC | O_CLOEXEC);
     f->refcount = 1;
-    f->fops = S_ISCHR(ino->mode) ? chrdev_get(ino->rdev) : ino->fops;
+    f->fops = S_ISCHR(ino->mode) ? chrdev_get(ino->rdev) : S_ISBLK(ino->mode) ? blkdev_fops_get(ino->rdev) : ino->fops;
     return f;
 }
 
@@ -195,6 +391,7 @@ static int open_prepare(struct inode *base, const char *path, int flags, uint32_
         uint32_t um = curproc ? curproc->umask : 022;
         if (!dir->iops->create) { iput(dir); return -EROFS; }
         r = dir->iops->create(dir, last, S_IFREG | (mode & 07777 & ~um), 0, &ino);
+        dcache_forget(dir, last);
         if (!r) fsnotify_dirent(dir, last, IN_CREATE, false, 0);
         iput(dir);
         if (r) return r;
@@ -224,7 +421,7 @@ static int open_prepare(struct inode *base, const char *path, int flags, uint32_
         }
         kfree(cwd);
     }
-    if (S_ISCHR(ino->mode) && !f->fops) { vfs_close(f); return -ENXIO; }
+    if ((S_ISCHR(ino->mode) || S_ISBLK(ino->mode)) && !f->fops) { vfs_close(f); return -ENXIO; }
     *out = f;
     return 0;
 }
@@ -298,6 +495,7 @@ static int vfs_mknod_at_l(struct inode *base, const char *path, uint32_t mode, u
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); iput(dir); return -EEXIST; }
     r = dir->iops->create(dir, last, mode, rdev, &ino);
+    dcache_forget(dir, last);
     if (!r) { fsnotify_dirent(dir, last, IN_CREATE, S_ISDIR(mode), 0); iput(ino); }
     iput(dir);
     return r;
@@ -314,9 +512,11 @@ static int vfs_unlink_at_l(struct inode *base, const char *path, bool rmdir) {
     if (r) return r;
     if (!strcmp(last, ".") || !strcmp(last, "..")) { iput(dir); return rmdir ? -EINVAL : -EISDIR; }
     struct inode *victim = nullptr;
-    if (fsnotify_nwatches && lookup_child(dir, last, &victim)) victim = nullptr;
+    if ((fsnotify_nwatches || (rmdir && dir->sb)) && lookup_child(dir, last, &victim)) victim = nullptr;
+    dcache_forget(dir, last);
+    if (victim && rmdir && dir->sb) dcache_purge(victim, nullptr);
     r = dir->iops->unlink ? dir->iops->unlink(dir, last, rmdir) : -EROFS;
-    if (!r && victim) {
+    if (!r && victim && fsnotify_nwatches) {
         fsnotify_dirent(dir, last, IN_DELETE, S_ISDIR(victim->mode), 0);
         fsnotify_unlinked(victim);
     }
@@ -332,6 +532,7 @@ static int vfs_symlink_at_l(struct inode *base, const char *target, const char *
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); iput(dir); return -EEXIST; }
     r = dir->iops->symlink ? dir->iops->symlink(dir, last, target) : -EROFS;
+    dcache_forget(dir, last);
     if (!r) fsnotify_dirent(dir, last, IN_CREATE, false, 0);
     iput(dir);
     return r;
@@ -348,6 +549,7 @@ static int vfs_link_at_l(struct inode *ob, const char *opath, struct inode *nb, 
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); r = -EEXIST; }
     else r = dir->iops->link ? dir->iops->link(dir, last, src) : -EPERM;
+    dcache_forget(dir, last);
     if (!r) { fsnotify_dirent(dir, last, IN_CREATE, false, 0); fsnotify_inode(src, IN_ATTRIB); }
     iput(dir); iput(src);
     return r;
@@ -361,8 +563,16 @@ static int vfs_rename_at_l(struct inode *ob, const char *opath, struct inode *nb
     if (r) { iput(od); return r; }
     struct inode *moved = nullptr;
     if (fsnotify_nwatches && lookup_child(od, ol, &moved)) moved = nullptr;
-    if (od->iops != nd->iops) r = -EXDEV;
-    else r = od->iops->rename ? od->iops->rename(od, ol, nd, nl) : -EROFS;
+    if (od->iops != nd->iops || od->sb != nd->sb) r = -EXDEV;
+    else {
+        if (od->sb) {
+            struct inode *t;
+            if (!lookup_child(nd, nl, &t)) { if (S_ISDIR(t->mode)) dcache_purge(t, nullptr); iput(t); }
+        }
+        dcache_forget(od, ol); dcache_forget(nd, nl);
+        r = od->iops->rename ? od->iops->rename(od, ol, nd, nl) : -EROFS;
+        dcache_forget(od, ol); dcache_forget(nd, nl);
+    }
     if (!r && moved) {
         uint32_t ck = fsnotify_cookie();
         bool d = S_ISDIR(moved->mode);
@@ -398,14 +608,297 @@ void vfs_stat(struct inode *i, struct kstat *st) {
     st->atime = i->atime; st->mtime = i->mtime; st->ctime = i->ctime;
 }
 
+/* ---- mounts ---- */
+struct mount {
+    struct list_node node;
+    struct inode *root, *mp;
+    struct super_block *sb;       /* null for pseudo filesystems */
+    char *src, *path;
+    const char *type;
+    uint64_t flags;
+};
+static struct list_node mounts = LIST_INIT(mounts);
+#define MS_RDONLY 1
+#define MS_REMOUNT 32
+#define MS_BIND 4096
+#define MS_MOVE 8192
+#define MNT_FORCE 1
+#define MNT_DETACH 2
+
+static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size);
+static void mount_record(struct inode *root, struct inode *mp, struct super_block *sb, const char *src,
+                         const char *path, const char *type, uint64_t flags) {
+    struct mount *m = kzalloc(sizeof *m);
+    if (!m) return;
+    m->root = root; m->mp = mp; m->sb = sb; m->type = type; m->flags = flags;
+    m->src = strdup(src);
+    char *buf = kmalloc(4096);
+    if (buf && vfs_getcwd_l(root, buf, 4096) > 0) m->path = strdup(buf);
+    else m->path = strdup(path);
+    kfree(buf);
+    list_add_tail(&mounts, &m->node);
+}
+
+static int attach(struct inode *mp, struct inode *root) {
+    if (!S_ISDIR(mp->mode)) return -ENOTDIR;
+    if (mp->mounted) return -EBUSY;
+    mp->mounted = root;
+    root->covered = mp;
+    root->parent = mp->parent;
+    return 0;
+}
+
 static int vfs_mount_l(const char *path, struct inode *root) {
     struct inode *mp;
     int r = vfs_lookup_l(path, true, &mp);
     if (r) return r;
-    if (!S_ISDIR(mp->mode)) { iput(mp); return -ENOTDIR; }
-    mp->mounted = root;
-    root->covered = mp;
-    root->parent = mp->parent;
+    r = attach(mp, root);
+    if (r) { iput(mp); return r; }
+    mount_record(root, mp, nullptr, root->iops == nullptr ? "none" : "proc", path, "proc", 0);
+    return 0;
+}
+
+static const struct fs_type *fs_types[8];
+static int nfs_types;
+void fs_register(const struct fs_type *t) { if (nfs_types < 8) fs_types[nfs_types++] = t; }
+int vfs_proc_filesystems(char *buf, size_t max) {
+    size_t n = snprintf(buf, max, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n");
+    for (int k = 0; k < nfs_types && n < max; k++)
+        n += snprintf(buf + n, max - n, "%s\t%s\n", fs_types[k]->needs_dev ? "" : "nodev", fs_types[k]->name);
+    return (int)MIN(n, max);
+}
+int vfs_proc_mounts(char *buf, size_t max) {
+    size_t n = 0;
+    vfs_ns_lock();
+    list_for_each(it, &mounts) {
+        struct mount *m = list_entry(it, struct mount, node);
+        if (n >= max) break;
+        bool ro = m->sb ? (m->sb->flags & SB_RDONLY) : (m->flags & MS_RDONLY);
+        n += snprintf(buf + n, max - n, "%s %s %s %s 0 0\n", m->src, m->path, m->type, ro ? "ro" : "rw");
+    }
+    vfs_ns_unlock();
+    return (int)MIN(n, max);
+}
+
+static struct mount *mount_of_root(struct inode *root) {
+    list_for_each(it, &mounts) {
+        struct mount *m = list_entry(it, struct mount, node);
+        if (m->root == root) return m;
+    }
+    return nullptr;
+}
+
+static int fs_mount_dev(const char *source, const char *type, uint64_t flags, const char *data, struct super_block **out) {
+    const struct fs_type *t = nullptr;
+    for (int k = 0; k < nfs_types; k++) if (!strcmp(fs_types[k]->name, type)) t = fs_types[k];
+    if (!t) return -ENODEV;
+    struct inode *di;
+    int r = vfs_lookup_l(source, true, &di);
+    if (r) return r;
+    if (!S_ISBLK(di->mode)) { iput(di); return -ENOTBLK; }
+    struct blkdev *bd = blk_get(di->rdev);
+    iput(di);
+    if (!bd) return -ENXIO;
+    if (bd->mounted) return -EBUSY;
+    r = t->mount(bd, flags & MS_RDONLY ? SB_RDONLY : 0, data, out);
+    if (!r) bd->mounted = *out;
+    return r;
+}
+
+static int vfs_do_mount_l(const char *source, const char *target, const char *type, uint64_t flags, const char *data) {
+    struct inode *mp;
+    int r = vfs_lookup_l(target, true, &mp);
+    if (r) return r;
+    if (flags & MS_REMOUNT) {
+        struct mount *m = mount_of_root(mp);
+        r = -EINVAL;
+        if (m && m->sb && m->sb->ops->remount) r = m->sb->ops->remount(m->sb, flags & MS_RDONLY ? SB_RDONLY : 0);
+        else if (m) { m->flags = flags; r = 0; }
+        iput(mp);
+        return r;
+    }
+    if (flags & (MS_BIND | MS_MOVE)) { iput(mp); return -EINVAL; }
+    struct inode *root = nullptr;
+    struct super_block *sb = nullptr;
+    if (!type) r = -EINVAL;
+    else if (!strcmp(type, "tmpfs")) { root = tmpfs_create_root(); root->parent = mp; }
+    else if (!strcmp(type, "proc")) root = procfs_create_root();
+    else if (!(r = fs_mount_dev(source, type, flags, data, &sb))) root = sb->root;
+    if (!root) { iput(mp); return r ? r : -ENOMEM; }
+    r = attach(mp, root);
+    if (r) {
+        iput(mp);
+        if (sb) { sb->bdev->mounted = nullptr; sb->ops->put_super(sb); }
+        return r;
+    }
+    mount_record(root, mp, sb, source && *source ? source : type, target,
+                 sb ? sb->type : !strcmp(type, "tmpfs") ? "tmpfs" : "proc", flags);
+    return 0;
+}
+
+/*
+ * Evict every unused cached inode of sb. Cached directories pin their parent, so this
+ * cascades up the tree: afterwards only inodes really in use (and their ancestors) remain.
+ */
+static void sb_prune_unused(struct super_block *sb) {
+    uint64_t f = ic_lock(sb);
+    for (;;) {
+        struct inode *v = nullptr;
+        for (int k = 0; k < ICACHE_HASH && !v; k++)
+            list_for_each(it, &sb->ihash[k]) {
+                struct inode *i = list_entry(it, struct inode, i_hash);
+                if (i != sb->root && !__atomic_load_n(&i->refcount, __ATOMIC_ACQUIRE) && ic_detach(i, false)) { v = i; break; }
+            }
+        if (!v) break;
+        ic_unhash(sb, v);
+        ic_unlock(sb, f);
+        sb->ops->evict_inode(v);
+        f = ic_lock(sb);
+    }
+    ic_unlock(sb, f);
+}
+
+/* write back and drop every cached inode of sb (unmount) */
+static int sb_shutdown(struct super_block *sb) {
+    sb->flags |= SB_DYING;
+    vfs_sync_all();
+    for (int pass = 0; pass < 2; pass++) sb_prune_unused(sb);
+    return 0;
+}
+
+static int vfs_do_umount_l(const char *target, int flags) {
+    struct inode *root;
+    int r = vfs_lookup_l(target, true, &root);
+    if (r) return r;
+    struct mount *m = mount_of_root(root);
+    if (!m || m->root == vfs_root) { iput(root); return m ? -EBUSY : -EINVAL; }
+    if (m->sb) { dcache_purge(nullptr, m->sb); sb_prune_unused(m->sb); }
+    /* busy: references beyond the mount's own and ours (open files, cwds, inodes in use) */
+    bool busy = root->refcount > 2;
+    if (m->sb && !busy) {
+        uint64_t f = ic_lock(m->sb);
+        for (int k = 0; k < ICACHE_HASH && !busy; k++)
+            list_for_each(it, &m->sb->ihash[k]) {
+                struct inode *i = list_entry(it, struct inode, i_hash);
+                if (i != root && __atomic_load_n(&i->refcount, __ATOMIC_ACQUIRE) > 0) { busy = true; break; }
+            }
+        ic_unlock(m->sb, f);
+    }
+    list_for_each(it, &mounts) {         /* something mounted inside it */
+        struct mount *o = list_entry(it, struct mount, node);
+        if (o != m && o->mp && (o->mp->sb == m->sb && m->sb)) busy = true;
+    }
+    iput(root);
+    if (busy && !(flags & MNT_DETACH)) return -EBUSY;
+    m->mp->mounted = nullptr;
+    root->covered = nullptr;
+    iput(m->mp);
+    list_del(&m->node);
+    if (m->sb && !busy) {
+        struct super_block *sb = m->sb;
+        sb_shutdown(sb);
+        if (sb->ops->sync_fs) sb->ops->sync_fs(sb);
+        blk_sync(sb->bdev);
+        sb->bdev->mounted = nullptr;
+        sb->ops->put_super(sb);
+    }
+    kfree(m->src); kfree(m->path); kfree(m);
+    return 0;
+}
+
+/*
+ * root=/dev/vdXN: mount the disk and make it "/". The boot tmpfs keeps /dev (device nodes,
+ * /dev/shm, /dev/pts) and /tmp, which become mounts on the new root, as does /proc; the rest
+ * of the initramfs stays reachable only by nobody (it remains as a fallback image in memory).
+ */
+int vfs_mount_root(const char *source, const char *type) {
+    vfs_ns_lock();
+    struct super_block *sb;
+    int r = fs_mount_dev(source, type, 0, nullptr, &sb);
+    if (r) { vfs_ns_unlock(); return r; }
+    struct inode *nr = sb->root, *old = vfs_root;
+    static const char *keep[] = { "dev", "proc", "tmp" };
+    for (size_t k = 0; k < ARRAY_SIZE(keep); k++) {
+        struct inode *src, *dst;
+        if (lookup_child(old, keep[k], &src)) continue;
+        if (lookup_child(nr, keep[k], &dst)) {
+            if (nr->iops->create && !(sb->flags & SB_RDONLY) && !nr->iops->create(nr, keep[k], S_IFDIR | (k == 2 ? 01777 : 0755), 0, &dst)) dcache_forget(nr, keep[k]);
+            else { iput(src); continue; }
+        }
+        /* src may itself be a mount root already (procfs): move that mount */
+        struct inode *cov = src->covered;
+        if (cov) cov->mounted = nullptr;
+        src->covered = nullptr;
+        if (!attach(dst, src)) {
+            struct mount *m = mount_of_root(src);
+            if (m) { if (m->mp) iput(m->mp); m->mp = dst; kfree(m->path); m->path = strdup(k == 0 ? "/dev" : k == 1 ? "/proc" : "/tmp"); }
+            else mount_record(src, dst, nullptr, k == 0 ? "devtmpfs" : "tmpfs", k == 0 ? "/dev" : "/tmp", k == 0 ? "devtmpfs" : "tmpfs", 0);
+        } else iput(dst);
+        iput(src);
+    }
+    nr->parent = nr;
+    vfs_root = nr;
+    iget(nr);
+    /* the new root entry first in /proc/mounts */
+    struct mount *m = kzalloc(sizeof *m);
+    m->root = nr; m->sb = sb; m->type = sb->type; m->src = strdup(source); m->path = strdup("/");
+    list_add(&mounts, &m->node);
+    list_for_each(it, &mounts) {
+        struct mount *o = list_entry(it, struct mount, node);
+        if (o != m && !strcmp(o->path, "/")) { list_del(&o->node); kfree(o->src); kfree(o->path); kfree(o); break; }
+    }
+    vfs_ns_unlock();
+    pr_info("vfs: root is %s (%s)\n", source, sb->type);
+    return 0;
+}
+
+/* ---- sync / statfs ---- */
+int vfs_fsync(struct inode *i, bool data_only) {
+    if (!i->sb) return 0;
+    int r = 0;
+    if (i->mapping) r = filemap_writeback(i->mapping, 0, UINT64_MAX);
+    if (!data_only) mark_inode_dirty(i);
+    if (i->sb->ops->sync_fs) i->sb->ops->sync_fs(i->sb);
+    int e = blk_sync(i->sb->bdev);      /* metadata (indirect blocks, bitmaps, inode) + cache flush */
+    return r ? r : e;
+}
+
+int vfs_sync_all(void) {
+    for (int pass = 0; pass < 2; pass++) {
+        list_for_each(it, &mounts) {
+            struct mount *m = list_entry(it, struct mount, node);
+            if (m->sb && m->sb->ops->sync_fs) m->sb->ops->sync_fs(m->sb);
+        }
+        writeback_all();     /* file data first, then the device caches it dirtied */
+    }
+    for (int k = 0; k < blk_count(); k++) {
+        struct blkdev *d = blk_get_index(k);
+        if (d->whole == d) blk_flush(d);
+    }
+    return 0;
+}
+
+/* reboot/poweroff: write everything back and leave disk filesystems clean (read-only) */
+void vfs_shutdown(void) {
+    vfs_sync_all();
+    vfs_ns_lock();
+    list_for_each(it, &mounts) {
+        struct mount *m = list_entry(it, struct mount, node);
+        if (m->sb && !(m->sb->flags & SB_RDONLY) && m->sb->ops->remount) m->sb->ops->remount(m->sb, SB_RDONLY);
+    }
+    vfs_ns_unlock();
+}
+
+int vfs_statfs(struct inode *i, struct kstatfs *st) {
+    memset(st, 0, sizeof *st);
+    if (i && i->sb && i->sb->ops->statfs) return i->sb->ops->statfs(i->sb, st);
+    uint64_t free, total;
+    pmm_stats(&free, &total);
+    st->type = i && i->dev == 3 ? 0x9fa0 : 0x01021994;   /* PROC_SUPER_MAGIC / TMPFS_MAGIC */
+    st->bsize = 4096;
+    st->blocks = total; st->bfree = st->bavail = free;
+    st->files = 1 << 20; st->ffree = 1 << 19;
+    st->namelen = 255;
     return 0;
 }
 
@@ -451,6 +944,7 @@ static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size) {
 void vfs_init(void) {
     vfs_root = tmpfs_create_root();
     vfs_root->parent = vfs_root;
+    mount_record(vfs_root, nullptr, nullptr, "rootfs", "/", "tmpfs", 0);
     pr_info("vfs: tmpfs root mounted\n");
 }
 
@@ -466,4 +960,6 @@ int vfs_link_at(struct inode *ob, const char *opath, struct inode *nb, const cha
 int vfs_rename_at(struct inode *ob, const char *opath, struct inode *nb, const char *npath) { return NS_WRAP(vfs_rename_at_l(ob, opath, nb, npath)); }
 int vfs_readlink_at(struct inode *base, const char *path, char *buf, size_t size) { return NS_WRAP(vfs_readlink_at_l(base, path, buf, size)); }
 int vfs_mount(const char *path, struct inode *root) { return NS_WRAP(vfs_mount_l(path, root)); }
+int vfs_do_mount(const char *source, const char *target, const char *type, uint64_t flags, const char *data) { return NS_WRAP(vfs_do_mount_l(source, target, type, flags, data)); }
+int vfs_do_umount(const char *target, int flags) { return NS_WRAP(vfs_do_umount_l(target, flags)); }
 int vfs_getcwd(struct inode *cwd, char *buf, size_t size) { return NS_WRAP(vfs_getcwd_l(cwd, buf, size)); }

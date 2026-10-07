@@ -48,7 +48,7 @@ jobs:
       - name: Install host packages
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc git curl bzip2 xz-utils \
+          sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc git curl bzip2 xz-utils e2fsprogs fdisk \
             bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip ninja-build \
             qemu-system-x86 qemu-system-misc qemu-system-arm qemu-efi-aarch64 qemu-efi-riscv64
           pip3 install --break-system-packages 'meson>=1.3'

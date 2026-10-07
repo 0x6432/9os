@@ -3,6 +3,8 @@
 #include <kernel/mutex.h>
 /* procfs: process and system information (enough for BusyBox ps/top/free/mount). */
 #include <kernel/vfs.h>
+int blk_proc_partitions(char *buf, size_t max);
+int blk_proc_diskstats(char *buf, size_t max);
 #include <kernel/process.h>
 #include <kernel/kmalloc.h>
 #include <kernel/string.h>
@@ -18,7 +20,7 @@
 
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS };
+             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
 static struct thread *main_thread(struct process *p) {
@@ -56,6 +58,7 @@ static const struct { const char *name; enum pfile f; } global_files[] = {
     { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cpuinfo", G_CPUINFO },
     { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS }, { "sched", G_SCHED },
     { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP }, { "hardening", G_HARDEN }, { "interrupts", G_INTERRUPTS },
+    { "partitions", G_PARTITIONS }, { "diskstats", G_DISKSTATS },
 };
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
@@ -253,7 +256,18 @@ static void gen(struct pinfo *pi, struct buf *b) {
             bprintf(b, "processor\t: %d\nvendor_id\t: 9os\nmodel name\t: 9os virtual CPU (%s)\nhwid\t\t: 0x%lx\nflags\t\t: fpu sse sse2\n\n",
                     i, ARCH_PLATFORM, cpus[i].hwid);
         break;
-    case G_MOUNTS: bprintf(b, "rootfs / tmpfs rw 0 0\nproc /proc proc rw 0 0\ndevtmpfs /dev devtmpfs rw 0 0\n"); break;
+    case G_MOUNTS: case G_FILESYSTEMS: case G_PARTITIONS: case G_DISKSTATS: {
+        char *t = kmalloc(8192);
+        if (t) {
+            int n = pi->file == G_MOUNTS ? vfs_proc_mounts(t, 8192) : pi->file == G_FILESYSTEMS ? vfs_proc_filesystems(t, 8192)
+                  : pi->file == G_PARTITIONS ? blk_proc_partitions(t, 8192) : blk_proc_diskstats(t, 8192);
+            if (b->len + n + 1 > b->cap) { b->cap = b->len + n + 1; b->data = krealloc(b->data, b->cap); }
+            memcpy(b->data + b->len, t, n);
+            b->len += n;
+            kfree(t);
+        }
+        break;
+    }
     case G_LOADAVG: bprintf(b, "0.00 0.00 0.00 %d/%d 1\n", sched_runnable_count() + 1, sched_runnable_count() + 1); break;
     case G_STAT: {
         uint64_t tu = 0, ts = 0, ti = 0, cs = 0;
@@ -323,7 +337,6 @@ static void gen(struct pinfo *pi, struct buf *b) {
                     cpus[i].cur ? cpus[i].cur->name : "-");
         sched_for_each_thread(sched_thread_line, b);
         break;
-    case G_FILESYSTEMS: bprintf(b, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n"); break;
     case F_STAT:
         bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 %lu %lu 0 0 %lu %lu %lu %lu %d %d %d 0 %lu %lu %lu\n",
                 p->pid, p->name, pstate(p), p->parent ? p->parent->pid : 0, p->pgid, p->sid,

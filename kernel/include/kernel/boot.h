@@ -18,3 +18,4 @@ struct limine_mp_response *boot_mp(void);
 void *boot_dtb(void);             /* flattened device tree (virtual) or nullptr */
 void boot_check(void);
 uint64_t boot_revision(void);      /* Limine base revision used to load us */
+uint64_t boot_bsp_hartid(void);  /* riscv64: hart id of the boot hart */

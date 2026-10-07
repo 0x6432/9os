@@ -95,12 +95,13 @@ static void plic_init(void) {
     if (!fdt_read_reg("plic@", &base, nullptr)) fdt_read_reg("interrupt-controller@c", &base, nullptr);
     plic = vmm_map_mmio(base, 0x400000);
     if (!plic) return;
+    this_cpu()->hwid = boot_bsp_hartid();                   /* smp_init sets it too, but later */
     plic_ctx = 2 * (unsigned)this_cpu()->hwid + 1;          /* QEMU virt: M then S context per hart */
     for (unsigned i = 1; i < PLIC_NSRC; i++) plic[i] = 0;    /* priority 0 = masked */
     for (unsigned w = 0; w < PLIC_NSRC / 32; w++) plic[(0x2000 + plic_ctx * 0x80) / 4 + w] = 0;
     plic[(0x200000 + plic_ctx * 0x1000) / 4] = 0;            /* threshold */
     csr_set(sie, SIE_SEIE);
-    pr_info("plic: at %lx, S-mode context %u\n", base, plic_ctx);
+    pr_info("plic: at %lx, boot hart %lu, S-mode context %u\n", base, (unsigned long)this_cpu()->hwid, plic_ctx);
 }
 
 void irq_register_vector(int vector, irq_handler_t h, void *ctx) {

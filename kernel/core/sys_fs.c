@@ -7,6 +7,7 @@
 #include <kernel/time.h>
 #include <arch/stat.h>
 #include <kernel/pmm.h>
+#include <kernel/blk.h>
 
 #define PATH_MAX 4096
 #define F_DUPFD 0
@@ -227,7 +228,7 @@ int64_t sys_pread64(int fd, void *buf, size_t n, off_t off) {
     if (!access_ok(buf, n)) return -EFAULT;      /* file ops treat kernel addresses as kernel buffers */
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
-    if (!S_ISREG(f->inode->mode)) return -ESPIPE;
+    if (!S_ISREG(f->inode->mode) && !S_ISBLK(f->inode->mode)) return -ESPIPE;
     if (f->fops && f->fops->nobkl) return vfs_pread(f, buf, n, off);
     bkl_enter();
     int64_t r = n && !user_range_ok(buf, n, true) ? -EFAULT : uaccess_call(vfs_pread(f, buf, n, off));
@@ -239,7 +240,7 @@ int64_t sys_pwrite64(int fd, const void *buf, size_t n, off_t off) {
     if (!access_ok(buf, n)) return -EFAULT;      /* file ops treat kernel addresses as kernel buffers */
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
-    if (!S_ISREG(f->inode->mode)) return -ESPIPE;
+    if (!S_ISREG(f->inode->mode) && !S_ISBLK(f->inode->mode)) return -ESPIPE;
     if ((f->flags & O_ACCMODE) == O_RDONLY) return -EBADF;
     if (!f->fops || !f->fops->write) return -EINVAL;
     if (f->fops->nobkl) return f->fops->write(f, buf, n, &off);
@@ -289,7 +290,7 @@ int64_t sys_lseek(int fd, off_t off, int whence) {
     switch (whence) {
     case SEEK_SET: n = off; break;
     case SEEK_CUR: n = f->pos + off; break;
-    case SEEK_END: n = (off_t)f->inode->size + off; break;
+    case SEEK_END: n = (off_t)(S_ISBLK(f->inode->mode) ? blkdev_size(f->inode->rdev) : f->inode->size) + off; break;
     default: return -EINVAL;
     }
     if (n < 0) return -EINVAL;
@@ -662,6 +663,7 @@ int64_t sys_access(const char *p, int m) { return sys_faccessat2(AT_FDCWD, p, m,
 static int64_t chmod_inode(struct inode *i, uint32_t mode) {
     i->mode = (i->mode & S_IFMT) | (mode & 07777);
     i->ctime = now_timespec();
+    mark_inode_dirty(i);
     return 0;
 }
 int64_t sys_fchmodat(int dirfd, const char *upath, uint32_t mode) {
@@ -693,6 +695,8 @@ int64_t sys_fchownat(int dirfd, const char *upath, uint32_t uid, uint32_t gid, i
     if (r) { kfree(path); return r; }
     if (uid != (uint32_t)-1) i->uid = uid;
     if (gid != (uint32_t)-1) i->gid = gid;
+    i->ctime = now_timespec();
+    mark_inode_dirty(i);
     fsnotify_path(base, path, i, IN_ATTRIB);
     kfree(path);
     iput(i);
@@ -705,6 +709,8 @@ int64_t sys_fchown(int fd, uint32_t u, uint32_t g) {
     if (!f) return -EBADF;
     if (u != (uint32_t)-1) f->inode->uid = u;
     if (g != (uint32_t)-1) f->inode->gid = g;
+    f->inode->ctime = now_timespec();
+    mark_inode_dirty(f->inode);
     fsnotify_file(f, IN_ATTRIB);
     return 0;
 }
@@ -734,6 +740,7 @@ int64_t sys_utimensat(int dirfd, const char *upath, const struct timespec *utime
         }
     } else ts[0] = ts[1] = now;
     i->atime = ts[0]; i->mtime = ts[1]; i->ctime = now;
+    mark_inode_dirty(i);
     if (!upath) fsnotify_inode(i, IN_ATTRIB);
     iput(i);
     return 0;
@@ -760,22 +767,72 @@ int64_t sys_truncate(const char *upath, off_t len) {
     return r;
 }
 
-int64_t sys_fsync(int fd) { return fd_get(fd) ? 0 : -EBADF; }
-int64_t sys_sync(void) { return 0; }
+int64_t sys_fsync(int fd) {
+    struct file *f = fd_get(fd);
+    if (!f) return -EBADF;
+    return vfs_fsync(f->inode, false);
+}
+int64_t sys_fdatasync(int fd) {
+    struct file *f = fd_get(fd);
+    if (!f) return -EBADF;
+    return vfs_fsync(f->inode, true);
+}
+int64_t sys_syncfs(int fd) {
+    struct file *f = fd_get(fd);
+    if (!f) return -EBADF;
+    vfs_sync_all();
+    return 0;
+}
+int64_t sys_sync(void) { vfs_sync_all(); return 0; }
 
-int64_t sys_statfs(const char *p, void *ubuf) {
-    uint64_t free, total;
-    pmm_stats(&free, &total);
+static int statfs_out(struct inode *i, void *ubuf) {
+    struct kstatfs k;
+    int r = vfs_statfs(i, &k);
+    if (r) return r;
     struct { int64_t type, bsize; uint64_t blocks, bfree, bavail, files, ffree; int32_t fsid[2]; int64_t namelen, frsize, flags, spare[4]; } s;
     memset(&s, 0, sizeof s);
-    s.type = 0x01021994;  /* TMPFS_MAGIC */
-    s.bsize = s.frsize = 4096;
-    s.blocks = total; s.bfree = s.bavail = free;
-    s.files = 1 << 20; s.ffree = 1 << 19;
-    s.namelen = 255;
-    return copy_to_user(ubuf, &s, sizeof s);
+    s.type = (int64_t)k.type; s.bsize = s.frsize = (int64_t)k.bsize;
+    s.blocks = k.blocks; s.bfree = k.bfree; s.bavail = k.bavail;
+    s.files = k.files; s.ffree = k.ffree;
+    s.namelen = (int64_t)k.namelen; s.flags = (int64_t)k.flags;
+    if (i) { s.fsid[0] = (int32_t)i->dev; }
+    return copy_to_user(ubuf, &s, sizeof s) ? -EFAULT : 0;
 }
-int64_t sys_fstatfs(int fd, void *ubuf) { return sys_statfs(nullptr, ubuf); }
+int64_t sys_statfs(const char *upath, void *ubuf) {
+    WITH_PATH(upath, path);
+    struct inode *i;
+    int64_t r = vfs_lookup(path, true, &i);
+    kfree(path);
+    if (r) return r;
+    r = statfs_out(i, ubuf);
+    iput(i);
+    return r;
+}
+int64_t sys_fstatfs(int fd, void *ubuf) {
+    struct file *f = fd_get(fd);
+    if (!f) return -EBADF;
+    return statfs_out(f->inode, ubuf);
+}
+
+int64_t sys_mount(const char *usrc, const char *utarget, const char *utype, uint64_t flags, const void *udata) {
+    if (curproc && curproc->euid != 0) return -EPERM;
+    char *src = nullptr, *type = nullptr, *data = nullptr;
+    char *target = kmalloc(4096);
+    int64_t r = user_path(utarget, target);
+    if (!r && usrc) { src = kmalloc(4096); r = user_path(usrc, src); if (r == -ENOENT) { src[0] = 0; r = 0; } }
+    if (!r && utype) { type = kmalloc(64); r = strncpy_from_user(type, utype, 64) < 0 ? -EFAULT : 0; type[63] = 0; }
+    if (!r && udata) { data = kmalloc(256); if (strncpy_from_user(data, udata, 256) < 0) { kfree(data); data = nullptr; } else data[255] = 0; }
+    if (!r) r = vfs_do_mount(src, target, type, flags, data);
+    kfree(src); kfree(type); kfree(data); kfree(target);
+    return r;
+}
+int64_t sys_umount2(const char *utarget, int flags) {
+    if (curproc && curproc->euid != 0) return -EPERM;
+    WITH_PATH(utarget, path);
+    int64_t r = vfs_do_umount(path, flags);
+    kfree(path);
+    return r;
+}
 
 /* ---- poll / select ---- */
 

@@ -10,16 +10,16 @@
  * Global order (outer -> inner), see docs/HANDOFF.md "Lock order":
  *   BKL -> sleeping mutexes (LR_MUTEX_*) -> fd table -> futex buckets -> pipe -> tty -> unix
  *   -> mm->lock (user copies, faults) -> tmpfs page array -> inode i_mmap -> page-cache LRU
- *   -> page tables -> slab -> buddy/PCP -> sched (sched_lock, rq locks) -> console
+ *   -> page tables -> slab -> buddy/PCP -> block queue -> block driver -> sched (sched_lock, rq locks) -> console
  * Trylocks (spin_trylock/mutex_trylock/mm_trylock) are exempt from the order check: page
  * reclaim takes mm->lock with a trylock while holding the i_mmap lock.
  */
 struct lock_class { const char *name; int rank; bool nest; };
 enum {
-    LR_MUTEX_TTY = 10, LR_MUTEX_EPOLL = 12, LR_MUTEX_VFS = 14, LR_MUTEX_INODE = 16, LR_MUTEX_MISC = 20,
+    LR_MUTEX_TTY = 10, LR_MUTEX_EPOLL = 12, LR_MUTEX_VFS = 14, LR_MUTEX_INODE = 16, LR_MUTEX_BMAP = 17, LR_MUTEX_ICACHE = 18, LR_MUTEX_FSALLOC = 19, LR_MUTEX_MISC = 20,
     LR_FD = 30, LR_FUTEX = 32, LR_PIPE = 34, LR_TTY = 36, LR_UNIX = 38, LR_MM = 40,
-    LR_PAGECACHE = 44, LR_I_MMAP = 45, LR_LRU = 46, LR_DIRTYLIST = 47, LR_PT = 50,
-    LR_SLAB_REG = 54, LR_SLAB = 56, LR_BUDDY_DRAIN = 58, LR_PCP = 60, LR_BUDDY = 62,
+    LR_ICACHE = 43, LR_PAGECACHE = 44, LR_I_MMAP = 45, LR_LRU = 46, LR_DIRTYLIST = 47, LR_PT = 50,
+    LR_SLAB_REG = 54, LR_SLAB = 56, LR_BUDDY_DRAIN = 58, LR_PCP = 60, LR_BUDDY = 62, LR_BLKQ = 64, LR_BLKDRV = 66,
     LR_SCHED = 70, LR_RQ = 72, LR_CONSOLE = 90,
 };
 

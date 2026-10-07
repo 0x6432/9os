@@ -6,6 +6,7 @@
 #define VIRTIO_VENDOR 0x1af4
 #define VIRTIO_DEV_GPU   0x1050
 #define VIRTIO_DEV_INPUT 0x1052
+#define VIRTIO_DEV_BLK   0x1042
 
 struct virtio_common {
     uint32_t device_feature_select, device_feature, driver_feature_select, driver_feature;
@@ -18,7 +19,8 @@ struct virtio_common {
 struct vq_desc { uint64_t addr; uint32_t len; uint16_t flags, next; };
 #define VQ_NEXT  1
 #define VQ_WRITE 2
-#define VQ_MAX   64            /* desc/avail/used rings of a queue fit in one page */
+#define VQ_INDIRECT 4
+#define VQ_MAX   128           /* desc/avail/used rings of a queue fit in one page */
 
 struct virtq {
     uint16_t size, index;
@@ -47,6 +49,9 @@ struct virtio_dev {
 
 /* reset, ACKNOWLEDGE|DRIVER, negotiate VIRTIO_F_VERSION_1 only, FEATURES_OK */
 bool virtio_pci_probe(struct virtio_dev *v, struct pci_dev *d, const char *who);
+/* the same, also accepting the device-specific feature bits 0..31 in want (*got: accepted) */
+bool virtio_pci_probe_features(struct virtio_dev *v, struct pci_dev *d, const char *who,
+                               uint32_t want, uint32_t *got);
 /* request the device interrupt (before virtq_init). hard may be null (wake the thread).
  * Returns false if the device stays polled. */
 bool virtio_irq_setup(struct virtio_dev *v, const char *name, int (*hard)(void *ctx),

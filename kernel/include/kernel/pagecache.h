@@ -48,6 +48,7 @@ struct address_space {
     bool no_lru;                  /* never reclaim clean pages (e.g. unbacked tmpfs) */
     struct list_node dirty_node;  /* on the global dirty list while nrdirty > 0 */
     bool on_dirty_list;
+    bool no_writeback;            /* host being evicted (mapping_detach) */
     uint64_t wb_errors;
 };
 
@@ -78,6 +79,7 @@ void pagecache_mark_referenced(struct page *pg);
 /* write back dirty pages of [start, end) pages (end == UINT64_MAX: all); wait: sync */
 int filemap_writeback(struct address_space *m, uint64_t start, uint64_t end);
 int writeback_all(void);                  /* sync(2): every dirty mapping */
+bool mapping_detach(struct address_space *m, int *ref, bool discard);
 void writeback_kick(void);                /* wake the writeback thread (memory pressure) */
 void writeback_init(void);
 uint64_t pagecache_reclaim(uint64_t want);

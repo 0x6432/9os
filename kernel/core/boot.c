@@ -17,6 +17,14 @@ REQ struct limine_module_request module_req = { .id = LIMINE_MODULE_REQUEST_ID, 
 REQ struct limine_executable_cmdline_request cmdline_req = { .id = LIMINE_EXECUTABLE_CMDLINE_REQUEST_ID, .revision = 0 };
 REQ struct limine_dtb_request dtb_req = { .id = LIMINE_DTB_REQUEST_ID, .revision = 0 };
 REQ struct limine_mp_request mp_req = { .id = LIMINE_MP_REQUEST_ID, .revision = 0, .flags = 0 };
+#if defined(__riscv)
+/* the boot hart is OpenSBI's lottery winner, not necessarily hart 0; the PLIC needs it before SMP init */
+REQ struct limine_riscv_bsp_hartid_request hartid_req = { .id = LIMINE_RISCV_BSP_HARTID_REQUEST_ID, .revision = 0 };
+uint64_t boot_bsp_hartid(void) {
+    if (hartid_req.response) return hartid_req.response->bsp_hartid;
+    return mp_req.response ? mp_req.response->bsp_hartid : 0;
+}
+#endif
 REQ struct limine_stack_size_request stack_req = { .id = LIMINE_STACK_SIZE_REQUEST_ID, .revision = 0, .stack_size = 65536 };
 __attribute__((used, section(".limine_requests_end")))
 static volatile uint64_t requests_end[2] = LIMINE_REQUESTS_END_MARKER;

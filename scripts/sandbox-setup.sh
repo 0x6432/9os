@@ -5,7 +5,7 @@ set -e
 TOOLS_DIR=${TOOLS_DIR:-/data/tools}; export TOOLS_DIR
 cd "$(dirname "$0")/.."
 sudo dnf install -y -q clang lld llvm xorriso mtools cpio expat-devel libffi-devel bison flex pkgconf gcc make \
-    glibc-static git bzip2 xz >/dev/null
+    glibc-static git bzip2 xz e2fsprogs util-linux >/dev/null
 pip3 install -q meson ninja 2>/dev/null || pip3 install -q --user meson ninja
 mkdir -p "$TOOLS_DIR/bin" "$TOOLS_DIR/dl" && cd "$TOOLS_DIR"
 cd - >/dev/null

@@ -11,6 +11,7 @@
 #include <kernel/time.h>
 #include <kernel/sched.h>
 #include <kernel/vfs.h>
+#include <kernel/pagecache.h>
 #include <kernel/process.h>
 #include <kernel/string.h>
 #include <kernel/syscall.h>
@@ -21,6 +22,7 @@ void drm_init(void);
 void virtio_gpu_init(void);
 void evdev_register_chrdev(void);
 void virtio_input_init(void);
+void virtio_blk_init(void);
 #include <kernel/pci.h>
 #include <kernel/irq.h>
 
@@ -93,6 +95,9 @@ void kmain(void) {
     virtio_gpu_init();
     evdev_register_chrdev();
     virtio_input_init();
+    writeback_init();
+    ext2_init();
+    virtio_blk_init();
     fbcon_init();          /* (re)attach the console if a GPU driver provided a framebuffer */
     fbdev_init();
     drm_init();
@@ -100,6 +105,14 @@ void kmain(void) {
     vfs_mkdir_at(nullptr, "/proc", 0555);
     vfs_mount("/proc", procfs_create_root());
     input_init();
+    const char *ra = strstr_simple(boot_cmdline(), "root=");
+    if (ra) {               /* root=/dev/vdXN [rootfstype=ext2]: boot from a disk */
+        static char rootdev[64];
+        size_t n = 0;
+        for (ra += 5; *ra && *ra != ' ' && n < sizeof rootdev - 1; ra++) rootdev[n++] = *ra;
+        int r = vfs_mount_root(rootdev, "ext2");
+        if (r) pr_err("vfs: cannot mount root %s (%d), staying on the initramfs\n", rootdev, r);
+    }
     mm_pressure_init();    /* kswapd: page-cache reclaim below the low watermark */
     syscall_trace = strstr_simple(boot_cmdline(), "strace") != nullptr;
     static char init_path[128];

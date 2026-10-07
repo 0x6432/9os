@@ -153,7 +153,7 @@ void pagecache_mark_dirty(struct page *pg) {
     uint64_t f = arch_irq_save();
     spin_lock_ipi(&dirty_lock);
     m->nrdirty++;
-    if (!m->on_dirty_list && m->ops && m->ops->writepage) { m->on_dirty_list = true; list_add_tail(&dirty_list, &m->dirty_node); }
+    if (!m->on_dirty_list && !m->no_writeback && m->ops && m->ops->writepage) { m->on_dirty_list = true; list_add_tail(&dirty_list, &m->dirty_node); }
     spin_unlock(&dirty_lock);
     arch_irq_restore(f);
 }
@@ -239,8 +239,12 @@ void filemap_read_done(struct page *pg, int err) {
 }
 
 void filemap_wait_page(struct page *pg) {
-    if (!page_uflag_test(pg, PGU_LOCKED)) return;
-    wait_until_sl(&page_wq, !(__atomic_load_n(&pg->uflags, __ATOMIC_ACQUIRE) & PGU_LOCKED));
+    /* uninterruptible: a pending signal must not turn this into a busy loop */
+    while (__atomic_load_n(&pg->uflags, __ATOMIC_ACQUIRE) & PGU_LOCKED) {
+        uint64_t f = sched_wait_lock();
+        if (!(__atomic_load_n(&pg->uflags, __ATOMIC_ACQUIRE) & PGU_LOCKED)) { sched_wait_unlock(f); break; }
+        wait_event_uninterruptible_locked(&page_wq, f);
+    }
 }
 
 static bool trylock_page(struct page *pg) {
@@ -423,12 +427,14 @@ ssize_t filemap_write(struct address_space *m, uint64_t *size, const void *buf, 
         uint64_t pos = off + done;
         uint64_t idx = pos / PAGE_SIZE;
         size_t po = pos % PAGE_SIZE, chunk = MIN(n - done, PAGE_SIZE - po);
-        if (m->ops && m->ops->prepare_write && (err = m->ops->prepare_write(m, idx, po, po + chunk))) break;
         /* no read needed for whole-page overwrites and pages entirely past the old end */
         bool whole = po == 0 && (chunk == PAGE_SIZE || pos + chunk >= *size);
         bool create = whole || idx * PAGE_SIZE >= *size;
         struct page *pg;
         if ((err = filemap_get_page(m, idx, create, &pg))) break;
+        /* blocks are allocated with the (uptodate, referenced) page in hand: holes were read
+         * as zeroes, so newly allocated blocks never expose stale disk contents */
+        if (m->ops && m->ops->prepare_write && (err = m->ops->prepare_write(m, idx, po, po + chunk))) { page_put(pg); break; }
         pagecache_mark_dirty(pg);
         uint8_t *va = (uint8_t *)PHYS_TO_VIRT(page_to_phys(pg));
         err = pc_copy_in(va + po, (const uint8_t *)buf + done, chunk);
@@ -515,6 +521,22 @@ int writeback_all(void) {
         if (empty) break;
     }
     return err;
+}
+
+/* inode cache: may the host of m (refcount *ref, icache lock held) be evicted now? discard:
+ * it was unlinked, dirty pages are dropped. On success the mapping never rejoins the dirty
+ * list, so writeback_all() cannot pick (and iget) the dying inode any more. */
+bool mapping_detach(struct address_space *m, int *ref, bool discard) {
+    uint64_t f = arch_irq_save();
+    spin_lock_ipi(&dirty_lock);
+    bool ok = __atomic_load_n(ref, __ATOMIC_ACQUIRE) == 0 && (discard || (!m->on_dirty_list && !m->nrdirty));
+    if (ok) {
+        if (m->on_dirty_list) { list_del(&m->dirty_node); m->on_dirty_list = false; }
+        m->no_writeback = true;
+    }
+    spin_unlock(&dirty_lock);
+    arch_irq_restore(f);
+    return ok;
 }
 
 void writeback_kick(void) {

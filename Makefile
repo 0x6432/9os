@@ -86,11 +86,21 @@ $(INITRAMFS): $(shell find $(ROOTFS) -type f 2>/dev/null)
 	(cd $(ROOTFS) && find . | cpio -o -H newc --quiet) > $@
 
 LIMINE := third_party/limine-bin
-$(ISO): $(KERNEL) $(INITRAMFS) limine.conf
+# kernel command line (e.g. CMDLINE="root=/dev/vda1"): appended to limine.conf
+CMDLINE ?=
+LIMINE_CONF := $(BUILD)/limine.conf
+$(LIMINE_CONF): limine.conf FORCE
+	@mkdir -p $(BUILD)
+	@{ cat limine.conf; [ -z "$(CMDLINE)" ] || printf '    cmdline: %s\n' "$(CMDLINE)"; } > $@.tmp
+	@cmp -s $@.tmp $@ && rm -f $@.tmp || mv $@.tmp $@
+.PHONY: FORCE
+FORCE:
+
+$(ISO): $(KERNEL) $(INITRAMFS) $(LIMINE_CONF)
 	@test -x $(ROOTFS)/bin/busybox || { echo "error: $(ROOTFS) is empty - run 'ARCH=$(ARCH) userland/build-all.sh' first" >&2; exit 1; }
 	rm -rf $(BUILD)/iso && mkdir -p $(BUILD)/iso/boot/limine $(BUILD)/iso/EFI/BOOT
 	cp $(KERNEL) $(INITRAMFS) $(BUILD)/iso/boot/
-	cp limine.conf $(BUILD)/iso/boot/limine/
+	cp $(LIMINE_CONF) $(BUILD)/iso/boot/limine/limine.conf
 	cp $(LIMINE)/limine-bios.sys $(LIMINE)/limine-bios-cd.bin $(LIMINE)/limine-uefi-cd.bin $(BUILD)/iso/boot/limine/
 	cp $(LIMINE)/BOOTX64.EFI $(LIMINE)/BOOTAA64.EFI $(LIMINE)/BOOTRISCV64.EFI $(BUILD)/iso/EFI/BOOT/
 	xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin -no-emul-boot \
@@ -112,7 +122,7 @@ QEMU_CPU_x86_64 := -cpu qemu64,+smep,+smap,+rdrand
 QEMU_CPU_riscv64 :=
 QEMU_CPU_aarch64 := -cpu cortex-a76
 QEMU_CPU ?= $(QEMU_CPU_$(ARCH))
-QEMU_x86_64 := qemu-system-x86_64 -M q35 $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_INPUT) -cdrom $(ISO)
+QEMU_x86_64 := qemu-system-x86_64 -M q35 $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_INPUT) -boot d -cdrom $(ISO)
 QEMU_MACHINE_riscv64 ?= virt
 QEMU_MACHINE_aarch64 ?= virt
 QEMU_riscv64 := qemu-system-riscv64 -M $(QEMU_MACHINE_riscv64) $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) \

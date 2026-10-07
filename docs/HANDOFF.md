@@ -785,3 +785,96 @@ not remotely executed as part of this local completion run.
   INTx lines; all device interrupts go to the boot CPU (no affinity/balancing); x86 without
   MSI-X stays polled; `drm-vblank` remains a timer-driven emulated vblank and kswapd stays a
   kernel thread by design.
+
+## M29: Block layer + virtio-blk
+Built together with M30 and shaped by what comes after it (a disk root that git, package
+managers and a self-hosted toolchain can live on), not just by "read sectors".
+- **Block core** (`kernel/block/blk.c`, `kernel/blk.h`): `struct blkdev` registry (64 entries:
+  whole disks and their partitions; `whole`, `start`, `nr_sectors`, `max_vecs`, `readonly`).
+  `bio_alloc/bio_add/submit_bio/bio_complete/submit_bio_wait`: a bio is a list of page segments
+  for one contiguous sector range (READ/WRITE/FLUSH); `submit_bio` remaps partitions, checks bounds
+  and RO, and inserts into the disk's queue sorted by sector; the dispatcher (`pick()`) is C-LOOK
+  and never reorders across a FLUSH (a barrier: everything submitted before it completes first).
+  Completion runs `end_io` in the driver's thread-IRQ context and refills the device. Waiting is
+  uninterruptible (a signal must not leave a half-written page cache page).
+- **Buffer cache = the page cache of the device inode**: each disk/partition has an inode whose
+  `address_space` (bdev_aops) caches whole pages. `pg->private` is a per-sector dirty mask, so
+  writepage only writes the dirty runs of sectors (a 1 KiB ext2 block dirtied ≠ 4 KiB written).
+  Metadata helpers for filesystems: `bread` (read + pin), `bget_new` (no read: freshly allocated
+  block), `bdirty`, `brelse`, `bforget` (drop dirty state of a freed block), `blk_sync`. Because
+  file data (M30) and metadata live in the same LRU/write-back machinery, there is one reclaim and
+  one writeback policy for everything; there is no separate buffer_head layer.
+- **/dev/vdX, /dev/vdXN** (major 254, minor disk·16 + part): read/write/pread/pwrite go through the
+  cache with sector masks, `lseek(SEEK_END)`, ioctls BLKGETSIZE64/BLKGETSIZE/BLKSSZGET/BLKPBSZGET/
+  BLKFLSBUF/BLKRRPART(EBUSY), fsync flushes. GPT and MBR (primary only) scanned at registration;
+  `/proc/partitions` and `/proc/diskstats` (Linux format, so busybox/util-linux tools work).
+- **virtio-blk** (`drivers/virtio_blk.c`): PCI only (modern 0x1042, transitional 0x1001) — every
+  supported platform (q35, riscv virt, aarch64 virt) gives us PCIe, so virtio-mmio would be a
+  second transport for no machine we boot. Requires `VIRTIO_RING_F_INDIRECT_DESC`: one slot per
+  request (indirect table + header + status in 1 KiB), so queue depth = ring size (128) regardless
+  of segment count. Negotiates SIZE_MAX/SEG_MAX/RO/BLK_SIZE/FLUSH; completions are reaped in the
+  M28 threaded IRQ handler (MSI-X on x86, INTx on riscv/aarch64), or a `vblk-poll` thread without
+  an IRQ. virtio.c gained `virtio_pci_probe_features()`, rings up to 128 entries laid out in one
+  page, and `VIRTQ_DESC_F_INDIRECT`.
+- Tools/tests: `scripts/mkdisk.sh OUT MB [DIR] [BLOCKSIZE]` (GPT, one ext2 partition at 1 MiB,
+  `mke2fs -O ^dir_index,^resize_inode -d DIR`; needs e2fsprogs + sfdisk, now in sandbox-setup and
+  the CI workflow); `qemu-test.py --disk IMG` (repeatable, vda, vdb…) and `--cmdline`; Makefile
+  `CMDLINE=` is appended to a generated `build/ARCH/limine.conf`. x86 QEMU runs with `-boot d`
+  (SeaBIOS otherwise tries to boot the GPT disk and hangs). `blktest DEV` (raw scratch disk: ioctls,
+  unaligned I/O, EOF, concurrent writers, fsync, /proc files; `-w/-v DEV SEED` for persistence
+  across boots).
+- Known limits: no virtio-mmio, no extended MBR partitions, no BLKRRPART rescan, single queue per
+  disk, no I/O priorities or per-process accounting, no discard/write-zeroes.
+
+## M30: ext2 + unified page cache
+- **Unified page cache** (`mm/filemap.c`, commit "M30 prep"): radix-tree `address_space` per
+  inode, async `readpage` + readahead, dirty/writeback accounting with a `writeback` thread,
+  LRU reclaim of clean pages (dirty ones are written first), rmap-based mkclean for shared
+  mappings, and `FLT_IO` faults: a fault that needs I/O records inode+index, drops mm->lock,
+  waits for the page (`fault_io_run()`), then retries. If reading needs memory that is not there
+  the fault goes down the normal reclaim/OOM path (vmtest's OOM hog on a disk root used to get
+  SIGSEGV). tmpfs, block devices and ext2 all sit on it. `mapping_detach()` (with `no_writeback`)
+  takes a mapping away from writeback safely for eviction/umount.
+- **VFS**: `super_block`/`super_ops`/`fs_type` (`fs_register`), inode cache per sb (hash, ≤4096
+  unused inodes on an LRU, pruned, `evict_inode` on last put; directories pin their parent), a
+  dentry cache (1024 buckets, ≤8192 entries, positive and negative, for `SB_DCACHE` filesystems;
+  invalidated by create/mknod/unlink/symlink/link/rename, purged on rmdir/umount), a real mount
+  table (`/proc/mounts`, `/proc/filesystems`), `mount(2)`/`umount2(2)` (root only; MS_RDONLY,
+  MS_REMOUNT, MNT_DETACH; EBUSY when anything inside is in use — unused cached inodes are pruned
+  first), `mark_inode_dirty`, `fsync`/`fdatasync`/`syncfs`/`sync`, per-fs `statfs`, `msync(MS_SYNC)`
+  writing back. `reboot(2)` runs `vfs_shutdown()`: sync, then remount every disk fs read-only so
+  the next mount is clean.
+- **ext2** (`fs/ext2.c`): read/write rev0/rev1, 1–4 KiB blocks, filetype, sparse_super,
+  large_file (unknown ro_compat → read-only, unknown incompat → refused). Block/inode allocation
+  with group-local goals, direct/1/2/3-indirect maps, holes, truncate, async readpage, writepage
+  that allocates for blocks dirtied through shared mmap, all directory operations incl. rename of
+  directories (`..` retargeted, nlinks), fast and slow symlinks, hard links, unlink-while-open
+  (freed on evict), `s_state` VALID/ERROR handling. Inodes are written through to the buffer cache
+  on change (metadata reaches disk at the next writeback/sync); the header comment documents the
+  locking (per-inode `map` mutex for block maps, `fs->alloc` for bitmaps/counters).
+- **Disk root**: `root=/dev/vdXN` on the kernel command line mounts that partition as `/` after
+  the drivers came up; the boot tmpfs's `/dev`, `/tmp` and `/proc` become mounts on the new root
+  (created there if missing), so device nodes and runtime state keep working without a devtmpfs.
+- ci-tests now boots three times: the main suite with an empty ext2 disk (vda: `ext2test
+  /dev/vda1 /mnt`, mounting/umounting itself) and a raw scratch disk (vdb: `blktest`); then
+  `root=/dev/vda1` on an image of the userland root (libc/dyn/mmap/file/vfs/vm tests and
+  `ext2test -d` on the disk root, writing data), and a second disk-root boot that verifies the data
+  and that the fs was cleanly shut down; host `e2fsck -fn` must pass on every image afterwards.
+- Why this shape (broader context): git and package managers need rename atomicity, fsync,
+  hard links, mmap of files and many small files — all exercised by ext2test; keeping one page
+  cache for data and metadata keeps the memory-pressure story single (M27/M28 work carries over);
+  the inode/dentry caches and uid/gid/mode on disk are the base for M31 (permissions) and the
+  inode/sb layering for xattrs/other filesystems later.
+- Known limits: no journaling and no orphan list (a crash may need e2fsck; unlinked-open inodes
+  leak until fsck), no htree directories (linear scans), no xattrs/ACLs, superblock backups and
+  group descriptor backups are not updated, atime is never updated (effectively `noatime`),
+  `st_blocks` derived from size, the VFS namespace mutex is held across directory I/O (one
+  directory operation at a time system-wide), no bind/move mounts.
+- Fixed along the way: riscv64 routed the PLIC to hart 0's S context even when OpenSBI's lottery
+  picked another boot hart (cpus[0].hwid was only filled in by smp_init, after plic_init), so on
+  ~1 in 4 boots no device interrupt arrived at all — invisible until a boot-time disk mount
+  waited for one. The boot hart now comes from Limine's RISC-V BSP hart-id request. Umount no
+  longer reports EBUSY because of cached unused directories (they pin their parent).
+- Lock order additions: VFS namespace mutex → per-inode `bmap` mutex (LR_MUTEX_BMAP) → icache
+  mutex (LR_MUTEX_ICACHE) → `fs->alloc` (LR_MUTEX_FSALLOC) → … → icache spinlock (LR_ICACHE, under
+  mm locks, above the page cache) … → block queue (LR_BLKQ) → driver lock (LR_BLKDRV) → sched.

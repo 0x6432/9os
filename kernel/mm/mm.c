@@ -40,10 +40,12 @@ struct vm_stats vm_stats;
  * records the inode/index, the caller drops mm->lock and runs fault_io_run(), then retries */
 enum { FLT_OK = 0, FLT_SEGV, FLT_OOM, FLT_IO };
 
-static bool fault_io_run(void) {
+/* returns FLT_OK (retry the access), FLT_OOM (reading needed memory: reclaim / OOM path)
+ * or FLT_SEGV (I/O error) */
+static int fault_io_run(void) {
     struct thread *t = current;
     struct inode *i = t ? t->fault_io_inode : nullptr;
-    if (!i) return false;
+    if (!i) return FLT_SEGV;
     t->fault_io_inode = nullptr;
     uint64_t fl = arch_irq_save();
     arch_irq_enable();
@@ -51,7 +53,7 @@ static bool fault_io_run(void) {
     iput(i);
     arch_irq_restore(fl);
     __atomic_fetch_add(&vm_stats.io_faults, 1, __ATOMIC_RELAXED);
-    return r == 0;
+    return !r ? FLT_OK : r == -ENOMEM ? FLT_OOM : FLT_SEGV;
 }
 
 /* ------------------------------------------------------------------ locking */
@@ -491,7 +493,11 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
         }
         if (r == FLT_SEGV) return false;
         if (current && current->pagefault_disabled) return false;   /* inside a user copy: fixup + slow path */
-        if (r == FLT_IO) { if (fault_io_run()) { tries--; continue; } return false; }
+        if (r == FLT_IO) {
+            r = fault_io_run();
+            if (r == FLT_OK) { tries--; continue; }
+            if (r == FLT_SEGV) return false;
+        }
         if (!oom_retry(tries, true)) return false;
         if (tries >= 2) return true;      /* OOM killer ran: let the fault happen again */
     }
@@ -726,7 +732,7 @@ static int populate(struct mm *mm, vaddr_t addr, size_t len, int mode) {
         }
         mm_unlock(mm);
         if (r == FLT_SEGV) return -EFAULT;
-        if (r == FLT_IO && !fault_io_run()) return -EFAULT;
+        if (r == FLT_IO && (r = fault_io_run()) == FLT_SEGV) return -EFAULT;
         if (r == FLT_OOM && !oom_retry(tries++, false)) return -ENOMEM;
     }
     return 0;
@@ -934,7 +940,26 @@ int mm_msync(struct mm *mm, vaddr_t addr, size_t len, int flags) {
     if (!r && (flags & MS_INVALIDATE))
         for (struct vma *v = vma_lower_bound(mm, addr); v && v->start < end; v = vma_next(mm, v))
             if (v->flags & VMA_LOCKED) r = -EBUSY;
+    /* MS_SYNC (M30): write back the shared file pages of the range */
+    struct { struct inode *i; uint64_t from, to; } w[8];
+    int nw = 0;
+    if (!r && (flags & MS_SYNC))
+        for (struct vma *v = vma_lower_bound(mm, addr); v && v->start < end && nw < 8; v = vma_next(mm, v)) {
+            if (!v->file || !(v->flags & VMA_SHARED) || !v->file->inode->mapping) continue;
+            vaddr_t s = MAX(v->start, addr), e = MIN(v->end, end);
+            w[nw].i = v->file->inode;
+            iget(w[nw].i);
+            w[nw].from = v->pgoff + (s - v->start) / PAGE_SIZE;
+            w[nw].to = v->pgoff + (e - v->start) / PAGE_SIZE;
+            nw++;
+        }
     mm_unlock(mm);
+    for (int k = 0; k < nw; k++) {
+        int e = filemap_writeback(w[k].i->mapping, w[k].from, w[k].to);
+        if (!e && w[k].i->sb) e = vfs_fsync(w[k].i, true);
+        if (e && !r) r = e;
+        iput(w[k].i);
+    }
     return r;
 }
 
@@ -1058,7 +1083,8 @@ int mm_write(struct mm *mm, vaddr_t dst, const void *src, size_t n) {
         mm_lock(mm);
         int r = mm_write_locked(mm, dst, src, n, &flt);
         mm_unlock(mm);
-        if (flt == FLT_IO) { if (fault_io_run()) continue; return r; }
+        if (flt == FLT_IO && (flt = fault_io_run()) == FLT_OK) continue;
+        if (flt == FLT_SEGV) return r;
         if (flt != FLT_OOM || !oom_retry(tries, false)) return r;
     }
 }
@@ -1089,7 +1115,7 @@ bool user_range_ok(const void *uaddr, size_t n, bool write) {
         int r = range_fault_locked(mm, (vaddr_t)uaddr, n, write);
         mm_unlock(mm);
         if (r == FLT_OK) return true;
-        if (r == FLT_IO) { if (fault_io_run()) continue; return false; }
+        if (r == FLT_IO && (r = fault_io_run()) == FLT_OK) continue;
         if (r == FLT_SEGV || !oom_retry(tries, false)) return false;
     }
 }
@@ -1136,8 +1162,8 @@ static int user_copy(void *dst, const void *src, vaddr_t uaddr, size_t n, bool w
         mm_lock(mm);
         int r = copy_chunk_locked(mm, dst, src, uaddr, c, write);
         mm_unlock(mm);
+        if (r == FLT_IO && (r = fault_io_run()) == FLT_OK) continue;
         if (r == FLT_OOM && oom_retry(tries++, false)) continue;
-        if (r == FLT_IO && fault_io_run()) continue;
         if (r) return -EFAULT;
         dst = (uint8_t *)dst + c; src = (const uint8_t *)src + c; uaddr += c; n -= c;
     }
@@ -1165,8 +1191,8 @@ int64_t strncpy_from_user(char *dst, const char *usrc, size_t max) {
         mm_lock(mm);
         int r = copy_chunk_locked(mm, dst + i, usrc + i, ua, lim - i, false);
         mm_unlock(mm);
+        if (r == FLT_IO && (r = fault_io_run()) == FLT_OK) continue;
         if (r == FLT_OOM && oom_retry(tries++, false)) continue;
-        if (r == FLT_IO && fault_io_run()) continue;
         if (r) return -EFAULT;
         for (; i < lim; i++) if (!dst[i]) return (int64_t)i;
     }

@@ -16,6 +16,7 @@
 #define S_ISSOCK(m) (((m) & S_IFMT) == S_IFSOCK)
 #define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
 #define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
+#define S_ISBLK(m) (((m) & S_IFMT) == S_IFBLK)
 #define S_ISFIFO(m) (((m) & S_IFMT) == S_IFIFO)
 
 #define O_ACCMODE 3
@@ -123,6 +124,67 @@ struct inode {
     struct list_node i_hash, i_lru;  /* filesystem inode cache (sb-owned inodes) */
     uint32_t i_state;
 };
+
+/*
+ * Disk filesystems (M30): a struct super_block per mounted instance. Its inodes live in an
+ * inode cache (hash by inode number + LRU of unused inodes, bounded): iput() of the last
+ * reference keeps the inode cached unless it was unlinked (then ->evict_inode frees it on
+ * disk). Inode metadata changes are written through to the block-device cache with
+ * ->write_inode (mark_inode_dirty); file data goes through the inode's page cache.
+ */
+struct kstatfs { uint64_t type, bsize, blocks, bfree, bavail, files, ffree, namelen, flags; };
+struct super_block;
+struct super_ops {
+    int (*write_inode)(struct inode *i);
+    void (*evict_inode)(struct inode *i);        /* last reference gone: free (on disk if unlinked) */
+    int (*sync_fs)(struct super_block *sb);       /* superblock/bitmaps to the device cache */
+    int (*statfs)(struct super_block *sb, struct kstatfs *st);
+    int (*remount)(struct super_block *sb, uint32_t flags);
+    void (*put_super)(struct super_block *sb);
+};
+#define SB_RDONLY 1
+#define SB_DCACHE 2              /* cache lookups (positive and negative) in the VFS dcache */
+#define SB_DYING  4
+struct blkdev;
+struct super_block {
+    const struct super_ops *ops;
+    const char *type;
+    struct blkdev *bdev;
+    struct inode *root;
+    uint32_t flags;
+    uint64_t dev;                 /* st_dev of its inodes */
+    void *priv;
+    spinlock_t icache_lock;
+    struct list_node *ihash;      /* ICACHE_HASH buckets */
+    struct list_node ilru;
+    unsigned nunused, ninodes;
+    bool pruning;
+};
+#define I_LRU 1
+void sb_init(struct super_block *sb, const struct super_ops *ops, const char *type);
+/* cached inode (referenced) or null */
+struct inode *icache_find(struct super_block *sb, uint64_t ino);
+void icache_insert(struct super_block *sb, struct inode *i);   /* i referenced by the caller */
+void inode_init(struct inode *i, uint32_t mode);
+void mark_inode_dirty(struct inode *i);   /* chmod/chown/utimens/size: write the inode through */
+int vfs_fsync(struct inode *i, bool data_only);
+int vfs_sync_all(void);
+void vfs_shutdown(void);
+int vfs_statfs(struct inode *i, struct kstatfs *st);
+/* dcache invalidation for filesystems that change names behind the VFS's back (none yet) */
+void dcache_forget(struct inode *dir, const char *name);
+struct fs_type {
+    const char *name;
+    bool needs_dev;
+    int (*mount)(struct blkdev *dev, uint32_t flags, const char *data, struct super_block **out);
+};
+void fs_register(const struct fs_type *t);
+int vfs_do_mount(const char *source, const char *target, const char *type, uint64_t flags, const char *data);
+int vfs_do_umount(const char *target, int flags);
+int vfs_mount_root(const char *source, const char *type);   /* root=: switch / to a disk */
+int vfs_proc_mounts(char *buf, size_t max);
+int vfs_proc_filesystems(char *buf, size_t max);
+void ext2_init(void);
 
 struct file {
     struct inode *inode;

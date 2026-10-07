@@ -50,6 +50,7 @@ int64_t sys_fchmodat();
 int64_t sys_fchown();
 int64_t sys_fchownat();
 int64_t sys_fcntl();
+int64_t sys_fdatasync();
 int64_t sys_fork();
 int64_t sys_fstat();
 int64_t sys_fstatfs();
@@ -106,6 +107,7 @@ int64_t sys_mlock();
 int64_t sys_mlock2();
 int64_t sys_mlockall();
 int64_t sys_mmap();
+int64_t sys_mount();
 int64_t sys_mprotect();
 int64_t sys_mremap();
 int64_t sys_msync();
@@ -190,6 +192,7 @@ int64_t sys_statx();
 int64_t sys_symlink();
 int64_t sys_symlinkat();
 int64_t sys_sync();
+int64_t sys_syncfs();
 int64_t sys_sysinfo();
 int64_t sys_syslog();
 int64_t sys_tgkill();
@@ -201,6 +204,7 @@ int64_t sys_times();
 int64_t sys_tkill();
 int64_t sys_truncate();
 int64_t sys_umask();
+int64_t sys_umount2();
 int64_t sys_uname();
 int64_t sys_unlink();
 int64_t sys_unlinkat();
@@ -271,7 +275,10 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_renameat] = (syscall_fn)sys_renameat,
 #endif
 #ifdef __NR_umount2
-    [__NR_umount2] = (syscall_fn)sys_zero,
+    [__NR_umount2] = (syscall_fn)sys_umount2,
+#endif
+#ifdef __NR_mount
+    [__NR_mount] = (syscall_fn)sys_mount,
 #endif
 #ifdef __NR_statfs
     [__NR_statfs] = (syscall_fn)sys_statfs,
@@ -373,7 +380,7 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_fsync] = (syscall_fn)sys_fsync,
 #endif
 #ifdef __NR_fdatasync
-    [__NR_fdatasync] = (syscall_fn)sys_fsync,
+    [__NR_fdatasync] = (syscall_fn)sys_fdatasync,
 #endif
 #ifdef __NR_timerfd_create
     [__NR_timerfd_create] = (syscall_fn)sys_timerfd_create,
@@ -712,7 +719,7 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_prlimit64] = (syscall_fn)sys_prlimit64,
 #endif
 #ifdef __NR_syncfs
-    [__NR_syncfs] = (syscall_fn)sys_fsync,
+    [__NR_syncfs] = (syscall_fn)sys_syncfs,
 #endif
 #ifdef __NR_renameat2
     [__NR_renameat2] = (syscall_fn)sys_renameat2,

@@ -20,9 +20,13 @@ def main():
     ap.add_argument('--boot-timeout', type=float, default=180)
     ap.add_argument('--timeout', type=float, default=240, help='per command')
     ap.add_argument('--log', default=None)
+    ap.add_argument('--disk', action='append', default=[], help='raw image attached as virtio-blk (repeatable)')
+    ap.add_argument('--cmdline', default=None, help='extra kernel command line')
     a = ap.parse_intermixed_args()
-    make = ['make', '-s', 'ARCH=' + a.arch, 'SMP=' + a.smp, 'run', 'QEMUFLAGS=-display none ' + os.environ.get('QEMU_EXTRA', '')]
+    make = ['make', '-s', 'ARCH=' + a.arch, 'SMP=' + a.smp, 'run', 'QEMUFLAGS=-display none ' + os.environ.get('QEMU_EXTRA', '') +
+            ''.join(f' -drive file={d},if=none,id=vd{k},format=raw -device virtio-blk-pci,drive=vd{k}' for k, d in enumerate(a.disk))]
     if a.sched: make.insert(3, 'SCHED=' + a.sched)
+    if a.cmdline: make.insert(3, 'CMDLINE=' + a.cmdline)
     p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          start_new_session=True)
     log = open(a.log, 'wb') if a.log else None

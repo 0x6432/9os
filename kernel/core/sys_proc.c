@@ -1,4 +1,5 @@
 /* Process, time and miscellaneous system calls. */
+#include <kernel/vfs.h>
 #include <kernel/syscall.h>
 #include <kernel/exec.h>
 #include <kernel/kmalloc.h>
@@ -460,6 +461,7 @@ int64_t sys_getitimer(int which, int64_t *ucur) {
 }
 
 int64_t sys_reboot(int m1, int m2, unsigned cmd, void *arg) {
+    if (cmd == 0x4321fedc || cmd == 0xcdef0123 || cmd == 0x01234567) vfs_shutdown();   /* M30: nothing dirty is lost, disks clean */
     if (cmd == 0x4321fedc || cmd == 0xcdef0123) { pr_info("system halted\n"); acpi_poweroff(); arch_poweroff(); arch_halt_forever(); }
     if (cmd == 0x01234567) { pr_info("rebooting\n"); acpi_reboot(); arch_reboot(); arch_halt_forever(); }
     return 0;
