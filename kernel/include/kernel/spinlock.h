@@ -18,7 +18,7 @@ struct lock_class { const char *name; int rank; bool nest; };
 enum {
     LR_MUTEX_TTY = 10, LR_MUTEX_EPOLL = 12, LR_MUTEX_VFS = 14, LR_MUTEX_INODE = 16, LR_MUTEX_MISC = 20,
     LR_FD = 30, LR_FUTEX = 32, LR_PIPE = 34, LR_TTY = 36, LR_UNIX = 38, LR_MM = 40,
-    LR_PAGECACHE = 44, LR_I_MMAP = 45, LR_LRU = 46, LR_PT = 50,
+    LR_PAGECACHE = 44, LR_I_MMAP = 45, LR_LRU = 46, LR_DIRTYLIST = 47, LR_PT = 50,
     LR_SLAB_REG = 54, LR_SLAB = 56, LR_BUDDY_DRAIN = 58, LR_PCP = 60, LR_BUDDY = 62,
     LR_SCHED = 70, LR_RQ = 72, LR_CONSOLE = 90,
 };

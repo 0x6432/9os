@@ -55,7 +55,7 @@ CFLAGS += -I$(UACPI)/include -DUACPI_SIZED_FREES -DHAVE_UACPI
 UACPI_SRC := $(wildcard $(UACPI)/source/*.c)
 endif
 
-KSRC := $(wildcard kernel/core/*.c kernel/mm/*.c kernel/lib/*.c kernel/drivers/*.c \
+KSRC := $(wildcard kernel/core/*.c kernel/mm/*.c kernel/lib/*.c kernel/drivers/*.c kernel/block/*.c \
           kernel/fs/*.c kernel/net/*.c kernel/acpi/*.c kernel/arch/$(ARCH)/*.c kernel/arch/$(ARCH)/*.S) $(UACPI_SRC)
 KOBJ := $(patsubst %,$(BUILD)/%.o,$(KSRC))
 

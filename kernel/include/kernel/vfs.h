@@ -118,6 +118,10 @@ struct inode {
     int refcount;
     struct list_node i_mmap;   /* file VMAs mapping this inode (rmap for page reclaim) */
     spinlock_t i_mmap_lock;
+    struct address_space *mapping;   /* page cache (M30), null if none */
+    struct super_block *sb;          /* owning filesystem instance, null for pseudo files */
+    struct list_node i_hash, i_lru;  /* filesystem inode cache (sb-owned inodes) */
+    uint32_t i_state;
 };
 
 struct file {

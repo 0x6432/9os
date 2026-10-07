@@ -34,11 +34,25 @@ struct vm_stats vm_stats;
 #define STAT(x) __atomic_fetch_add(&vm_stats.x, 1, __ATOMIC_RELAXED)
 #define STATN(x, n) __atomic_fetch_add(&vm_stats.x, (n), __ATOMIC_RELAXED)
 
-void pagecache_mark_dirty(struct page *pg);     /* fs/tmpfs.c */
-void pagecache_mark_referenced(struct page *pg);
-uint64_t tmpfs_reclaim(uint64_t want);
+#include <kernel/pagecache.h>
 
-enum { FLT_OK = 0, FLT_SEGV, FLT_OOM };
+/* FLT_IO (M30): the page is not in the page cache and reading it may sleep; the thread
+ * records the inode/index, the caller drops mm->lock and runs fault_io_run(), then retries */
+enum { FLT_OK = 0, FLT_SEGV, FLT_OOM, FLT_IO };
+
+static bool fault_io_run(void) {
+    struct thread *t = current;
+    struct inode *i = t ? t->fault_io_inode : nullptr;
+    if (!i) return false;
+    t->fault_io_inode = nullptr;
+    uint64_t fl = arch_irq_save();
+    arch_irq_enable();
+    int r = i->mapping ? filemap_fault_prepare(i->mapping, t->fault_io_idx) : -EIO;
+    iput(i);
+    arch_irq_restore(fl);
+    __atomic_fetch_add(&vm_stats.io_faults, 1, __ATOMIC_RELAXED);
+    return r == 0;
+}
 
 /* ------------------------------------------------------------------ locking */
 
@@ -382,6 +396,11 @@ static int file_fault(struct mm *mm, struct vma *v, vaddr_t va, bool write) {
     paddr_t pa;
     int e = f->fops && f->fops->fault_page ? f->fops->fault_page(f->inode, idx, shared, &pa) : -ENXIO;
     if (e == -ENXIO && !shared) { STAT(zero_eof_faults); return anon_fault(mm, v, va); }   /* past EOF */
+    if (e == -EAGAIN) {
+        if (!current) return FLT_SEGV;
+        if (!current->fault_io_inode) { iget(f->inode); current->fault_io_inode = f->inode; current->fault_io_idx = idx; }
+        return FLT_IO;
+    }
     if (e == -ENOMEM) return FLT_OOM;
     if (e) return FLT_SEGV;
     struct page *pg = phys_to_page(pa);
@@ -472,6 +491,7 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
         }
         if (r == FLT_SEGV) return false;
         if (current && current->pagefault_disabled) return false;   /* inside a user copy: fixup + slow path */
+        if (r == FLT_IO) { if (fault_io_run()) { tries--; continue; } return false; }
         if (!oom_retry(tries, true)) return false;
         if (tries >= 2) return true;      /* OOM killer ran: let the fault happen again */
     }
@@ -706,6 +726,7 @@ static int populate(struct mm *mm, vaddr_t addr, size_t len, int mode) {
         }
         mm_unlock(mm);
         if (r == FLT_SEGV) return -EFAULT;
+        if (r == FLT_IO && !fault_io_run()) return -EFAULT;
         if (r == FLT_OOM && !oom_retry(tries++, false)) return -ENOMEM;
     }
     return 0;
@@ -930,8 +951,38 @@ int mm_mincore(struct mm *mm, vaddr_t addr, size_t len, uint8_t *vec) {
 
 /* ------------------------------------------------------------------ reverse map / reclaim */
 
+/* write-protect every shared mapping of a page-cache page before it is written back, so the
+ * next store faults and re-dirties it. Best effort (mm trylock): false if some mm was busy. */
+bool rmap_mkclean_file_page(struct page *pg) {
+    struct address_space *as = pg->mapping;
+    if (!as || !as->host) return true;
+    struct inode *ino = as->host;
+    uint64_t idx = pg->index;
+    paddr_t want = page_to_phys(pg);
+    bool ok = true;
+    uint64_t f = arch_irq_save();
+    spin_lock_ipi(&ino->i_mmap_lock);
+    list_for_each(it, &ino->i_mmap) {
+        struct vma *v = list_entry(it, struct vma, fnode);
+        uint64_t npg = (v->end - v->start) / PAGE_SIZE;
+        if (!(v->flags & VMA_SHARED) || idx < v->pgoff || idx >= v->pgoff + npg) continue;
+        if (!mm_trylock(v->mm)) { ok = false; continue; }
+        vaddr_t va = v->start + (idx - v->pgoff) * PAGE_SIZE;
+        paddr_t pa; unsigned fl;
+        if (vmm_query(v->mm->pt, va, &pa, &fl) && ALIGN_DOWN(pa, PAGE_SIZE) == want && (fl & VM_WRITE))
+            vmm_protect(v->mm->pt, va, fl & ~VM_WRITE);
+        mm_unlock(v->mm);
+    }
+    spin_unlock(&ino->i_mmap_lock);
+    arch_irq_restore(f);
+    if (!ok) pagecache_mark_dirty(pg);   /* could not write-protect: write it again later */
+    return ok;
+}
+
 bool rmap_unmap_file_page(struct page *pg) {
-    struct inode *ino = pg->mapping;
+    struct address_space *as = pg->mapping;
+    if (!as || !as->host) return true;
+    struct inode *ino = as->host;
     uint64_t idx = pg->index;
     paddr_t want = page_to_phys(pg);
     bool ok = true;
@@ -961,7 +1012,7 @@ bool rmap_unmap_file_page(struct page *pg) {
 
 uint64_t mm_reclaim(uint64_t want) {
     STAT(reclaim_runs);
-    uint64_t n = tmpfs_reclaim(want);
+    uint64_t n = pagecache_reclaim(want);
     STATN(reclaim_freed, n);
     return n;
 }
@@ -1007,6 +1058,7 @@ int mm_write(struct mm *mm, vaddr_t dst, const void *src, size_t n) {
         mm_lock(mm);
         int r = mm_write_locked(mm, dst, src, n, &flt);
         mm_unlock(mm);
+        if (flt == FLT_IO) { if (fault_io_run()) continue; return r; }
         if (flt != FLT_OOM || !oom_retry(tries, false)) return r;
     }
 }
@@ -1037,6 +1089,7 @@ bool user_range_ok(const void *uaddr, size_t n, bool write) {
         int r = range_fault_locked(mm, (vaddr_t)uaddr, n, write);
         mm_unlock(mm);
         if (r == FLT_OK) return true;
+        if (r == FLT_IO) { if (fault_io_run()) continue; return false; }
         if (r == FLT_SEGV || !oom_retry(tries, false)) return false;
     }
 }
@@ -1084,6 +1137,7 @@ static int user_copy(void *dst, const void *src, vaddr_t uaddr, size_t n, bool w
         int r = copy_chunk_locked(mm, dst, src, uaddr, c, write);
         mm_unlock(mm);
         if (r == FLT_OOM && oom_retry(tries++, false)) continue;
+        if (r == FLT_IO && fault_io_run()) continue;
         if (r) return -EFAULT;
         dst = (uint8_t *)dst + c; src = (const uint8_t *)src + c; uaddr += c; n -= c;
     }
@@ -1112,6 +1166,7 @@ int64_t strncpy_from_user(char *dst, const char *usrc, size_t max) {
         int r = copy_chunk_locked(mm, dst + i, usrc + i, ua, lim - i, false);
         mm_unlock(mm);
         if (r == FLT_OOM && oom_retry(tries++, false)) continue;
+        if (r == FLT_IO && fault_io_run()) continue;
         if (r) return -EFAULT;
         for (; i < lim; i++) if (!dst[i]) return (int64_t)i;
     }

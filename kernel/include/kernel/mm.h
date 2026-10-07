@@ -73,7 +73,7 @@ struct cow_stats { uint64_t shared, copied, reused; };   /* fork COW counters (/
 extern struct cow_stats cow_stats;
 struct vm_stats {
     uint64_t file_faults, anon_faults, zero_eof_faults, cow_faults, oom_retries, oom_kills;
-    uint64_t reclaim_scanned, reclaim_freed, reclaim_runs, kswapd_wakeups, rmap_unmapped;
+    uint64_t reclaim_scanned, reclaim_freed, reclaim_runs, kswapd_wakeups, rmap_unmapped, io_faults;
     uint64_t madv_zapped, mremap_moved, populated, copy_slowpath;
 };
 extern struct vm_stats vm_stats;
@@ -109,6 +109,7 @@ int mm_zero(struct mm *mm, vaddr_t dst, size_t n);
 /* reverse map: unmap page-cache page pg from every mapping; false if one could not be
  * locked or the page is mlocked (called by page reclaim with the page-cache lock held) */
 bool rmap_unmap_file_page(struct page *pg);
+bool rmap_mkclean_file_page(struct page *pg);
 void mm_pressure_init(void);      /* start kswapd */
 uint64_t mm_reclaim(uint64_t want);   /* free up to want page-cache pages, returns freed */
 

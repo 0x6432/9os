@@ -32,6 +32,7 @@ struct page {
     void *mapping;            /* page cache: owning inode */
     uint32_t index;           /* page cache: page index in the file */
     int32_t mapcount;         /* user page-table entries mapping this page */
+    uint32_t private;         /* page cache owner's use (block device pages: dirty-block mask) */
 };
 static inline void page_uflag_set(struct page *p, uint16_t f) { __atomic_fetch_or(&p->uflags, f, __ATOMIC_RELAXED); }
 static inline void page_uflag_clear(struct page *p, uint16_t f) { __atomic_fetch_and(&p->uflags, (uint16_t)~f, __ATOMIC_RELAXED); }
