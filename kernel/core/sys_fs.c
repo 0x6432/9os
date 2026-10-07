@@ -243,6 +243,7 @@ int64_t sys_pwrite64(int fd, const void *buf, size_t n, off_t off) {
     if (!S_ISREG(f->inode->mode) && !S_ISBLK(f->inode->mode)) return -ESPIPE;
     if ((f->flags & O_ACCMODE) == O_RDONLY) return -EBADF;
     if (!f->fops || !f->fops->write) return -EINVAL;
+    file_remove_privs(f);
     if (f->fops->nobkl) return f->fops->write(f, buf, n, &off);
     bkl_enter();
     int64_t r = n && !user_range_ok(buf, n, false) ? -EFAULT : uaccess_call(f->fops->write(f, buf, n, &off));
@@ -522,6 +523,7 @@ int64_t sys_chdir(const char *upath) {
     kfree(path);
     if (r) return r;
     if (!S_ISDIR(i->mode)) { iput(i); return -ENOTDIR; }
+    if ((r = inode_permission(i, MAY_EXEC))) { iput(i); return r; }
     vfs_ns_lock();
     iput(curproc->cwd);
     curproc->cwd = i;
@@ -532,6 +534,8 @@ int64_t sys_fchdir(int fd) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
     if (!S_ISDIR(f->inode->mode)) return -ENOTDIR;
+    int r = inode_permission(f->inode, MAY_EXEC);
+    if (r) return r;
     iget(f->inode);
     vfs_ns_lock();
     iput(curproc->cwd);
@@ -540,12 +544,14 @@ int64_t sys_fchdir(int fd) {
     return 0;
 }
 int64_t sys_chroot(const char *upath) {
+    if (!capable(CAP_SYS_CHROOT)) return -EPERM;
     WITH_PATH(upath, path);
     struct inode *i;
     int r = vfs_lookup(path, true, &i);
     kfree(path);
     if (r) return r;
     if (!S_ISDIR(i->mode)) { iput(i); return -ENOTDIR; }
+    if ((r = inode_permission(i, MAY_EXEC))) { iput(i); return r; }
     vfs_ns_lock();
     iput(curproc->root);
     curproc->root = i;
@@ -646,73 +652,83 @@ int64_t sys_renameat2(int od, const char *uold, int nd, const char *unew, unsign
 int64_t sys_renameat(int od, const char *o, int nd, const char *n) { return sys_renameat2(od, o, nd, n, 0); }
 int64_t sys_rename(const char *o, const char *n) { return sys_renameat2(AT_FDCWD, o, AT_FDCWD, n, 0); }
 
+/* access(2) checks with the real uid/gid (and, for a non-root real uid, no capabilities) unless
+ * AT_EACCESS; the lookup itself also runs with those credentials, like Linux */
 int64_t sys_faccessat2(int dirfd, const char *upath, int mode, int flags) {
+    if (mode & ~7) return -EINVAL;
+    if (flags & ~(AT_SYMLINK_NOFOLLOW | AT_EACCESS | AT_EMPTY_PATH)) return -EINVAL;
     WITH_PATH(upath, path);
+    const struct cred *c = current_cred();
+    struct cred *ov = nullptr, *old = nullptr;
+    if (!(flags & AT_EACCESS) && (c->fsuid != c->uid || c->fsgid != c->gid || (c->uid && c->cap_eff) || (!c->uid && c->cap_eff != c->cap_perm))) {
+        ov = cred_prepare();
+        if (!ov) { kfree(path); return -ENOMEM; }
+        ov->fsuid = ov->uid; ov->fsgid = ov->gid;
+        ov->cap_eff = ov->uid ? 0 : ov->cap_perm;
+        old = cred_override(ov);
+        cred_put(ov);
+    }
     struct inode *base, *i;
     int64_t r = dirfd_base(dirfd, path, &base);
     if (!r) r = vfs_lookup_at(base, path, !(flags & AT_SYMLINK_NOFOLLOW), &i);
     kfree(path);
-    if (r) return r;
-    if ((mode & 1) && !(i->mode & 0111) && !S_ISDIR(i->mode)) r = -EACCES;
-    iput(i);
+    if (!r) {
+        int mask = (mode & 4 ? MAY_READ : 0) | (mode & 2 ? MAY_WRITE : 0) | (mode & 1 ? MAY_EXEC : 0);
+        if (mask) r = inode_permission(i, mask);
+        if (r == -EROFS && !S_ISREG(i->mode) && !S_ISDIR(i->mode) && !S_ISLNK(i->mode)) r = 0;
+        iput(i);
+    }
+    if (ov) cred_revert(old);
     return r;
 }
 int64_t sys_faccessat(int d, const char *p, int m) { return sys_faccessat2(d, p, m, 0); }
 int64_t sys_access(const char *p, int m) { return sys_faccessat2(AT_FDCWD, p, m, 0); }
 
-static int64_t chmod_inode(struct inode *i, uint32_t mode) {
-    i->mode = (i->mode & S_IFMT) | (mode & 07777);
-    i->ctime = now_timespec();
-    mark_inode_dirty(i);
-    return 0;
-}
+static int64_t chmod_inode(struct inode *i, uint32_t mode) { return vfs_setattr_mode(i, mode); }
 int64_t sys_fchmodat(int dirfd, const char *upath, uint32_t mode) {
     WITH_PATH(upath, path);
     struct inode *base, *i;
     int64_t r = dirfd_base(dirfd, path, &base);
     if (!r) r = vfs_lookup_at(base, path, true, &i);
     if (r) { kfree(path); return r; }
-    chmod_inode(i, mode);
-    fsnotify_path(base, path, i, IN_ATTRIB);
+    r = chmod_inode(i, mode);
+    if (!r) fsnotify_path(base, path, i, IN_ATTRIB);
     kfree(path);
     iput(i);
-    return 0;
+    return r;
 }
 int64_t sys_chmod(const char *p, uint32_t m) { return sys_fchmodat(AT_FDCWD, p, m); }
 int64_t sys_fchmod(int fd, uint32_t m) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
-    chmod_inode(f->inode, m);
-    fsnotify_file(f, IN_ATTRIB);
-    return 0;
+    int r = chmod_inode(f->inode, m);
+    if (!r) fsnotify_file(f, IN_ATTRIB);
+    return r;
 }
 
-int64_t sys_fchownat(int dirfd, const char *upath, uint32_t uid, uint32_t gid, int flags) {
+/* uid_t arguments arrive zero-extended from musl (unsigned) while the riscv64 ABI expects
+ * 32-bit values sign-extended in registers: take them as 64-bit and truncate explicitly */
+int64_t sys_fchownat(int dirfd, const char *upath, uint64_t uid_, uint64_t gid_, int flags) {
+    uint32_t uid = (uint32_t)uid_, gid = (uint32_t)gid_;
     WITH_PATH(upath, path);
     struct inode *base, *i;
     int64_t r = dirfd_base(dirfd, path, &base);
     if (!r) r = vfs_lookup_at(base, path, !(flags & AT_SYMLINK_NOFOLLOW), &i);
     if (r) { kfree(path); return r; }
-    if (uid != (uint32_t)-1) i->uid = uid;
-    if (gid != (uint32_t)-1) i->gid = gid;
-    i->ctime = now_timespec();
-    mark_inode_dirty(i);
-    fsnotify_path(base, path, i, IN_ATTRIB);
+    r = vfs_setattr_owner(i, uid, gid);
+    if (!r) fsnotify_path(base, path, i, IN_ATTRIB);
     kfree(path);
     iput(i);
-    return 0;
+    return r;
 }
-int64_t sys_chown(const char *p, uint32_t u, uint32_t g) { return sys_fchownat(AT_FDCWD, p, u, g, 0); }
-int64_t sys_lchown(const char *p, uint32_t u, uint32_t g) { return sys_fchownat(AT_FDCWD, p, u, g, AT_SYMLINK_NOFOLLOW); }
-int64_t sys_fchown(int fd, uint32_t u, uint32_t g) {
+int64_t sys_chown(const char *p, uint64_t u, uint64_t g) { return sys_fchownat(AT_FDCWD, p, u, g, 0); }
+int64_t sys_lchown(const char *p, uint64_t u, uint64_t g) { return sys_fchownat(AT_FDCWD, p, u, g, AT_SYMLINK_NOFOLLOW); }
+int64_t sys_fchown(int fd, uint64_t u, uint64_t g) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
-    if (u != (uint32_t)-1) f->inode->uid = u;
-    if (g != (uint32_t)-1) f->inode->gid = g;
-    f->inode->ctime = now_timespec();
-    mark_inode_dirty(f->inode);
-    fsnotify_file(f, IN_ATTRIB);
-    return 0;
+    int r = vfs_setattr_owner(f->inode, (uint32_t)u, (uint32_t)g);
+    if (!r) fsnotify_file(f, IN_ATTRIB);
+    return r;
 }
 
 int64_t sys_utimensat(int dirfd, const char *upath, const struct timespec *utimes, int flags) {
@@ -732,13 +748,25 @@ int64_t sys_utimensat(int dirfd, const char *upath, const struct timespec *utime
         if (r) return r;
     }
     struct timespec ts[2], now = now_timespec();
+    if (i->sb && (i->sb->flags & SB_RDONLY)) { iput(i); return -EROFS; }
     if (utimes) {
         if (copy_from_user(ts, utimes, sizeof ts)) { iput(i); return -EFAULT; }
+        bool all_now = true, all_omit = true;
+        for (int k = 0; k < 2; k++) {
+            if (ts[k].tv_nsec != (1L << 30) - 1) all_now = false;
+            if (ts[k].tv_nsec != (1L << 30) - 2) all_omit = false;
+        }
+        if (all_omit) { iput(i); return 0; }
+        /* M31: explicit times need ownership; "now" also write access */
+        if (!inode_owner_or_capable(i) && (!all_now || inode_permission(i, MAY_WRITE))) { iput(i); return all_now ? -EACCES : -EPERM; }
         for (int k = 0; k < 2; k++) {
             if (ts[k].tv_nsec == (1L << 30) - 1) ts[k] = now;           /* UTIME_NOW */
             else if (ts[k].tv_nsec == (1L << 30) - 2) ts[k] = k ? i->mtime : i->atime;  /* UTIME_OMIT */
         }
-    } else ts[0] = ts[1] = now;
+    } else {
+        if (!inode_owner_or_capable(i) && inode_permission(i, MAY_WRITE)) { iput(i); return -EACCES; }
+        ts[0] = ts[1] = now;
+    }
     i->atime = ts[0]; i->mtime = ts[1]; i->ctime = now;
     mark_inode_dirty(i);
     if (!upath) fsnotify_inode(i, IN_ATTRIB);
@@ -751,6 +779,8 @@ int64_t sys_ftruncate(int fd, off_t len) {
     if (!f) return -EBADF;
     if (len < 0) return -EINVAL;
     if (!S_ISREG(f->inode->mode) || !f->inode->iops->truncate) return -EINVAL;
+    if ((f->flags & O_ACCMODE) == O_RDONLY || (f->flags & O_PATH)) return -EINVAL;
+    file_remove_privs(f);
     int r = f->inode->iops->truncate(f->inode, len);
     if (!r) fsnotify_file(f, IN_MODIFY_);
     return r;
@@ -761,6 +791,8 @@ int64_t sys_truncate(const char *upath, off_t len) {
     int64_t r = vfs_lookup(path, true, &i);
     kfree(path);
     if (r) return r;
+    if (S_ISDIR(i->mode)) { iput(i); return -EISDIR; }
+    if ((r = inode_permission(i, MAY_WRITE))) { iput(i); return r; }
     r = S_ISREG(i->mode) && i->iops->truncate ? i->iops->truncate(i, len) : -EINVAL;
     if (!r) fsnotify_inode(i, IN_MODIFY_);
     iput(i);
@@ -815,7 +847,7 @@ int64_t sys_fstatfs(int fd, void *ubuf) {
 }
 
 int64_t sys_mount(const char *usrc, const char *utarget, const char *utype, uint64_t flags, const void *udata) {
-    if (curproc && curproc->euid != 0) return -EPERM;
+    if (!capable(CAP_SYS_ADMIN)) return -EPERM;
     char *src = nullptr, *type = nullptr, *data = nullptr;
     char *target = kmalloc(4096);
     int64_t r = user_path(utarget, target);
@@ -827,7 +859,7 @@ int64_t sys_mount(const char *usrc, const char *utarget, const char *utype, uint
     return r;
 }
 int64_t sys_umount2(const char *utarget, int flags) {
-    if (curproc && curproc->euid != 0) return -EPERM;
+    if (!capable(CAP_SYS_ADMIN)) return -EPERM;
     WITH_PATH(utarget, path);
     int64_t r = vfs_do_umount(path, flags);
     kfree(path);

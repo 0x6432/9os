@@ -244,25 +244,42 @@ int64_t sys_sigaltstack(const uint64_t *ss, uint64_t *old) {
     return 0;
 }
 
+/* M31: the sender's real or effective uid must match the target's real or saved uid, or
+ * CAP_KILL; SIGCONT is always allowed within the session (job control across su). */
+static bool kill_perm(struct process *p, int sig) {
+    if (p == curproc || capable(CAP_KILL)) return true;
+    if (sig == SIGCONT && p->sid == curproc->sid) return true;
+    const struct cred *c = current_cred();
+    struct cred *t = proc_cred(p);
+    bool ok = c->euid == t->suid || c->euid == t->uid || c->uid == t->suid || c->uid == t->uid;
+    cred_put(t);
+    return ok;
+}
+
 static int kill_one(struct process *p, int sig) {
     if (!p || p->state == P_ZOMBIE) return -ESRCH;
+    if (!kill_perm(p, sig)) return -EPERM;
     if (sig) signal_send(p, sig);
     return 0;
 }
 
-struct kill_ctx { int pgid, sig, count; struct process *self; bool all; };
+struct kill_ctx { int pgid, sig, count, denied; struct process *self; bool all; };
 static void kill_fn(struct process *p, void *c) {
     struct kill_ctx *k = c;
     if (p->state != P_ALIVE || p->pid == 1) return;
-    if (k->all ? p != k->self : p->pgid == k->pgid) { if (k->sig) signal_send(p, k->sig); k->count++; }
+    if (k->all ? p != k->self : p->pgid == k->pgid) {
+        if (!kill_perm(p, k->sig)) { k->denied++; return; }
+        if (k->sig) signal_send(p, k->sig);
+        k->count++;
+    }
 }
 
 int64_t sys_kill(int pid, int sig) {
     if (sig < 0 || sig >= NSIG) return -EINVAL;
     if (pid > 0) return kill_one(process_find(pid), sig);
-    struct kill_ctx k = { pid == 0 ? curproc->pgid : -pid, sig, 0, curproc, pid == -1 };
+    struct kill_ctx k = { pid == 0 ? curproc->pgid : -pid, sig, 0, 0, curproc, pid == -1 };
     process_list(kill_fn, &k);
-    return k.count ? 0 : -ESRCH;
+    return k.count ? 0 : k.denied ? -EPERM : -ESRCH;
 }
 
 int64_t sys_tgkill(int tgid, int tid, int sig) {
@@ -271,6 +288,7 @@ int64_t sys_tgkill(int tgid, int tid, int sig) {
         /* tid may be a non-main thread; fall back to process lookup by tid */
         return -ESRCH;
     }
+    if (!kill_perm(p, sig)) return -EPERM;
     if (sig) {
         list_for_each(it, &p->threads) {
             struct thread *t = list_entry(it, struct thread, proc_node);

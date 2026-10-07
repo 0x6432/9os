@@ -878,3 +878,78 @@ managers and a self-hosted toolchain can live on), not just by "read sectors".
 - Lock order additions: VFS namespace mutex → per-inode `bmap` mutex (LR_MUTEX_BMAP) → icache
   mutex (LR_MUTEX_ICACHE) → `fs->alloc` (LR_MUTEX_FSALLOC) → … → icache spinlock (LR_ICACHE, under
   mm locks, above the page cache) … → block queue (LR_BLKQ) → driver lock (LR_BLKDRV) → sched.
+
+## M31: Users and permissions
+- **Credentials** (`core/cred.c`, `kernel/cred.h`): an immutable, refcounted `struct cred`
+  (real/effective/saved/fs uid and gid, up to 64 sorted supplementary groups, the five
+  capability sets, securebits). Like Linux there are two views: every thread has a *subjective*
+  cred (`current->cred`, what it acts as; `cred_override()` swaps it temporarily) and the process
+  keeps the *objective* one (`p->cred`, last committed by one of its threads; read under the leaf
+  `cred` spinlock with `proc_cred()` for kill/`/proc`/sched/capget). Changes are always
+  `cred_prepare()` → edit → `cred_commit()`; musl runs set*id on every thread (`__synccall`), so
+  POSIX process-wide semantics fall out. Kernel threads always run as `init_cred` (root, all caps).
+- **Syscalls** (`core/sys_cred.c`): get/set{,e,re,res,fs}{uid,gid}, get/setgroups (CAP_SETGID),
+  capget/capset (v1/v2/v3, Linux's rules: permitted only shrinks, effective ⊆ permitted,
+  inheritable bounded), prctl KEEPCAPS / CAPBSET_READ / CAPBSET_DROP / GET_SECUREBITS / CAP_AMBIENT
+  (read-only). Uid changes apply Linux's "root is special" capability fix-ups (losing all root
+  ids drops permitted+effective unless KEEPCAPS; euid 0↔non-0 clears/restores effective; fsuid
+  changes toggle the filesystem caps). `clock_settime` needs CAP_SYS_TIME.
+- **VFS DAC** (`fs/vfs.c`): `inode_permission()` = owner/group/other class against fsuid,
+  fsgid + supplementary groups, then CAP_DAC_OVERRIDE / CAP_DAC_READ_SEARCH (root executes only
+  files with some x bit), EROFS for writes on read-only mounts. Search permission on every path
+  component; open checks read/write (O_TRUNC = write, acc mode 3 = both); create/mknod/symlink/
+  link need W+X on the parent; unlink/rmdir/rename add the sticky-directory rule (owner of the
+  file or directory, or CAP_FOWNER) and EBUSY on mount points; moving a directory to another
+  parent needs write on it (its `..` changes); protected_hardlinks (link only what you own or
+  could read+write, never setuid/setgid-exec files). chmod/chown/utimensat/truncate follow POSIX
+  (owner or CAP_FOWNER; chown needs CAP_CHOWN except chgrp by the owner into one of its groups;
+  setgid silently dropped when the group is not yours; chown and unprivileged writes/truncates
+  clear setuid/setgid). New inodes get fsuid and fsgid, or the directory's group under a setgid
+  directory (subdirectories inherit the bit). umask was already applied at create.
+- **exec**: the file is opened `O_PATH` and needs only execute permission (an `--x` binary
+  runs; the interpreter `ld.so` likewise). setuid/setgid bits switch effective + saved + fs ids;
+  capabilities follow Linux without file caps: root (real or effective) gets
+  `inheritable | bounding` as permitted, effective if euid is 0; others get the ambient set.
+  The auxv carries AT_UID/EUID/GID/EGID and AT_SECURE (ids changed or caps gained), so musl
+  ignores LD_* for setuid programs. The new cred is committed at the point of no return.
+- **Other checks**: kill/tgkill (sender ruid/euid vs target ruid/suid, CAP_KILL, SIGCONT within
+  the session; `kill(-1/-pgrp)` reports EPERM if all were denied), nice/setpriority/sched_*/
+  setaffinity on others' threads or raising priority/RT (CAP_SYS_NICE; EACCES for nice like
+  Linux), mount/umount2/sethostname (CAP_SYS_ADMIN), reboot (CAP_SYS_BOOT + magic numbers),
+  chroot (CAP_SYS_CHROOT), mknod of devices (CAP_MKNOD), connecting to a unix socket (write on
+  the socket inode), SO_PEERCRED/SCM_CREDENTIALS (effective ids). `/proc/<pid>` is owned by the
+  process's euid/egid, `/proc/<pid>/status` shows real Uid/Gid/Groups/Cap* lines, `environ` is
+  0400 and following/reading another user's `cwd`/`exe`/`fd/*` needs same ids or CAP_SYS_PTRACE.
+  ptmx creates `/dev/pts/N` as the kernel, owned by the opener, group tty (5), mode 0620.
+  The initramfs honours the cpio owner and exact mode (`cpio -R 0:0`, so setuid bits survive);
+  `mkdisk.sh` resets the image to root ownership with debugfs (mke2fs -d copies the builder's uid).
+- **Userland**: `/etc/passwd`, `/etc/group`, `/etc/shadow` (0640 root:shadow; root has no
+  password like a live image, `user`/`9os` is uid 1000 with SHA-512 crypt), `/etc/securetty`,
+  `/etc/shells`; init runs `getty -L 0 console` → BusyBox `login` instead of a bare root shell;
+  `/bin/busybox` is setuid root (BusyBox drops privileges for every applet except su/passwd/
+  login/ping…); rcS hands `/home/user` and `/run/user/1000` to the user; `/etc/profile` no longer
+  forces HOME=/root. `qemu-test.py` logs in as root when it sees `login:`.
+- Tests: `permtest [DIR]` (forks children with other ids: DAC classes, search, umask, sticky,
+  chmod/chown rules, setgid dirs, suid stripping, setuid/setgid exec + AT_SECURE, `--x`
+  binaries, caps drop/raise/bounding set, saved-id games, KEEPCAPS, fsuid, access() real vs
+  effective, privileged syscalls, `/proc` ownership and link protection, protected hardlinks,
+  SO_PEERCRED, pty ownership, unix-socket connect); run on tmpfs in the main boot and on ext2 in
+  the disk-root boot. `logintest` drives BusyBox login on a pty (wrong password refused, session
+  ids/groups/HOME/tty owner, `/etc/shadow` and `/root` unreadable, su back to root, `passwd` as
+  the user rewriting `/etc/shadow` through setuid busybox, old password refused, new accepted).
+- Why this shape (broader context): per-thread subjective creds + override creds are what
+  NFS-style servers, access(2) and kernel-internal node creation need, and keep the door open for
+  user namespaces; matching Linux's capability arithmetic exactly means unmodified su/sudo/
+  doas/login/daemons (which drop to nobody) behave, and real on-disk ownership on ext2 makes a
+  multi-user system persistent. Ambient capabilities and file capabilities are the natural next
+  step once xattrs exist.
+- Known limits: no file capabilities (no xattrs), no ACLs, no nosuid/noexec/nodev mount flags,
+  no user namespaces, no ptrace-based `dumpable` logic, RLIMITs are mostly fixed (RLIMIT_NICE 0,
+  RLIMIT_RTPRIO 0), PR_SET_NO_NEW_PRIVS and SECBIT locking are not implemented, setpgid/setsid
+  checks are lax, device nodes created at boot keep root:root (no video/input groups yet).
+- Fixed along the way: on riscv64 the ABI keeps 32-bit values sign-extended in registers, but
+  musl passes unsigned arguments (uid_t -1, reboot's 0xfee1dead) zero-extended, so `uint32_t`
+  syscall parameters compared wrong (`chown(f, -1, g)` changed the uid, reboot() refused its
+  magic and init died at poweroff). The chown family, set*id and reboot now take 64-bit
+  parameters and truncate explicitly.
+- Lock order addition: the `cred` spinlock (LR_CRED = 68) is a leaf; nothing is taken under it.

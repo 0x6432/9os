@@ -49,6 +49,12 @@ void initramfs_load(void) {
             } else {
                 vfs_mknod_at(nullptr, path, mode, MKDEV(rdmaj, rdmin));
             }
+            struct inode *ino;            /* M31: the archive's owner and exact mode (setuid bits) */
+            if (!vfs_lookup(path, false, &ino)) {
+                ino->uid = hex8(p + 22); ino->gid = hex8(p + 30);
+                if (!S_ISLNK(mode)) ino->mode = mode;
+                iput(ino);
+            }
         }
         p = (const char *)ALIGN_UP((uintptr_t)(data + fsize), 4);
     }

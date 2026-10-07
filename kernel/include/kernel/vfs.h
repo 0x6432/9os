@@ -20,6 +20,14 @@
 #define S_ISFIFO(m) (((m) & S_IFMT) == S_IFIFO)
 
 #define O_ACCMODE 3
+#define S_ISUID 04000
+#define S_ISGID 02000
+#define S_ISVTX 01000
+#define S_IXGRP 00010
+/* inode_permission() masks (M31) */
+#define MAY_EXEC 1
+#define MAY_WRITE 2
+#define MAY_READ 4
 #define O_RDONLY 0
 #define O_WRONLY 1
 #define O_RDWR 2
@@ -44,6 +52,7 @@
 
 #define AT_FDCWD (-100)
 #define AT_SYMLINK_NOFOLLOW 0x100
+#define AT_EACCESS 0x200
 #define AT_REMOVEDIR 0x200
 #define AT_SYMLINK_FOLLOW 0x400
 #define AT_EMPTY_PATH 0x1000
@@ -257,6 +266,15 @@ ssize_t vfs_read(struct file *f, void *buf, size_t n);
 ssize_t vfs_write(struct file *f, const void *buf, size_t n);
 ssize_t vfs_pread(struct file *f, void *buf, size_t n, off_t off);
 int vfs_mknod_at(struct inode *base, const char *path, uint32_t mode, uint64_t rdev);
+/* M31 permissions: DAC against the current (fs)uid/gid/groups + capabilities */
+struct cred;
+int inode_permission(struct inode *i, int mask);
+int cred_inode_permission(const struct cred *c, struct inode *i, int mask);
+bool inode_owner_or_capable(struct inode *i);
+void inode_init_owner(struct inode *i, struct inode *dir);   /* new inode: owner = fsuid, group/setgid rules */
+void file_remove_privs(struct file *f);                       /* write by non-CAP_FSETID clears setuid/setgid */
+int vfs_setattr_mode(struct inode *i, uint32_t mode);           /* chmod rules */
+int vfs_setattr_owner(struct inode *i, uint32_t uid, uint32_t gid);   /* chown rules; -1 = unchanged */
 int vfs_mkdir_at(struct inode *base, const char *path, uint32_t mode);
 int vfs_unlink_at(struct inode *base, const char *path, bool rmdir);
 int vfs_symlink_at(struct inode *base, const char *target, const char *path);

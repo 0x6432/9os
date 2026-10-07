@@ -1,4 +1,5 @@
 /* ELF64 loader and execve. */
+#include <kernel/cred.h>
 #include <kernel/uaccess.h>
 #include <kernel/exec.h>
 #include <kernel/elf.h>
@@ -154,7 +155,8 @@ static int push(struct mm *mm, uint64_t *sp, const void *data, size_t n) {
 
 /* Build the System V initial process stack. */
 static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], uint64_t entry,
-                       uint64_t phdr, uint16_t phnum, uint64_t interp_base, const char *execfn, uint64_t *out_sp) {
+                       uint64_t phdr, uint16_t phnum, uint64_t interp_base, const char *execfn,
+                       const struct cred *nc, bool secure, uint64_t *out_sp) {
     uint64_t stack_top = USER_TOP - aslr_offset(ASLR_STACK_BITS);
     int64_t r = mm_map(mm, stack_top - USER_STACK_SIZE, USER_STACK_SIZE, VM_READ | VM_WRITE,
                        VMA_ANON | VMA_STACK, true);
@@ -189,8 +191,8 @@ static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], ui
     uint64_t plat_va = sp;
     uint64_t auxv[] = {
         AT_PHDR, phdr, AT_PHENT, sizeof(Elf64_Phdr), AT_PHNUM, phnum, AT_PAGESZ, PAGE_SIZE,
-        AT_BASE, interp_base, AT_FLAGS, 0, AT_ENTRY, entry, AT_UID, 0, AT_EUID, 0, AT_GID, 0, AT_EGID, 0,
-        AT_SECURE, 0, AT_RANDOM, random_va, AT_HWCAP, 0, AT_CLKTCK, 100, AT_PLATFORM, plat_va,
+        AT_BASE, interp_base, AT_FLAGS, 0, AT_ENTRY, entry, AT_UID, nc->uid, AT_EUID, nc->euid, AT_GID, nc->gid,
+        AT_EGID, nc->egid, AT_SECURE, secure, AT_RANDOM, random_va, AT_HWCAP, 0, AT_CLKTCK, 100, AT_PLATFORM, plat_va,
         AT_EXECFN, execfn_va, AT_NULL, 0,
     };
     size_t words = ARRAY_SIZE(auxv) + (envc + 1) + (argc + 1) + 1;
@@ -206,15 +208,53 @@ static int setup_stack(struct mm *mm, char *const argv[], char *const envp[], ui
     return 0;
 }
 
+/* Open a file for execution: search + execute permission only (an --x binary runs), regular files. */
+static int open_exec(const char *path, struct file **out) {
+    struct file *f;
+    int r = vfs_open(path, O_PATH, 0, &f);
+    if (r) return r;
+    if (!S_ISREG(f->inode->mode)) r = -EACCES;
+    else r = inode_permission(f->inode, MAY_EXEC);
+    if (r) { vfs_close(f); return r; }
+    *out = f;
+    return 0;
+}
+
+/*
+ * The credentials after exec (Linux's bprm creds without file capabilities):
+ * set-user-ID / set-group-ID bits switch the effective (and fs) ids; the "root is special"
+ * rules give a root euid or ruid the full bounded permitted set; otherwise permitted and
+ * effective collapse to the ambient set. Saved ids follow the effective ones. AT_SECURE is
+ * set when the ids changed or capabilities were gained, so ld.so/libc distrust the environment.
+ */
+static struct cred *exec_cred(uint32_t mode, uint32_t fuid, uint32_t fgid, bool *secure) {
+    const struct cred *o = current_cred();
+    struct cred *n = cred_prepare();
+    if (!n) return nullptr;
+    if (mode & S_ISUID) n->euid = fuid;
+    if ((mode & S_ISGID) && (mode & S_IXGRP)) n->egid = fgid;
+    n->fsuid = n->euid; n->fsgid = n->egid;
+    n->suid = n->euid; n->sgid = n->egid;
+    if (n->euid != n->uid || n->egid != n->gid) n->cap_amb = 0;
+    if (n->euid == 0 || n->uid == 0) {
+        n->cap_perm = (n->cap_inh | n->cap_bset) & CAP_FULL;
+        n->cap_eff = n->euid == 0 ? n->cap_perm : 0;
+    } else {
+        n->cap_amb &= n->cap_perm & n->cap_inh;
+        n->cap_perm = n->cap_eff = n->cap_amb;
+    }
+    *secure = n->euid != n->uid || n->egid != n->gid ||
+              (o->uid != 0 && (n->cap_perm & ~o->cap_perm & ~n->cap_amb));
+    return n;
+}
+
 void files_close_on_exec(struct process *p);
 void signals_reset_on_exec(struct process *p);
 
 int do_execve(const char *path, char *const argv[], char *const envp[], struct trap_frame *frame) {
     struct file *f;
-    int r = vfs_open(path, O_RDONLY, 0, &f);
+    int r = open_exec(path, &f);
     if (r) return r;
-    if (!S_ISREG(f->inode->mode)) { vfs_close(f); return -EACCES; }
-    if (!(f->inode->mode & 0111)) { vfs_close(f); return -EACCES; }
 
     /* #! scripts */
     char hdr[128];
@@ -251,11 +291,12 @@ int do_execve(const char *path, char *const argv[], char *const envp[], struct t
     char *interp = nullptr;
     uint64_t start, ibase = 0;
     r = load_elf(mm, f, false, &entry, &phdr, &phnum, &brk, nullptr, &interp);
+    uint32_t fmode = f->inode->mode, fuid = f->inode->uid, fgid = f->inode->gid;
     vfs_close(f);
     start = entry;
     if (!r && interp) {          /* dynamic executable: load ld.so and start there */
         struct file *fi;
-        r = vfs_open(interp, O_RDONLY, 0, &fi);
+        r = open_exec(interp, &fi);
         if (!r) {
             uint64_t ient, iphdr, ibrk; uint16_t iphnum;
             r = load_elf(mm, fi, true, &ient, &iphdr, &iphnum, &ibrk, &ibase, nullptr);
@@ -264,11 +305,15 @@ int do_execve(const char *path, char *const argv[], char *const envp[], struct t
         }
         kfree(interp);
     }
-    if (!r) r = setup_stack(mm, argv, envp, entry, phdr, phnum, ibase, path, &sp);
-    if (r) { mm_put(mm); return r; }
+    bool secure = false;
+    struct cred *nc = r ? nullptr : exec_cred(fmode, fuid, fgid, &secure);
+    if (!r && !nc) r = -ENOMEM;
+    if (!r) r = setup_stack(mm, argv, envp, entry, phdr, phnum, ibase, path, nc, secure, &sp);
+    if (r) { if (nc) cred_abort(nc); mm_put(mm); return r; }
     mm->brk_start = mm->brk = ALIGN_UP(brk, PAGE_SIZE) + aslr_offset(ASLR_BRK_BITS);
 
     /* point of no return */
+    cred_commit(nc);
     struct process *p = curproc;
     struct mm *old = p->mm;
     p->mm = mm;

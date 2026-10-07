@@ -83,7 +83,7 @@ $(BUILD)/%.S.o: %.S $(CONFIG_STAMP)
 ROOTFS := userland/root-$(ARCH)
 $(INITRAMFS): $(shell find $(ROOTFS) -type f 2>/dev/null)
 	@mkdir -p $(BUILD) $(ROOTFS)
-	(cd $(ROOTFS) && find . | cpio -o -H newc --quiet) > $@
+	(cd $(ROOTFS) && find . | cpio -o -H newc -R 0:0 --quiet) > $@
 
 LIMINE := third_party/limine-bin
 # kernel command line (e.g. CMDLINE="root=/dev/vda1"): appended to limine.conf

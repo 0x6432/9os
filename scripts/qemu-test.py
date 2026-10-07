@@ -59,10 +59,16 @@ def main():
     results = []
     # the boot console shows a prompt once the shell is up; poke it with newlines until we see one
     boot_deadline = time.time() + a.boot_timeout
-    ok = pump(min(boot_deadline, time.time() + 20), lambda: b'Welcome to 9os' in buf)
+    pump(min(boot_deadline, time.time() + 20), lambda: b'Welcome to 9os' in buf)
+    pump(min(boot_deadline, time.time() + 5), lambda: buf.rstrip().endswith(b'login:'))
+    ok = False
+    # M31: the console runs getty+login; log in as root (no password) when asked
+    at_login = lambda: buf.rstrip().endswith(b'login:')
     while not ok and time.time() < boot_deadline and not state['panic'] and p.poll() is None:
-        send('\n')
-        ok = pump(min(boot_deadline, time.time() + 10), lambda: buf.rstrip().endswith(b'#'))
+        if at_login(): send('root\n')
+        else: send('\n')
+        ok = pump(min(boot_deadline, time.time() + 10), lambda: buf.rstrip().endswith(b'#') or at_login())
+        if ok and at_login(): ok = False
     if ok:
         pump(time.time() + 2, lambda: False)       # let the rest of the banner settle
     if not ok:

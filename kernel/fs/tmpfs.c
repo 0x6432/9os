@@ -112,6 +112,7 @@ static int t_create(struct inode *dir, const char *name, uint32_t mode, uint64_t
     if (dir_find(dir, name)) return -EEXIST;
     struct inode *i = tmpfs_new(mode, rdev);
     if (!i) return -ENOMEM;
+    inode_init_owner(i, dir);
     if (S_ISDIR(mode)) { i->parent = dir; dir->nlink++; }
     int r = dir_add(dir, name, i);
     if (r) { iput(i); return r; }
@@ -154,6 +155,7 @@ static int t_unlink(struct inode *dir, const char *name, bool rmdir) {
 static int t_symlink(struct inode *dir, const char *name, const char *target) {
     struct inode *i = tmpfs_new(S_IFLNK | 0777, 0);
     if (!i) return -ENOMEM;
+    inode_init_owner(i, dir);
     i->priv = strdup(target);
     i->size = strlen(target);
     int r = dir_add(dir, name, i);

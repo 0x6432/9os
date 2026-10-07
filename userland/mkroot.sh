@@ -44,4 +44,7 @@ fi
 # ports (userland/build-ports.sh) install under build/ports-root-$ARCH
 [ -d "$TOP/build/ports-root-$ARCH/usr" ] && cp -a "$TOP/build/ports-root-$ARCH/usr/bin" "$TOP/build/ports-root-$ARCH/usr/lib" usr/ 2>/dev/null || true
 cp -r "$TOP/skel/." "$R/"
+# M31: busybox is setuid root (it drops privileges except for su/passwd/login/ping...)
+chmod 4755 bin/busybox
+chmod 640 etc/shadow
 echo "root populated: $(find . -type f | wc -l) files, $(du -sk . | cut -f1) KiB"

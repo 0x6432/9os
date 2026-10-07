@@ -109,6 +109,7 @@ struct process *process_create_init(const char *path) {
     p->cwd = vfs_root; iget(vfs_root);
     p->mm = mm_create();
     strlcpy(p->name, "init", sizeof p->name);
+    p->cred = cred_get(&init_cred);
     t->proc = p;
     list_add_tail(&p->threads, &t->proc_node);
     init_proc = p;
@@ -131,7 +132,7 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
         p->pgid = parent->pgid; p->sid = parent->sid;
         p->ctty = parent->ctty;
         p->umask = parent->umask;
-        p->uid = parent->uid; p->gid = parent->gid; p->euid = parent->euid; p->egid = parent->egid;
+        p->cred = cred_get(current->cred);
         strlcpy(p->name, parent->name, sizeof p->name);
         if (parent->cmdline) { p->cmdline = kmalloc(parent->cmdline_len + 1); memcpy(p->cmdline, parent->cmdline, parent->cmdline_len); p->cmdline_len = parent->cmdline_len; }
         if (parent->exe) p->exe = strdup(parent->exe);
@@ -140,7 +141,7 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
         if (flags & CLONE_VM) { p->mm = parent->mm; __atomic_add_fetch(&p->mm->refcount, 1, __ATOMIC_RELAXED); }
         else {
             p->mm = mm_clone(parent->mm);
-            if (!p->mm) { list_del(&p->all_node); kfree(p); thread_free(t); return -ENOMEM; }
+            if (!p->mm) { list_del(&p->all_node); cred_put(p->cred); kfree(p); thread_free(t); return -ENOMEM; }
         }
         {   /* sibling threads may close/dup without the BKL */
             uint64_t fl = spin_lock_irqsave(&parent->fd_lock);
@@ -281,6 +282,7 @@ int64_t do_wait(int pid, int *ustatus, int options, int *out_pid) {
                 list_del(&c->sibling);
                 list_del(&c->all_node);
                 kfree(c->cmdline); kfree(c->exe);
+                cred_put(c->cred);
                 kfree(c);
                 ret = cpid;
                 if (ustatus && copy_to_user(ustatus, &status, sizeof status)) ret = -EFAULT;

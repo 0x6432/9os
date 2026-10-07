@@ -19,6 +19,7 @@
 #include <kernel/errno.h>
 #include <kernel/irq.h>
 #include <kernel/process.h>
+#include <kernel/cred.h>
 #include <kernel/spinlock.h>
 
 #if !defined(CONFIG_SCHED_RR) && !defined(CONFIG_SCHED_MLFQ)
@@ -410,6 +411,7 @@ struct thread *thread_alloc(const char *name) {
     t->bkl_saved = 1;        /* new threads take the BKL in sched_finish_switch() before running */
     t->cpu = this_cpu();
     t->affinity = current ? current->affinity : ~0ULL;
+    cred_thread_init(t, current);
     if (current) { t->nice = current->nice; t->policy = current->policy; t->rt_prio = current->rt_prio; }
     t->quantum = quantum_for(t);
     if (!t->affinity) t->affinity = ~0ULL;
@@ -436,6 +438,8 @@ struct thread *thread_create(const char *name, void (*fn)(void *), void *arg) {
     next_tid = saved;
     if (!t) return nullptr;
     t->tid = next_ktid++;
+    cred_thread_free(t);                  /* kernel threads act as the kernel, whoever spawned them */
+    cred_thread_init(t, nullptr);
     arch_thread_init(t, fn, arg);
     thread_start(t);
     return t;
@@ -443,6 +447,7 @@ struct thread *thread_create(const char *name, void (*fn)(void *), void *arg) {
 
 void thread_free(struct thread *t) {
     list_del(&t->all_node);
+    cred_thread_free(t);
     pmm_free_pages(VIRT_TO_PHYS(t->kstack), KSTACK_ORDER);
     kmem_cache_free(thread_cache, t);
 }

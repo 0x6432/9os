@@ -9,6 +9,7 @@
  * Blocking uses the global poll_wq like pipes/poll (see the locking notes below).
  */
 #include <kernel/vfs.h>
+#include <kernel/cred.h>
 #include <kernel/syscall.h>
 #include <kernel/kmalloc.h>
 #include <kernel/string.h>
@@ -98,7 +99,8 @@ static struct usock *usock_new(int type) {
     if (!s) return nullptr;
     s->type = type;
     list_init(&s->rxq); list_init(&s->backlog);
-    s->cred = (struct ucred_k){ curproc ? curproc->pid : 0, curproc ? curproc->uid : 0, curproc ? curproc->gid : 0 };
+    const struct cred *c = current_cred();      /* SO_PEERCRED/SCM_CREDENTIALS: effective ids */
+    s->cred = (struct ucred_k){ curproc ? curproc->pid : 0, c->euid, c->egid };
     return s;
 }
 
@@ -203,6 +205,8 @@ static int name_inode(const struct sockaddr_un_k *a, int len, struct inode **ino
     if (took) bkl_enter();
     int r = vfs_lookup(a->path, true, ino);
     if (!r && !S_ISSOCK((*ino)->mode)) { iput(*ino); *ino = nullptr; r = -ECONNREFUSED; }
+    if (!r && (r = inode_permission(*ino, MAY_WRITE)) == -EROFS) r = 0;   /* connecting = writing */
+    if (r && *ino) { iput(*ino); *ino = nullptr; }
     if (took) bkl_exit();
     return r;
 }

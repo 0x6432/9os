@@ -133,7 +133,9 @@ static void ptm_release(struct file *f) {
     wake_up(&p->t.rq);
     if (p->t.pgrp > 0) signal_send_pgrp(p->t.pgrp, SIGHUP);
     char path[32]; snprintf(path, sizeof path, "/dev/pts/%d", p->index);
+    struct cred *oc = cred_override(&init_cred);     /* the kernel removes the node */
     vfs_unlink_at(nullptr, path, false);
+    cred_revert(oc);
     poll_notify();
     pty_maybe_free(p);
 }
@@ -153,7 +155,13 @@ static int ptm_open(struct inode *ino, struct file *f) {
     ptys[idx] = p;
     f->priv = p;
     char path[32]; snprintf(path, sizeof path, "/dev/pts/%d", idx);
+    /* M31: the node is made by the kernel, owned by the opener, group tty (5), mode 0620 */
+    uint32_t owner = current_cred()->fsuid;
+    struct cred *oc = cred_override(&init_cred);
     vfs_mknod_at(nullptr, path, S_IFCHR | 0620, MKDEV(136, idx));
+    struct inode *n;
+    if (!vfs_lookup(path, false, &n)) { n->uid = owner; n->gid = 5; n->mode = S_IFCHR | 0620; iput(n); }
+    cred_revert(oc);
     return 0;
 }
 static const struct file_ops ptmx_ops = {

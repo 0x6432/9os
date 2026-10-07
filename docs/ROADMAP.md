@@ -64,7 +64,7 @@ NUMA, cgroups v2 controllers, eBPF, live patching, hundreds of real-hardware dri
 | M28 ✅ | **Interrupt-driven I/O** | PLIC (riscv) and GICv2/v3 (aarch64) for virtio + UART input, MSI-X on x86, threaded IRQ handlers; drop the polling kthreads | lower latency, less CPU |
 | M29 ✅ | **Block layer + virtio-blk** | bio/request queue, buffer cache, partition table (GPT/MBR), virtio-blk (PCI; mmio dropped — every target machine has PCIe) | storage |
 | M30 ✅ | **ext2 + unified page cache** | ext2 read/write, page cache for every fs with write-back, `fsync`, root on disk (`root=/dev/vda1`), dentry/inode caches with negative entries | persistence, git, package installs |
-| M31 | **Users and permissions** | uid/gid checks in VFS, `setuid` exec, capabilities subset, `/etc/passwd` login (`getty` + `login`), umask | multi-user, sane daemons |
+| M31 ✅ | **Users and permissions** | uid/gid checks in VFS, `setuid` exec, capabilities subset, `/etc/passwd` login (`getty` + `login`), umask | multi-user, sane daemons |
 | M32 | **Networking** | virtio-net, lwIP port (or own IPv4/TCP/UDP/ARP/ICMP/DHCP), `AF_INET` sockets, loopback, `/etc/resolv.conf` | ping, curl, wget, ssh |
 | M33 | **ptrace + POSIX timers** | `ptrace` (gdb, strace), `timer_create`, robust futexes, `clone3` extras, `waitid`, file locks (`flock`, `fcntl` locks), xattrs on tmpfs/ext2 | debugging, toolkits |
 | M34 | **sysfs + uevents** | `/sys/class`, `/sys/devices`, `/sys/dev/char`, netlink `NETLINK_KOBJECT_UEVENT`, a static udev db shim | libinput, wlroots, KDE |

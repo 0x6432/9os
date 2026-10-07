@@ -16,6 +16,7 @@ int64_t sys_arch_prctl_wrap();
 int64_t sys_bind();
 int64_t sys_brk();
 int64_t sys_capget();
+int64_t sys_capset();
 int64_t sys_chdir();
 int64_t sys_chmod();
 int64_t sys_chown();
@@ -23,6 +24,7 @@ int64_t sys_chroot();
 int64_t sys_clock_getres();
 int64_t sys_clock_gettime();
 int64_t sys_clock_nanosleep();
+int64_t sys_clock_settime();
 int64_t sys_clone();
 int64_t sys_close();
 int64_t sys_close_range();
@@ -398,7 +400,7 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_capget] = (syscall_fn)sys_capget,
 #endif
 #ifdef __NR_capset
-    [__NR_capset] = (syscall_fn)sys_zero,
+    [__NR_capset] = (syscall_fn)sys_capset,
 #endif
 #ifdef __NR_personality
     [__NR_personality] = (syscall_fn)sys_personality,
@@ -434,7 +436,7 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_setitimer] = (syscall_fn)sys_setitimer,
 #endif
 #ifdef __NR_clock_settime
-    [__NR_clock_settime] = (syscall_fn)sys_zero,
+    [__NR_clock_settime] = (syscall_fn)sys_clock_settime,
 #endif
 #ifdef __NR_clock_gettime
     [__NR_clock_gettime] = (syscall_fn)sys_clock_gettime,

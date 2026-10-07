@@ -15,6 +15,7 @@ xorriso, cpio, make, git, and QEMU for testing.
 ./scripts/fetch-deps.sh     # Limine binaries + uACPI
 make iso                    # build/x86_64/9os.iso
 make run                    # boot in QEMU (serial on stdio)
+                             # log in as root (no password) or user / 9os
 ```
 
 See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [docs/HANDOFF.md](docs/HANDOFF.md) for the current state.

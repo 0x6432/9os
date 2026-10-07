@@ -55,6 +55,8 @@ static const struct lock_class icache_class = { "icache", LR_ICACHE, false };
 
 void inode_init(struct inode *i, uint32_t mode) {
     i->mode = mode;
+    i->uid = current_cred()->fsuid;      /* pipes, sockets, anonymous files: the creator */
+    i->gid = current_cred()->fsgid;
     i->refcount = 1;
     i->atime = i->mtime = i->ctime = now_timespec();
     list_init(&i->i_mmap);
@@ -273,6 +275,103 @@ static void dcache_purge(struct inode *dir, struct super_block *sb) {
 static int walk(struct inode *base, const char *path, bool follow_last, int depth, struct inode **out);
 static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size);
 
+/* ------------------------------------------------------------------ permissions (M31) */
+int cred_inode_permission(const struct cred *c, struct inode *i, int mask) {
+    mask &= MAY_READ | MAY_WRITE | MAY_EXEC;
+    uint32_t m = i->mode, bits;
+    if ((mask & MAY_WRITE) && i->sb && (i->sb->flags & SB_RDONLY) && (S_ISREG(m) || S_ISDIR(m) || S_ISLNK(m)))
+        return -EROFS;
+    if (c->fsuid == i->uid) bits = m >> 6;
+    else if (in_group(c, i->gid)) bits = m >> 3;
+    else bits = m;
+    if ((bits & mask & 7) == (unsigned)mask) return 0;
+    if (S_ISDIR(m)) {
+        if (!(mask & MAY_WRITE) && cred_capable(c, CAP_DAC_READ_SEARCH)) return 0;
+        if (cred_capable(c, CAP_DAC_OVERRIDE)) return 0;
+    } else {
+        if (mask == MAY_READ && cred_capable(c, CAP_DAC_READ_SEARCH)) return 0;
+        /* root may execute only what somebody may execute */
+        if ((!(mask & MAY_EXEC) || (m & 0111)) && cred_capable(c, CAP_DAC_OVERRIDE)) return 0;
+    }
+    return -EACCES;
+}
+
+int inode_permission(struct inode *i, int mask) { return cred_inode_permission(current_cred(), i, mask); }
+
+bool inode_owner_or_capable(struct inode *i) {
+    const struct cred *c = current_cred();
+    return c->fsuid == i->uid || cred_capable(c, CAP_FOWNER);
+}
+
+void inode_init_owner(struct inode *i, struct inode *dir) {
+    const struct cred *c = current_cred();
+    i->uid = c->fsuid;
+    if (dir && (dir->mode & S_ISGID)) {          /* BSD group semantics for setgid directories */
+        i->gid = dir->gid;
+        if (S_ISDIR(i->mode)) i->mode |= S_ISGID;
+    } else i->gid = c->fsgid;
+    if (!S_ISDIR(i->mode) && (i->mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP) &&
+        !in_group(c, i->gid) && !cred_capable(c, CAP_FSETID))
+        i->mode &= ~S_ISGID;
+}
+
+void file_remove_privs(struct file *f) {
+    struct inode *i = f->inode;
+    uint32_t m = __atomic_load_n(&i->mode, __ATOMIC_RELAXED);
+    if (!S_ISREG(m) || !((m & S_ISUID) || (m & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP))) return;
+    if (capable(CAP_FSETID)) return;
+    uint32_t nm = m & ~S_ISUID;
+    if ((m & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) nm &= ~S_ISGID;
+    __atomic_compare_exchange_n(&i->mode, &m, nm, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED);
+    mark_inode_dirty(i);
+}
+
+int vfs_setattr_mode(struct inode *i, uint32_t mode) {
+    if (i->sb && (i->sb->flags & SB_RDONLY)) return -EROFS;
+    if (!inode_owner_or_capable(i)) return -EPERM;
+    const struct cred *c = current_cred();
+    mode &= 07777;
+    if ((mode & S_ISGID) && !in_group(c, i->gid) && !cred_capable(c, CAP_FSETID)) mode &= ~S_ISGID;
+    i->mode = (i->mode & S_IFMT) | mode;
+    i->ctime = now_timespec();
+    mark_inode_dirty(i);
+    return 0;
+}
+
+int vfs_setattr_owner(struct inode *i, uint32_t uid, uint32_t gid) {
+    if (i->sb && (i->sb->flags & SB_RDONLY)) return -EROFS;
+    const struct cred *c = current_cred();
+    bool cap = cred_capable(c, CAP_CHOWN);
+    if (uid != (uint32_t)-1 && uid != i->uid && !cap) return -EPERM;
+    if (uid != (uint32_t)-1 && uid == i->uid && c->fsuid != i->uid && !cap) return -EPERM;
+    if (gid != (uint32_t)-1 && gid != i->gid && !cap && (c->fsuid != i->uid || !in_group(c, gid))) return -EPERM;
+    if (gid != (uint32_t)-1 && gid == i->gid && c->fsuid != i->uid && !cap) return -EPERM;
+    if (uid == (uint32_t)-1 && gid == (uint32_t)-1) return 0;
+    if (uid != (uint32_t)-1) i->uid = uid;
+    if (gid != (uint32_t)-1) i->gid = gid;
+    if (!S_ISDIR(i->mode)) {
+        i->mode &= ~S_ISUID;
+        if ((i->mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) i->mode &= ~S_ISGID;
+    }
+    i->ctime = now_timespec();
+    mark_inode_dirty(i);
+    return 0;
+}
+
+static int may_create(struct inode *dir) { return inode_permission(dir, MAY_WRITE | MAY_EXEC); }
+
+/* unlink/rmdir/rename-away of victim from dir: W+X on dir, and the sticky-bit rule */
+static int may_delete(struct inode *dir, struct inode *victim) {
+    int r = inode_permission(dir, MAY_WRITE | MAY_EXEC);
+    if (r) return r;
+    if (victim && (dir->mode & S_ISVTX)) {
+        const struct cred *c = current_cred();
+        if (c->fsuid != victim->uid && c->fsuid != dir->uid && !cred_capable(c, CAP_FOWNER)) return -EPERM;
+    }
+    if (victim && (victim->mounted || victim->covered)) return -EBUSY;
+    return 0;
+}
+
 static int lookup_child(struct inode *dir, const char *name, struct inode **out) {
     if (!S_ISDIR(dir->mode)) return -ENOTDIR;
     if (!strcmp(name, ".")) { iget(dir); *out = dir; return 0; }
@@ -313,7 +412,8 @@ static int walk(struct inode *base, const char *path, bool follow_last, int dept
         bool last = true;
         for (const char *q = e; *q; q++) if (*q != '/') { last = false; break; }
         struct inode *child;
-        int r = lookup_child(cur, name, &child);
+        int r = S_ISDIR(cur->mode) ? inode_permission(cur, MAY_EXEC) : -ENOTDIR;
+        if (!r) r = lookup_child(cur, name, &child);
         if (r) { iput(cur); return r; }
         if (S_ISLNK(child->mode) && (!last || follow_last || *e == '/') && child->iops->follow_link) {
             struct inode *res;
@@ -384,12 +484,15 @@ struct file *file_open_inode(struct inode *ino, int flags) {
 static int open_prepare(struct inode *base, const char *path, int flags, uint32_t mode, struct file **out) {
     struct inode *ino;
     int r = walk(base, path, !(flags & O_NOFOLLOW), 0, &ino);
+    bool created = false;
     if (r == -ENOENT && (flags & O_CREAT)) {
         struct inode *dir; char last[256];
         r = vfs_lookup_parent_at_l(base, path, &dir, last);
         if (r) return r;
         uint32_t um = curproc ? curproc->umask : 022;
         if (!dir->iops->create) { iput(dir); return -EROFS; }
+        if ((r = may_create(dir))) { iput(dir); return r; }
+        created = true;
         r = dir->iops->create(dir, last, S_IFREG | (mode & 07777 & ~um), 0, &ino);
         dcache_forget(dir, last);
         if (!r) fsnotify_dirent(dir, last, IN_CREATE, false, 0);
@@ -404,6 +507,16 @@ static int open_prepare(struct inode *base, const char *path, int flags, uint32_
     if (S_ISLNK(ino->mode) && (flags & O_NOFOLLOW) && !(flags & O_PATH)) { iput(ino); return -ELOOP; }
     if ((flags & O_DIRECTORY) && !S_ISDIR(ino->mode)) { iput(ino); return -ENOTDIR; }
     if (S_ISDIR(ino->mode) && (flags & O_ACCMODE) != O_RDONLY) { iput(ino); return -EISDIR; }
+    if (!created && !(flags & O_PATH)) {        /* M31: the creator may use what it just made */
+        int acc = flags & O_ACCMODE;
+        int mask = (acc == O_RDONLY || acc == O_RDWR ? MAY_READ : 0) | (acc == O_WRONLY || acc == O_RDWR ? MAY_WRITE : 0);
+        if ((flags & O_TRUNC) && S_ISREG(ino->mode)) mask |= MAY_WRITE;
+        if (acc == 3) mask = MAY_READ | MAY_WRITE;               /* Linux: 3 = ioctl-only, needs both */
+        if (mask && (r = inode_permission(ino, mask))) {
+            /* writes to device nodes/FIFOs on a read-only fs are fine */
+            if (!(r == -EROFS && !S_ISREG(ino->mode) && !S_ISDIR(ino->mode))) { iput(ino); return r; }
+        }
+    }
     if ((flags & O_TRUNC) && S_ISREG(ino->mode) && (flags & O_ACCMODE) != O_RDONLY && ino->iops->truncate)
         ino->iops->truncate(ino, 0);
     struct file *f = file_open_inode(ino, flags);
@@ -476,6 +589,7 @@ ssize_t vfs_read(struct file *f, void *buf, size_t n) {
 ssize_t vfs_write(struct file *f, const void *buf, size_t n) {
     if ((f->flags & O_ACCMODE) == O_RDONLY || (f->flags & O_PATH)) return -EBADF;
     if (!f->fops || !f->fops->write) return -EINVAL;
+    if (S_ISREG(f->inode->mode)) file_remove_privs(f);
     if ((f->flags & O_APPEND) && S_ISREG(f->inode->mode)) f->pos = f->inode->size;
     ssize_t r = f->fops->write(f, buf, n, &f->pos);
     if (r > 0 && S_ISREG(f->inode->mode)) fsnotify_file(f, IN_MODIFY_);
@@ -494,6 +608,8 @@ static int vfs_mknod_at_l(struct inode *base, const char *path, uint32_t mode, u
     if (!dir->iops->create) { iput(dir); return -EROFS; }
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); iput(dir); return -EEXIST; }
+    if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD)) { iput(dir); return -EPERM; }
+    if ((r = may_create(dir))) { iput(dir); return r; }
     r = dir->iops->create(dir, last, mode, rdev, &ino);
     dcache_forget(dir, last);
     if (!r) { fsnotify_dirent(dir, last, IN_CREATE, S_ISDIR(mode), 0); iput(ino); }
@@ -512,7 +628,9 @@ static int vfs_unlink_at_l(struct inode *base, const char *path, bool rmdir) {
     if (r) return r;
     if (!strcmp(last, ".") || !strcmp(last, "..")) { iput(dir); return rmdir ? -EINVAL : -EISDIR; }
     struct inode *victim = nullptr;
-    if ((fsnotify_nwatches || (rmdir && dir->sb)) && lookup_child(dir, last, &victim)) victim = nullptr;
+    if (lookup_child(dir, last, &victim)) victim = nullptr;
+    if (victim && (r = may_delete(dir, victim))) { iput(victim); iput(dir); return r; }
+    if (!victim && (r = inode_permission(dir, MAY_WRITE | MAY_EXEC))) { iput(dir); return r; }
     dcache_forget(dir, last);
     if (victim && rmdir && dir->sb) dcache_purge(victim, nullptr);
     r = dir->iops->unlink ? dir->iops->unlink(dir, last, rmdir) : -EROFS;
@@ -531,11 +649,19 @@ static int vfs_symlink_at_l(struct inode *base, const char *target, const char *
     if (r) return r;
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); iput(dir); return -EEXIST; }
+    if ((r = may_create(dir))) { iput(dir); return r; }
     r = dir->iops->symlink ? dir->iops->symlink(dir, last, target) : -EROFS;
     dcache_forget(dir, last);
     if (!r) fsnotify_dirent(dir, last, IN_CREATE, false, 0);
     iput(dir);
     return r;
+}
+
+/* protected_hardlinks (Linux default on distros): only link what you own or could read+write */
+static int may_link(struct inode *src) {
+    if (inode_owner_or_capable(src)) return 0;
+    if (!S_ISREG(src->mode) || (src->mode & S_ISUID) || (src->mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) return -EPERM;
+    return inode_permission(src, MAY_READ | MAY_WRITE) ? -EPERM : 0;
 }
 
 static int vfs_link_at_l(struct inode *ob, const char *opath, struct inode *nb, const char *npath, bool follow) {
@@ -548,6 +674,7 @@ static int vfs_link_at_l(struct inode *ob, const char *opath, struct inode *nb, 
     if (r) { iput(src); return r; }
     struct inode *ex;
     if (!lookup_child(dir, last, &ex)) { iput(ex); r = -EEXIST; }
+    else if ((r = may_create(dir)) || (r = may_link(src))) {}
     else r = dir->iops->link ? dir->iops->link(dir, last, src) : -EPERM;
     dcache_forget(dir, last);
     if (!r) { fsnotify_dirent(dir, last, IN_CREATE, false, 0); fsnotify_inode(src, IN_ATTRIB); }
@@ -561,9 +688,16 @@ static int vfs_rename_at_l(struct inode *ob, const char *opath, struct inode *nb
     if (r) return r;
     r = vfs_lookup_parent_at_l(nb, npath, &nd, nl);
     if (r) { iput(od); return r; }
-    struct inode *moved = nullptr;
-    if (fsnotify_nwatches && lookup_child(od, ol, &moved)) moved = nullptr;
-    if (od->iops != nd->iops || od->sb != nd->sb) r = -EXDEV;
+    struct inode *moved = nullptr, *tgt = nullptr;
+    if (lookup_child(od, ol, &moved)) moved = nullptr;
+    if (!moved) r = -ENOENT;
+    else if (od->iops != nd->iops || od->sb != nd->sb) r = -EXDEV;
+    else if ((r = may_delete(od, moved))) {}
+    else if (!lookup_child(nd, nl, &tgt) && tgt != moved && (r = may_delete(nd, tgt))) {}
+    else if (!tgt && (r = may_create(nd))) {}
+    else if (S_ISDIR(moved->mode) && nd != od && (r = inode_permission(moved, MAY_WRITE))) {}   /* ".." changes */
+    if (tgt) { iput(tgt); tgt = nullptr; }
+    if (r) {}
     else {
         if (od->sb) {
             struct inode *t;
@@ -573,7 +707,7 @@ static int vfs_rename_at_l(struct inode *ob, const char *opath, struct inode *nb
         r = od->iops->rename ? od->iops->rename(od, ol, nd, nl) : -EROFS;
         dcache_forget(od, ol); dcache_forget(nd, nl);
     }
-    if (!r && moved) {
+    if (!r && moved && fsnotify_nwatches) {
         uint32_t ck = fsnotify_cookie();
         bool d = S_ISDIR(moved->mode);
         fsnotify_dirent(od, ol, IN_MOVED_FROM, d, ck);

@@ -14,9 +14,14 @@ printf 'label: gpt\nstart=2048, size=%d, type=0FC63DAF-8483-4772-8E79-3D69D8477D
 truncate -s "$(( mb - 2 ))M" "$out.part"
 # plain ext2 (no htree, no resize inode): the feature set 9os implements
 mke2fs -q -F -t ext2 -b "$bs" -O ^dir_index,^resize_inode -E root_owner=0:0 ${dir:+-d "$dir"} "$out.part"
-if [ -n "$dir" ]; then
-    # mke2fs -d keeps host ownership; the image is a root filesystem
-    : 
+if [ -n "$dir" ] && [ "$(id -u)" != 0 ]; then
+    # mke2fs -d keeps host ownership (the builder's uid); the image is a root filesystem: root:root
+    command -v debugfs >/dev/null || PATH=$PATH:/usr/sbin:/sbin
+    (cd "$dir" && find . -mindepth 1 | sed 's|^\.||') | while IFS= read -r f; do
+        printf 'sif "%s" uid 0\nsif "%s" gid 0\n' "$f" "$f"
+    done > "$out.dbg"
+    debugfs -w -f "$out.dbg" "$out.part" >/dev/null 2>&1
+    rm -f "$out.dbg"
 fi
 dd if="$out.part" of="$out" bs=1M seek=1 conv=notrunc,sparse status=none
 rm -f "$out.part"

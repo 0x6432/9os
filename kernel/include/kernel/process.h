@@ -4,6 +4,7 @@
 #include <kernel/spinlock.h>
 #include <kernel/sched.h>
 #include <kernel/signal.h>
+#include <kernel/cred.h>
 
 #define MAX_FDS 256
 
@@ -32,7 +33,7 @@ struct process {
     struct inode *cwd;
     struct inode *root;
     uint32_t umask;
-    uint32_t uid, gid, euid, egid;
+    struct cred *cred;                /* objective credentials (M31): what kill/proc/peers see */
     struct k_sigaction sigactions[NSIG];
     uint64_t sig_pending;
     struct tty *ctty;

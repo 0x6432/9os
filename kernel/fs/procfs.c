@@ -3,6 +3,7 @@
 #include <kernel/mutex.h>
 /* procfs: process and system information (enough for BusyBox ps/top/free/mount). */
 #include <kernel/vfs.h>
+#include <kernel/cred.h>
 int blk_proc_partitions(char *buf, size_t max);
 int blk_proc_diskstats(char *buf, size_t max);
 #include <kernel/process.h>
@@ -51,6 +52,13 @@ static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum 
     i->fops = S_ISDIR(mode) ? &proc_dir_fops : &proc_file_fops;
     i->dev = 3;
     i->ino = (kind == P_ROOT) ? 1 : ((uint64_t)pid << 16) | (kind << 8) | (file + fd + 1);
+    i->uid = i->gid = 0;
+    struct process *p = pid > 0 ? process_find(pid) : nullptr;
+    if (p) {                              /* M31: /proc/<pid> belongs to the process's euid/egid */
+        struct cred *c = proc_cred(p);
+        i->uid = c->euid; i->gid = c->egid;
+        cred_put(c);
+    }
     return i;
 }
 
@@ -85,7 +93,7 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
         if (!strcmp(name, "cwd")) { *out = pnew(S_IFLNK | 0777, P_CWD, pi->pid, 0, 0); return 0; }
         if (!strcmp(name, "exe")) { *out = pnew(S_IFLNK | 0777, P_EXE, pi->pid, 0, 0); return 0; }
         for (size_t k = 0; k < ARRAY_SIZE(pid_files); k++)
-            if (!strcmp(name, pid_files[k].name)) { *out = pnew(S_IFREG | 0444, P_FILE, pi->pid, 0, pid_files[k].f); return 0; }
+            if (!strcmp(name, pid_files[k].name)) { *out = pnew(S_IFREG | (pid_files[k].f == F_ENVIRON ? 0400 : 0444), P_FILE, pi->pid, 0, pid_files[k].f); return 0; }
         return -ENOENT;
     }
     if (pi->kind == P_FDDIR) {
@@ -109,6 +117,17 @@ static struct file *proc_fd_ref(struct process *p, int fd) {
     return f;
 }
 
+/* M31: cwd/exe/fd links of another user's process need CAP_SYS_PTRACE (ptrace_may_access-lite) */
+static bool proc_may_peek(struct process *p) {
+    if (p == curproc || capable(CAP_SYS_PTRACE)) return true;
+    const struct cred *c = current_cred();
+    struct cred *t = proc_cred(p);
+    bool ok = c->uid == t->uid && c->uid == t->euid && c->uid == t->suid &&
+              c->gid == t->gid && c->gid == t->egid && c->gid == t->sgid;
+    cred_put(t);
+    return ok;
+}
+
 static int p_follow(struct inode *i, struct inode **out) {
     struct pinfo *pi = i->priv;
     if (pi->kind == P_SELF) {
@@ -118,6 +137,7 @@ static int p_follow(struct inode *i, struct inode **out) {
     }
     struct process *p = process_find(pi->pid);
     if (!p) return -ENOENT;
+    if (!proc_may_peek(p)) return -EACCES;
     if (pi->kind == P_FD) {
         struct file *f = proc_fd_ref(p, pi->fd);
         if (!f) return -ENOENT;
@@ -138,6 +158,7 @@ static int p_readlink(struct inode *i, char *buf, size_t size) {
     else {
         struct process *p = process_find(pi->pid);
         if (!p) return -ENOENT;
+        if (!proc_may_peek(p)) return -EACCES;
         if (pi->kind == P_FD) {
             struct file *f = proc_fd_ref(p, pi->fd);
             if (!f) return -ENOENT;
@@ -344,13 +365,16 @@ static void gen(struct pinfo *pi, struct buf *b) {
                 p->utime_ns / 10000000, p->stime_ns / 10000000, p->cutime_ns / 10000000, p->cstime_ns / 10000000,
                 main_prio(p), main_nice(p), nthreads(p), p->start_ticks / 10, vm_size(p), vm_rss(p));
         break;
-    case F_STATUS:
-        bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nUid:\t%u\t%u\t%u\t%u\nGid:\t%u\t%u\t%u\t%u\nVmSize:\t%8lu kB\nVmLck:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
+    case F_STATUS: {
+        char credbuf[1024];
+        cred_proc_status(p, credbuf, sizeof credbuf);
+        bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\n%sVmSize:\t%8lu kB\nVmLck:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
                    "voluntary_ctxt_switches:\t%lu\nnonvoluntary_ctxt_switches:\t%lu\n",
                 p->name, pstate(p), p->pid, p->pid, p->parent ? p->parent->pid : 0,
-                p->uid, p->euid, p->euid, p->euid, p->gid, p->egid, p->egid, p->egid, vm_size(p) >> 10, p->mm ? p->mm->locked_vm >> 10 : 0, vm_rss(p) * (PAGE_SIZE / 1024),
+                credbuf, vm_size(p) >> 10, p->mm ? p->mm->locked_vm >> 10 : 0, vm_rss(p) * (PAGE_SIZE / 1024),
                 nthreads(p), p->nvcsw, p->nivcsw);
         break;
+    }
     case F_CMDLINE:
         if (p->cmdline && p->cmdline_len) {
             b->data = kmalloc(p->cmdline_len);

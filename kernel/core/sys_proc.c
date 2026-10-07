@@ -114,29 +114,6 @@ int64_t sys_waitid(int idtype, int id, void *uinfo, int options, void *ru) {
 int64_t sys_getpid(void) { return curproc->pid; }
 int64_t sys_gettid(void) { return current->tid; }
 int64_t sys_getppid(void) { return curproc->parent ? curproc->parent->pid : 0; }
-int64_t sys_getuid(void) { return curproc->uid; }
-int64_t sys_geteuid(void) { return curproc->euid; }
-int64_t sys_getgid(void) { return curproc->gid; }
-int64_t sys_getegid(void) { return curproc->egid; }
-int64_t sys_setuid(uint32_t u) { curproc->uid = curproc->euid = u; return 0; }
-int64_t sys_setgid(uint32_t g) { curproc->gid = curproc->egid = g; return 0; }
-int64_t sys_setreuid(uint32_t r, uint32_t e) { if (r != (uint32_t)-1) curproc->uid = r; if (e != (uint32_t)-1) curproc->euid = e; return 0; }
-int64_t sys_setregid(uint32_t r, uint32_t e) { if (r != (uint32_t)-1) curproc->gid = r; if (e != (uint32_t)-1) curproc->egid = e; return 0; }
-int64_t sys_setresuid(uint32_t r, uint32_t e, uint32_t s) { return sys_setreuid(r, e); }
-int64_t sys_setresgid(uint32_t r, uint32_t e, uint32_t s) { return sys_setregid(r, e); }
-int64_t sys_getresuid(uint32_t *r, uint32_t *e, uint32_t *s) {
-    if (copy_to_user(r, &curproc->uid, 4) || copy_to_user(e, &curproc->euid, 4) || copy_to_user(s, &curproc->euid, 4)) return -EFAULT;
-    return 0;
-}
-int64_t sys_getresgid(uint32_t *r, uint32_t *e, uint32_t *s) {
-    if (copy_to_user(r, &curproc->gid, 4) || copy_to_user(e, &curproc->egid, 4) || copy_to_user(s, &curproc->egid, 4)) return -EFAULT;
-    return 0;
-}
-int64_t sys_getgroups(int size, uint32_t *list) { return 0; }
-int64_t sys_setgroups(int size, const uint32_t *list) { return 0; }
-int64_t sys_setfsuid(uint32_t u) { return curproc->euid; }
-int64_t sys_setfsgid(uint32_t g) { return curproc->egid; }
-
 int64_t sys_setpgid(int pid, int pgid) {
     struct process *p = pid ? process_find(pid) : curproc;
     if (!p) return -ESRCH;
@@ -185,6 +162,7 @@ int64_t sys_uname(struct utsname *u) {
     return copy_to_user(u, &k, sizeof k);
 }
 int64_t sys_sethostname(const char *name, size_t len) {
+    if (!capable(CAP_SYS_ADMIN)) return -EPERM;
     if (len > 64) return -EINVAL;
     char k[65] = {0};
     if (copy_from_user(k, name, len)) return -EFAULT;
@@ -323,10 +301,28 @@ int64_t sys_prctl(int opt, uint64_t a2) {
         return 0;
     }
     if (opt == 16) return copy_to_user((void *)a2, current->name, 16);   /* PR_GET_NAME */
-    return -EINVAL;
+    extern int64_t cred_prctl(int opt, uint64_t a2);
+    int64_t r = cred_prctl(opt, a2);
+    return r == -ENOSYS ? -EINVAL : r;
 }
 int64_t sys_personality(uint64_t p) { return 0; }
-int64_t sys_capget(void *h, void *d) { if (d) { uint32_t c[6] = { ~0u, ~0u, ~0u, ~0u, ~0u, ~0u }; copy_to_user(d, c, sizeof c); } return 0; }
+/* M31: may the caller change t's scheduling? Other users' threads need CAP_SYS_NICE, as do
+ * raising priority (lower nice; EACCES like Linux) and real-time policies (RLIMIT_RTPRIO 0). */
+static int sched_perm(struct thread *t, int policy, int rt_prio, int nice) {
+    if (capable(CAP_SYS_NICE)) return 0;
+    if (!t->proc) return -EPERM;
+    if (t->proc != curproc) {
+        const struct cred *c = current_cred();
+        struct cred *pc = proc_cred(t->proc);
+        bool ok = pc->uid == c->euid || pc->euid == c->euid;
+        cred_put(pc);
+        if (!ok) return -EPERM;
+    }
+    if ((policy == 1 || policy == 2) && (t->policy != policy || rt_prio > t->rt_prio)) return -EPERM;
+    if (nice < t->nice) return -EACCES;
+    return 0;
+}
+
 /* nice: PRIO_PROCESS applies to every thread of the process (who = pid, 0 = caller) */
 static struct process *prio_target(int which, int who) {
     if (which != 0) return nullptr;              /* PRIO_PGRP/PRIO_USER not supported */
@@ -345,6 +341,11 @@ int64_t sys_setpriority(int which, int who, int prio) {
     if (!p) return -ESRCH;
     list_for_each(it, &p->threads) {
         struct thread *t = list_entry(it, struct thread, proc_node);
+        int r = sched_perm(t, t->policy, t->rt_prio, prio < -20 ? -20 : prio);
+        if (r) return r;
+    }
+    list_for_each(it, &p->threads) {
+        struct thread *t = list_entry(it, struct thread, proc_node);
         sched_set_policy(t, t->policy, t->rt_prio, prio);
     }
     return 0;
@@ -356,6 +357,8 @@ int64_t sys_sched_setscheduler(int pid, int policy, const int *uparam) {
     if (!uparam || copy_from_user(&prio, uparam, sizeof prio)) return -EFAULT;
     struct thread *t = affinity_target(pid);
     if (!t) return -ESRCH;
+    int r = sched_perm(t, policy & ~0x40000000, prio, t->nice);
+    if (r) return r == -EACCES ? -EPERM : r;
     return sched_set_policy(t, policy & ~0x40000000, prio, t->nice);    /* ignore SCHED_RESET_ON_FORK */
 }
 int64_t sys_sched_getscheduler(int pid) {
@@ -367,6 +370,8 @@ int64_t sys_sched_setparam(int pid, const int *uparam) {
     if (!uparam || copy_from_user(&prio, uparam, sizeof prio)) return -EFAULT;
     struct thread *t = affinity_target(pid);
     if (!t) return -ESRCH;
+    int r = sched_perm(t, t->policy, prio, t->nice);
+    if (r) return r == -EACCES ? -EPERM : r;
     return sched_set_policy(t, t->policy, prio, t->nice);
 }
 int64_t sys_sched_getparam(int pid, int *uparam) {
@@ -413,6 +418,7 @@ int64_t sys_sched_setaffinity(int pid, size_t len, const uint64_t *umask) {
     if (copy_from_user(&m, umask, 8)) return -EFAULT;
     struct thread *t = affinity_target(pid);
     if (!t) return -ESRCH;
+    if (t != current && sched_perm(t, t->policy, t->rt_prio, t->nice)) return -EPERM;
     return sched_set_affinity(t, m);
 }
 int64_t sys_getcpu(unsigned *cpu, unsigned *node) {
@@ -460,7 +466,12 @@ int64_t sys_getitimer(int which, int64_t *ucur) {
     return copy_to_user(ucur, o, sizeof o);
 }
 
-int64_t sys_reboot(int m1, int m2, unsigned cmd, void *arg) {
+/* 64-bit parameters: musl passes the magic 0xfee1dead zero-extended, while riscv64 code expects
+ * 32-bit values sign-extended in registers - truncate explicitly */
+int64_t sys_reboot(uint64_t m1_, uint64_t m2_, uint64_t cmd_, void *arg) {
+    uint32_t m1 = (uint32_t)m1_, m2 = (uint32_t)m2_, cmd = (uint32_t)cmd_;
+    if (!capable(CAP_SYS_BOOT)) return -EPERM;
+    if (m1 != 0xfee1dead || (m2 != 672274793 && m2 != 85072278 && m2 != 369367448 && m2 != 537993216)) return -EINVAL;
     if (cmd == 0x4321fedc || cmd == 0xcdef0123 || cmd == 0x01234567) vfs_shutdown();   /* M30: nothing dirty is lost, disks clean */
     if (cmd == 0x4321fedc || cmd == 0xcdef0123) { pr_info("system halted\n"); acpi_poweroff(); arch_poweroff(); arch_halt_forever(); }
     if (cmd == 0x01234567) { pr_info("rebooting\n"); acpi_reboot(); arch_reboot(); arch_halt_forever(); }

@@ -20,7 +20,7 @@ fsck_img() {   # e2fsck the partition at 1 MiB
 }
 rc=0
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext2.img" --disk "$B/scratch.img" "$@" \
-    libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest \
+    libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest \
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     ${WL} drmdemo \
@@ -30,7 +30,7 @@ fsck_img "$B/ext2.img" || rc=1
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot-$ARCH.log" --disk "$B/root.img" --disk "$B/scratch.img" \
     --cmdline "root=/dev/vda1" "$@" \
     "grep -q '^/dev/vda1 / ext2 rw' /proc/mounts" "blktest -v /dev/vdb 77" \
-    libctest dyntest mapprivtest filetest vfstest vmtest "mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2" \
+    libctest dyntest mapprivtest filetest vfstest vmtest "permtest /tmp" logintest "mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2" \
     "cp -a /usr /root/usr2 && echo persist > /root/keep && sync" \
     "grep -q '^violations 0' /proc/lockdep" || rc=1
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot2-$ARCH.log" --disk "$B/root.img" \

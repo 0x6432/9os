@@ -1,4 +1,5 @@
 ::sysinit:/etc/init.d/rcS
-::respawn:-/bin/sh
+# M31: log in on the console (root has no password; "user" has password "9os")
+::respawn:/sbin/getty -L 0 console vt100
 ::ctrlaltdel:/sbin/reboot
 ::shutdown:/bin/echo "9os shutting down"

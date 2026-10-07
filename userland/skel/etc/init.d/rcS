@@ -1,8 +1,14 @@
 #!/bin/sh
 # 9os early userspace init (run by busybox init as sysinit)
 hostname -F /etc/hostname 2>/dev/null
-mkdir -p /tmp /var/log /home
+mkdir -p /tmp /var/log /home /run/user
 chmod 1777 /tmp
+chmod 755 /run /run/user 2>/dev/null
+# M31: users. The initramfs is all root-owned; hand out what belongs to others.
+chmod 640 /etc/shadow; chgrp shadow /etc/shadow
+mkdir -p /home/user && chown -R user:user /home/user && chmod 750 /home/user
+chmod 700 /root
+mkdir -p -m 700 /run/user/1000 && chown user:user /run/user/1000
 echo
 echo "Welcome to 9os!  ($(uname -m), busybox $(busybox | head -1 | cut -d' ' -f2))"
 echo

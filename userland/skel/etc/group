@@ -1,1 +1,11 @@
-root:x:0:
+root:x:0:root
+daemon:x:1:
+tty:x:5:
+disk:x:6:root
+wheel:x:10:root,user
+shadow:x:42:
+video:x:44:root,user
+input:x:97:root,user
+users:x:100:user
+nogroup:x:65534:
+user:x:1000:

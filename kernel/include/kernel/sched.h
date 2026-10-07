@@ -36,6 +36,7 @@ struct thread {
     struct list_node proc_node;    /* process thread list */
     struct list_node all_node;
     struct process *proc;
+    struct cred *cred;             /* subjective credentials (M31, kernel/cred.h) */
     bool interrupted;              /* woken by signal */
     void *wait_chan;
     int *clear_child_tid;

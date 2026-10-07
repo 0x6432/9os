@@ -3,6 +3,7 @@
 #include <kernel/input.h>
 #include <kernel/fbcon.h>
 #include <kernel/vfs.h>
+#include <kernel/cred.h>
 #include <kernel/printk.h>
 #include <kernel/process.h>
 #include <kernel/signal.h>

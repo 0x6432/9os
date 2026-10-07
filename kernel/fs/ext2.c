@@ -848,9 +848,7 @@ static int new_inode(struct inode *dir, uint32_t mode, uint64_t rdev, struct ino
     struct inode *i = &ei->v;
     inode_init(i, mode);
     i->ino = ino;
-    i->uid = curproc ? curproc->euid : 0;
-    i->gid = curproc ? curproc->egid : 0;
-    if (dir->mode & 02000) { i->gid = dir->gid; if (S_ISDIR(mode)) i->mode |= 02000; }
+    inode_init_owner(i, dir);
     i->nlink = 1;
     i->rdev = rdev;
     ei->generation = ++fs->gen;
