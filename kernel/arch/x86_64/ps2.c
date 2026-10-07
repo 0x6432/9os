@@ -23,29 +23,31 @@ static struct input_dev kbd = {
 };
 static bool ext;
 
-static void kbd_irq(struct trap_frame *f, void *ctx) {
+static int kbd_irq(void *ctx) {
+    if (!(inb(0x64) & 1)) return IRQ_NONE;
     uint8_t sc = inb(0x60);
-    irq_eoi();
-    if (sc == 0xe0) { ext = true; return; }
+    if (sc == 0xe0) { ext = true; return IRQ_HANDLED; }
     bool rel = sc & 0x80;
     sc &= 0x7f;
     unsigned code = ext ? ext_map(sc) : sc <= 0x58 ? sc : 0;
     ext = false;
-    if (!code) return;                         /* includes the fake shifts of e0 sequences */
+    if (!code) return IRQ_HANDLED;             /* includes the fake shifts of e0 sequences */
     input_event(&kbd, EV_MSC, 4 /* MSC_SCAN */, sc);
     input_event(&kbd, EV_KEY, code, !rel);
     input_sync(&kbd);
+    return IRQ_HANDLED;
 }
 
 bool serial_can_read(void);
 char serial_getc(void);
 
-static void serial_irq(struct trap_frame *f, void *ctx) {
+static int serial_irq(void *ctx) {
+    if (!serial_can_read()) return IRQ_NONE;
     while (serial_can_read()) {
         char c = serial_getc();
         tty_input(&console_tty, c);
     }
-    irq_eoi();
+    return IRQ_HANDLED;
 }
 
 void input_init(void) {
@@ -57,8 +59,8 @@ void input_init(void) {
     for (unsigned l = 0; l < 3; l++) input_set_bit(kbd.ledbit, l);
     input_register(&kbd);
     while (inb(0x64) & 1) inb(0x60);          /* drain controller */
-    irq_install(1, kbd_irq, nullptr);
-    irq_install(4, serial_irq, nullptr);
+    irq_request(1, "i8042", kbd_irq, nullptr, nullptr);
+    irq_request(4, "serial", serial_irq, nullptr, nullptr);
     outb(0x3f8 + 1, 0x01);                     /* COM1: interrupt on received data */
-    pr_info("input: ps/2 keyboard + serial console\n");
+    pr_info("input: ps/2 keyboard (irq 1) + serial console (irq 4), interrupt-driven\n");
 }

@@ -1,4 +1,4 @@
-/* riscv64 platform glue: SBI console, timer, RTC, input polling, boot entry. */
+/* riscv64 platform glue: SBI console, timer, RTC, PLIC + ns16550 console input, boot entry. */
 #include <kernel/arch.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
@@ -9,6 +9,8 @@
 #include <kernel/fdt.h>
 #include <kernel/errno.h>
 #include <kernel/sched.h>
+#include <kernel/pci.h>
+#include <kernel/cpu.h>
 #include <arch/cpu.h>
 
 void kmain(void);
@@ -74,18 +76,87 @@ void arch_timer_idle(uint64_t deadline) {
                      (delta % 1000000000) * timebase_hz / 1000000000;
     set_timer(rdtime() + MAX(ticks, 1ULL));
 }
+/* console input is polled only without a PLIC/UART interrupt (SBI getchar fallback) */
 uint64_t arch_idle_poll_ns(void) { return input_tty ? 10000000ULL : UINT64_MAX; }
 void riscv_timer_irq(void) {
     if (input_tty && this_cpu()->id == 0) for (int c; (c = sbi_getc()) >= 0;) tty_input(input_tty, (char)c);
     timer_tick();
 }
 
-/* ---- interrupt controller stubs (no PLIC driver yet: console input is polled) ---- */
-void irq_register_vector(int vector, irq_handler_t h, void *ctx) {}
-int irq_install(int gsi, irq_handler_t h, void *ctx) { return -ENODEV; }
-void irq_eoi(void) {}
+/* ---- PLIC (M28): every source is routed to the boot hart's S-mode context ---- */
+#define PLIC_NSRC 128
+static volatile uint32_t *plic;
+static unsigned plic_ctx;
+static irq_handler_t handlers[PLIC_NSRC];
+static void *handler_ctx[PLIC_NSRC];
+
+static void plic_init(void) {
+    uint64_t base = 0x0c000000;
+    if (!fdt_read_reg("plic@", &base, nullptr)) fdt_read_reg("interrupt-controller@c", &base, nullptr);
+    plic = vmm_map_mmio(base, 0x400000);
+    if (!plic) return;
+    plic_ctx = 2 * (unsigned)this_cpu()->hwid + 1;          /* QEMU virt: M then S context per hart */
+    for (unsigned i = 1; i < PLIC_NSRC; i++) plic[i] = 0;    /* priority 0 = masked */
+    for (unsigned w = 0; w < PLIC_NSRC / 32; w++) plic[(0x2000 + plic_ctx * 0x80) / 4 + w] = 0;
+    plic[(0x200000 + plic_ctx * 0x1000) / 4] = 0;            /* threshold */
+    csr_set(sie, SIE_SEIE);
+    pr_info("plic: at %lx, S-mode context %u\n", base, plic_ctx);
+}
+
+void irq_register_vector(int vector, irq_handler_t h, void *ctx) {
+    if (vector <= 0 || vector >= PLIC_NSRC) return;
+    handler_ctx[vector] = ctx;
+    handlers[vector] = h;
+}
+int irq_install(int src, irq_handler_t h, void *ctx) {
+    if (!plic) return -ENODEV;
+    if (src <= 0 || src >= PLIC_NSRC) return -EINVAL;
+    irq_register_vector(src, h, ctx);
+    plic[src] = 1;
+    plic[(0x2000 + plic_ctx * 0x80) / 4 + src / 32] |= 1u << (src % 32);
+    return src;
+}
+void irq_eoi(void) { /* completion is written by the dispatcher */ }
+/* supervisor external interrupt (BKL held) */
+void riscv_ext_irq(struct trap_frame *f) {
+    volatile uint32_t *claim = &plic[(0x200004 + plic_ctx * 0x1000) / 4];
+    for (uint32_t src; (src = *claim);) {
+        if (src < PLIC_NSRC && handlers[src]) handlers[src](f, handler_ctx[src]);
+        else printk("plic: spurious source %u\n", src);
+        *claim = src;
+    }
+}
+const char *arch_irq_chip(void) { return "PLIC"; }
+int arch_msi_alloc(irq_handler_t h, void *ctx, uint64_t *addr, uint32_t *data) { return -ENODEV; }
+/* QEMU virt: INTA..INTD of the root bus are PLIC sources 32..35, swizzled by slot */
+int arch_pci_intx_line(struct pci_dev *d) {
+    unsigned pin = pci_read8(d, 0x3d);
+    if (!plic || !pin || pin > 4 || d->bus != 0) return -1;
+    return 32 + (int)((d->dev + pin - 1) % 4);
+}
+
+/* ns16550 console UART: receive interrupts (OpenSBI keeps writing through the same THR) */
+static volatile uint8_t *uart;
+static int uart_rx(void *ctx) {
+    if (!(uart[5] & 1)) return IRQ_NONE;
+    while (uart[5] & 1) tty_input(&console_tty, (char)uart[0]);
+    return IRQ_HANDLED;
+}
 
 void input_init(void) {
+    uint64_t base = 0x10000000;
+    uint32_t src = 10;
+    fdt_read_reg("serial@", &base, nullptr);
+    fdt_read_u32("serial@", "interrupts", &src);
+    if (plic && (uart = vmm_map_mmio(base, 0x1000))) {
+        while (uart[5] & 1) (void)uart[0];
+        if (irq_request((int)src, "serial", uart_rx, nullptr, nullptr) >= 0) {
+            uart[4] |= 0x08;                                 /* OUT2 */
+            uart[1] = 0x01;                                  /* IER: received data available */
+            pr_info("input: ns16550 console at %lx, PLIC source %u (interrupt-driven)\n", base, src);
+            return;
+        }
+    }
     input_tty = &console_tty;
     pr_info("input: SBI console (polled)\n");
 }
@@ -121,6 +192,7 @@ void arch_init(void) {
             have_dbcn ? " DBCN" : "", have_legacy_getc ? " legacy-getchar" : "");
     set_timer(rdtime() + tick_delta);
     csr_set(sie, SIE_STIE | SIE_SSIE);
+    plic_init();
     rtc_init();
 }
 

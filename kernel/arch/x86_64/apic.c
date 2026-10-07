@@ -3,6 +3,7 @@
 #include <kernel/acpi.h>
 #include <kernel/irq.h>
 #include <kernel/printk.h>
+#include <kernel/errno.h>
 #include <kernel/vmm.h>
 #include <kernel/time.h>
 #include <kernel/boot.h>
@@ -135,6 +136,19 @@ int irq_install(int irq, irq_handler_t h, void *ctx) {
     pr_warn("irq: no ioapic for gsi %u\n", gsi);
     return -1;
 }
+
+/* M28 */
+const char *arch_irq_chip(void) { return "IO-APIC"; }
+/* MSI(-X) message: fixed delivery, physical destination = the boot CPU, edge */
+int arch_msi_alloc(irq_handler_t h, void *ctx, uint64_t *addr, uint32_t *data) {
+    if (next_vector >= 0xf0) return -ENOSPC;
+    int vec = next_vector++;
+    irq_register_vector(vec, h, ctx);
+    *addr = 0xfee00000u | ((uint64_t)bsp_lapic_id << 12);
+    *data = (uint32_t)vec;
+    return vec;
+}
+int arch_pci_intx_line(struct pci_dev *d) { (void)d; return -1; }   /* x86 uses MSI-X (no _PRT parser) */
 
 static void timer_irq(struct trap_frame *f, void *ctx) {
     irq_eoi();

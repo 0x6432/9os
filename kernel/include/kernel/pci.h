@@ -21,3 +21,9 @@ void pci_write32(struct pci_dev *d, unsigned off, uint32_t v);
 /* Physical address of a memory BAR (handles 64-bit BARs); 0 if unassigned or I/O. */
 paddr_t pci_bar(struct pci_dev *d, int bar, uint64_t *size);
 void pci_enable(struct pci_dev *d);   /* memory decode + bus mastering */
+
+/* M28: interrupts */
+unsigned pci_find_cap(struct pci_dev *d, uint8_t id);     /* config offset, 0 if absent */
+/* program MSI-X table entry `entry` with addr/data, unmask it and enable MSI-X (INTx off);
+ * returns the table size or a negative errno */
+int pci_msix_enable(struct pci_dev *d, unsigned entry, uint64_t addr, uint32_t data);

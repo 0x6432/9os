@@ -1,5 +1,5 @@
 #pragma once
-/* virtio over the PCI "modern" (1.0+) transport, polled split virtqueues. */
+/* virtio over the PCI "modern" (1.0+) transport, split virtqueues, MSI-X or INTx interrupts. */
 #include <kernel/types.h>
 #include <kernel/pci.h>
 
@@ -35,10 +35,22 @@ struct virtio_dev {
     volatile uint8_t *notify_base;
     uint32_t notify_mult;
     volatile uint8_t *devcfg;   /* device-specific configuration */
+    volatile uint8_t *isr;      /* ISR status (INTx: read to acknowledge) */
+    /* M28 interrupt: one MSI-X vector for every queue, else the shared INTx line */
+    uint16_t msix_vec;          /* 0xffff: none */
+    int irq;                    /* MSI vector / INTx line, -1 if polled */
+    const char *irq_mode;
+    int (*hard)(void *ctx);
+    void (*thread_fn)(void *ctx);
+    void *ctx;
 };
 
 /* reset, ACKNOWLEDGE|DRIVER, negotiate VIRTIO_F_VERSION_1 only, FEATURES_OK */
 bool virtio_pci_probe(struct virtio_dev *v, struct pci_dev *d, const char *who);
+/* request the device interrupt (before virtq_init). hard may be null (wake the thread).
+ * Returns false if the device stays polled. */
+bool virtio_irq_setup(struct virtio_dev *v, const char *name, int (*hard)(void *ctx),
+                      void (*thread_fn)(void *ctx), void *ctx);
 bool virtq_init(struct virtio_dev *v, struct virtq *q, unsigned index, unsigned size);
 void virtio_driver_ok(struct virtio_dev *v);
 /* make descriptor chain `head` available and notify the device */

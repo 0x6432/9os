@@ -9,6 +9,7 @@
 #include <kernel/kmalloc.h>
 #include <kernel/string.h>
 #include <kernel/printk.h>
+#include <kernel/errno.h>
 
 #define MAX_PCI 64
 static struct pci_dev devs[MAX_PCI];
@@ -53,6 +54,36 @@ paddr_t pci_bar(struct pci_dev *d, int bar, uint64_t *size) {
         *size = m ? ~m + 1 : 0;
     }
     return addr;
+}
+
+unsigned pci_find_cap(struct pci_dev *d, uint8_t id) {
+    if (!(pci_read16(d, 6) & 0x10)) return 0;
+    int guard = 48;
+    for (unsigned p = pci_read8(d, 0x34) & 0xfc; p && guard--; p = pci_read8(d, p + 1) & 0xfc)
+        if (pci_read8(d, p) == id) return p;
+    return 0;
+}
+
+int pci_msix_enable(struct pci_dev *d, unsigned entry, uint64_t addr, uint32_t data) {
+    unsigned cap = pci_find_cap(d, 0x11);
+    if (!cap) return -ENODEV;
+    uint16_t ctrl = pci_read16(d, cap + 2);
+    unsigned n = (ctrl & 0x7ff) + 1;
+    if (entry >= n) return -EINVAL;
+    uint32_t tbl = pci_read32(d, cap + 4);
+    paddr_t pa = pci_bar(d, tbl & 7, nullptr);
+    if (!pa) return -ENODEV;
+    volatile uint32_t *t = vmm_map_mmio(pa + (tbl & ~7u), ALIGN_UP(n * 16, 4096));
+    if (!t) return -ENOMEM;
+    pci_write16(d, cap + 2, ctrl | 0xc000);            /* enable + function mask while programming */
+    for (unsigned i = 0; i < n; i++) t[i * 4 + 3] = 1;  /* mask every vector */
+    t[entry * 4 + 0] = (uint32_t)addr;
+    t[entry * 4 + 1] = addr >> 32;
+    t[entry * 4 + 2] = data;
+    t[entry * 4 + 3] = 0;
+    pci_write16(d, 4, pci_read16(d, 4) | 0x400);       /* INTx disable */
+    pci_write16(d, cap + 2, (ctrl | 0x8000) & ~0x4000);
+    return (int)n;
 }
 
 void pci_enable(struct pci_dev *d) { pci_write16(d, 4, pci_read16(d, 4) | 0x6); }

@@ -1,4 +1,5 @@
 /* riscv64 trap dispatch: interrupts, syscalls (ecall), page faults, exceptions. */
+#include <kernel/irq.h>
 #include <kernel/uaccess.h>
 #include <kernel/printk.h>
 #include <kernel/process.h>
@@ -50,11 +51,12 @@ static bool handle_page_fault(struct trap_frame *f) {
     return false;
 }
 
+void riscv_ext_irq(struct trap_frame *f);
 void trap_dispatch(struct trap_frame *f) {
     uint64_t c = f->scause;
     if (c == (1ULL << 63 | 1)) {      /* supervisor software interrupt = IPI, no BKL */
         csr_clear(sip, SIE_SSIE);
-        ipi_handle();
+        ipi_irq();
         return;
     }
     if (c == (1ULL << 63 | 5)) {      /* timer: secondary harts usually need no lock */
@@ -79,6 +81,7 @@ void trap_dispatch(struct trap_frame *f) {
     if ((int64_t)c < 0) {
         switch (c & 0xff) {
         case 5: riscv_timer_irq(); break;
+        case 9: riscv_ext_irq(f); break;
         default: printk("spurious interrupt %lu\n", c & 0xff);
         }
     } else {

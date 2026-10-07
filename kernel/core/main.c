@@ -22,6 +22,7 @@ void virtio_gpu_init(void);
 void evdev_register_chrdev(void);
 void virtio_input_init(void);
 #include <kernel/pci.h>
+#include <kernel/irq.h>
 
 static const char *strstr_simple(const char *h, const char *n) {
     size_t l = strlen(n);
@@ -79,6 +80,7 @@ void kmain(void) {
     arch_init();
     arch_irq_enable();
     smp_init();
+    irq_work_enable();
     pmm_enable_cpu_caches();
     pmm_cache_selftest();
     slab_enable_cpu_caches();

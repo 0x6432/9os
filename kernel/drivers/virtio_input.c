@@ -2,7 +2,8 @@
  * virtio-input (keyboard, mouse, tablet) → evdev. The device describes itself through its
  * config space (name, ids, event-type bitmaps, absolute axis ranges), which maps 1:1 onto
  * struct input_dev. Events arrive as {le16 type, code; le32 value} in device-writable buffers
- * on queue 0; a kernel thread polls the used rings of all devices.
+ * on queue 0. M28: the device interrupt (MSI-X or INTx) wakes a per-device threaded handler
+ * that drains the used ring; devices without an interrupt fall back to a polling thread.
  */
 #include <kernel/virtio.h>
 #include <kernel/input.h>
@@ -24,6 +25,7 @@ struct vinput {
     struct { uint16_t type, code; uint32_t value; } *ev;
     paddr_t ev_pa;
     struct input_dev in;
+    int ready;
 };
 static struct vinput *vdevs[8];
 static int nvdevs;
@@ -41,20 +43,23 @@ static void query_bits(struct vinput *d, unsigned ev, uint64_t *bm, size_t bytes
     if (cfg_query(d, CFG_EV_BITS, ev, bm, bytes)) input_set_bit(d->in.evbit, ev);
 }
 
+static void drain(void *arg) {
+    struct vinput *d = arg;
+    if (!__atomic_load_n(&d->ready, __ATOMIC_ACQUIRE)) return;
+    uint32_t id;
+    uint64_t fl = arch_irq_save();      /* console translation expects irq context */
+    while (virtq_pop(&d->eq, &id, nullptr)) {
+        if (id < NBUF) {
+            input_event(&d->in, d->ev[id].type, d->ev[id].code, (int32_t)d->ev[id].value);
+            virtq_push(&d->eq, (uint16_t)id);
+        }
+    }
+    arch_irq_restore(fl);
+}
+
 static void poll_thread(void *arg) {
     for (;;) {
-        for (int i = 0; i < nvdevs; i++) {
-            struct vinput *d = vdevs[i];
-            uint32_t id;
-            uint64_t fl = arch_irq_save();      /* console translation expects irq context */
-            while (virtq_pop(&d->eq, &id, nullptr)) {
-                if (id < NBUF) {
-                    input_event(&d->in, d->ev[id].type, d->ev[id].code, (int32_t)d->ev[id].value);
-                    virtq_push(&d->eq, (uint16_t)id);
-                }
-            }
-            arch_irq_restore(fl);
-        }
+        for (int i = 0; i < nvdevs; i++) if (vdevs[i]->v.irq < 0) drain(vdevs[i]);
         sleep_ns(4 * 1000000ull);
     }
 }
@@ -63,7 +68,10 @@ static void probe(struct pci_dev *pd) {
     struct vinput *d = kzalloc(sizeof *d);
     if (!d || nvdevs >= (int)ARRAY_SIZE(vdevs)) return;
     if (!virtio_pci_probe(&d->v, pd, "virtio-input") || !d->v.devcfg) { kfree(d); return; }
-    if (!virtq_init(&d->v, &d->eq, 0, NBUF)) { pr_err("virtio-input: no event queue\n"); kfree(d); return; }
+    char nm[16];
+    snprintf(nm, sizeof nm, "vinput%d", nvdevs);
+    virtio_irq_setup(&d->v, nm, nullptr, drain, d);
+    if (!virtq_init(&d->v, &d->eq, 0, NBUF)) { pr_err("virtio-input: no event queue\n"); return;   /* irq handler still references d */ }
     struct input_dev *in = &d->in;
     cfg_query(d, CFG_ID_NAME, 0, in->name, sizeof in->name - 1);
     struct { uint16_t bus, vendor, product, version; } ids = { BUS_VIRTUAL, 0x0627, 0, 1 };
@@ -98,6 +106,8 @@ static void probe(struct pci_dev *pd) {
     virtio_driver_ok(&d->v);
     *d->eq.notify = 0;
     input_register(in);
+    pr_info("virtio-input: %s (%s irq %d)\n", in->name, d->v.irq_mode, d->v.irq);
+    __atomic_store_n(&d->ready, 1, __ATOMIC_RELEASE);
     vdevs[nvdevs++] = d;
 }
 
@@ -106,5 +116,7 @@ void virtio_input_init(void) {
         struct pci_dev *pd = pci_get(i);
         if (pd->vendor == VIRTIO_VENDOR && pd->device == VIRTIO_DEV_INPUT) probe(pd);
     }
-    if (nvdevs) thread_create("vinput-poll", poll_thread, nullptr);
+    bool polled = false;
+    for (int i = 0; i < nvdevs; i++) if (vdevs[i]->v.irq < 0) polled = true;
+    if (polled) thread_create("vinput-poll", poll_thread, nullptr);
 }

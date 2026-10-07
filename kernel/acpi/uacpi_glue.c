@@ -140,16 +140,15 @@ uacpi_status uacpi_kernel_handle_firmware_request(uacpi_firmware_request *req) {
 }
 
 struct uirq { uacpi_interrupt_handler fn; uacpi_handle ctx; };
-static void uirq_trampoline(struct trap_frame *f, void *ctx) {
+static int uirq_trampoline(void *ctx) {
     struct uirq *u = ctx;
-    u->fn(u->ctx);
-    irq_eoi();
+    return (u->fn(u->ctx) & UACPI_INTERRUPT_HANDLED) ? IRQ_HANDLED : IRQ_NONE;
 }
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler fn,
                                                     uacpi_handle ctx, uacpi_handle *out) {
     struct uirq *u = kmalloc(sizeof *u);
     u->fn = fn; u->ctx = ctx;
-    if (irq_install(irq, uirq_trampoline, u) < 0) { kfree(u); return UACPI_STATUS_INTERNAL_ERROR; }
+    if (irq_request((int)irq, "acpi", uirq_trampoline, nullptr, u) < 0) { kfree(u); return UACPI_STATUS_INTERNAL_ERROR; }
     *out = u;
     return UACPI_STATUS_OK;
 }

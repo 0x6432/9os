@@ -28,6 +28,7 @@ struct cpu {
     uint32_t idle_seq;             /* stable snapshots of a still-halted idle span */
     bool tick_stopped;
     uint64_t idle_start_ns, idle_remainder_ns, idle_sleeps;
+    uint64_t ipis, irqs;           /* /proc/interrupts: IPIs taken, device interrupts taken */
     /* lockdep: classified spinlocks held on this CPU (IRQ-off locks never migrate) */
     const struct lock_class *ld_spin[16];
     int ld_nspin;
@@ -36,6 +37,7 @@ struct cpu {
 
 #define IPI_TLB_FLUSH (1u << 0)
 #define IPI_RESCHED   (1u << 1)
+#define IPI_WORK      (1u << 2)   /* irq_work pending (self-IPI) */
 
 extern struct cpu cpus[MAX_CPUS];
 extern int ncpus;                  /* CPUs brought online */

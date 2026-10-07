@@ -1,8 +1,12 @@
 /*
- * virtio-gpu (2D only) over virtio-pci "modern" transport, polled (no interrupts).
+ * virtio-gpu (2D only) over virtio-pci "modern" transport.
  * Creates one B8G8R8X8 resource backed by physically contiguous RAM, attaches it to
  * scanout 0 and exposes it as the system framebuffer (fbcon + /dev/fb0). A kernel
- * thread pushes damage to the host (TRANSFER_TO_HOST_2D + RESOURCE_FLUSH) at ~60 Hz.
+ * thread pushes damage to the host (TRANSFER_TO_HOST_2D + RESOURCE_FLUSH), at most ~60 Hz.
+ * M28: command completion is interrupt-driven (the flush thread sleeps until the used ring
+ * advances) and the thread only wakes for damage: the fbcon hook runs under the console
+ * lock, so it raises an irq_work that does the wake_up. Only an mmap'd /dev/fb0 without
+ * explicit damage ioctls keeps a periodic flush.
  */
 #include <kernel/virtio.h>
 #include <kernel/boot.h>
@@ -14,6 +18,9 @@
 #include <kernel/printk.h>
 #include <kernel/arch.h>
 #include <kernel/spinlock.h>
+#include <kernel/irq.h>
+#include <kernel/time.h>
+#include <kernel/errno.h>
 
 #define QSIZE 16
 
@@ -36,10 +43,35 @@ static uint32_t width, height;
 static spinlock_t dlock;
 static uint32_t dx0 = UINT32_MAX, dy0 = UINT32_MAX, dx1, dy1;   /* pending damage box */
 
+static struct wait_queue cmd_wq, flush_wq;
+static bool irq_ok;          /* interrupt delivered at least once: sleep instead of spinning */
+static bool flush_pending;
+static uint64_t cmd_irqs, cmd_sleeps;
+static struct thread *flush_thr;   /* the only caller that may sleep */
+
+static int gpu_irq(void *ctx) {
+    __atomic_store_n(&irq_ok, true, __ATOMIC_RELEASE);
+    cmd_irqs++;
+    wake_up(&cmd_wq);
+    return IRQ_HANDLED;
+}
+
+static bool used_ready(void) { return vq.used[1] != vq.used_seen; }
+
 static bool gpu_cmd(size_t req_len, size_t resp_len) {
     vq.desc[0] = (struct vq_desc){ cmdbuf_pa, (uint32_t)req_len, VQ_NEXT, 1 };
     vq.desc[1] = (struct vq_desc){ cmdbuf_pa + 2048, (uint32_t)resp_len, VQ_WRITE, 0 };
     virtq_push(&vq, 0);
+    if (__atomic_load_n(&irq_ok, __ATOMIC_ACQUIRE) && current == flush_thr) {
+        uint64_t deadline = time_ns() + 2000000000ull;
+        while (!used_ready()) {
+            uint64_t g = sched_wait_lock();
+            if (used_ready()) { sched_wait_unlock(g); break; }
+            cmd_sleeps++;
+            wait_event_timeout_locked(&cmd_wq, 20 * 1000000ull, g);   /* a lost irq costs 20 ms */
+            if (time_ns() > deadline) { pr_err("virtio-gpu: command timeout\n"); return false; }
+        }
+    }
     for (uint64_t spins = 0; !virtq_pop(&vq, nullptr, nullptr); spins++) {
         if (spins > 50000000ull) { pr_err("virtio-gpu: command timeout\n"); return false; }
         arch_cpu_relax();
@@ -64,22 +96,30 @@ static void gpu_flush_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
     gpu_cmd(sizeof *fl, sizeof(struct gpu_hdr));
 }
 
+static bool periodic(void) { return fb_graphics_active() && !fb_explicit_damage; }   /* mmap'd fbdev */
+
 static void flush_thread(void *arg) {
     for (;;) {
-        sleep_ns(16 * 1000000ull);
+        wait_until_sl(&flush_wq, __atomic_load_n(&flush_pending, __ATOMIC_ACQUIRE) || periodic());
+        sleep_ns(16 * 1000000ull);              /* rate limit and batch damage: ~60 Hz */
+        __atomic_store_n(&flush_pending, false, __ATOMIC_RELEASE);
         uint64_t fl = spin_lock_irqsave(&dlock);
         uint32_t x0 = dx0, y0 = dy0, x1 = MIN(dx1, width), y1 = MIN(dy1, height);
         dx0 = dy0 = UINT32_MAX; dx1 = dy1 = 0;
         spin_unlock_irqrestore(&dlock, fl);
-        if (fb_graphics_active() && !fb_explicit_damage) { x0 = y0 = 0; x1 = width; y1 = height; }  /* mmap'd fbdev */
+        if (periodic()) { x0 = y0 = 0; x1 = width; y1 = height; }
         if (x1 > x0 && y1 > y0) gpu_flush_rect(x0, y0, x1 - x0, y1 - y0);
     }
 }
+
+static void flush_kick(struct irq_work *w) { wake_up(&flush_wq); }
+static struct irq_work flush_work = { .fn = flush_kick };
 
 static void vgpu_damage_flush(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
     uint64_t fl = spin_lock_irqsave(&dlock);
     dx0 = MIN(dx0, x0); dy0 = MIN(dy0, y0); dx1 = MAX(dx1, x1); dy1 = MAX(dy1, y1);
     spin_unlock_irqrestore(&dlock, fl);
+    if (!__atomic_exchange_n(&flush_pending, true, __ATOMIC_ACQ_REL)) irq_work_queue(&flush_work);
 }
 
 void virtio_gpu_init(void) {
@@ -90,6 +130,8 @@ void virtio_gpu_init(void) {
         return;
     }
     if (!virtio_pci_probe(&vdev, d, "virtio-gpu")) return;
+    wait_queue_init(&cmd_wq); wait_queue_init(&flush_wq);
+    virtio_irq_setup(&vdev, "virtio-gpu", gpu_irq, nullptr, nullptr);
     if (!virtq_init(&vdev, &vq, 0, QSIZE)) { pr_err("virtio-gpu: no control queue\n"); return; }
     virtio_driver_ok(&vdev);
     cmdbuf_pa = pmm_alloc_zeroed(0); cmdbuf = PHYS_TO_VIRT(cmdbuf_pa);
@@ -128,6 +170,7 @@ void virtio_gpu_init(void) {
     boot_set_framebuffer(&vfb);
     fb_flush_hook = vgpu_damage_flush;
     gpu_flush_rect(0, 0, width, height);
-    thread_create("vgpu-flush", flush_thread, nullptr);
-    pr_info("virtio-gpu: %ux%u framebuffer at 0x%lx (%lu KiB)\n", width, height, fbpa, size / 1024);
+    flush_thr = thread_create("vgpu-flush", flush_thread, nullptr);
+    pr_info("virtio-gpu: %ux%u framebuffer at 0x%lx (%lu KiB), %s irq %d\n", width, height, fbpa,
+            size / 1024, vdev.irq_mode, vdev.irq);
 }

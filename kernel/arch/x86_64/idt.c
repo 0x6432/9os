@@ -82,7 +82,7 @@ void trap_dispatch(struct trap_frame *f) {
     uint64_t v = f->vector;
     if (v == 0xf0) {            /* IPI: handled without the big kernel lock */
         irq_eoi();
-        ipi_handle();
+        ipi_irq();
         return;
     }
     if (v == 32) {              /* local timer: secondary CPUs usually need no lock */

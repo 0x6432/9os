@@ -146,7 +146,7 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 ## M15: framebuffer graphics, PCI, virtio-gpu, MLFQ check
 - `kernel/drivers/fbdev.c`: `/dev/fb0` (char 29:0) with `FBIOGET_VSCREENINFO`/`FBIOPUT_VSCREENINFO` (fixed mode)/`FBIOGET_FSCREENINFO`/`FBIOPAN_DISPLAY`/`FBIOBLANK`, read/write and `mmap`. `file_ops.mmap(f, off, len, &pa)` returns physical pages; `sys_mmap` maps them as a `VMA_PHYS` VMA (write-combining, never freed, shared across fork). fbcon pauses while fb0 is open and repaints on the last close.
 - `kernel/drivers/pci.c`: ECAM from ACPI MCFG (first 8 buses), device table, BAR decode/sizing, `pci_enable`. Logged at boot (`dmesg | grep pci`).
-- `kernel/drivers/virtio_gpu.c`: virtio-pci modern transport (common/notify caps), one polled control queue, GET_DISPLAY_INFO → RESOURCE_CREATE_2D (B8G8R8X8) → ATTACH_BACKING (one contiguous buddy block, max 4 MiB, so up to 1280x800) → SET_SCANOUT. A `vgpu-flush` kernel thread does TRANSFER_TO_HOST_2D + RESOURCE_FLUSH every 16 ms while the fb is dirty (`fb_damage()` from fbcon/fbdev write) or a client has fb0 open. It replaces the boot framebuffer via `boot_set_framebuffer()` and fbcon re-attaches. Used only when there is no firmware framebuffer, or with `virtiogpu` on the command line.
+- `kernel/drivers/virtio_gpu.c`: virtio-pci modern transport (common/notify caps), one polled control queue, GET_DISPLAY_INFO → RESOURCE_CREATE_2D (B8G8R8X8) → ATTACH_BACKING (one contiguous buddy block, max 4 MiB, so up to 1280x800) → SET_SCANOUT. A `vgpu-flush` kernel thread does TRANSFER_TO_HOST_2D + RESOURCE_FLUSH (≤60 Hz, event-driven since M28) while the fb is dirty (`fb_damage()` from fbcon/fbdev write) or a client has fb0 open. It replaces the boot framebuffer via `boot_set_framebuffer()` and fbcon re-attaches. Used only when there is no firmware framebuffer, or with `virtiogpu` on the command line.
 - Why: on riscv64/aarch64 Limine refuses QEMU `ramfb` ("Framebuffer page-level overlap") and edk2 has no GOP for virtio-gpu/bochs. The Makefile now adds `QEMU_GPU=-device virtio-gpu-pci` there (override with `QEMU_GPU=`). NOTE: changing PCI devices renumbers edk2 boot entries; delete `build/<arch>/fw-vars.fd` if the firmware falls into the EFI shell.
 - MMIO structs must not be `packed` (on riscv clang splits packed stores into byte accesses, which virtio ignores).
 - Bugs fixed: `bkl_acquire_idle()` spun with IRQs enabled → a timer IRQ took a second ticket → whole-system deadlock (seen as a hang during AP bring-up on aarch64 -smp 4). Kernel threads now take TIDs from 1<<22 so init stays PID 1 (busybox init exits otherwise).
@@ -167,7 +167,7 @@ Expected: boot banner, pmm/slab self-tests pass, "nothing left to do, halting".
 - **PTYs** (`kernel/drivers/pty.inc`, included by `tty.c`): `struct tty` has an `output(t, s, n, may_block)` hook (console → `console_write`, pty slave → master's ring) and `drv`/`hup`. `/dev/ptmx` (5:2) allocates a pair and creates `/dev/pts/N` (136:N, `CHRDEV_ANY_MINOR`); the slave uses the normal line discipline (ICANON/ECHO/ISIG, ONLCR on output). `TIOCGPTN`, `TIOCSPTLCK`, `TIOCGPTPEER`, `TIOCSWINSZ` (→ SIGWINCH to the pgrp). Closing the master hangs up the slave (EIO/0 reads, SIGHUP to the session) and removes the node; the pair is freed when both sides are closed. Opening a tty without `O_NOCTTY` as a session leader without one makes it the controlling tty; `/dev/tty` resolves to `p->ctty`.
 - **virtio** (`kernel/drivers/virtio.c`, `include/kernel/virtio.h`): `virtio_pci_probe` (caps incl. device cfg, reset, VERSION_1, FEATURES_OK), `virtq_init` (≤64 entries, one page), `virtq_push/pop`, `virtio_driver_ok`. virtio-gpu now uses it.
 - **Input core + evdev** (`kernel/drivers/evdev.c`, `include/kernel/input.h`): drivers fill a `struct input_dev` (bitmaps, absinfo, ids) and call `input_register` → `/dev/input/eventN` (char 13:64+N) and `input_event()` (IRQ-safe; per-device spinlock). Each open gets a 512-event queue of 24-byte `struct input_event` (SYN_DROPPED on overflow), `EVIOCGVERSION/GID/GNAME/GPHYS/GUNIQ/GPROP/GBIT/GKEY/GLED/GABS/SABS/GREP/GRAB/REVOKE/SCLOCKID`. Key autorepeat value 2 is synthesised. Keyboards also feed the console tty (US map, moved from ps2.c) unless grabbed or `KDSKBMODE K_OFF`.
-- **virtio-input** (`kernel/drivers/virtio_input.c`): PCI 1af4:1052; capabilities are read from the config space (ID_NAME/DEVIDS/PROP_BITS/EV_BITS/ABS_INFO); one `vinput-poll` kthread drains event queues every 4 ms. The Makefile adds `QEMU_INPUT=-device virtio-keyboard-pci -device virtio-tablet-pci` on all arches (override with `QEMU_INPUT=`; delete `build/<arch>/fw-vars.fd` after changing devices on riscv/aarch64). x86 PS/2 keyboard is an evdev device too ("AT Translated Set 2 keyboard").
+- **virtio-input** (`kernel/drivers/virtio_input.c`): PCI 1af4:1052; capabilities are read from the config space (ID_NAME/DEVIDS/PROP_BITS/EV_BITS/ABS_INFO); each device's interrupt (MSI-X on x86, INTx elsewhere, M28) wakes a threaded handler `irq/N-vinputK` that drains its event queue (`vinput-poll` remains only as a fallback for devices without an interrupt). The Makefile adds `QEMU_INPUT=-device virtio-keyboard-pci -device virtio-tablet-pci` on all arches (override with `QEMU_INPUT=`; delete `build/<arch>/fw-vars.fd` after changing devices on riscv/aarch64). x86 PS/2 keyboard is an evdev device too ("AT Translated Set 2 keyboard").
 - **VT/KD ioctls** on the console: `KDGKBTYPE`, `KDSETMODE/KDGETMODE` (KD_GRAPHICS pauses fbcon), `KDGKBMODE/KDSKBMODE`, `VT_OPENQRY/GETMODE/SETMODE/GETSTATE/RELDISP/ACTIVATE/WAITACTIVE` (single VT).
 - Tests: `ptytest` (13 checks: interactive sh on a pty, ONLCR, stty size, backspace editing, Ctrl-C, raw mode, hangup) passes on all arches. `evtest [secs]` lists devices and prints events; drive it with the QEMU monitor (`sendkey a`, `mouse_button 1`; HMP `mouse_move` does not move absolute axes without a display).
 
@@ -729,3 +729,59 @@ not remotely executed as part of this local completion run.
 - Known limits: no KASLR (the kernel stays at 0xffffffff80000000); no per-thread kernel stack
   canaries or shadow stacks/CET/BTI/PAC; the in-kernel buffer convention of the file-op helpers
   (kernel address = kernel buffer) remains, guarded by `access_ok()` at the four syscall entries.
+
+## M28: Interrupt-driven I/O
+- **Generic IRQ layer** (`kernel/core/irq.c`, `kernel/irq.h`): `irq_request(line, name, hard,
+  thread_fn, ctx)` puts an action on a shareable level-triggered line (x86 GSI via the IO-APIC,
+  aarch64 SPI INTID, riscv PLIC source); `irq_request_msi()` allocates a message-signalled vector
+  (x86) and returns the address/data pair. The hard handler runs in IRQ context under the BKL and
+  must quiet the device (returning IRQ_NONE/HANDLED/WAKE_THREAD); a thread handler gets its own
+  kernel thread `irq/N-name` (wait_until_sl on a pending flag, so it is lost-wakeup-free and
+  reruns if the line fired while it worked). The dispatcher counts per line and per CPU, then EOIs
+  (x86; the GIC/PLIC dispatchers complete after the handler returns). The old raw
+  `irq_install()` is now only the arch backend; PS/2, the x86 COM1 RX and the ACPI SCI moved to
+  `irq_request` so they show up in `/proc/interrupts`.
+- **irq_work**: `irq_work_queue()` is callable from any context (even under the console lock);
+  it pushes onto a lock-free list and raises a self-IPI (`IPI_WORK`) once `irq_work_enable()` ran
+  after SMP bring-up; the list is also drained from the timer tick and the idle loop. Every arch's
+  IPI vector now calls `ipi_irq()` (accounting + `ipi_handle()` + irq_work); spin loops still use
+  plain `ipi_handle()` and never run irq_work.
+- **x86**: `arch_msi_alloc` takes vectors from the IO-APIC allocator (dest = BSP, fixed, edge);
+  `pci_msix_enable()` (pci.c, with `pci_find_cap`) programs one table entry, masks the rest and
+  turns INTx off. `arch_pci_intx_line` returns -1 (no _PRT parsing), so x86 virtio needs MSI-X.
+- **riscv64**: PLIC driver (FDT `plic@`/`interrupt-controller@c`, default 0x0c000000; all
+  sources routed to the boot hart's S context `2*hartid+1`, claim/complete loop for scause
+  `1<<63|9`, SIE.SEIE on the BSP only). Console input comes from the ns16550 RX interrupt (FDT
+  `serial@` reg/interrupts, default 0x10000000 / source 10) while output stays on SBI; SBI
+  getchar polling remains only if there is no PLIC/UART.
+- **aarch64**: GICv3 next to GICv2 — version from the MADT GICD entry, else a GICR range (MADT
+  type 0xE) or the FDT `arm,gic-v3` compatible (GICD_PIDR2 lies outside the 4 KiB GICv2
+  distributor and faults). v3: ARE + Group 1, SPIs routed with IROUTER to the BSP affinity,
+  per-CPU redistributor found by GICR_TYPER affinity (woken via GICR_WAKER), SGI/PPI setup in the
+  SGI frame, ICC_* system registers for ack/EOI/PMR, IPIs through ICC_SGI1R. Test with
+  `QEMU_MACHINE_aarch64=virt,gic-version=3` (riscv also has `QEMU_MACHINE_riscv64`). PL011 RX/RT
+  interrupt (SPCR GSIV, default INTID 33) replaces the 1 kHz console poll in the timer tick.
+- On riscv/aarch64 `arch_idle_poll_ns()` is now UINT64_MAX (no 10 ms idle wakeups for console
+  input): idle APs report 0 ticks per idle second in irqtest.
+- **PCI INTx** on QEMU virt (root bus): aarch64 INTID `35 + (slot + pin - 1) % 4`, riscv PLIC
+  source `32 + (slot + pin - 1) % 4`.
+- **virtio** (`virtio.c`): maps the ISR capability; `virtio_irq_setup(v, name, hard, thread, ctx)`
+  (before `virtq_init`) prefers one MSI-X vector shared by all queues (`queue_msix_vector = 0`,
+  `msix_config = NO_VECTOR`) and falls back to the INTx line, whose hard handler reads ISR (which
+  acks) and returns IRQ_NONE when the device was not the source. virtio-input: per-device thread
+  handler drains the event ring (the poll thread starts only for devices without an IRQ).
+  virtio-gpu: the completion interrupt wakes `gpu_cmd()` in the flush thread (20 ms timeout
+  fallback; the init path still spins); the flush thread sleeps until damage arrives (fbcon's hook
+  runs under the console lock, so it raises an irq_work that does the wake_up), then waits 16 ms to
+  batch; only an mmap'd fbdev without explicit damage flushes periodically. fbcon_set_graphics()
+  now always damages so the flusher notices mode changes.
+- `/proc/interrupts`: per-CPU LOC (timer ticks), IPI and DEV counters, then one row per line:
+  number (or `vNN` for MSI vectors), count, chip (IO-APIC / MSI-X / GICv2 / GICv3 / PLIC),
+  actions with handled counts and thread runs, unhandled count.
+- `irqtest` (ci-tests): the console UART line exists on a real controller and has fired, every
+  virtio-input line has a thread handler, virtio-gpu interrupts increase when the console is
+  written (riscv/aarch64), and idle APs stay (nearly) tickless.
+- Known limits: no MSI on aarch64 (GICv2m/ITS) or riscv (IMSIC/APLIC), so virtio there shares
+  INTx lines; all device interrupts go to the boot CPU (no affinity/balancing); x86 without
+  MSI-X stays polled; `drm-vblank` remains a timer-driven emulated vblank and kswapd stays a
+  kernel thread by design.

@@ -1,3 +1,4 @@
+#include <kernel/irq.h>
 #include <kernel/uaccess.h>
 #include <kernel/mutex.h>
 /* procfs: process and system information (enough for BusyBox ps/top/free/mount). */
@@ -17,7 +18,7 @@
 
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN };
+             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
 static struct thread *main_thread(struct process *p) {
@@ -54,7 +55,7 @@ static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum 
 static const struct { const char *name; enum pfile f; } global_files[] = {
     { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cpuinfo", G_CPUINFO },
     { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS }, { "sched", G_SCHED },
-    { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP }, { "hardening", G_HARDEN },
+    { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP }, { "hardening", G_HARDEN }, { "interrupts", G_INTERRUPTS },
 };
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
@@ -295,6 +296,17 @@ static void gen(struct pinfo *pi, struct buf *b) {
                 wx_policy == 2 ? "strict" : wx_policy ? "warn" : "off", harden_stats.kernel_wx_pages,
                 harden_stats.wx_mappings, harden_stats.wx_denied, harden_stats.extable_fixups,
                 harden_stats.uaccess_violations);
+        break;
+    }
+    case G_INTERRUPTS: {
+        char *t = kmalloc(8192);
+        if (t) {
+            int n = irq_proc_read(t, 8192);
+            if (b->len + n + 1 > b->cap) { b->cap = b->len + n + 1; b->data = krealloc(b->data, b->cap); }
+            memcpy(b->data + b->len, t, n);
+            b->len += n;
+            kfree(t);
+        }
         break;
     }
     case G_LOCKDEP: {

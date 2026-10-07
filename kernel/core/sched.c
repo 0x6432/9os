@@ -17,6 +17,7 @@
 #include <kernel/printk.h>
 #include <kernel/time.h>
 #include <kernel/errno.h>
+#include <kernel/irq.h>
 #include <kernel/process.h>
 #include <kernel/spinlock.h>
 
@@ -855,7 +856,8 @@ static void idle_loop(void *arg) {
     struct cpu *c = this_cpu();
     for (;;) {
         arch_irq_disable();
-        if (__atomic_load_n(&c->ipi_pending, __ATOMIC_ACQUIRE)) ipi_handle();
+        if (__atomic_load_n(&c->ipi_pending, __ATOMIC_ACQUIRE)) ipi_service();
+        else irq_work_run();
         c->resched = false;
         reap_zombies();
         if (cpu_has_work(c)) {

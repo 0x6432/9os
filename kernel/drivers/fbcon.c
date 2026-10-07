@@ -137,7 +137,8 @@ bool fb_graphics_active(void) { return graphics; }
 void fbcon_set_graphics(bool on) {
     if (!c.ready || graphics == on) return;
     graphics = on;
-    if (!on) { clear_cells(0, 0, c.cols, c.rows); c.cx = c.cy = 0; fb_damage(); }
+    if (!on) { clear_cells(0, 0, c.cols, c.rows); c.cx = c.cy = 0; }
+    fb_damage();          /* also kicks an event-driven flusher into its periodic (mmap) mode */
 }
 
 void fbcon_write(const char *s, size_t n) {
