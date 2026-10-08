@@ -23,6 +23,8 @@ void virtio_gpu_init(void);
 void evdev_register_chrdev(void);
 void virtio_input_init(void);
 void virtio_blk_init(void);
+void net_init(void);
+void virtio_net_init(void);
 #include <kernel/pci.h>
 #include <kernel/irq.h>
 
@@ -98,6 +100,8 @@ void kmain(void) {
     writeback_init();
     ext2_init();
     virtio_blk_init();
+    net_init();
+    virtio_net_init();
     fbcon_init();          /* (re)attach the console if a GPU driver provided a framebuffer */
     fbdev_init();
     drm_init();

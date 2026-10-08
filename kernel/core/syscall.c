@@ -137,6 +137,7 @@ int64_t sys_readlinkat();
 int64_t sys_readv();
 int64_t sys_reboot();
 int64_t sys_recvfrom();
+int64_t sys_recvmmsg();
 int64_t sys_recvmsg();
 int64_t sys_rename();
 int64_t sys_renameat();
@@ -162,6 +163,7 @@ int64_t sys_sched_setscheduler();
 int64_t sys_sched_yield();
 int64_t sys_select();
 int64_t sys_sendfile();
+int64_t sys_sendmmsg();
 int64_t sys_sendmsg();
 int64_t sys_sendto();
 int64_t sys_set_robust_list();
@@ -714,6 +716,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #ifdef __NR_accept4
     [__NR_accept4] = (syscall_fn)sys_accept4,
 #endif
+#ifdef __NR_recvmmsg
+    [__NR_recvmmsg] = (syscall_fn)sys_recvmmsg,
+#endif
 #ifdef __NR_wait4
     [__NR_wait4] = (syscall_fn)sys_wait4,
 #endif
@@ -722,6 +727,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_syncfs
     [__NR_syncfs] = (syscall_fn)sys_syncfs,
+#endif
+#ifdef __NR_sendmmsg
+    [__NR_sendmmsg] = (syscall_fn)sys_sendmmsg,
 #endif
 #ifdef __NR_renameat2
     [__NR_renameat2] = (syscall_fn)sys_renameat2,

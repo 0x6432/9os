@@ -18,6 +18,9 @@ make run                    # boot in QEMU (serial on stdio)
                              # log in as root (no password) or user / 9os
 ```
 
+The QEMU targets attach a virtio-net card on QEMU user networking; the guest gets 10.0.2.15
+by DHCP at boot, so `ping 10.0.2.2` and `wget http://…` work out of the box.
+
 See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [docs/HANDOFF.md](docs/HANDOFF.md) for the current state.
 
 ## Allocator and scheduler regression tests

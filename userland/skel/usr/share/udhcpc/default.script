@@ -1,0 +1,20 @@
+#!/bin/sh
+# udhcpc event script (M32): configure the interface from the DHCP lease
+RESOLV=/etc/resolv.conf
+case "$1" in
+deconfig)
+    ifconfig "$interface" 0.0.0.0 up
+    ;;
+bound|renew)
+    ifconfig "$interface" "$ip" netmask "${subnet:-255.255.255.0}" ${broadcast:+broadcast $broadcast} up
+    if [ -n "$router" ]; then
+        while route del default gw 0.0.0.0 dev "$interface" 2>/dev/null; do :; done
+        for r in $router; do route add default gw "$r" dev "$interface"; break; done
+    fi
+    : > "$RESOLV.tmp"
+    [ -n "$domain" ] && echo "search $domain" >> "$RESOLV.tmp"
+    for d in $dns; do echo "nameserver $d" >> "$RESOLV.tmp"; done
+    mv "$RESOLV.tmp" "$RESOLV"
+    ;;
+esac
+exit 0

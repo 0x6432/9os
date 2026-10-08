@@ -92,7 +92,7 @@ static uint64_t ulock(void) { uint64_t f = arch_irq_save(); spin_lock_ipi(&unix_
 static void uunlock(uint64_t f) { spin_unlock(&unix_lock); arch_irq_restore(f); }
 
 static struct list_node bound_socks = LIST_INIT(bound_socks);
-static const struct file_ops unix_fops;
+extern const struct file_ops unix_fops;
 
 static struct usock *usock_new(int type) {
     struct usock *s = kzalloc(sizeof *s);
@@ -239,7 +239,7 @@ static int put_name(void *uaddr, int *ulen, const struct sockaddr_un_k *a, int a
 }
 
 /* ------------------------------------------------------------- syscalls (BKL) */
-int64_t sys_socket(int domain, int type, int proto) {
+int64_t unix_sys_socket(int domain, int type, int proto) {
     if (domain != AF_UNIX) return -EAFNOSUPPORT;
     int t = type & 0xf;
     if (t != SOCK_STREAM && t != SOCK_DGRAM && t != SOCK_SEQPACKET) return -EPROTONOSUPPORT;
@@ -250,7 +250,7 @@ int64_t sys_socket(int domain, int type, int proto) {
     return fd;
 }
 
-int64_t sys_socketpair(int domain, int type, int proto, int *usv) {
+int64_t unix_sys_socketpair(int domain, int type, int proto, int *usv) {
     if (domain != AF_UNIX) return -EAFNOSUPPORT;
     int t = type & 0xf;
     if (t != SOCK_STREAM && t != SOCK_DGRAM && t != SOCK_SEQPACKET) return -EPROTONOSUPPORT;
@@ -268,7 +268,7 @@ int64_t sys_socketpair(int domain, int type, int proto, int *usv) {
     return 0;
 }
 
-int64_t sys_bind(int fd, const void *uaddr, int len) {
+int64_t unix_sys_bind(int fd, const void *uaddr, int len) {
     GET_SOCK(s, fd);
     if (s->bound) return -EINVAL;
     struct sockaddr_un_k a; int alen;
@@ -297,7 +297,7 @@ int64_t sys_bind(int fd, const void *uaddr, int len) {
     return 0;
 }
 
-int64_t sys_listen(int fd, int backlog) {
+int64_t unix_sys_listen(int fd, int backlog) {
     GET_SOCK(s, fd);
     if (s->type == SOCK_DGRAM) return -EOPNOTSUPP;
     uint64_t f = ulock();
@@ -310,7 +310,7 @@ int64_t sys_listen(int fd, int backlog) {
     return r;
 }
 
-int64_t sys_connect(int fd, const void *uaddr, int len) {
+int64_t unix_sys_connect(int fd, const void *uaddr, int len) {
     GET_SOCK(s, fd);
     struct sockaddr_un_k a; int alen;
     int r = addr_in(uaddr, len, &a, &alen);
@@ -364,7 +364,7 @@ int64_t sys_connect(int fd, const void *uaddr, int len) {
     return r;
 }
 
-int64_t sys_accept4(int fd, void *uaddr, int *ulen, int flags) {
+int64_t unix_sys_accept4(int fd, void *uaddr, int *ulen, int flags) {
     GET_SOCK(l, fd);
     bool nb = nonblock(fd, 0);
     struct usock *srv;
@@ -398,16 +398,16 @@ int64_t sys_accept4(int fd, void *uaddr, int *ulen, int flags) {
     }
     return nfd;
 }
-int64_t sys_accept(int fd, void *uaddr, int *ulen) { return sys_accept4(fd, uaddr, ulen, 0); }
+int64_t unix_sys_accept(int fd, void *uaddr, int *ulen) { return unix_sys_accept4(fd, uaddr, ulen, 0); }
 
-int64_t sys_getsockname(int fd, void *uaddr, int *ulen) {
+int64_t unix_sys_getsockname(int fd, void *uaddr, int *ulen) {
     GET_SOCK(s, fd);
     uint64_t f = ulock();
     struct sockaddr_un_k n = s->name; int nl = s->namelen;
     uunlock(f);
     return put_name(uaddr, ulen, nl ? &n : nullptr, nl);
 }
-int64_t sys_getpeername(int fd, void *uaddr, int *ulen) {
+int64_t unix_sys_getpeername(int fd, void *uaddr, int *ulen) {
     GET_SOCK(s, fd);
     struct sockaddr_un_k n; int nl = 0, r = 0;
     uint64_t f = ulock();
@@ -420,7 +420,7 @@ int64_t sys_getpeername(int fd, void *uaddr, int *ulen) {
     return put_name(uaddr, ulen, nl ? &n : nullptr, nl);
 }
 
-int64_t sys_shutdown(int fd, int how) {
+int64_t unix_sys_shutdown(int fd, int how) {
     GET_SOCK(s, fd);
     if (how < 0 || how > 2) return -EINVAL;
     uint64_t f = ulock();
@@ -442,7 +442,7 @@ int64_t sys_shutdown(int fd, int how) {
 #define SO_PROTOCOL 38
 #define SO_DOMAIN 39
 
-int64_t sys_setsockopt(int fd, int level, int name, const void *uval, int len) {
+int64_t unix_sys_setsockopt(int fd, int level, int name, const void *uval, int len) {
     GET_SOCK(s, fd);
     if (level == SOL_SOCKET && name == SO_PASSCRED && len >= 4) {
         int v; if (copy_from_user(&v, uval, 4)) return -EFAULT;
@@ -453,7 +453,7 @@ int64_t sys_setsockopt(int fd, int level, int name, const void *uval, int len) {
     return 0;   /* buffer sizes, timeouts etc. are accepted and ignored */
 }
 
-int64_t sys_getsockopt(int fd, int level, int name, void *uval, int *ulen) {
+int64_t unix_sys_getsockopt(int fd, int level, int name, void *uval, int *ulen) {
     GET_SOCK(s, fd);
     int len;
     if (copy_from_user(&len, ulen, sizeof len)) return -EFAULT;
@@ -713,7 +713,7 @@ static int read_msghdr(const struct msghdr_k *um, struct msghdr_k *m, struct iov
     return 0;
 }
 
-int64_t sys_sendmsg(int fd, const struct msghdr_k *um, int flags) {
+int64_t unix_sys_sendmsg(int fd, const struct msghdr_k *um, int flags) {
     int e;
     struct file *sf = sock_file_ref(fd, &e);
     if (!sf) return e;
@@ -766,7 +766,7 @@ out:
     return ret;
 }
 
-int64_t sys_recvmsg(int fd, struct msghdr_k *um, int flags) {
+int64_t unix_sys_recvmsg(int fd, struct msghdr_k *um, int flags) {
     int e;
     struct file *sf = sock_file_ref(fd, &e);
     if (!sf) return e;
@@ -785,7 +785,7 @@ int64_t sys_recvmsg(int fd, struct msghdr_k *um, int flags) {
     return ret;
 }
 
-int64_t sys_sendto(int fd, const void *buf, size_t len, int flags, const void *uaddr, int alen) {
+int64_t unix_sys_sendto(int fd, const void *buf, size_t len, int flags, const void *uaddr, int alen) {
     int e;
     struct file *sf = sock_file_ref(fd, &e);
     if (!sf) return e;
@@ -798,7 +798,7 @@ int64_t sys_sendto(int fd, const void *buf, size_t len, int flags, const void *u
     return r;
 }
 
-int64_t sys_recvfrom(int fd, void *buf, size_t len, int flags, void *uaddr, int *ulen) {
+int64_t unix_sys_recvfrom(int fd, void *buf, size_t len, int flags, void *uaddr, int *ulen) {
     int e;
     struct file *sf = sock_file_ref(fd, &e);
     if (!sf) return e;
@@ -861,4 +861,4 @@ static void u_release(struct file *f) {
     struct usock *s = f->priv;
     if (s) usock_destroy(s);
 }
-static const struct file_ops unix_fops = { .nobkl = true, .read = u_read, .write = u_write, .poll = u_poll, .ioctl = u_ioctl, .release = u_release };
+const struct file_ops unix_fops = { .nobkl = true, .read = u_read, .write = u_write, .poll = u_poll, .ioctl = u_ioctl, .release = u_release };

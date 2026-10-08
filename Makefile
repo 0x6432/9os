@@ -122,14 +122,16 @@ QEMU_CPU_x86_64 := -cpu qemu64,+smep,+smap,+rdrand
 QEMU_CPU_riscv64 :=
 QEMU_CPU_aarch64 := -cpu cortex-a76
 QEMU_CPU ?= $(QEMU_CPU_$(ARCH))
-QEMU_x86_64 := qemu-system-x86_64 -M q35 $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_INPUT) -boot d -cdrom $(ISO)
+# M32: user-mode (slirp) networking on a virtio-net NIC: guest 10.0.2.15, gateway/host 10.0.2.2, DNS 10.0.2.3
+QEMU_NET ?= -netdev user,id=n0 -device virtio-net-pci,netdev=n0
+QEMU_x86_64 := qemu-system-x86_64 -M q35 $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_INPUT) $(QEMU_NET) -boot d -cdrom $(ISO)
 QEMU_MACHINE_riscv64 ?= virt
 QEMU_MACHINE_aarch64 ?= virt
-QEMU_riscv64 := qemu-system-riscv64 -M $(QEMU_MACHINE_riscv64) $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) \
+QEMU_riscv64 := qemu-system-riscv64 -M $(QEMU_MACHINE_riscv64) $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) $(QEMU_NET) \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd
-QEMU_aarch64 := qemu-system-aarch64 -M $(QEMU_MACHINE_aarch64) $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) \
+QEMU_aarch64 := qemu-system-aarch64 -M $(QEMU_MACHINE_aarch64) $(QEMU_CPU) -m 512M -smp $(SMP) -serial stdio -no-reboot $(QEMU_GPU) $(QEMU_INPUT) $(QEMU_NET) \
     -drive if=pflash,unit=0,format=raw,readonly=on,file=$(BUILD)/fw-code.fd \
     -drive if=pflash,unit=1,format=raw,file=$(BUILD)/fw-vars.fd \
     -drive if=none,id=cd,format=raw,media=cdrom,file=$(ISO) -device virtio-scsi-pci -device scsi-cd,drive=cd

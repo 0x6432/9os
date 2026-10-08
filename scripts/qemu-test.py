@@ -2,7 +2,10 @@
 """Boot 9os in QEMU and run test commands on the serial console, expect-style.
 
 usage: scripts/qemu-test.py ARCH [--smp N] [--boot-timeout S] [--timeout S] [--log FILE] CMD...
-Each CMD runs as `CMD; echo __RC=$?` once the shell prompt is up. A test fails if its exit status
+Each CMD runs as `CMD; echo __RC=$?` once the shell prompt is up; a CMD starting with "host:" runs on
+the host instead (shell, must exit 0). With --net-test a host test server (scripts/net-host-server.py)
+listens on @HP@ (the guest reaches it as 10.0.2.2:@HP@) and host port @FP@ forwards to guest TCP 8080 /
+UDP 8081; both placeholders are substituted in every CMD. A test fails if its exit status
 is non-zero or its output contains FAIL; the run fails on any kernel panic/oops.
 Exit status: 0 if every test passed."""
 import argparse, os, re, select, signal, subprocess, sys, time
@@ -22,9 +25,22 @@ def main():
     ap.add_argument('--log', default=None)
     ap.add_argument('--disk', action='append', default=[], help='raw image attached as virtio-blk (repeatable)')
     ap.add_argument('--cmdline', default=None, help='extra kernel command line')
+    ap.add_argument('--net-test', action='store_true', help='host test server + port forwarding')
     a = ap.parse_intermixed_args()
+    import socket as _s
+    def free_port():
+        k = _s.socket(); k.bind(('127.0.0.1', 0)); n = k.getsockname()[1]; k.close(); return n
+    server = None
+    net = '-netdev user,id=n0 -device virtio-net-pci,netdev=n0'
+    if a.net_test:
+        hp, fp = free_port(), free_port()
+        server = subprocess.Popen([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'net-host-server.py'), str(hp)],
+                                  start_new_session=True)
+        net = f'-netdev user,id=n0,hostfwd=tcp:127.0.0.1:{fp}-:8080,hostfwd=udp:127.0.0.1:{fp}-:8081 -device virtio-net-pci,netdev=n0'
+        a.cmds = [c.replace('@HP@', str(hp)).replace('@FP@', str(fp)) for c in a.cmds]
     make = ['make', '-s', 'ARCH=' + a.arch, 'SMP=' + a.smp, 'run', 'QEMUFLAGS=-display none ' + os.environ.get('QEMU_EXTRA', '') +
             ''.join(f' -drive file={d},if=none,id=vd{k},format=raw -device virtio-blk-pci,drive=vd{k}' for k, d in enumerate(a.disk))]
+    make.insert(3, 'QEMU_NET=' + net)
     if a.sched: make.insert(3, 'SCHED=' + a.sched)
     if a.cmdline: make.insert(3, 'CMDLINE=' + a.cmdline)
     p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -77,6 +93,17 @@ def main():
     else:
         results.append(('boot', True))
         for i, cmd in enumerate(a.cmds):
+            if cmd.startswith('host:'):
+                try:
+                    hr = subprocess.run(cmd[5:], shell=True, timeout=a.timeout, capture_output=True)
+                    out = hr.stdout + hr.stderr
+                    passed = hr.returncode == 0
+                except subprocess.TimeoutExpired:
+                    out, passed = b'(timeout)', False
+                sys.stdout.buffer.write(b'\n[host] ' + cmd[5:].encode() + b'\n' + out); sys.stdout.flush()
+                if log: log.write(b'\n[host] ' + cmd[5:].encode() + b'\n' + out); log.flush()
+                results.append((cmd, passed))
+                continue
             mark = '__RC%d=' % i
             # wait for the prompt so the shell is reading (line editing in raw mode) before typing;
             # input typed while the previous command was still finishing could get lost
@@ -96,6 +123,9 @@ def main():
         pump(time.time() + 20, lambda: False)
     try: os.killpg(p.pid, signal.SIGKILL)
     except ProcessLookupError: pass
+    if server:
+        try: os.killpg(server.pid, signal.SIGKILL)
+        except ProcessLookupError: pass
     print('\n==== 9os test summary (%s, SMP=%s%s) ====' % (a.arch, a.smp, ', SCHED=' + a.sched if a.sched else ''))
     for name, passed in results: print('%-6s %s' % ('PASS' if passed else 'FAIL', name))
     if state['panic']: print('FAIL   kernel panic detected')

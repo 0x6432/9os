@@ -9,6 +9,12 @@ chmod 640 /etc/shadow; chgrp shadow /etc/shadow
 mkdir -p /home/user && chown -R user:user /home/user && chmod 750 /home/user
 chmod 700 /root
 mkdir -p -m 700 /run/user/1000 && chown user:user /run/user/1000
+# M32: networking. lo is up from boot; eth0 (virtio-net) gets a DHCP lease in the background.
+ifconfig lo 127.0.0.1 netmask 255.0.0.0 up 2>/dev/null
+if [ -e /sys/class/net/eth0 ] || grep -q 'eth0:' /proc/net/dev 2>/dev/null; then
+    ifconfig eth0 up
+    udhcpc -i eth0 -b -q -t 5 -T 2 -S >/dev/null 2>&1
+fi
 echo
 echo "Welcome to 9os!  ($(uname -m), busybox $(busybox | head -1 | cut -d' ' -f2))"
 echo

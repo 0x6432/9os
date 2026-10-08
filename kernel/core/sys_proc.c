@@ -441,9 +441,41 @@ int64_t sys_syslog(int type, char *buf, int len) {
 }
 int64_t sys_zero(void) { return 0; }
 
+/* M32: SIGALRM for processes blocked in the kernel. user_return_work() only fires alarms of
+ * processes that run; the "alarm" thread sleeps until the earliest deadline and sends the
+ * signal, which interrupts the sleep (busybox ping blocks in recvfrom waiting for SIGALRM). */
+static struct wait_queue alarm_wq = WAIT_QUEUE_INIT(alarm_wq);
+static uint64_t alarm_gen;
+static struct thread *alarm_thread;
+static void alarm_scan(struct process *p, void *arg) {
+    uint64_t *next = arg, a = p->alarm_ns;
+    if (!a || p->state == P_ZOMBIE) return;
+    if (a <= time_ns()) { p->alarm_ns = 0; signal_send(p, SIGALRM); }
+    else if (a < *next) *next = a;
+}
+static void alarm_fn(void *arg) {
+    for (;;) {
+        uint64_t g = __atomic_load_n(&alarm_gen, __ATOMIC_SEQ_CST), next = UINT64_MAX;
+        bkl_enter();
+        process_list(alarm_scan, &next);
+        bkl_exit();
+        uint64_t f = sched_wait_lock();
+        if (__atomic_load_n(&alarm_gen, __ATOMIC_SEQ_CST) != g) { sched_wait_unlock(f); continue; }
+        uint64_t now = time_ns();
+        if (next != UINT64_MAX && next <= now) { sched_wait_unlock(f); continue; }
+        wait_event_timeout_locked(&alarm_wq, next == UINT64_MAX ? UINT64_MAX : next - now, f);
+    }
+}
+static void alarm_changed(void) {
+    if (!alarm_thread) alarm_thread = thread_create("alarm", alarm_fn, nullptr);
+    __atomic_add_fetch(&alarm_gen, 1, __ATOMIC_SEQ_CST);
+    wake_up(&alarm_wq);
+}
+
 int64_t sys_alarm(unsigned secs) {
     uint64_t now = time_ns(), old = curproc->alarm_ns;
     curproc->alarm_ns = secs ? now + secs * 1000000000ULL : 0;
+    alarm_changed();
     return old > now ? (old - now + 999999999ULL) / 1000000000ULL : 0;
 }
 int64_t sys_setitimer(int which, const int64_t *unew, int64_t *uold) {
@@ -456,6 +488,7 @@ int64_t sys_setitimer(int which, const int64_t *unew, int64_t *uold) {
         if (copy_from_user(n, unew, sizeof n)) return -EFAULT;
         uint64_t ns = n[2] * 1000000000ULL + n[3] * 1000ULL;
         curproc->alarm_ns = ns ? now + ns : 0;
+        alarm_changed();
     }
     return 0;
 }

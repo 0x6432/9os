@@ -19,11 +19,20 @@ fsck_img() {   # e2fsck the partition at 1 MiB
     return $r
 }
 rc=0
-python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext2.img" --disk "$B/scratch.img" "$@" \
+BIGMD5=$(python3 scripts/net-host-server.py --md5)
+python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext2.img" --disk "$B/scratch.img" --net-test "$@" \
     libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest \
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     ${WL} drmdemo \
+    nettest "ping -c 2 -W 2 127.0.0.1" \
+    "for i in 1 2 3 4 5 6 7 8 9 10; do ifconfig eth0 | grep -q 'inet addr:10.0.2.15' && break; sleep 1; done; ifconfig eth0 | grep -q 'inet addr:10.0.2.15'" \
+    "route -n | grep -q '^0.0.0.0 *10.0.2.2'" "grep -q nameserver /etc/resolv.conf" \
+    "nettest -x 10.0.2.2 @HP@" \
+    "wget -q -O - http://10.0.2.2:@HP@/hello | grep -qx 'hello from the host'" \
+    "wget -q -O /root/big http://10.0.2.2:@HP@/big && md5sum /root/big | grep -q $BIGMD5 && rm /root/big" \
+    "nettest -s 8080" \
+    "host:python3 scripts/net-host-server.py --echo-check @FP@" \
     "blktest /dev/vdb" "ext2test /dev/vda1 /mnt" "blktest -w /dev/vdb 77" \
     "grep -q '^violations 0' /proc/lockdep" || rc=1
 fsck_img "$B/ext2.img" || rc=1

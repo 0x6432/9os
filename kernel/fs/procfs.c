@@ -6,6 +6,7 @@
 #include <kernel/cred.h>
 int blk_proc_partitions(char *buf, size_t max);
 int blk_proc_diskstats(char *buf, size_t max);
+int net_proc_file(int which, char *buf, size_t max);
 #include <kernel/process.h>
 #include <kernel/kmalloc.h>
 #include <kernel/string.h>
@@ -19,9 +20,10 @@ int blk_proc_diskstats(char *buf, size_t max);
 #include <kernel/sched.h>
 #include <arch/syscall.h>
 
-enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE };
+enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS };
+             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS,
+             N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP };
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
 
 static struct thread *main_thread(struct process *p) {
@@ -68,6 +70,11 @@ static const struct { const char *name; enum pfile f; } global_files[] = {
     { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP }, { "hardening", G_HARDEN }, { "interrupts", G_INTERRUPTS },
     { "partitions", G_PARTITIONS }, { "diskstats", G_DISKSTATS },
 };
+/* /proc/net (M32) */
+static const struct { const char *name; enum pfile f; } net_files[] = {
+    { "dev", N_DEV }, { "route", N_ROUTE }, { "arp", N_ARP }, { "tcp", N_TCP }, { "udp", N_UDP }, { "raw", N_RAW },
+    { "unix", N_UNIX }, { "snmp", N_SNMP },
+};
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
     { "environ", F_ENVIRON }, { "maps", F_MAPS },
@@ -77,6 +84,7 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
     struct pinfo *pi = dir->priv;
     if (pi->kind == P_ROOT) {
         if (!strcmp(name, "self")) { *out = pnew(S_IFLNK | 0777, P_SELF, 0, 0, 0); return 0; }
+        if (!strcmp(name, "net")) { struct inode *i = pnew(S_IFDIR | 0555, P_NETDIR, 0, 0, 0); i->parent = dir; *out = i; return 0; }
         for (size_t k = 0; k < ARRAY_SIZE(global_files); k++)
             if (!strcmp(name, global_files[k].name)) { *out = pnew(S_IFREG | 0444, P_FILE, 0, 0, global_files[k].f); return 0; }
         int pid = 0;
@@ -94,6 +102,11 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
         if (!strcmp(name, "exe")) { *out = pnew(S_IFLNK | 0777, P_EXE, pi->pid, 0, 0); return 0; }
         for (size_t k = 0; k < ARRAY_SIZE(pid_files); k++)
             if (!strcmp(name, pid_files[k].name)) { *out = pnew(S_IFREG | (pid_files[k].f == F_ENVIRON ? 0400 : 0444), P_FILE, pi->pid, 0, pid_files[k].f); return 0; }
+        return -ENOENT;
+    }
+    if (pi->kind == P_NETDIR) {
+        for (size_t k = 0; k < ARRAY_SIZE(net_files); k++)
+            if (!strcmp(name, net_files[k].name)) { *out = pnew(S_IFREG | 0444, P_FILE, 0, 0, net_files[k].f); return 0; }
         return -ENOENT;
     }
     if (pi->kind == P_FDDIR) {
@@ -196,11 +209,14 @@ static int p_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
     emit(&c, "..", dir->parent ? dir->parent->ino : dir->ino, 4);
     if (pi->kind == P_ROOT) {
         emit(&c, "self", 2, 10);
+        emit(&c, "net", 6, 4);
         for (size_t k = 0; k < ARRAY_SIZE(global_files); k++) emit(&c, global_files[k].name, 100 + k, 8);
         process_list(emit_pid, &c);
     } else if (pi->kind == P_PIDDIR) {
         emit(&c, "fd", 3, 4); emit(&c, "cwd", 4, 10); emit(&c, "exe", 5, 10);
         for (size_t k = 0; k < ARRAY_SIZE(pid_files); k++) emit(&c, pid_files[k].name, 10 + k, 8);
+    } else if (pi->kind == P_NETDIR) {
+        for (size_t k = 0; k < ARRAY_SIZE(net_files); k++) emit(&c, net_files[k].name, 200 + k, 8);
     } else if (pi->kind == P_FDDIR) {
         struct process *p = process_find(pi->pid);
         for (int fd = 0; p && fd < MAX_FDS; fd++) {
@@ -282,6 +298,17 @@ static void gen(struct pinfo *pi, struct buf *b) {
         if (t) {
             int n = pi->file == G_MOUNTS ? vfs_proc_mounts(t, 8192) : pi->file == G_FILESYSTEMS ? vfs_proc_filesystems(t, 8192)
                   : pi->file == G_PARTITIONS ? blk_proc_partitions(t, 8192) : blk_proc_diskstats(t, 8192);
+            if (b->len + n + 1 > b->cap) { b->cap = b->len + n + 1; b->data = krealloc(b->data, b->cap); }
+            memcpy(b->data + b->len, t, n);
+            b->len += n;
+            kfree(t);
+        }
+        break;
+    }
+    case N_DEV: case N_ROUTE: case N_ARP: case N_TCP: case N_UDP: case N_RAW: case N_UNIX: case N_SNMP: {
+        char *t = kmalloc(65536);
+        if (t) {
+            int n = net_proc_file(pi->file - N_DEV, t, 65536);
             if (b->len + n + 1 > b->cap) { b->cap = b->len + n + 1; b->data = krealloc(b->data, b->cap); }
             memcpy(b->data + b->len, t, n);
             b->len += n;

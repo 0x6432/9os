@@ -953,3 +953,75 @@ managers and a self-hosted toolchain can live on), not just by "read sectors".
   magic and init died at poweroff). The chown family, set*id and reboot now take 64-bit
   parameters and truncate explicitly.
 - Lock order addition: the `cred` spinlock (LR_CRED = 68) is a leaf; nothing is taken under it.
+
+## M32: Networking
+- **Own IPv4 stack** (no lwIP), all in `kernel/net/` behind `kernel/net.h`:
+  - `core.c`: `struct pkt` (one kmalloc'd buffer with 80 bytes of headroom for the Ethernet/IP/TCP
+    headers, `data`/`len`, network/transport header pointers, pkttype), clone/free, byte rings for
+    socket data, the Internet checksum (aligned 64-bit fast path), one-shot network timers
+    (`ntimer_mod/del`, run by the net thread), the receive queue and the **`net` kernel thread**
+    that processes every received packet and expired timer under `net_mutex`, device registry
+    (`netdev_register`, by index/name), `lo` (127.0.0.1/8, MTU 65536, xmit loops straight back
+    into the receive queue) and the `/proc/net` files (dev, route, arp, tcp, udp, raw, unix, snmp).
+  - `arp.c`: neighbour cache (pending-packet queue, 3 retries at 1 s, 60 s expiry), Ethernet
+    output, ARP request/reply, `SIOC[SGD]ARP`, `/proc/net/arp`.
+  - `ip.c`: routing table (connected routes per interface address + static routes,
+    longest-prefix match, `SIOCADDRT/SIOCDELRT`), output with fragmentation, `IP_HDRINCL`, input
+    with validation and reassembly (32 queues, 30 s timeout), ICMP echo reply and destination
+    unreachable/port unreachable, ICMP errors mapped to errnos and handed to UDP/TCP.
+  - `dgram.c`: UDP (checksums, port demux incl. wildcard/connected/broadcast, ICMP errors as
+    `ECONNREFUSED` on connected sockets), raw IP sockets (`ICMP_FILTER`), unprivileged ICMP
+    "ping" sockets (`SOCK_DGRAM, IPPROTO_ICMP`, matched by echo id — BusyBox ping uses raw
+    sockets via setuid busybox, both work), `AF_PACKET` taps (SOCK_RAW/SOCK_DGRAM, cBPF filters).
+  - `tcp.c`: full RFC 793/1122 state machine, NewReno congestion control, RFC 6298 RTO with
+    Karn + backoff, delayed ACKs (40 ms, every second full segment, immediately for small/out of
+    order data), Nagle (TCP_NODELAY), sender/receiver SWS avoidance, persist timer for zero
+    windows, keepalives (SO_KEEPALIVE/TCP_KEEPIDLE/INTVL/CNT), MSS option, listen backlog with
+    unaccepted children, RST rules (RFC 2525 close-with-unread-data, data for a closed socket),
+    out-of-order queue, TIME_WAIT 2 s, rate-limited ACKs for out-of-window pure ACKs.
+  - `inet.c` + `socket.c`: the socket layer: `sys_socket…sys_recvmmsg` dispatch AF_UNIX to
+    `unix.c` (`unix_sys_*`) and AF_INET/AF_PACKET to `inet.c`; bind/connect/listen/accept4/
+    getsockname/getpeername/shutdown, send/recv{,from,msg,mmsg} with 16 KiB bounce buffers (user
+    copies happen with `net_mutex` dropped), blocking/non-blocking/timeouts (SO_RCVTIMEO/
+    SO_SNDTIMEO), poll/epoll (the pollmask is recomputed lock-free on every state change and
+    `poll_notify()` wakes waiters), ephemeral ports 32768–60999, SO_REUSEADDR, SO_BINDTODEVICE,
+    SO_BROADCAST, SO_LINGER, SO_ERROR, SO_ATTACH_FILTER, IP_TTL/TOS/HDRINCL/PKTINFO (multicast
+    and PMTU options are accepted as no-ops), TCP_NODELAY/CORK/MAXSEG/KEEP*, FIONREAD/SIOCOUTQ, and the interface ioctls ifconfig/route/udhcpc need
+    (SIOCGIFCONF/…FLAGS/ADDR/NETMASK/BRDADDR/MTU/HWADDR/INDEX/NAME/TXQLEN, setters need
+    CAP_NET_ADMIN). Raw and packet sockets need CAP_NET_RAW; ports < 1024 CAP_NET_BIND_SERVICE.
+- **virtio-net** (`drivers/virtio_net.c`): modern PCI (1af4:1041, transitional 1000), MAC +
+  MTU features, 128-entry RX and TX rings of 2 KiB DMA slots (packets are copied in and out —
+  simple, and fast enough: ~40 MiB/s loopback, ~6 MiB/s each way through QEMU slirp), threaded
+  MSI-X/INTx interrupt with a polling fallback; registers `eth0`.
+- **Locking**: everything protocol-side runs under one mutex, `net_mutex` (LR_MUTEX_NET = 21:
+  after the BKL, before fd/mm locks); socket syscalls are `nobkl`. Under it only leaf locks are
+  taken: the driver lock (LR_NETDRV = 67) and the receive-queue spinlock (LR_NETQ = 69, also
+  taken from interrupt context). Sleeping waits (`lock_wait`) drop `net_mutex` around
+  `poll_wait_seq()`, sampling the poll sequence before unlocking so no wakeup is lost.
+- **Userland**: rcS brings up `lo` and, if `eth0` exists, runs `udhcpc -b` with
+  `/usr/share/udhcpc/default.script` (ifconfig, default route, `/etc/resolv.conf`); `/etc/hosts`,
+  `/etc/services`, `/etc/protocols`. ping, wget, nc, telnet(d), httpd, nslookup, ifconfig, route,
+  ip work from BusyBox. The Makefile gives every QEMU a `-netdev user` + virtio-net-pci
+  (`QEMU_NET=` to override).
+- **SIGALRM fix**: `alarm()`/`setitimer()` used to fire only when the process returned to
+  userspace, so a process blocked in a syscall (BusyBox ping waiting in recvfrom) never got its
+  signal; an `alarm` kernel thread now delivers due timers and interrupts the sleeper.
+- **Tests**: `nettest` (loopback: TCP basics/half-close/RST/EPIPE/ECONNREFUSED/non-blocking
+  connect/EADDRINUSE/options, 16 MiB bulk transfer, 8 concurrent echo clients against a poll()
+  server, flow control with a stalled reader, UDP incl. connected errors and broadcast, IP
+  fragmentation over a 1500-byte `lo`, raw + ping ICMP sockets, privilege checks, interface
+  ioctls; a per-test watchdog reports hangs). `nettest -x HOST PORT` runs a 4 MiB TCP echo and a
+  UDP echo against `scripts/net-host-server.py`; `nettest -s PORT` is an echo server for
+  host-driven tests. `qemu-test.py --net-test` starts the host server (guest sees it at
+  10.0.2.2:@HP@) and forwards host port @FP@ to guest TCP 8080/UDP 8081; `host:CMD` steps run on
+  the host. ci-tests checks DHCP (10.0.2.15, default route, resolv.conf), ping, `nettest -x`,
+  wget of a small and a 1 MiB file (md5), and an incoming 1 MiB echo through the forwarded port.
+- Bugs worth remembering: the active-open path did not initialise `rcv_adv`, so the "never
+  shrink the window" rule advertised garbage (often zero) windows and connections stalled at
+  random; a zero-window probe byte that the peer accepted was not counted in `snd_max`, so the
+  peer's ACK looked like it acknowledged unsent data and both ends ACKed each other forever
+  (now the probe ACK is accepted and out-of-window ACK replies are rate-limited).
+- Known limits: IPv4 only (AF_INET6 → EAFNOSUPPORT), no netlink (`ip` falls back to ioctls
+  where it can), no window scaling/SACK/timestamps (64 KiB windows), no multicast routing/IGMP,
+  no forwarding, no TCP_FASTOPEN, one global `net_mutex`, copies in the driver, TIME_WAIT is 2 s
+  instead of 60 s.
