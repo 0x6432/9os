@@ -20,11 +20,58 @@ int net_proc_file(int which, char *buf, size_t max);
 #include <kernel/sched.h>
 #include <arch/syscall.h>
 
-enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR };
+enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR, P_SYSDIR };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
              G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS,
-             N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP };
-struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; };
+             N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP, S_SYSCTL };
+/* P_SYSDIR: the /proc/sys directory whose path is sysctls[sysi].path[0, syslen) */
+struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; int sysi, syslen; };
+
+/* ---- /proc/sys (M32b): integer and string knobs from one table; directories are implied by
+ * the paths. Writes need write permission on the 0644 root-owned file (DAC) as on Linux. */
+extern int sysctl_ip_forward, sysctl_ip_default_ttl, sysctl_icmp_echo_ignore_all, sysctl_icmp_echo_ignore_broadcasts;
+extern int sysctl_somaxconn, sysctl_lo_drop_every, sysctl_tcp_window_scaling, sysctl_tcp_timestamps;
+extern int sysctl_tcp_sack, sysctl_tcp_fin_timeout, sysctl_ipv6_forwarding, sysctl_ipv6_disable;
+extern int randomize_va_space;
+const char *kernel_hostname(void);
+int kernel_set_hostname(const char *name, size_t len);
+static const char *sys_ostype(void) { return "Linux"; }
+static const char *sys_osrelease(void) { return "6.1.0-9os"; }
+static const struct sysctl {
+    const char *path;
+    int *var; int min, max;
+    const char *(*sget)(void);
+    int (*sset)(const char *, size_t);
+} sysctls[] = {
+    { "kernel/hostname", nullptr, 0, 0, kernel_hostname, kernel_set_hostname },
+    { "kernel/ostype", nullptr, 0, 0, sys_ostype, nullptr },
+    { "kernel/osrelease", nullptr, 0, 0, sys_osrelease, nullptr },
+    { "kernel/randomize_va_space", &randomize_va_space, 0, 2, nullptr, nullptr },
+    { "net/core/somaxconn", &sysctl_somaxconn, 1, 65535, nullptr, nullptr },
+    { "net/core/9os_lo_drop_every", &sysctl_lo_drop_every, 0, 1000000, nullptr, nullptr },   /* test aid: lose 1/N of lo packets */
+    { "net/ipv4/ip_forward", &sysctl_ip_forward, 0, 1, nullptr, nullptr },
+    { "net/ipv4/conf/all/forwarding", &sysctl_ip_forward, 0, 1, nullptr, nullptr },
+    { "net/ipv4/ip_default_ttl", &sysctl_ip_default_ttl, 1, 255, nullptr, nullptr },
+    { "net/ipv4/icmp_echo_ignore_all", &sysctl_icmp_echo_ignore_all, 0, 1, nullptr, nullptr },
+    { "net/ipv4/icmp_echo_ignore_broadcasts", &sysctl_icmp_echo_ignore_broadcasts, 0, 1, nullptr, nullptr },
+    { "net/ipv4/tcp_window_scaling", &sysctl_tcp_window_scaling, 0, 1, nullptr, nullptr },
+    { "net/ipv4/tcp_timestamps", &sysctl_tcp_timestamps, 0, 1, nullptr, nullptr },
+    { "net/ipv4/tcp_sack", &sysctl_tcp_sack, 0, 1, nullptr, nullptr },
+    { "net/ipv4/tcp_fin_timeout", &sysctl_tcp_fin_timeout, 1, 3600, nullptr, nullptr },
+    { "net/ipv6/conf/all/forwarding", &sysctl_ipv6_forwarding, 0, 1, nullptr, nullptr },
+    { "net/ipv6/conf/all/disable_ipv6", &sysctl_ipv6_disable, 0, 1, nullptr, nullptr },
+};
+/* the entry under directory (sysi, len) named 'name' (len 0 = /proc/sys); *dir: it is a directory */
+static int sys_child(int sysi, int len, const char *name, size_t nlen, bool *dir) {
+    const char *pre = sysctls[sysi].path;
+    for (size_t k = 0; k < ARRAY_SIZE(sysctls); k++) {
+        const char *p = sysctls[k].path;
+        if (strncmp(p, pre, (size_t)len) || strncmp(p + len, name, nlen)) continue;
+        char c = p[len + nlen];
+        if (c == '/' || !c) { *dir = c == '/'; return (int)k; }
+    }
+    return -1;
+}
 
 static struct thread *main_thread(struct process *p) {
     return list_empty(&p->threads) ? nullptr : list_first(&p->threads, struct thread, proc_node);
@@ -48,7 +95,7 @@ static struct inode *proc_root_inode;
 static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum pfile file) {
     struct inode *i = inode_alloc(mode);
     struct pinfo *pi = kmalloc(sizeof *pi);
-    *pi = (struct pinfo){ kind, pid, fd, file };
+    *pi = (struct pinfo){ kind, pid, fd, file, 0, 0 };
     i->priv = pi;
     i->iops = &proc_iops;
     i->fops = S_ISDIR(mode) ? &proc_dir_fops : &proc_file_fops;
@@ -85,6 +132,10 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
     if (pi->kind == P_ROOT) {
         if (!strcmp(name, "self")) { *out = pnew(S_IFLNK | 0777, P_SELF, 0, 0, 0); return 0; }
         if (!strcmp(name, "net")) { struct inode *i = pnew(S_IFDIR | 0555, P_NETDIR, 0, 0, 0); i->parent = dir; *out = i; return 0; }
+        if (!strcmp(name, "sys")) {
+            struct inode *i = pnew(S_IFDIR | 0555, P_SYSDIR, 0, 0, 0);
+            i->ino = 0x7000000; i->parent = dir; *out = i; return 0;
+        }
         for (size_t k = 0; k < ARRAY_SIZE(global_files); k++)
             if (!strcmp(name, global_files[k].name)) { *out = pnew(S_IFREG | 0444, P_FILE, 0, 0, global_files[k].f); return 0; }
         int pid = 0;
@@ -108,6 +159,25 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
         for (size_t k = 0; k < ARRAY_SIZE(net_files); k++)
             if (!strcmp(name, net_files[k].name)) { *out = pnew(S_IFREG | 0444, P_FILE, 0, 0, net_files[k].f); return 0; }
         return -ENOENT;
+    }
+    if (pi->kind == P_SYSDIR) {
+        bool isdir;
+        int k = sys_child(pi->sysi, pi->syslen, name, strlen(name), &isdir);
+        if (k < 0) return -ENOENT;
+        struct inode *i;
+        if (isdir) {
+            i = pnew(S_IFDIR | 0555, P_SYSDIR, 0, 0, 0);
+            ((struct pinfo *)i->priv)->sysi = k;
+            ((struct pinfo *)i->priv)->syslen = pi->syslen + (int)strlen(name) + 1;
+            i->ino = 0x7000000 + (uint64_t)k * 128 + (uint64_t)pi->syslen + strlen(name) + 1;
+            i->parent = dir;
+        } else {
+            bool rw = sysctls[k].var || sysctls[k].sset;
+            i = pnew(S_IFREG | (rw ? 0644 : 0444), P_FILE, 0, k, S_SYSCTL);
+            i->ino = 0x7000000 + (uint64_t)k * 128 + 127;
+        }
+        *out = i;
+        return 0;
     }
     if (pi->kind == P_FDDIR) {
         struct process *p = process_find(pi->pid);
@@ -210,6 +280,7 @@ static int p_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
     if (pi->kind == P_ROOT) {
         emit(&c, "self", 2, 10);
         emit(&c, "net", 6, 4);
+        emit(&c, "sys", 0x7000000, 4);
         for (size_t k = 0; k < ARRAY_SIZE(global_files); k++) emit(&c, global_files[k].name, 100 + k, 8);
         process_list(emit_pid, &c);
     } else if (pi->kind == P_PIDDIR) {
@@ -217,6 +288,19 @@ static int p_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
         for (size_t k = 0; k < ARRAY_SIZE(pid_files); k++) emit(&c, pid_files[k].name, 10 + k, 8);
     } else if (pi->kind == P_NETDIR) {
         for (size_t k = 0; k < ARRAY_SIZE(net_files); k++) emit(&c, net_files[k].name, 200 + k, 8);
+    } else if (pi->kind == P_SYSDIR) {
+        const char *pre = sysctls[pi->sysi].path;
+        for (size_t k = 0; k < ARRAY_SIZE(sysctls); k++) {
+            const char *p = sysctls[k].path;
+            if (strncmp(p, pre, (size_t)pi->syslen)) continue;
+            const char *nm = p + pi->syslen, *e = strchr(nm, '/');
+            size_t nl = e ? (size_t)(e - nm) : strlen(nm);
+            bool d;
+            if (sys_child(pi->sysi, pi->syslen, nm, nl, &d) != (int)k) continue;   /* listed by an earlier entry */
+            char n[64];
+            snprintf(n, sizeof n, "%.*s", (int)nl, nm);
+            if (!emit(&c, n, 0x7000000 + k * 128 + (e ? (uint64_t)pi->syslen + nl + 1 : 127), e ? 4 : 8)) break;
+        }
     } else if (pi->kind == P_FDDIR) {
         struct process *p = process_find(pi->pid);
         for (int fd = 0; p && fd < MAX_FDS; fd++) {
@@ -314,6 +398,12 @@ static void gen(struct pinfo *pi, struct buf *b) {
             b->len += n;
             kfree(t);
         }
+        break;
+    }
+    case S_SYSCTL: {
+        const struct sysctl *y = &sysctls[pi->fd];
+        if (y->var) bprintf(b, "%d\n", *y->var);
+        else bprintf(b, "%s\n", y->sget());
         break;
     }
     case G_LOADAVG: bprintf(b, "0.00 0.00 0.00 %d/%d 1\n", sched_runnable_count() + 1, sched_runnable_count() + 1); break;
@@ -443,6 +533,32 @@ static ssize_t pf_read(struct file *f, void *buf, size_t n, off_t *off) {
     *off += n;
     return n;
 }
+static ssize_t pf_write(struct file *f, const void *buf, size_t n, off_t *off) {
+    struct pinfo *pi = f->inode->priv;
+    if (pi->kind != P_FILE || pi->file != S_SYSCTL) return -EINVAL;
+    const struct sysctl *y = &sysctls[pi->fd];
+    char t[72];
+    if (n >= sizeof t) return -EINVAL;
+    memcpy(t, buf, n);
+    t[n] = 0;
+    size_t l = n;
+    while (l && (t[l - 1] == '\n' || t[l - 1] == ' ' || t[l - 1] == '\t')) t[--l] = 0;
+    if (y->sset) { int r = y->sset(t, l); if (r) return r; *off += n; return (ssize_t)n; }
+    if (!y->var) return -EPERM;
+    const char *c = t;
+    while (*c == ' ' || *c == '\t') c++;
+    bool neg = *c == '-';
+    if (neg || *c == '+') c++;
+    if (*c < '0' || *c > '9') return -EINVAL;
+    long v = 0;
+    for (; *c >= '0' && *c <= '9'; c++) { v = v * 10 + (*c - '0'); if (v > 1L << 31) return -EINVAL; }
+    if (*c) return -EINVAL;
+    if (neg) v = -v;
+    if (v < y->min || v > y->max) return -EINVAL;
+    __atomic_store_n(y->var, (int)v, __ATOMIC_RELAXED);
+    *off += n;
+    return (ssize_t)n;
+}
 static void pf_release(struct file *f) {
     struct buf *b = f->priv;
     if (b) { kfree(b->data); kfree(b); }
@@ -459,7 +575,7 @@ static int pl_follow(struct inode *i, struct inode **o) { return PBKL(p_follow(i
 static const struct inode_ops proc_iops = {
     .lookup = pl_lookup, .readlink = pl_readlink, .iterate = pl_iterate, .evict = p_evict, .follow_link = pl_follow,
 };
-static const struct file_ops proc_file_fops = { .open = pf_open, .read = pf_read, .release = pf_release, .poll = pf_poll };
+static const struct file_ops proc_file_fops = { .open = pf_open, .read = pf_read, .write = pf_write, .release = pf_release, .poll = pf_poll };
 static const struct file_ops proc_dir_fops = { .poll = pf_poll };
 
 struct inode *procfs_create_root(void) {

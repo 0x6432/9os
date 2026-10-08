@@ -75,6 +75,7 @@ bool ring_alloc(struct ring *r, size_t cap) {
     r->head = r->len = 0;
     return r->buf != nullptr;
 }
+void ring_free(struct ring *r) { kfree(r->buf); r->buf = nullptr; r->cap = r->head = r->len = 0; }
 size_t ring_space(const struct ring *r) { return r->cap - r->len; }
 size_t ring_put(struct ring *r, const uint8_t *src, size_t n) {
     n = MIN(n, ring_space(r));
@@ -259,6 +260,17 @@ struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, in
     mutex_unlock(&net_mutex);
     return d;
 }
+/* a device going away (TUN/TAP close): forget its addresses, routes and neighbours. Frames for it
+ * may still sit in the receive queue, so the struct is never freed (it is small) */
+void netdev_unregister(struct netdev *d) {
+    d->flags &= ~(IFF_UP | IFF_RUNNING);
+    route_flush_dev(d);
+    arp_flush_dev(d);
+    d->addr = d->netmask = d->bcast = 0;
+    list_del(&d->node);
+    list_init(&d->node);
+    d->index = -d->index;
+}
 struct netdev *netdev_by_index(int idx) {
     list_for_each(it, &netdevs) { struct netdev *d = list_entry(it, struct netdev, node); if (d->index == idx) return d; }
     return nullptr;
@@ -278,7 +290,9 @@ struct netdev *net_dev_for_local(uint32_t a) {
 bool net_is_local_addr(uint32_t a) { return net_dev_for_local(a) != nullptr; }
 
 /* the ethernet header is already in place: loop the frame back as a receive */
+int sysctl_lo_drop_every;              /* /proc/sys/net/core/9os_lo_drop_every: loss for tests */
 static void lo_xmit(struct netdev *d, struct pkt *p) {
+    if (sysctl_lo_drop_every && random_u64() % (unsigned)sysctl_lo_drop_every == 0) { d->tx_dropped++; pkt_free(p); return; }
     d->tx_packets++;
     d->tx_bytes += p->len;
     p->csum_ok = true;
@@ -316,7 +330,7 @@ int net_proc_route(char *buf, size_t max) {
     return MIN(n, (int)max);
 }
 
-extern uint64_t ip_stats[8], udp_stats[4], tcp_stats[8];
+extern uint64_t ip_stats[8], udp_stats[4], tcp_stats[8], ip_fwd_stats;
 int net_proc_file(int which, char *buf, size_t max) {
     switch (which) {
     case 0: return net_proc_dev(buf, max);
@@ -327,8 +341,8 @@ int net_proc_file(int which, char *buf, size_t max) {
     case 5: return net_proc_udp(buf, max, true);
     case 6: return snprintf(buf, max, "Num       RefCount Protocol Flags    Type St Inode Path\n");
     case 7: {
-        int n = snprintf(buf, max, "Ip: Forwarding DefaultTTL InReceives InHdrErrors InDelivers OutRequests FragCreates ReasmOKs OutNoRoutes\n"
-                                   "Ip: 2 64 %lu %lu %lu %lu %lu %lu %lu\n", ip_stats[0], ip_stats[5], ip_stats[1], ip_stats[2], ip_stats[3], ip_stats[4], ip_stats[6]);
+        int n = snprintf(buf, max, "Ip: Forwarding DefaultTTL InReceives InHdrErrors ForwDatagrams InDelivers OutRequests FragCreates ReasmOKs OutNoRoutes\n"
+                                   "Ip: %d %d %lu %lu %lu %lu %lu %lu %lu %lu\n", sysctl_ip_forward ? 1 : 2, sysctl_ip_default_ttl, ip_stats[0], ip_stats[5], ip_fwd_stats, ip_stats[1], ip_stats[2], ip_stats[3], ip_stats[4], ip_stats[6]);
         n += snprintf(buf + n, max - n, "Icmp: InMsgs\nIcmp: %lu\n", ip_stats[7]);
         n += snprintf(buf + n, max - n, "Tcp: ActiveOpens PassiveOpens InSegs OutSegs RetransSegs InErrs OutRsts InRsts\n"
                                         "Tcp: %lu %lu %lu %lu %lu %lu %lu %lu\n", tcp_stats[6], tcp_stats[7], tcp_stats[0], tcp_stats[1], tcp_stats[2],
@@ -349,5 +363,6 @@ void net_init(void) {
     loopback_dev->flags |= IFF_UP | IFF_RUNNING;
     arp_init();
     tcp_init();
+    tun_init();
     net_thread = thread_create("net", net_thread_fn, nullptr);
 }

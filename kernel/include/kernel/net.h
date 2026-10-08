@@ -77,12 +77,14 @@ void pkt_queue_purge(struct list_node *q);
 #define IFF_UP 0x1
 #define IFF_BROADCAST 0x2
 #define IFF_LOOPBACK 0x8
+#define IFF_POINTOPOINT 0x10
 #define IFF_RUNNING 0x40
 #define IFF_NOARP 0x80
 #define IFF_PROMISC 0x100
 #define IFF_MULTICAST 0x1000
 #define ARPHRD_ETHER 1
 #define ARPHRD_LOOPBACK 772
+#define ARPHRD_NONE 65534
 
 struct netdev {
     struct list_node node;
@@ -102,6 +104,9 @@ extern struct list_node netdevs;
 extern struct netdev *loopback_dev;
 struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, int mtu,
                                void (*xmit)(struct netdev *, struct pkt *), void *priv);
+void netdev_unregister(struct netdev *d);        /* net_mutex held; the struct stays allocated */
+void tun_init(void);
+int net_if_ioctl(uint64_t cmd, void *uarg);   /* SIOC* interface/route/ARP ioctls */
 struct netdev *netdev_by_index(int idx);
 struct netdev *netdev_by_name(const char *name);
 /* drivers: hand a received frame (data at the ethernet header) to the stack; any context */
@@ -158,7 +163,8 @@ struct ip_opts { uint8_t ttl, tos; bool df; int oif; };
 int ip_output(struct pkt *p, uint32_t src, uint32_t dst, uint8_t proto, const struct ip_opts *o);
 int ip_output_hdrincl(struct pkt *p, int oif);       /* p->data: a complete IP datagram */
 void ip_input(struct netdev *d, struct pkt *p);
-void icmp_send_unreach(struct pkt *orig, int type, int code);   /* orig->nh: offending datagram */
+void icmp_send_unreach(struct pkt *orig, int type, int code);
+void icmp_send_unreach_mtu(struct pkt *orig, uint16_t mtu);   /* orig->nh: offending datagram */
 /* ARP / ethernet */
 void eth_output(struct netdev *d, struct pkt *p, uint32_t nexthop, uint16_t ethertype);
 void arp_input(struct netdev *d, struct pkt *p);
@@ -221,6 +227,18 @@ struct sock {
     struct ntimer t_rexmt, t_delack, t_keep;
     uint64_t last_rx;
     uint64_t last_oow_ack;              /* rate limit for ACKs to out-of-window pure ACKs */
+    /* TCP options: RFC 7323 window scaling + timestamps, RFC 2018 SACK */
+    uint8_t snd_wscale, rcv_wscale;
+    bool ws_ok, ts_ok, sack_ok;
+    uint32_t ts_recent, ts_offset, last_ack_sent;
+    uint64_t ts_recent_stamp;          /* 0: no timestamp seen yet */
+    struct sack_blk { uint32_t start, end; } sack_rcv[4];   /* blocks we report, most recent first */
+    int nsack_rcv;
+    struct sack_blk sack_snd[8];       /* scoreboard: what the peer reported, sorted, above snd_una */
+    int nsack_snd;
+    uint32_t high_rxt;                 /* SACK loss recovery: holes retransmitted below this */
+    int quickack;                      /* ACK the next segments at once (after loss) */
+    uint32_t rtx_high;                 /* no RTT samples for ACKs below this (retransmitted) */
     void *filter;                      /* SO_ATTACH_FILTER program */
     uint32_t icmp_filter;              /* raw ICMP: ICMP_FILTER type mask */
 };
@@ -257,6 +275,9 @@ void tcp_send_ack(struct sock *s);
 void tcp_recv_window_update(struct sock *s);
 void tcp_abort(struct sock *s, int err);
 int net_proc_tcp(char *buf, size_t max);
+extern int sysctl_ip_forward, sysctl_ip_default_ttl, sysctl_somaxconn, sysctl_ipv6_forwarding, sysctl_ipv6_disable;
+extern int sysctl_tcp_window_scaling, sysctl_tcp_timestamps, sysctl_tcp_sack, sysctl_tcp_fin_timeout;
+void ring_free(struct ring *r);
 int net_proc_udp(char *buf, size_t max, bool raw);
 
 /* ring buffers */

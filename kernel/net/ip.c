@@ -12,7 +12,10 @@
 #include <kernel/errno.h>
 
 struct list_node routes = LIST_INIT(routes);
+int sysctl_ip_forward, sysctl_ip_default_ttl = 64, sysctl_icmp_echo_ignore_all, sysctl_icmp_echo_ignore_broadcasts = 1;
+int sysctl_ipv6_forwarding, sysctl_ipv6_disable;
 static uint16_t ip_ident;
+uint64_t ip_fwd_stats;
 uint64_t ip_stats[8];        /* in, delivered, out, frag_ok, reasm_ok, bad, noroute, icmp_in */
 
 /* ------------------------------------------------------------------ routing */
@@ -152,7 +155,7 @@ int ip_output(struct pkt *p, uint32_t src, uint32_t dst, uint8_t proto, const st
     h->tot_len = htons((uint16_t)p->len);
     h->id = htons(ip_ident++);
     h->frag_off = o && o->df ? htons(IP_DF) : 0;
-    h->ttl = o && o->ttl ? o->ttl : 64;
+    h->ttl = o && o->ttl ? o->ttl : (uint8_t)sysctl_ip_default_ttl;
     h->protocol = proto;
     h->saddr = src;
     h->daddr = dst;
@@ -194,7 +197,9 @@ static void icmp_send(uint32_t dst, uint32_t src, uint8_t type, uint8_t code, ui
 
 /* reply to orig->nh's sender with an error quoting its header + 8 bytes (never about ICMP
  * errors, fragments other than the first, or broadcasts) */
-void icmp_send_unreach(struct pkt *orig, int type, int code) {
+static void icmp_unreach_rest(struct pkt *orig, int type, int code, uint32_t rest);
+void icmp_send_unreach(struct pkt *orig, int type, int code) { icmp_unreach_rest(orig, type, code, 0); }
+static void icmp_unreach_rest(struct pkt *orig, int type, int code, uint32_t rest) {
     struct iphdr *h = (struct iphdr *)orig->nh;
     unsigned hl = (h->ver_ihl & 15) * 4;
     if (ntohs(h->frag_off) & IP_OFFMASK) return;
@@ -205,8 +210,11 @@ void icmp_send_unreach(struct pkt *orig, int type, int code) {
     }
     size_t q = MIN((size_t)ntohs(h->tot_len), hl + 8u);
     uint32_t src = net_is_local_addr(h->daddr) ? h->daddr : 0;
-    icmp_send(h->saddr, src, (uint8_t)type, (uint8_t)code, 0, h, q);
+    icmp_send(h->saddr, src, (uint8_t)type, (uint8_t)code, rest, h, q);
 }
+
+/* RFC 1191 "fragmentation needed and DF set" carrying the next-hop MTU */
+void icmp_send_unreach_mtu(struct pkt *orig, uint16_t mtu) { icmp_unreach_rest(orig, 3, 4, htonl(mtu)); }
 
 static int icmp_errno(int type, int code) {
     if (type == 3) {
@@ -227,8 +235,9 @@ static void icmp_input(struct pkt *p) {
     p->th = p->data;
     raw_input(p);
     if (ic->type == 8) {                                      /* echo request */
-        if (h->daddr == INADDR_BROADCAST || ipv4_is_multicast(h->daddr)) { pkt_free(p); return; }
-        icmp_send(h->saddr, h->daddr, 0, 0, *(uint32_t *)&ic->id, ic + 1, p->len - sizeof *ic);
+        bool bc = h->daddr == INADDR_BROADCAST || ipv4_is_multicast(h->daddr) || !net_is_local_addr(h->daddr);
+        if (sysctl_icmp_echo_ignore_all || (bc && sysctl_icmp_echo_ignore_broadcasts)) { pkt_free(p); return; }
+        icmp_send(h->saddr, bc ? 0 : h->daddr, 0, 0, *(uint32_t *)&ic->id, ic + 1, p->len - sizeof *ic);
     } else if (ic->type == 0) {
         if (ping_input(p)) return;
     } else if ((ic->type == 3 || ic->type == 11) && p->len >= sizeof *ic + sizeof(struct iphdr) + 8) {
@@ -327,6 +336,29 @@ static struct pkt *ip_reassemble(struct pkt *p) {
 }
 
 /* ------------------------------------------------------------------ input */
+/* RFC 1812 forwarding of a datagram that is not for us (net.ipv4.ip_forward=1); p->data: IP header */
+static void ip_forward(struct netdev *in, struct pkt *p) {
+    struct iphdr *h = (struct iphdr *)p->data;
+    p->nh = p->data;
+    if (p->pkttype != PACKET_HOST || in->type == ARPHRD_LOOPBACK || !h->saddr || ipv4_is_loopback(h->daddr) ||
+        ipv4_is_loopback(h->saddr) || ipv4_is_multicast(h->daddr) || ipv4_is_multicast(h->saddr) ||
+        (in->addr && h->daddr == (in->addr | ~in->netmask))) { pkt_free(p); return; }
+    if (h->ttl <= 1) { icmp_send_unreach(p, 11, 0); pkt_free(p); return; }   /* time exceeded in transit */
+    struct netdev *out; uint32_t nh, src;
+    if (ip_route(h->daddr, 0, &out, &nh, &src) || out->type == ARPHRD_LOOPBACK) {
+        icmp_send_unreach(p, 3, 0); pkt_free(p); return;                      /* network unreachable */
+    }
+    if (p->len > (size_t)out->mtu && (ntohs(h->frag_off) & IP_DF)) {          /* RFC 1191 */
+        icmp_send_unreach_mtu(p, (uint16_t)out->mtu);
+        pkt_free(p); return;
+    }
+    h->ttl--;
+    uint32_t c = ntohs(h->check) + 0x0100;                                  /* RFC 1624 incremental update */
+    h->check = htons((uint16_t)(c + (c >> 16)));
+    ip_fwd_stats++;
+    ip_send_built(p, out, nh);
+}
+
 void ip_input(struct netdev *d, struct pkt *p) {
     ip_stats[0]++;
     if (p->len < sizeof(struct iphdr)) goto bad;
@@ -338,7 +370,10 @@ void ip_input(struct netdev *d, struct pkt *p) {
     bool local = net_is_local_addr(h->daddr) || h->daddr == INADDR_BROADCAST || (d->bcast && h->daddr == d->bcast) ||
                  (d->addr && h->daddr == (d->addr | ~d->netmask)) || ipv4_is_multicast(h->daddr) ||
                  (!d->addr && p->pkttype == PACKET_HOST);         /* DHCP before configuration */
-    if (!local) { pkt_free(p); return; }
+    if (!local) {
+        if (sysctl_ip_forward) ip_forward(d, p); else pkt_free(p);
+        return;
+    }
     p->nh = p->data;
     pkt_pull(p, hl);
     if (ntohs(h->frag_off) & (IP_MF | IP_OFFMASK)) {

@@ -1021,7 +1021,52 @@ managers and a self-hosted toolchain can live on), not just by "read sectors".
   random; a zero-window probe byte that the peer accepted was not counted in `snd_max`, so the
   peer's ACK looked like it acknowledged unsent data and both ends ACKed each other forever
   (now the probe ACK is accepted and out-of-window ACK replies are rate-limited).
-- Known limits: IPv4 only (AF_INET6 → EAFNOSUPPORT), no netlink (`ip` falls back to ioctls
-  where it can), no window scaling/SACK/timestamps (64 KiB windows), no multicast routing/IGMP,
-  no forwarding, no TCP_FASTOPEN, one global `net_mutex`, copies in the driver, TIME_WAIT is 2 s
-  instead of 60 s.
+- Known limits: see "M32b" below for what was lifted; still IPv4 only (AF_INET6 → EAFNOSUPPORT),
+  no netlink, no multicast/IGMP, no TCP_FASTOPEN, one global `net_mutex`, copies in the driver.
+
+## M32b: Lifting M32 limits (in progress)
+
+Done (x86_64 tested: nettest, net2test, external echo, socktest all pass; riscv64/aarch64 and the
+full `ci-tests.sh` NOT re-run yet — do that first):
+- TCP options (kernel/net/tcp.c): RFC 7323 window scaling (`pick_wscale` from the receive ring;
+  windows rounded down, "never shrink" rounding up is capped at the ring space — the ring has no
+  slack, overshooting made the receiver truncate segments and stall on RTOs), timestamps (RTTM
+  with a Karn rule via `rtx_high`: no samples for ACKs of retransmitted data, else the RTO
+  inflates; PAWS; ts_recent/last_ack_sent; TIME_WAIT reuse by timestamp), RFC 2018 SACK
+  (receiver blocks `sack_rcv`, sender scoreboard `sack_snd[8]`, SACK-based recovery entry, one hole
+  per dup ACK, RFC 6675 pipe = inflight − SACKed in `tcp_output`, scoreboard kept across an RTO and
+  SACKed ranges skipped when going back). Duplicate segments are now ACKed at once and a Linux-
+  style `quickack` (16 segments) follows loss/dups (before, a fully duplicate segment got no ACK
+  at all → repeated RTOs). OOO queue up to 1024 segments. TCP_INFO reports tcpi_options/wscale.
+  Default TCP buffers 128 KiB; SO_RCVBUF no longer capped at 64 KiB. TIME_WAIT is 60 s with
+  TW_MAX 4096 orphans (beyond: expire at once); FIN_WAIT2 orphan timeout = tcp_fin_timeout.
+- /proc/sys (kernel/fs/procfs.c `sysctls[]` table, P_SYSDIR, writable via `pf_write`, DAC on 0644
+  root files): kernel/{hostname,ostype,osrelease,randomize_va_space}, net/core/{somaxconn,
+  9os_lo_drop_every (test aid: random 1/N loss on lo)}, net/ipv4/{ip_forward, conf/all/forwarding,
+  ip_default_ttl, icmp_echo_ignore_all, icmp_echo_ignore_broadcasts, tcp_window_scaling,
+  tcp_timestamps, tcp_sack, tcp_fin_timeout}, net/ipv6/conf/all/{forwarding,disable_ipv6}
+  (placeholders until IPv6). Add a knob = one table line + an int.
+- IPv4 forwarding (ip.c `ip_forward`): TTL decrement with incremental checksum, ICMP time
+  exceeded, net unreachable, frag-needed with next-hop MTU (`icmp_send_unreach_mtu`),
+  re-fragmentation; /proc/net/snmp Forwarding/DefaultTTL/ForwDatagrams.
+- TUN/TAP (kernel/net/tun.c, /dev/net/tun 10:200): TUNSETIFF (IFF_TUN/IFF_TAP/IFF_NO_PI, name
+  patterns with one %d), TUNGETIFF, PI header, poll; device removed on close via
+  `netdev_unregister` (struct intentionally never freed: frames may still be queued). TUN gets a
+  dummy ethernet header inside the stack. Needs CAP_NET_ADMIN.
+- Interface/route/ARP ioctls work on any socket (`net_if_ioctl`; musl if_nametoindex uses AF_UNIX).
+- Tests: userland/tests/net2test.c (`net2test [sysctl_tests|tcp_loss|tun_tests]`, NET2_LOSS=N
+  sets the loss rate; in ci-tests main run). nettest gained TCP_INFO option checks and
+  tcp_bigwindow (>1 MiB absorbed by an unread receiver).
+
+Known issues / next steps (plan order):
+1. Heavy loss (1/7 on every lo packet) is slow: SACK run finishes, NewReno run exceeds the
+   120 s watchdog. Missing: RACK/TLP, lost-retransmission detection, early retransmit. 1/53 is fine.
+2. Run full ci-tests on all 3 arches.
+3. IPv4 multicast + IGMPv2 (IP_ADD/DROP_MEMBERSHIP, IP_MULTICAST_*, per-device groups, dst-MAC
+   filter in eth_input); TAP makes it testable.
+4. AF_NETLINK NETLINK_ROUTE (GETLINK/GETADDR/GETROUTE dumps, NEW/DELADDR, NEW/DELROUTE, SETLINK)
+   for busybox `ip` and getifaddrs; socket.c returns EAFNOSUPPORT for it today.
+5. IPv6 (ip6.c, ICMPv6/ND/SLAAC on slirp fec0::/64, MLD, TCP/UDP over v6, sockaddr_in6,
+   /proc/net/if_inet6 etc.); nettest `privileges` checks AF_INET6 → EAFNOSUPPORT, update it.
+6. Zero-copy virtio-net; TCP_FASTOPEN; splitting net_mutex (likely stays).
+

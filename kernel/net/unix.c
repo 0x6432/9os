@@ -846,6 +846,7 @@ static unsigned u_poll(struct file *f) {
     uunlock(fl);
     return r;
 }
+int net_if_ioctl(uint64_t cmd, void *uarg);
 static int u_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
     struct usock *s = f->priv;
     if (cmd == 0x541B) {                                    /* FIONREAD */
@@ -855,7 +856,7 @@ static int u_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
         uunlock(fl);
         return copy_to_user((void *)arg, &v, sizeof v) ? -EFAULT : 0;
     }
-    return -ENOTTY;
+    return net_if_ioctl(cmd, (void *)arg);
 }
 static void u_release(struct file *f) {
     struct usock *s = f->priv;

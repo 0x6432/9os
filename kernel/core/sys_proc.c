@@ -170,6 +170,14 @@ int64_t sys_sethostname(const char *name, size_t len) {
     return 0;
 }
 
+const char *kernel_hostname(void) { return hostname; }
+int kernel_set_hostname(const char *name, size_t len) {     /* /proc/sys/kernel/hostname */
+    if (len > 64) return -EINVAL;
+    memset(hostname, 0, sizeof hostname);
+    memcpy(hostname, name, len);
+    return 0;
+}
+
 int64_t sys_sched_yield(void) { schedule(); return 0; }
 
 static struct wait_queue sleep_wq = WAIT_QUEUE_INIT(sleep_wq);

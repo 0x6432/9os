@@ -54,6 +54,8 @@ static bool linked(struct sock *s) { return s->node.next && s->node.next != &s->
 static void link_to(struct sock *s, struct list_node *l) { if (!linked(s)) list_add_tail(l, &s->node); }
 static void unlink_sock(struct sock *s) { if (linked(s)) list_del(&s->node); list_init(&s->node); }
 
+int sysctl_somaxconn = 4096;
+
 static struct sock *sock_alloc(int family, int type, int proto) {
     struct sock *s = kzalloc(sizeof *s);
     if (!s) return nullptr;
@@ -62,9 +64,9 @@ static struct sock *sock_alloc(int family, int type, int proto) {
     list_init(&s->rxq);
     list_init(&s->ooo);
     list_init(&s->children);
-    s->rcvbuf = type == SOCK_STREAM ? 65535 : 212992;
-    s->sndbuf = type == SOCK_STREAM ? 65536 : 212992;
-    s->ttl = 64;
+    s->rcvbuf = type == SOCK_STREAM ? 131072 : 212992;
+    s->sndbuf = type == SOCK_STREAM ? 131072 : 212992;
+    s->ttl = sysctl_ip_default_ttl;
     s->uid = current_cred()->euid;
     if (type == SOCK_STREAM) tcp_sock_init(s);
     return s;
@@ -474,7 +476,7 @@ int inet_listen(struct file *f, int backlog) {
             s->bound = true;
         }
         unlink_sock(s);
-        r = tcp_listen(s, backlog > 0 ? backlog : 1);
+        r = tcp_listen(s, backlog > 0 ? MIN(backlog, sysctl_somaxconn) : 1);
         if (r) link_to(s, &tcp_socks);
     }
     mutex_unlock(&net_mutex);
@@ -884,7 +886,6 @@ int inet_setsockopt(struct file *f, int level, int name, const void *uval, int l
             break;
         case 8: case 33:
             v = v < 1024 ? 2048 : v > (1 << 22) ? (1 << 23) : v * 2;
-            if (s->type == SOCK_STREAM && v > 65535) v = 65535;   /* no window scaling */
             s->rcvbuf = v;
             break;
         case 13:                                         /* SO_LINGER {int onoff, linger} */
@@ -914,7 +915,7 @@ int inet_setsockopt(struct file *f, int level, int name, const void *uval, int l
     } else if (level == SOL_IP && s->family == AF_INET) {
         switch (name) {
         case 1: s->tos = v & 0xff; break;                /* IP_TOS */
-        case 2: if (v == -1) v = 64; if (v < 1 || v > 255) r = -EINVAL; else s->ttl = v; break;
+        case 2: if (v == -1) v = sysctl_ip_default_ttl; if (v < 1 || v > 255) r = -EINVAL; else s->ttl = v; break;
         case 3: s->hdrincl = v; break;
         case 8: s->pktinfo = v; break;
         case 11: s->recverr = v; break;
@@ -1014,6 +1015,8 @@ int inet_getsockopt(struct file *f, int level, int name, void *uval, int *ulen) 
             out[0] = (uint8_t)s->state;
             out[1] = 0;                                /* ca_state */
             out[2] = (uint8_t)s->retries;
+            out[5] = (uint8_t)((s->ts_ok ? 1 : 0) | (s->sack_ok ? 2 : 0) | (s->ws_ok ? 4 : 0));   /* TCPI_OPT_* */
+            out[6] = (uint8_t)((s->snd_wscale & 15) | (s->rcv_wscale << 4));
             uint32_t w[8] = { (uint32_t)(s->rto_ms * 1000), 0, s->snd_mss, s->rcv_mss, 0, 0, 0, 0 };
             memcpy(out + 8, w, sizeof w);
             uint32_t rtt[2] = { (uint32_t)s->srtt_us, (uint32_t)s->rttvar_us };
@@ -1238,6 +1241,26 @@ static int rt_ioctl(uint64_t cmd, void *arg) {
     return r;
 }
 
+/* interface, route and ARP ioctls: on any socket (musl's if_nametoindex uses an AF_UNIX one) */
+int net_if_ioctl(uint64_t cmd, void *uarg) {
+    switch (cmd) {
+    case SIOCADDRT: case SIOCDELRT: return rt_ioctl(cmd, uarg);
+    case SIOCDARP: case SIOCGARP: case SIOCSARP: {
+        if (cmd != SIOCGARP && !capable(CAP_NET_ADMIN)) return -EPERM;
+        uint8_t req[68];
+        if (copy_from_user(req, uarg, sizeof req)) return -EFAULT;
+        mutex_lock(&net_mutex);
+        int r = arp_ioctl(cmd, req);
+        mutex_unlock(&net_mutex);
+        if (!r && cmd == SIOCGARP && copy_to_user(uarg, req, sizeof req)) r = -EFAULT;
+        return r;
+    }
+    default:
+        if (cmd >= 0x8910 && cmd <= 0x8980) return dev_ioctl(cmd, uarg);
+        return -ENOTTY;
+    }
+}
+
 static int inet_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
     struct sock *s = f->priv;
     void *uarg = (void *)arg;
@@ -1260,20 +1283,7 @@ static int inet_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
         mutex_unlock(&net_mutex);
         return copy_to_user(uarg, &v, sizeof v) ? -EFAULT : 0;
     case 0x8905: v = 0; return copy_to_user(uarg, &v, sizeof v) ? -EFAULT : 0;   /* SIOCATMARK */
-    case SIOCADDRT: case SIOCDELRT: return rt_ioctl(cmd, uarg);
-    case SIOCDARP: case SIOCGARP: case SIOCSARP: {
-        if (cmd != SIOCGARP && !capable(CAP_NET_ADMIN)) return -EPERM;
-        uint8_t req[68];
-        if (copy_from_user(req, uarg, sizeof req)) return -EFAULT;
-        mutex_lock(&net_mutex);
-        int r = arp_ioctl(cmd, req);
-        mutex_unlock(&net_mutex);
-        if (!r && cmd == SIOCGARP && copy_to_user(uarg, req, sizeof req)) r = -EFAULT;
-        return r;
-    }
-    default:
-        if (cmd >= 0x8910 && cmd <= 0x8980) return dev_ioctl(cmd, uarg);
-        return -ENOTTY;
+    default: return net_if_ioctl(cmd, uarg);
     }
 }
 

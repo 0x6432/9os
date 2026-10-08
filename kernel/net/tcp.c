@@ -41,12 +41,15 @@ struct tcphdr {
 #define MIN_RTO_MS 200u
 #define MAX_RTO_MS 60000u
 #define INIT_RTO_MS 1000u
-#define TIME_WAIT_MS 2000u
-#define FIN_WAIT2_ORPHAN_MS 60000u
+#define TIME_WAIT_MS 60000u          /* 2 MSL, as Linux */
+#define TW_MAX 4096                  /* more TIME_WAIT sockets than this are closed at once */
 #define MAX_RETRIES 12
 #define MAX_SYN_RETRIES 6
-#define OOO_MAX 64
+#define OOO_MAX 1024                 /* segments; bytes are bounded by the receive ring */
 #define DELACK_MS 40
+
+int sysctl_tcp_window_scaling = 1, sysctl_tcp_timestamps = 1, sysctl_tcp_sack = 1, sysctl_tcp_fin_timeout = 60;
+static int tw_count;
 
 static inline bool seq_lt(uint32_t a, uint32_t b) { return (int32_t)(a - b) < 0; }
 static inline bool seq_le(uint32_t a, uint32_t b) { return (int32_t)(a - b) <= 0; }
@@ -54,16 +57,19 @@ static inline bool seq_gt(uint32_t a, uint32_t b) { return (int32_t)(a - b) > 0;
 static inline bool seq_ge(uint32_t a, uint32_t b) { return (int32_t)(a - b) >= 0; }
 
 static uint32_t rcv_wnd(struct sock *s) {
-    size_t space = ring_space(&s->rcv);
-    return space > 65535 ? 65535 : (uint32_t)space;
+    size_t space = ring_space(&s->rcv), max = (size_t)65535 << (s->ws_ok ? s->rcv_wscale : 0);
+    return space > max ? (uint32_t)max : (uint32_t)space;
 }
+static uint8_t pick_wscale(size_t cap) { uint8_t w = 0; while (w < 14 && (cap >> w) > 65535) w++; return w; }
+static uint32_t ts_now(struct sock *s) { return (uint32_t)(time_ns() / NS_MS) + s->ts_offset; }
 /* the window to offer: receiver-side silly window avoidance (RFC 1122 4.2.3.3) */
 static uint32_t adv_wnd(struct sock *s) {
     uint32_t w = rcv_wnd(s);
     if (w < s->rcv_mss && w < s->rcv.cap / 2) w = 0;
     return w;
 }
-static uint32_t mss(struct sock *s) { return s->snd_mss ? s->snd_mss : 536; }
+/* payload per segment: the MSS minus the options every segment carries (RFC 6691) */
+static uint32_t mss(struct sock *s) { return (s->snd_mss ? s->snd_mss : 536) - (s->ts_ok ? 12 : 0); }
 /* bytes of queued data not yet sent */
 static size_t unsent(struct sock *s) {
     if (s->fin_sent) return 0;
@@ -92,6 +98,7 @@ static bool tcp_done(struct sock *s) {
             tcp_done(c);
         }
     }
+    if (s->state == TCP_TIME_WAIT) tw_count--;
     s->state = TCP_CLOSE;
     tcp_stop_timers(s);
     tcp_unlink(s);
@@ -117,9 +124,39 @@ bool tcp_abort_ret(struct sock *s, int err) {
 void tcp_abort(struct sock *s, int err) { tcp_abort_ret(s, err); }
 
 /* ------------------------------------------------------------------ output */
+/* TCP options for a segment: SYN/SYN-ACK negotiate MSS, SACK-permitted, timestamps and the window
+ * scale; later segments carry timestamps and, on ACKs, SACK blocks if they fit in 'room' */
+static size_t build_opts(struct sock *s, uint8_t *o, uint8_t flags, bool syn, size_t room) {
+    size_t n = 0;
+    uint32_t tsval = ts_now(s), tsecr = (flags & TH_ACK) ? s->ts_recent : 0;
+    if (syn) {
+        o[n++] = 2; o[n++] = 4; o[n++] = (uint8_t)(s->rcv_mss >> 8); o[n++] = (uint8_t)s->rcv_mss;
+        if (s->ts_ok) {
+            if (s->sack_ok) { o[n++] = 4; o[n++] = 2; } else { o[n++] = 1; o[n++] = 1; }
+        } else if (s->sack_ok) { o[n++] = 1; o[n++] = 1; o[n++] = 4; o[n++] = 2; }
+    } else if (s->ts_ok) { o[n++] = 1; o[n++] = 1; }
+    if (s->ts_ok) {
+        o[n++] = 8; o[n++] = 10;
+        uint32_t a = htonl(tsval), b = htonl(tsecr);
+        memcpy(o + n, &a, 4); memcpy(o + n + 4, &b, 4); n += 8;
+    }
+    if (syn && s->ws_ok) { o[n++] = 1; o[n++] = 3; o[n++] = 3; o[n++] = s->rcv_wscale; }
+    if (!syn && s->sack_ok && s->nsack_rcv && (flags & TH_ACK) && room >= n + 12) {
+        int k = (int)MIN((size_t)s->nsack_rcv, (MIN(room, (size_t)40) - n - 4) / 8);
+        o[n++] = 1; o[n++] = 1; o[n++] = 5; o[n++] = (uint8_t)(2 + 8 * k);
+        for (int b = 0; b < k; b++) {
+            uint32_t x = htonl(s->sack_rcv[b].start), y = htonl(s->sack_rcv[b].end);
+            memcpy(o + n, &x, 4); memcpy(o + n + 4, &y, 4); n += 8;
+        }
+    }
+    return n;
+}
+
 /* segment at seq with dlen bytes taken from the send ring at ring offset roff */
 static struct pkt *tcp_build(struct sock *s, uint32_t seq, uint8_t flags, size_t roff, size_t dlen, bool syn_opts) {
-    size_t optlen = syn_opts ? 4 : 0;
+    uint8_t opts[40];
+    uint32_t smss = s->snd_mss ? s->snd_mss : 536;
+    size_t optlen = build_opts(s, opts, flags, syn_opts, dlen < smss ? MIN((size_t)40, smss - dlen) : 0);
     struct pkt *p = pkt_alloc(sizeof(struct tcphdr) + optlen + dlen);
     if (!p) return nullptr;
     struct tcphdr *t = (struct tcphdr *)p->data;
@@ -131,17 +168,22 @@ static struct pkt *tcp_build(struct sock *s, uint32_t seq, uint8_t flags, size_t
     t->off = (uint8_t)(((sizeof *t + optlen) / 4) << 4);
     t->flags = flags;
     uint32_t w = adv_wnd(s);
-    if (seq_lt(s->rcv_nxt + w, s->rcv_adv) && s->rcv_adv - s->rcv_nxt <= s->rcv.cap)
-        w = s->rcv_adv - s->rcv_nxt;                                     /* never shrink the window */
-    if (w > 65535) w = 65535;
-    t->window = htons((uint16_t)w);
-    uint8_t *o = (uint8_t *)(t + 1);
-    if (syn_opts) { o[0] = 2; o[1] = 4; o[2] = (uint8_t)(s->rcv_mss >> 8); o[3] = (uint8_t)s->rcv_mss; o += 4; }
-    if (dlen) ring_get(&s->snd, o, dlen, roff, false);
+    unsigned sh = (s->ws_ok && !(flags & TH_SYN)) ? s->rcv_wscale : 0;
+    bool keep = seq_lt(s->rcv_nxt + w, s->rcv_adv) && s->rcv_adv - s->rcv_nxt <= s->rcv.cap;
+    if (keep) w = s->rcv_adv - s->rcv_nxt;                              /* never shrink the window */
+    uint32_t field = keep ? (w + (1u << sh) - 1) >> sh : w >> sh;     /* scaled: round down unless keeping */
+    /* rounding up must not offer more than the ring holds (Linux has slack in its buffer accounting;
+     * the ring has none), so then give back the < 2^wscale bytes of the right edge */
+    if ((size_t)field << sh > ring_space(&s->rcv)) field = (uint32_t)(ring_space(&s->rcv) >> sh);
+    if (field > 65535) field = 65535;
+    t->window = htons((uint16_t)field);
+    memcpy(t + 1, opts, optlen);
+    if (dlen) ring_get(&s->snd, (uint8_t *)(t + 1) + optlen, dlen, roff, false);
     uint16_t c = csum_fold(csum_partial(t, p->len, csum_pseudo(s->laddr, s->raddr, IPPROTO_TCP, (uint16_t)p->len)));
     t->check = htons(c);
     if (flags & TH_ACK) {
-        s->rcv_adv = s->rcv_nxt + w;
+        s->rcv_adv = s->rcv_nxt + (field << sh);
+        s->last_ack_sent = s->rcv_nxt;
         s->delack_segs = 0;
         ntimer_del(&s->t_delack);
     }
@@ -200,13 +242,23 @@ static void rearm_rexmt(struct sock *s) {
 void tcp_output(struct sock *s) {
     if (!syn_acked(s) || s->state == TCP_CLOSE || s->state == TCP_LISTEN || s->state == TCP_TIME_WAIT) return;
     for (;;) {
+        /* going back after a timeout: skip what the peer has SACKed (Linux keeps the scoreboard) */
+        uint32_t lim = UINT32_MAX, sacked = 0;
+        for (int i = 0; i < s->nsack_snd; i++) {
+            struct sack_blk b = s->sack_snd[i];
+            if (seq_lt(s->snd_nxt, s->snd_max) && seq_ge(s->snd_nxt, b.start) && seq_lt(s->snd_nxt, b.end)) s->snd_nxt = b.end;
+            if (seq_lt(b.start, s->snd_nxt)) sacked += (seq_lt(b.end, s->snd_nxt) ? b.end : s->snd_nxt) - b.start;
+            else if (seq_lt(s->snd_nxt, s->snd_max) && lim == UINT32_MAX) lim = b.start - s->snd_nxt;
+        }
         size_t u = unsent(s);
         if (!u) break;
         uint32_t inflight = s->snd_nxt - s->snd_una;
+        uint32_t pipe = inflight - sacked;          /* RFC 6675: SACKed data has left the network */
         uint32_t w = s->cwnd < s->snd_wnd ? s->cwnd : s->snd_wnd;
-        uint32_t avail = w > inflight ? w - inflight : 0;
+        uint32_t avail = s->snd_wnd > inflight ? MIN(w > pipe ? w - pipe : 0, s->snd_wnd - inflight) : 0;
         size_t n = MIN(u, (size_t)avail);
         n = MIN(n, (size_t)mss(s));
+        n = MIN(n, (size_t)lim);
         if (!n) break;
         /* Nagle (RFC 896): hold back a small segment while data is unacknowledged, unless
          * it is everything there is and FIN follows */
@@ -238,6 +290,8 @@ static void retransmit_head(struct sock *s) {
     size_t n = MIN(s->snd.len, (size_t)mss(s));
     if (s->fin_sent && s->snd_una == s->fin_seq) { tcp_xmit(s, tcp_build(s, s->fin_seq, TH_FIN | TH_ACK, 0, 0, false)); return; }
     if (n) tcp_xmit(s, tcp_build(s, s->snd_una, TH_ACK | TH_PSH, 0, n, false));
+    if (n && seq_lt(s->high_rxt, s->snd_una + (uint32_t)n)) s->high_rxt = s->snd_una + (uint32_t)n;
+    if (n && seq_lt(s->rtx_high, s->snd_una + (uint32_t)n)) s->rtx_high = s->snd_una + (uint32_t)n;
 }
 
 /* ------------------------------------------------------------------ timers */
@@ -270,6 +324,8 @@ static void tcp_timer_rexmt(struct ntimer *t) {
     s->rtt_timing = false;
     tcp_stats[2]++;
     s->snd_nxt = s->snd_una;
+    s->high_rxt = s->snd_una;
+    s->rtx_high = s->snd_max;                   /* all of it goes out again */
     if (s->fin_sent && seq_le(s->snd_una, s->fin_seq)) s->fin_sent = false;
     tcp_output(s);
     if (!s->t_rexmt.active) ntimer_mod(&s->t_rexmt, s->rto_ms * NS_MS);
@@ -335,9 +391,17 @@ int tcp_connect(struct sock *s) {
     set_mss(s, d);
     s->snd_mss = 536;                         /* until the peer's MSS option arrives */
     if (d == loopback_dev) s->snd_mss = s->rcv_mss;
-    s->iss = new_iss();
+    s->iss = new_iss(); s->rtx_high = s->iss;
     s->snd_una = s->iss; s->snd_nxt = s->snd_max = s->iss + 1;
     s->snd_wnd = 1;
+    s->ws_ok = sysctl_tcp_window_scaling;
+    s->rcv_wscale = s->ws_ok ? pick_wscale(s->rcv.cap) : 0;
+    s->snd_wscale = 0;
+    s->ts_ok = sysctl_tcp_timestamps;
+    s->ts_offset = (uint32_t)random_u64();
+    s->ts_recent = 0; s->ts_recent_stamp = 0;
+    s->sack_ok = sysctl_tcp_sack;
+    s->nsack_rcv = s->nsack_snd = 0;
     s->cwnd = 10 * 536;
     s->ssthresh = 0xffffffff;
     s->retries = 0;
@@ -381,7 +445,11 @@ void tcp_close(struct sock *s) {
     switch (s->state) {
     case TCP_SYN_RECV: case TCP_ESTABLISHED: s->state = TCP_FIN_WAIT1; break;
     case TCP_CLOSE_WAIT: s->state = TCP_LAST_ACK; break;
-    case TCP_FIN_WAIT2: ntimer_mod(&s->t_keep, FIN_WAIT2_ORPHAN_MS * NS_MS); return;
+    case TCP_FIN_WAIT2: ntimer_mod(&s->t_keep, (uint64_t)sysctl_tcp_fin_timeout * NS_S); return;
+    case TCP_TIME_WAIT:
+        ring_free(&s->snd); ring_free(&s->rcv); pkt_queue_purge(&s->ooo); s->ooo_bytes = 0;
+        if (tw_count > TW_MAX) ntimer_mod(&s->t_rexmt, NS_MS);
+        return;
     default: return;                         /* FIN_WAIT1, CLOSING, LAST_ACK, TIME_WAIT: in progress */
     }
     s->fin_queued = true;
@@ -426,19 +494,123 @@ static struct sock *tcp_lookup(uint32_t saddr, uint16_t sport, uint32_t daddr, u
     return listener;
 }
 
-static void parse_opts(struct sock *s, struct tcphdr *t) {
+struct tcp_opts {
+    uint32_t mss, tsval, tsecr;
+    int wscale;                        /* -1: absent */
+    bool ts, sackperm;
+    int nsack;
+    struct sack_blk sack[4];
+};
+static void parse_opts(struct tcphdr *t, struct tcp_opts *r) {
+    memset(r, 0, sizeof *r);
+    r->wscale = -1;
     uint8_t *o = (uint8_t *)(t + 1), *end = (uint8_t *)t + (t->off >> 4) * 4;
     while (o < end) {
         if (*o == 0) break;
         if (*o == 1) { o++; continue; }
         if (o + 1 >= end || o[1] < 2 || o + o[1] > end) break;
-        if (o[0] == 2 && o[1] == 4) {
-            uint32_t m = (uint32_t)(o[2] << 8 | o[3]);
-            if (m < 64) m = 64;
-            s->snd_mss = MIN(m, s->rcv_mss);
+        uint32_t a, b;
+        switch (o[0]) {
+        case 2: if (o[1] == 4) r->mss = (uint32_t)(o[2] << 8 | o[3]); break;
+        case 3: if (o[1] == 3) r->wscale = o[2] > 14 ? 14 : o[2]; break;
+        case 4: if (o[1] == 2) r->sackperm = true; break;
+        case 5:
+            for (int k = 0; k < (o[1] - 2) / 8 && k < 4; k++) {
+                memcpy(&a, o + 2 + 8 * k, 4); memcpy(&b, o + 6 + 8 * k, 4);
+                r->sack[r->nsack++] = (struct sack_blk){ ntohl(a), ntohl(b) };
+            }
+            break;
+        case 8:
+            if (o[1] == 10) { memcpy(&a, o + 2, 4); memcpy(&b, o + 6, 4); r->ts = true; r->tsval = ntohl(a); r->tsecr = ntohl(b); }
+            break;
         }
         o += o[1];
     }
+}
+static void apply_mss(struct sock *s, const struct tcp_opts *o) {
+    if (!o->mss) return;
+    uint32_t m = o->mss < 64 ? 64 : o->mss;
+    s->snd_mss = MIN(m, s->rcv_mss);
+}
+
+/* ------------------------------------------------------------------ SACK */
+/* receiver: rebuild the blocks to report from the out-of-order queue; the block holding
+ * 'recent' (the segment just queued) goes first (RFC 2018 section 4) */
+static void sack_rebuild(struct sock *s, uint32_t recent, bool have_recent) {
+    struct sack_blk r[OOO_MAX];
+    int n = 0;
+    list_for_each(it, &s->ooo) {
+        struct pkt *q = list_entry(it, struct pkt, node);
+        if (seq_le(q->end, s->rcv_nxt)) continue;
+        uint32_t st = seq_lt(q->seq, s->rcv_nxt) ? s->rcv_nxt : q->seq;
+        if (n && seq_le(st, r[n - 1].end)) { if (seq_gt(q->end, r[n - 1].end)) r[n - 1].end = q->end; }
+        else if (n < OOO_MAX) r[n++] = (struct sack_blk){ st, q->end };
+    }
+    int max = s->ts_ok ? 3 : 4, k = 0;
+    int first = -1;
+    if (have_recent)
+        for (int i = 0; i < n; i++) if (seq_ge(recent, r[i].start) && seq_lt(recent, r[i].end)) { first = i; break; }
+    if (first >= 0) s->sack_rcv[k++] = r[first];
+    for (int i = n - 1; i >= 0 && k < max; i--) if (i != first) s->sack_rcv[k++] = r[i];   /* newest data is usually highest */
+    s->nsack_rcv = k;
+}
+
+/* sender: merge the peer's SACK blocks into the scoreboard (sorted, disjoint, above snd_una) */
+static void sack_trim(struct sock *s) {
+    int k = 0;
+    for (int i = 0; i < s->nsack_snd; i++) {
+        struct sack_blk b = s->sack_snd[i];
+        if (seq_le(b.end, s->snd_una)) continue;
+        if (seq_lt(b.start, s->snd_una)) b.start = s->snd_una;
+        s->sack_snd[k++] = b;
+    }
+    s->nsack_snd = k;
+}
+static void sack_update(struct sock *s, const struct tcp_opts *o) {
+    for (int i = 0; i < o->nsack; i++) {
+        struct sack_blk b = o->sack[i];
+        if (!seq_lt(b.start, b.end) || seq_le(b.end, s->snd_una) || seq_gt(b.end, s->snd_max)) continue;  /* D-SACK / bogus */
+        if (seq_lt(b.start, s->snd_una)) b.start = s->snd_una;
+        struct sack_blk out[9];
+        int n = 0;
+        bool placed = false;
+        for (int j = 0; j < s->nsack_snd; j++) {
+            struct sack_blk c = s->sack_snd[j];
+            if (seq_lt(c.end, b.start)) { out[n++] = c; continue; }
+            if (seq_gt(c.start, b.end)) { if (!placed) { out[n++] = b; placed = true; } out[n++] = c; continue; }
+            if (seq_lt(c.start, b.start)) b.start = c.start;          /* overlap: absorb */
+            if (seq_gt(c.end, b.end)) b.end = c.end;
+        }
+        if (!placed) out[n++] = b;
+        if (n > 8) n = 8;                                              /* drop the highest */
+        memcpy(s->sack_snd, out, (size_t)n * sizeof *out);
+        s->nsack_snd = n;
+    }
+}
+static uint32_t sacked_bytes(struct sock *s) {
+    uint32_t n = 0;
+    for (int i = 0; i < s->nsack_snd; i++) n += s->sack_snd[i].end - s->sack_snd[i].start;
+    return n;
+}
+/* retransmit the next hole below the highest SACKed byte (one segment); false if none */
+static bool sack_retransmit(struct sock *s) {
+    if (!s->sack_ok || !s->nsack_snd) return false;
+    uint32_t h = seq_gt(s->high_rxt, s->snd_una) ? s->high_rxt : s->snd_una;
+    for (int i = 0; i < s->nsack_snd; i++) {
+        struct sack_blk b = s->sack_snd[i];
+        if (seq_ge(h, b.end)) continue;
+        if (seq_ge(h, b.start)) { h = b.end; continue; }
+        uint32_t n = MIN(b.start - h, mss(s));
+        size_t roff = h - s->snd_una;
+        if (roff >= s->snd.len) return false;
+        n = (uint32_t)MIN((size_t)n, s->snd.len - roff);
+        tcp_stats[2]++;
+        tcp_xmit(s, tcp_build(s, h, TH_ACK, roff, n, false));
+        s->high_rxt = h + n;
+        if (seq_lt(s->rtx_high, h + n)) s->rtx_high = h + n;
+        return true;
+    }
+    return false;
 }
 
 static void rto_update(struct sock *s) {
@@ -467,15 +639,18 @@ static void child_established(struct sock *c) {
 }
 
 static void enter_time_wait(struct sock *s) {
+    if (s->state != TCP_TIME_WAIT) tw_count++;
     s->state = TCP_TIME_WAIT;
+    if (!s->file) { ring_free(&s->snd); ring_free(&s->rcv); pkt_queue_purge(&s->ooo); s->ooo_bytes = 0; }
     ntimer_del(&s->t_keep);
     ntimer_del(&s->t_delack);
     s->persist = false;
-    ntimer_mod(&s->t_rexmt, TIME_WAIT_MS * NS_MS);
+    /* too many TIME_WAIT orphans: expire this one almost at once (Linux "TCP: time wait bucket table overflow") */
+    ntimer_mod(&s->t_rexmt, (!s->file && tw_count > TW_MAX ? 1 : TIME_WAIT_MS) * NS_MS);
 }
 
 /* process an acceptable ACK; returns false if s was freed */
-static bool process_ack(struct sock *s, struct tcphdr *t, uint32_t seq, uint32_t ack, uint32_t wnd, size_t dlen) {
+static bool process_ack(struct sock *s, struct tcphdr *t, uint32_t seq, uint32_t ack, uint32_t wnd, size_t dlen, const struct tcp_opts *o) {
     if (seq_gt(ack, s->snd_max)) {
         /* the ACK covers a zero-window probe byte (sent beyond snd_max): take it */
         if (ack - s->snd_una <= s->snd.len) s->snd_nxt = s->snd_max = ack;
@@ -490,17 +665,28 @@ static bool process_ack(struct sock *s, struct tcphdr *t, uint32_t seq, uint32_t
     }
     if (seq_gt(ack, s->snd_una)) {
         uint32_t acked = ack - s->snd_una;
-        if (s->rtt_timing && seq_gt(ack, s->rtt_seq)) { s->rtt_timing = false; rtt_sample(s, (time_ns() - s->rtt_start) / 1000); }
+        /* Karn for timestamps too: an ACK for retransmitted data echoes the timestamp of the
+         * segment that left the hole (RFC 7323 4.1), which would inflate the RTO */
+        bool rtx = seq_lt(s->snd_una, s->rtx_high);
+        if (!seq_lt(ack, s->rtx_high)) s->rtx_high = ack;
+        if (rtx) s->rtt_timing = false;
+        else if (s->ts_ok && o && o->ts && o->tsecr) {                  /* RFC 7323 RTTM */
+            uint32_t d = ts_now(s) - o->tsecr;
+            if (d < 600000) rtt_sample(s, (uint64_t)d * 1000);
+            s->rtt_timing = false;
+        } else if (s->rtt_timing && seq_gt(ack, s->rtt_seq)) { s->rtt_timing = false; rtt_sample(s, (time_ns() - s->rtt_start) / 1000); }
         bool fin_acked = s->fin_sent && seq_gt(ack, s->fin_seq);
         uint32_t data = fin_acked ? acked - 1 : acked;
         ring_drop(&s->snd, data);
         s->snd_una = ack;
         s->retries = 0;
+        if (o && s->sack_ok) sack_update(s, o);
+        sack_trim(s);
         /* congestion control */
         if (s->in_recovery) {
             if (seq_ge(ack, s->recover)) { s->in_recovery = false; s->cwnd = s->ssthresh; }
             else {                                                       /* NewReno partial ACK */
-                retransmit_head(s);
+                if (!sack_retransmit(s)) retransmit_head(s);
                 s->cwnd = s->cwnd > data ? s->cwnd - data + mss(s) : mss(s);
             }
         } else if (s->cwnd < s->ssthresh) s->cwnd += MIN(data, mss(s));
@@ -511,22 +697,29 @@ static bool process_ack(struct sock *s, struct tcphdr *t, uint32_t seq, uint32_t
         if (fin_acked) {
             if (s->state == TCP_FIN_WAIT1) {
                 s->state = TCP_FIN_WAIT2;
-                if (!s->file) ntimer_mod(&s->t_keep, FIN_WAIT2_ORPHAN_MS * NS_MS);
+                if (!s->file) ntimer_mod(&s->t_keep, (uint64_t)sysctl_tcp_fin_timeout * NS_S);
             } else if (s->state == TCP_CLOSING) enter_time_wait(s);
             else if (s->state == TCP_LAST_ACK) { tcp_done(s); return false; }
         }
         rearm_rexmt(s);
         sock_changed(s);
     } else if (ack == s->snd_una && !dlen && !(t->flags & (TH_SYN | TH_FIN)) && !wnd_update && s->snd_una != s->snd_nxt) {
-        /* duplicate ACK */
-        if (++s->dupacks == 3 && !s->in_recovery) {
+        /* duplicate ACK; with SACK, also enter recovery once 3 segments above a hole were SACKed */
+        if (o && s->sack_ok) sack_update(s, o);
+        ++s->dupacks;
+        if (!s->in_recovery && (s->dupacks == 3 || (s->sack_ok && sacked_bytes(s) >= 3 * mss(s)))) {
             uint32_t flight = s->snd_max - s->snd_una;
             s->ssthresh = MAX(flight / 2, 2 * mss(s));
             s->recover = s->snd_max;
             s->in_recovery = true;
-            retransmit_head(s);
+            s->high_rxt = s->snd_una;
+            s->rtt_timing = false;
+            if (!sack_retransmit(s)) retransmit_head(s);
             s->cwnd = s->ssthresh + 3 * mss(s);
-        } else if (s->dupacks > 3 && s->in_recovery) s->cwnd += mss(s);
+        } else if (s->in_recovery) {
+            s->cwnd += mss(s);
+            sack_retransmit(s);                                          /* next hole, one per ACK */
+        }
     }
     return true;
 }
@@ -590,11 +783,14 @@ void tcp_input(struct pkt *p) {
     size_t dlen = p->len - hl;
     uint32_t seq = ntohl(t->seq), ack = ntohl(t->ack), wnd = ntohs(t->window);
     uint8_t fl = t->flags;
+    struct tcp_opts o;
+    parse_opts(t, &o);
     struct sock *s = tcp_lookup(ih->saddr, t->sport, ih->daddr, t->dport, p->dev);
     if (!s) { tcp_reset_reply(p); goto drop; }
 
     /* TIME_WAIT: a new SYN may reuse the pair (RFC 1122 4.2.2.13) */
-    if (s->state == TCP_TIME_WAIT && (fl & TH_SYN) && !(fl & TH_ACK) && seq_gt(seq, s->rcv_nxt)) {
+    if (s->state == TCP_TIME_WAIT && (fl & TH_SYN) && !(fl & TH_ACK) &&
+        (seq_gt(seq, s->rcv_nxt) || (s->ts_ok && o.ts && (int32_t)(o.tsval - s->ts_recent) > 0))) {
         tcp_done(s);
         s = tcp_lookup(ih->saddr, t->sport, ih->daddr, t->dport, p->dev);
         if (!s || s->state != TCP_LISTEN) { if (!s) tcp_reset_reply(p); goto drop; }
@@ -613,9 +809,16 @@ void tcp_input(struct pkt *p) {
         if (ip_route(c->raddr, c->bound_dev, &d, &nh, &src)) d = nullptr;
         set_mss(c, d);
         c->snd_mss = 536;
-        parse_opts(c, t);
+        apply_mss(c, &o);
+        c->ws_ok = sysctl_tcp_window_scaling && o.wscale >= 0;
+        c->snd_wscale = c->ws_ok ? (uint8_t)o.wscale : 0;
+        c->rcv_wscale = c->ws_ok ? pick_wscale(c->rcv.cap) : 0;
+        c->ts_ok = sysctl_tcp_timestamps && o.ts;
+        c->ts_offset = (uint32_t)random_u64();
+        if (c->ts_ok) { c->ts_recent = o.tsval; c->ts_recent_stamp = time_ns(); }
+        c->sack_ok = sysctl_tcp_sack && o.sackperm;
         c->irs = seq; c->rcv_nxt = seq + 1;
-        c->iss = new_iss();
+        c->iss = new_iss(); c->rtx_high = c->iss;
         c->snd_una = c->iss; c->snd_nxt = c->snd_max = c->iss + 1;
         c->snd_wnd = wnd; c->snd_wl1 = seq; c->snd_wl2 = c->iss;
         c->cwnd = 10 * mss(c); c->ssthresh = 0xffffffff;
@@ -640,7 +843,13 @@ void tcp_input(struct pkt *p) {
         if (!(fl & TH_SYN)) goto drop;
         s->irs = seq; s->rcv_nxt = seq + 1;
         s->rcv_adv = s->rcv_nxt;
-        parse_opts(s, t);
+        apply_mss(s, &o);
+        s->ws_ok = s->ws_ok && o.wscale >= 0;
+        s->snd_wscale = s->ws_ok ? (uint8_t)o.wscale : 0;
+        if (!s->ws_ok) s->rcv_wscale = 0;
+        s->ts_ok = s->ts_ok && o.ts;
+        if (s->ts_ok) { s->ts_recent = o.tsval; s->ts_recent_stamp = time_ns(); }
+        s->sack_ok = s->sack_ok && o.sackperm;
         s->snd_wnd = wnd; s->snd_wl1 = seq; s->snd_wl2 = ack;
         s->last_rx = time_ns();
         if (fl & TH_ACK) {
@@ -663,7 +872,15 @@ void tcp_input(struct pkt *p) {
         goto drop;
     }
 
-    /* synchronised states: segment acceptability (RFC 793 p.69) */
+    /* synchronised states */
+    if (s->ws_ok) wnd <<= s->snd_wscale;
+    /* PAWS (RFC 7323 5.3): an old timestamp marks a stale duplicate */
+    if (s->ts_ok && o.ts && !(fl & TH_RST) && s->ts_recent_stamp && (int32_t)(o.tsval - s->ts_recent) < 0 &&
+        time_ns() - s->ts_recent_stamp < 24ull * 86400 * NS_S) {
+        tcp_send_ack(s);
+        goto drop;
+    }
+    /* segment acceptability (RFC 793 p.69) */
     uint32_t w = rcv_wnd(s);
     uint32_t seg_len = (uint32_t)dlen + !!(fl & TH_SYN) + !!(fl & TH_FIN);
     bool ok;
@@ -673,7 +890,7 @@ void tcp_input(struct pkt *p) {
         if (fl & TH_RST) goto drop;
         /* zero window: still take ACK/window information from in-sequence segments */
         if (!w && seq == s->rcv_nxt && (fl & TH_ACK)) {
-            if (!process_ack(s, t, seq, ack, wnd, 0)) goto drop;
+            if (!process_ack(s, t, seq, ack, wnd, 0, &o)) goto drop;
             tcp_output(s);
         }
         /* RFC 793 answers with an ACK; for pure ACKs rate-limit it (as Linux does) so two
@@ -684,6 +901,7 @@ void tcp_input(struct pkt *p) {
     }
     s->last_rx = time_ns();
     s->keep_probes = 0;
+    if (s->ts_ok && o.ts && seq_le(seq, s->last_ack_sent)) { s->ts_recent = o.tsval; s->ts_recent_stamp = s->last_rx; }
     if (fl & TH_RST) {
         tcp_stats[4]++;
         int err = s->state == TCP_SYN_RECV ? ECONNREFUSED : s->state == TCP_CLOSE_WAIT ? EPIPE : ECONNRESET;
@@ -706,7 +924,7 @@ void tcp_input(struct pkt *p) {
         tcp_keepalive_changed(s);
         if (!s->parent && !s->file) { tcp_done(s); goto drop; }
     }
-    if (!process_ack(s, t, seq, ack, wnd, dlen)) goto drop;
+    if (!process_ack(s, t, seq, ack, wnd, dlen, &o)) goto drop;
     if (s->state == TCP_TIME_WAIT && !(fl & TH_FIN)) goto drop;
 
     /* data */
@@ -731,6 +949,7 @@ void tcp_input(struct pkt *p) {
             p->proto = fin;                          /* remember the FIN */
             ooo_insert(s, p, seq, seq + (uint32_t)dlen);
             p = nullptr;
+            if (s->sack_ok) sack_rebuild(s, seq, true);
             tcp_send_ack(s);                         /* duplicate ACK for the sender's fast retransmit */
             sock_changed(s);
             goto drop;
@@ -745,8 +964,10 @@ void tcp_input(struct pkt *p) {
                 if (n < want) ack_now = true;
             }
             deliver = fin && s->rcv_nxt == seq + (uint32_t)dlen;
-            if (!list_empty(&s->ooo)) { if (ooo_drain(s)) deliver = true; ack_now = true; }
-            if (want >= s->rcv_mss) s->delack_segs++;
+            if (!list_empty(&s->ooo)) { if (ooo_drain(s)) deliver = true; ack_now = true; s->quickack = 16; if (s->sack_ok) sack_rebuild(s, 0, false); }
+            if (dlen && !want) { ack_now = true; s->quickack = 16; }    /* a duplicate: the sender has lost our ACK */
+            if (s->quickack) { ack_now = true; s->quickack--; }           /* recovering: no delayed ACKs (Linux quickack) */
+            else if (want >= s->rcv_mss - (s->ts_ok ? 12u : 0u)) s->delack_segs++;
             else if (want) ack_now = true;
             if (s->delack_segs >= 2 || fin) ack_now = true;
         }

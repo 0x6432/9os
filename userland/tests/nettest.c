@@ -3,6 +3,7 @@
  * usage: nettest            all loopback tests (run as root: some drop privileges in a child)
  *        nettest -x IP PORT external echo/HTTP checks against scripts/net-host-server.py
  *        nettest -s PORT    TCP echo server (forks into the background, serves N connections) */
+#define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -282,6 +283,16 @@ static void tcp_options(void) {
     CHECK(getsockopt(c, IPPROTO_TCP, TCP_NODELAY, &v, &vl) == 0 && v == 1, "TCP_NODELAY readback");
     vl = sizeof v;
     CHECK(getsockopt(c, SOL_SOCKET, SO_TYPE, &v, &vl) == 0 && v == SOCK_STREAM, "SO_TYPE");
+    /* RFC 7323 window scaling + timestamps and RFC 2018 SACK were negotiated on both ends */
+    for (int i = 0; i < 2; i++) {
+        struct tcp_info ti; socklen_t tl = sizeof ti;
+        memset(&ti, 0, sizeof ti);
+        CHECK(getsockopt(i ? a : c, IPPROTO_TCP, TCP_INFO, &ti, &tl) == 0, "TCP_INFO");
+        CHECK((ti.tcpi_options & 7) == 7, "tcpi_options=%d (want TS|SACK|WSCALE)", ti.tcpi_options);
+        CHECK(ti.tcpi_rcv_wscale >= 1 && ti.tcpi_snd_wscale >= 1, "wscale snd=%d rcv=%d", ti.tcpi_snd_wscale, ti.tcpi_rcv_wscale);
+    }
+    vl = sizeof v;
+    CHECK(getsockopt(c, IPPROTO_TCP, TCP_MAXSEG, &v, &vl) == 0 && v > 1000, "TCP_MAXSEG=%d", v);
     vl = sizeof v;
     CHECK(getsockopt(l, SOL_SOCKET, SO_ACCEPTCONN, &v, &vl) == 0 && v == 1, "SO_ACCEPTCONN");
     v = 1;
@@ -327,6 +338,42 @@ static void tcp_options(void) {
 
 /* a receiver that stops reading: the sender fills the window, blocks (EAGAIN), and resumes when
  * the receiver drains; exercises the zero window, persist timer and window updates */
+/* RFC 7323: a receive buffer above 64 KiB is usable only through window scaling */
+static void tcp_bigwindow(void) {
+    int port, l = socket(AF_INET, SOCK_STREAM, 0);
+    int big = 1 << 20;
+    setsockopt(l, SOL_SOCKET, SO_RCVBUF, &big, sizeof big);
+    struct sockaddr_in a = sin_of("127.0.0.1", 0);
+    bind(l, (void *)&a, sizeof a); listen(l, 1);
+    socklen_t al = sizeof a; getsockname(l, (void *)&a, &al); port = ntohs(a.sin_port);
+    int c = connect_to("127.0.0.1", port), s = accept(l, NULL, NULL);
+    int v = 0; socklen_t vl = sizeof v;
+    CHECK(getsockopt(s, SOL_SOCKET, SO_RCVBUF, &v, &vl) == 0 && v == 2 << 20, "accepted SO_RCVBUF=%d", v);
+    fcntl(c, F_SETFL, O_NONBLOCK);
+    static uint8_t buf[4 << 20];
+    for (size_t i = 0; i < sizeof buf; i++) buf[i] = pat(i, 5);
+    size_t sent = 0;
+    for (int idle = 0; idle < 5 && sent < sizeof buf; ) {
+        ssize_t w = write(c, buf + sent, sizeof buf - sent);
+        if (w > 0) { sent += w; idle = 0; } else { idle++; usleep(50000); }
+    }
+    CHECK(sent > (1 << 20) + (256 << 10), "unread receiver absorbed %zu bytes (window > 64 KiB)", sent);
+    static uint8_t in[4 << 20];
+    size_t got = 0, bad = 0;
+    struct pollfd p[2] = { { s, POLLIN, 0 }, { c, POLLOUT, 0 } };
+    uint64_t t0 = now_ms();
+    while (got < sizeof buf && now_ms() - t0 < 20000) {
+        p[1].events = sent < sizeof buf ? POLLOUT : 0;
+        poll(p, 2, 1000);
+        if (p[1].revents & POLLOUT) { ssize_t w = write(c, buf + sent, sizeof buf - sent); if (w > 0) sent += w; }
+        if (p[0].revents & POLLIN) { ssize_t r = read(s, in + got, sizeof in - got); if (r > 0) got += r; else break; }
+    }
+    for (size_t i = 0; i < got; i++) if (in[i] != buf[i]) bad++;
+    CHECK(got == sizeof buf && !bad, "scaled-window transfer: %zu bytes, %zu corrupt", got, bad);
+    close(c); close(s); close(l);
+    OK("tcp window scaling");
+}
+
 static void tcp_flow(void) {
     int port, l = socket(AF_INET, SOCK_STREAM, 0);
     int small = 4096;
@@ -618,6 +665,7 @@ int main(int argc, char **argv) {
     RUN(tcp_bulk);
     RUN(tcp_concurrent);
     RUN(tcp_flow);
+    RUN(tcp_bigwindow);
     RUN(udp_tests);
     RUN(ip_fragments);
     RUN(icmp_tests);

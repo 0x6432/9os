@@ -85,7 +85,9 @@ void devices_init(void) {
         { "/dev/null", 1, 3, 0666 }, { "/dev/zero", 1, 5, 0666 }, { "/dev/random", 1, 8, 0666 },
         { "/dev/urandom", 1, 9, 0666 }, { "/dev/tty", 5, 0, 0666 }, { "/dev/console", 5, 1, 0620 },
         { "/dev/tty0", 4, 0, 0620 }, { "/dev/ptmx", 5, 2, 0666 }, { "/dev/tty1", 4, 1, 0620 }, { "/dev/ttyS0", 4, 64, 0660 },
+        { "/dev/net/tun", 10, 200, 0666 },
     };
+    vfs_mkdir_at(nullptr, "/dev/net", 0755);
     for (size_t i = 0; i < ARRAY_SIZE(nodes); i++)
         vfs_mknod_at(nullptr, nodes[i].name, S_IFCHR | nodes[i].mode, MKDEV(nodes[i].ma, nodes[i].mi));
     vfs_mkdir_at(nullptr, "/dev/pts", 0755);
