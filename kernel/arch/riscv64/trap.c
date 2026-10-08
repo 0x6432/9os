@@ -45,7 +45,7 @@ static bool handle_page_fault(struct trap_frame *f) {
     if (mm_handle_fault(current->proc->mm, addr, c == 15, c == 12)) return true;
     if (trap_from_user(f)) {
         pr_debug("segfault pid %d at %lx pc %lx\n", current->proc->pid, addr, f->sepc);
-        signal_force(current, SIGSEGV);
+        signal_force_info(current, SIGSEGV, SEGV_MAPERR, addr);
         return true;
     }
     return false;
@@ -87,11 +87,12 @@ void trap_dispatch(struct trap_frame *f) {
     } else {
         if ((c == 12 || c == 13 || c == 15) && handle_page_fault(f)) goto out;
         if (trap_from_user(f)) {
-            int sig = SIGSEGV;
-            if (c == 2) sig = SIGILL;
-            else if (c == 3) sig = SIGTRAP;
-            else if (c == 0 || c == 4 || c == 6) sig = SIGBUS;
-            signal_force(current, sig);
+            int sig = SIGSEGV, code = SEGV_ACCERR;
+            uint64_t addr = f->stval;
+            if (c == 2) { sig = SIGILL; code = ILL_ILLOPC; addr = f->sepc; }
+            else if (c == 3) { sig = SIGTRAP; code = TRAP_BRKPT; addr = f->sepc; }
+            else if (c == 0 || c == 4 || c == 6) { sig = SIGBUS; code = BUS_ADRALN; }
+            signal_force_info(current, sig, code, addr);
             goto out;
         }
         printk("\nexception %lu (%s)\n", c, c < 16 ? exc_names[c] : "?");

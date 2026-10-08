@@ -34,7 +34,7 @@ static bool handle_abort(struct trap_frame *f, bool exec) {
     if (mm_handle_fault(current->proc->mm, addr, write, exec)) return true;
     if (trap_from_user(f)) {
         pr_debug("segfault pid %d at %lx pc %lx\n", current->proc->pid, addr, f->pc);
-        signal_force(current, SIGSEGV);
+        signal_force_info(current, SIGSEGV, SEGV_MAPERR, addr);
         return true;
     }
     return false;
@@ -67,12 +67,17 @@ void trap_dispatch(struct trap_frame *f, int kind) {
         if ((ec == 0x24 || ec == 0x25) && handle_abort(f, false)) goto out;
         if ((ec == 0x20 || ec == 0x21) && handle_abort(f, true)) goto out;
         if (kind == 2) {
-            int sig = SIGILL;
-            if (ec == 0x24 || ec == 0x20) sig = SIGSEGV;
-            else if (ec == 0x22 || ec == 0x26) sig = SIGBUS;
-            else if (ec == 0x3c || ec == 0x30 || ec == 0x32) sig = SIGTRAP;
-            else if (ec == 0x2c) sig = SIGFPE;
-            signal_force(current, sig);
+            int sig = SIGILL, code = ILL_ILLOPC;
+            uint64_t addr = f->pc;
+            if (ec == 0x24 || ec == 0x20) { sig = SIGSEGV; code = SEGV_ACCERR; addr = f->far; }
+            else if (ec == 0x22 || ec == 0x26) { sig = SIGBUS; code = BUS_ADRALN; addr = f->far; }
+            else if (ec == 0x3c) { sig = SIGTRAP; code = TRAP_BRKPT; }
+            else if (ec == 0x30 || ec == 0x32) {           /* breakpoint / software step (ptrace) */
+                sig = SIGTRAP; code = TRAP_TRACE;
+                f->pstate &= ~(1ULL << 21);                 /* SPSR.SS */
+            }
+            else if (ec == 0x2c) { sig = SIGFPE; code = 0; }
+            signal_force_info(current, sig, code, addr);
             goto out;
         }
         printk("\nexception: EC %#x\n", ec);

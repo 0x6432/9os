@@ -1089,6 +1089,35 @@ int mm_write(struct mm *mm, vaddr_t dst, const void *src, size_t n) {
     }
 }
 int mm_zero(struct mm *mm, vaddr_t dst, size_t n) { return mm_write(mm, dst, nullptr, n); }
+/* M33: reads another address space through the HHDM (ptrace PEEK*, /proc/pid/mem). */
+static int mm_read_locked(struct mm *mm, vaddr_t src, void *dst, size_t n, int *flt) {
+    uint8_t *d = dst;
+    while (n) {
+        struct vma *v = vma_find(mm, src);
+        if (!v) return -EFAULT;
+        vaddr_t va = ALIGN_DOWN(src, PAGE_SIZE);
+        int r = fault_page_locked(mm, v, va, false);
+        paddr_t pa = 0; unsigned fl;
+        if (r == FLT_OK && !vmm_query(mm->pt, va, &pa, &fl)) r = FLT_SEGV;
+        if (r) { *flt = r; return r == FLT_OOM ? -ENOMEM : -EFAULT; }
+        size_t off = src & (PAGE_SIZE - 1), chunk = MIN(n, PAGE_SIZE - off);
+        memcpy(d, (uint8_t *)PHYS_TO_VIRT(pa) + off, chunk);
+        d += chunk; src += chunk; n -= chunk;
+    }
+    return 0;
+}
+int mm_read(struct mm *mm, vaddr_t src, void *dst, size_t n) {
+    for (int tries = 0;; tries++) {
+        int flt = 0;
+        mm_lock(mm);
+        int r = mm_read_locked(mm, src, dst, n, &flt);
+        mm_unlock(mm);
+        if (flt == FLT_IO && (flt = fault_io_run()) == FLT_OK) continue;
+        if (flt == FLT_SEGV) return r;
+        if (flt != FLT_OOM || !oom_retry(tries, false)) return r;
+    }
+}
+
 
 static int range_fault_locked(struct mm *mm, vaddr_t a, size_t n, bool write) {
     if (a + n < a || a + n > USER_TOP) return FLT_SEGV;

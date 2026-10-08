@@ -250,11 +250,21 @@ static ssize_t sfd_read(struct file *f, void *buf, size_t n, off_t *off) {
         uint64_t fl = arch_irq_save();
         uint64_t p = sfd_pending(s);
         if (!p) { arch_irq_restore(fl); break; }
-        int sig = __builtin_ctzll(p) + 1;
-        uint64_t bit = SIGBIT(sig);
-        if (current->sig_pending & bit) current->sig_pending &= ~bit; else curproc->sig_pending &= ~bit;
+        struct ksiginfo ki;
+        int sig = signal_dequeue(current, s->mask, &ki);
         arch_irq_restore(fl);
-        struct signalfd_siginfo si = { .signo = sig };
+        if (!sig) break;
+        /* expand like siginfo_to_user, then pick the union members signalfd exposes */
+        uint8_t raw[128];
+        siginfo_to_user(&ki, raw);
+        int32_t *w = (int32_t *)raw;
+        struct signalfd_siginfo si = { .signo = sig, .err = ki.err, .code = ki.code };
+        if (ki.code == SI_TIMER) { si.tid = w[4]; si.overrun = w[5]; memcpy(&si.ptr, raw + 24, 8); si.int_ = w[6]; }
+        else if (sig == SIGCHLD && ki.code > 0 && ki.code < SI_KERNEL) {
+            si.pid = w[4]; si.uid = w[5]; si.status = w[6]; si.utime = ki.v; si.stime = ki.v2;
+        } else if (ki.code > 0 && ki.code < SI_KERNEL && sig != SIGIO) si.addr = ki.v;
+        else if (ki.code > 0 && ki.code < SI_KERNEL) { si.band = (uint32_t)ki.v; si.fd = ki.i1; }
+        else { si.pid = w[4]; si.uid = w[5]; memcpy(&si.ptr, raw + 24, 8); si.int_ = w[6]; }
         memcpy((uint8_t *)buf + done, &si, sizeof si);
         done += sizeof si;
     }
@@ -741,4 +751,75 @@ int64_t sys_inotify_rm_watch(int fd, int wd) {
         if (w->wd == wd) { watch_remove(w, true); return 0; }
     }
     return -EINVAL;
+}
+
+/* ------------------------------------------------------------------ pidfd (M33) */
+/* A pidfd pins the struct process (refs) so it stays valid after the process is reaped;
+ * it polls readable once the process has exited. */
+struct pidfd { struct process *p; };
+static unsigned pidfd_poll(struct file *f) {
+    struct process *p = ((struct pidfd *)f->priv)->p;
+    return p->state == P_ZOMBIE || p->reaped ? POLLIN | POLLRDNORM : 0;
+}
+static void pidfd_release(struct file *f) {
+    struct pidfd *pf = f->priv;
+    bkl_enter();
+    process_put(pf->p);
+    bkl_exit();
+    kfree(pf);
+}
+static const struct file_ops pidfd_fops = { .poll = pidfd_poll, .release = pidfd_release };
+
+int pidfd_create(struct process *p, int flags) {
+    struct pidfd *pf = kzalloc(sizeof *pf);
+    if (!pf) return -ENOMEM;
+    pf->p = p;
+    p->refs++;
+    int fd = anon_fd(&pidfd_fops, pf, O_CLOEXEC | (flags & O_NONBLOCK), 0600);
+    if (fd < 0) { process_put(p); kfree(pf); }
+    return fd;
+}
+struct process *pidfd_process(int fd, unsigned *flags) {
+    struct file *f = fd_get(fd);
+    if (!f || f->fops != &pidfd_fops) return nullptr;
+    if (flags) *flags = f->flags;
+    return ((struct pidfd *)f->priv)->p;
+}
+
+int64_t sys_pidfd_open(int pid, unsigned flags) {
+    if (flags & ~(unsigned)O_NONBLOCK) return -EINVAL;
+    if (pid <= 0) return -EINVAL;
+    struct process *p = process_find(pid);
+    if (!p) return -ESRCH;
+    return pidfd_create(p, flags);
+}
+
+int signal_kill_process(struct process *p, int sig, const void *uinfo);
+int64_t sys_pidfd_send_signal(int fd, int sig, const void *uinfo, unsigned flags) {
+    if (flags) return -EINVAL;
+    struct process *p = pidfd_process(fd, nullptr);
+    if (!p) return -EBADF;
+    if (p->reaped) return -ESRCH;
+    return signal_kill_process(p, sig, uinfo);
+}
+
+int64_t sys_pidfd_getfd(int pidfd, int targetfd, unsigned flags) {
+    if (flags) return -EINVAL;
+    struct process *p = pidfd_process(pidfd, nullptr);
+    if (!p) return -EBADF;
+    if (p->reaped || p->state == P_ZOMBIE) return -ESRCH;
+    if (p != curproc && !capable(CAP_SYS_PTRACE)) {
+        struct cred *pc = proc_cred(p);
+        bool ok = pc->uid == current_cred()->uid;
+        cred_put(pc);
+        if (!ok) return -EPERM;
+    }
+    if (targetfd < 0 || targetfd >= MAX_FDS) return -EBADF;
+    uint64_t fl = spin_lock_irqsave(&p->fd_lock);
+    struct file *f = p->fds[targetfd] ? file_get(p->fds[targetfd]) : nullptr;
+    spin_unlock_irqrestore(&p->fd_lock, fl);
+    if (!f) return -EBADF;
+    int fd = fd_alloc(f, 0, true);
+    if (fd < 0) vfs_close(f);
+    return fd;
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <kernel/types.h>
 #include <kernel/list.h>
+#include <kernel/siginfo.h>
 #include <arch/thread.h>
 #include <kernel/arch.h>
 #include <kernel/cpu.h>
@@ -42,6 +43,21 @@ struct thread {
     int *clear_child_tid;
     /* signals */
     uint64_t sig_mask, sig_pending, saved_mask;
+    struct sigpend sigq;           /* M33: siginfo for sig_pending */
+    uint64_t robust_list, robust_len;   /* set_robust_list() head (user address) */
+    /* M33 ptrace (kernel/core/ptrace.c): tracee side */
+    struct process *ptracer;       /* tracing process, nullptr if not traced */
+    struct list_node ptrace_node;  /* ptracer->tracees */
+    uint32_t pt_opts;              /* PTRACE_O_* */
+    bool pt_seized, pt_stopped, pt_reported, pt_interrupt, pt_listen;
+    bool pt_icache;                /* text was poked: flush the I-cache before returning to user */
+    int pt_mode;                   /* resume request: PTRACE_CONT / SYSCALL / SINGLESTEP */
+    int pt_why;                    /* kind of the current stop (PT_STOP_*) */
+    int pt_status;                 /* wait status reported to the tracer */
+    int pt_data;                   /* signal to deliver when resumed */
+    int pt_sc_nr;                  /* syscall number at a syscall stop (orig_rax / x8 / a7) */
+    uint64_t pt_msg;               /* PTRACE_GETEVENTMSG */
+    struct ksiginfo pt_si;         /* PTRACE_GETSIGINFO */
     bool restore_mask;
     uint64_t altstack_sp, altstack_size;
     int altstack_flags;

@@ -30,7 +30,8 @@ struct rt_sigframe {
 };
 _Static_assert(__builtin_offsetof(struct ucontext, mc) == 176, "ucontext layout");
 
-int arch_setup_signal_frame(struct trap_frame *f, int sig, struct k_sigaction *ka, uint64_t oldmask) {
+int arch_setup_signal_frame(struct trap_frame *f, int sig, struct k_sigaction *ka, uint64_t oldmask,
+                            const struct ksiginfo *ki) {
     struct thread *t = current;
     uint64_t sp = f->sp;
     if ((ka->flags & SA_ONSTACK) && t->altstack_size && !(sp >= t->altstack_sp && sp < t->altstack_sp + t->altstack_size))
@@ -39,7 +40,7 @@ int arch_setup_signal_frame(struct trap_frame *f, int sig, struct k_sigaction *k
     sp &= ~15ULL;
     struct rt_sigframe *fr = kzalloc(sizeof *fr);
     if (!fr) return -ENOMEM;
-    fr->info.signo = sig;
+    siginfo_to_user(ki, &fr->info);
     fr->uc.sigmask = oldmask;
     fr->uc.ss_sp = t->altstack_sp; fr->uc.ss_size = t->altstack_size; fr->uc.ss_flags = t->altstack_flags;
     struct sigcontext *mc = &fr->uc.mc;

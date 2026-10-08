@@ -332,9 +332,13 @@ int do_execve(const char *path, char *const argv[], char *const envp[], struct t
     p->exe = strdup(path);
     files_close_on_exec(p);
     signals_reset_on_exec(p);
+    void posix_timers_exec(struct process *p);
+    void ptrace_exec_event(const char *path);
+    posix_timers_exec(p);
     arch_reset_fpu(current);
     arch_set_tls(current, 0);
     frame_init_user(frame, start, sp);
     if (p->vfork) { p->vfork->done = true; wake_up(&p->vfork->wq); p->vfork = nullptr; }
+    if (current->ptracer) ptrace_exec_event(path);
     return 0;
 }

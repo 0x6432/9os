@@ -106,6 +106,7 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec);
 /* Access memory of a (possibly inactive) address space. */
 int mm_write(struct mm *mm, vaddr_t dst, const void *src, size_t n);
 int mm_zero(struct mm *mm, vaddr_t dst, size_t n);
+int mm_read(struct mm *mm, vaddr_t src, void *dst, size_t n);
 /* reverse map: unmap page-cache page pg from every mapping; false if one could not be
  * locked or the page is mlocked (called by page reclaim with the page-cache lock held) */
 bool rmap_unmap_file_page(struct page *pg);

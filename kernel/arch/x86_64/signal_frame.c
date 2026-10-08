@@ -25,7 +25,8 @@ struct rt_sigframe {
     uint8_t fpu[512] __attribute__((aligned(16)));
 };
 
-int arch_setup_signal_frame(struct trap_frame *f, int sig, struct k_sigaction *ka, uint64_t oldmask) {
+int arch_setup_signal_frame(struct trap_frame *f, int sig, struct k_sigaction *ka, uint64_t oldmask,
+                            const struct ksiginfo *ki) {
     struct thread *t = current;
     uint64_t sp = f->rsp;
     if ((ka->flags & SA_ONSTACK) && t->altstack_size && !(sp >= t->altstack_sp && sp < t->altstack_sp + t->altstack_size))
@@ -48,7 +49,7 @@ int arch_setup_signal_frame(struct trap_frame *f, int sig, struct k_sigaction *k
     __asm__ volatile("fxsave64 (%0)" :: "r"(fr.fpu) : "memory");
     struct rt_sigframe *u = (struct rt_sigframe *)sp;
     mc->fpstate = (uint64_t)u->fpu;
-    fr.info.signo = sig;
+    siginfo_to_user(ki, &fr.info);
     if (copy_to_user(u, &fr, sizeof fr)) return -EFAULT;
     f->rsp = sp;
     f->rip = ka->handler;

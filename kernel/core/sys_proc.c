@@ -87,28 +87,69 @@ int rusage_to_user(void *u, const struct rusage_k *r) {
 
 int64_t sys_wait4(int pid, int *status, int options, void *rusage) {
     current->reaped_ru = (struct rusage_k){0};
+    if (options & ~(1 | 2 | 8 | 0x20000000 | 0x40000000 | 0x80000000)) return -EINVAL;
     int64_t r = do_wait(pid, status, options, nullptr);
     if (r >= 0 && rusage && rusage_to_user(rusage, &current->reaped_ru)) return -EFAULT;
     return r;
 }
 
+struct process *pidfd_process(int fd, unsigned *flags);
 int64_t sys_waitid(int idtype, int id, void *uinfo, int options, void *ru) {
-    int pid = idtype == 0 ? -1 : idtype == 1 ? id : -id;
-    int status;
-    int64_t r = do_wait(pid, &status, options & ~0x4, nullptr);  /* WEXITED */
+    if (options & ~(1 | 2 | 4 | 8 | 0x01000000 | 0x20000000 | 0x40000000 | 0x80000000)) return -EINVAL;
+    if (!(options & (2 | 4 | 8))) return -EINVAL;           /* WSTOPPED / WEXITED / WCONTINUED */
+    if (idtype == 3) {                                      /* P_PIDFD */
+        unsigned fl;
+        struct process *p = pidfd_process(id, &fl);
+        if (!p) return -EBADF;
+        if (p->reaped) return -ECHILD;
+        if ((fl & 0x800) && !(p->state == P_ZOMBIE)) options |= 1;   /* PIDFD_NONBLOCK -> WNOHANG semantics */
+        idtype = 1; id = p->pid;
+    } else if (idtype < 0 || idtype > 2) return -EINVAL;
+    else if (idtype == 1 && id <= 0) return -EINVAL;
+    current->reaped_ru = (struct rusage_k){0};
+    struct wait_result res;
+    int64_t r = do_wait_ex(idtype, id, options, &res);
     if (r < 0) return r;
+    if ((options & 1) && r == 0 && idtype == 1) {
+        /* PIDFD_NONBLOCK: the child exists but has nothing to report */
+    }
     if (uinfo) {
-        int32_t si[32] = {0};
+        uint8_t si[128] = {0};
         if (r > 0) {
-            si[0] = SIGCHLD;
-            si[4] = (int)r;
-            if ((status & 0x7f) == 0) { si[2] = 1; si[6] = (status >> 8) & 0xff; }        /* CLD_EXITED */
-            else if ((status & 0xff) == 0x7f) { si[2] = 5; si[6] = (status >> 8) & 0xff; } /* CLD_STOPPED */
-            else { si[2] = 2; si[6] = status & 0x7f; }                                       /* CLD_KILLED */
+            struct ksiginfo ki = { .signo = SIGCHLD, .code = res.code, .pid = res.pid, .uid = res.uid,
+                                   .v = res.utime, .v2 = res.stime };
+            int st = res.status;
+            ki.i1 = res.code == CLD_EXITED ? (st >> 8) & 0xff : res.code == CLD_STOPPED || res.code == CLD_TRAPPED ? (st >> 8) & 0xff
+                  : res.code == CLD_CONTINUED ? SIGCONT : st & 0x7f;
+            siginfo_to_user(&ki, si);
         }
         if (copy_to_user(uinfo, si, sizeof si)) return -EFAULT;
     }
+    if (ru && rusage_to_user(ru, &current->reaped_ru)) return -EFAULT;
     return 0;
+}
+
+/* clone3(2): struct clone_args { flags, pidfd, child_tid, parent_tid, exit_signal, stack,
+ * stack_size, tls, set_tid, set_tid_size, cgroup } (u64 each) */
+int64_t sys_clone3(const uint64_t *uargs, size_t size) {
+    uint64_t a[11] = {0};
+    if (size < 64 || size > 4096) return -EINVAL;
+    if (copy_from_user(a, uargs, MIN(size, sizeof a))) return -EFAULT;
+    for (size_t o = sizeof a; o < size; o += 8) {         /* unknown trailing fields must be zero */
+        uint64_t z = 0;
+        if (copy_from_user(&z, (const uint8_t *)uargs + o, MIN((size_t)8, size - o))) return -EFAULT;
+        if (z) return -E2BIG;
+    }
+    uint64_t flags = a[0];
+    if (flags & 0xff) return -EINVAL;                       /* CSIGNAL goes in exit_signal */
+    if (flags & 0x200000000ULL) return -EINVAL;             /* CLONE_INTO_CGROUP */
+    if (a[4] >= NSIG) return -EINVAL;
+    if (a[9]) return capable(CAP_SYS_ADMIN) ? -EINVAL : -EPERM;    /* set_tid unsupported */
+    if ((a[5] == 0) != (a[6] == 0) && a[5]) return -EINVAL;
+    if ((flags & 0x10000) && a[4]) return -EINVAL;          /* CLONE_THREAD with an exit signal */
+    uint64_t sp = a[5] ? a[5] + a[6] : 0;
+    return process_fork_ex(thread_user_frame(current), flags, sp, (int *)a[3], (int *)a[2], a[7], (int)a[4],
+                           (flags & 0x1000) ? (int *)a[1] : nullptr);
 }
 
 int64_t sys_getpid(void) { return curproc->pid; }
@@ -299,7 +340,20 @@ int64_t sys_getrandom(void *ubuf, size_t n, unsigned flags) {
 }
 
 int64_t sys_set_tid_address(int *tidptr) { current->clear_child_tid = tidptr; return current->tid; }
-int64_t sys_set_robust_list(void *h, size_t len) { return 0; }
+int64_t sys_set_robust_list(void *h, size_t len) {
+    if (len != 24) return -EINVAL;               /* sizeof(struct robust_list_head) */
+    current->robust_list = (uint64_t)h;
+    current->robust_len = len;
+    return 0;
+}
+int64_t sys_get_robust_list(int pid, uint64_t *uhead, size_t *ulen) {
+    struct thread *t = pid ? process_find_thread(pid) : current;
+    if (!t) return -ESRCH;
+    if (t != current && !capable(CAP_SYS_PTRACE) && t->ptracer != curproc) return -EPERM;
+    uint64_t h = t->robust_list, l = 24;
+    if (copy_to_user(uhead, &h, 8) || copy_to_user(ulen, &l, 8)) return -EFAULT;
+    return 0;
+}
 int64_t sys_rseq(void) { return -ENOSYS; }
 int64_t sys_prctl(int opt, uint64_t a2) {
     if (opt == 15) {   /* PR_SET_NAME */
@@ -455,8 +509,10 @@ int64_t sys_zero(void) { return 0; }
 static struct wait_queue alarm_wq = WAIT_QUEUE_INIT(alarm_wq);
 static uint64_t alarm_gen;
 static struct thread *alarm_thread;
+void posix_timers_scan(struct process *p, uint64_t *next);
 static void alarm_scan(struct process *p, void *arg) {
     uint64_t *next = arg, a = p->alarm_ns;
+    posix_timers_scan(p, next);
     if (!a || p->state == P_ZOMBIE) return;
     if (a <= time_ns()) { p->alarm_ns = 0; signal_send(p, SIGALRM); }
     else if (a < *next) *next = a;
@@ -474,7 +530,7 @@ static void alarm_fn(void *arg) {
         wait_event_timeout_locked(&alarm_wq, next == UINT64_MAX ? UINT64_MAX : next - now, f);
     }
 }
-static void alarm_changed(void) {
+void alarm_changed(void) {
     if (!alarm_thread) alarm_thread = thread_create("alarm", alarm_fn, nullptr);
     __atomic_add_fetch(&alarm_gen, 1, __ATOMIC_SEQ_CST);
     wake_up(&alarm_wq);

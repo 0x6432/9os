@@ -36,6 +36,14 @@ struct process {
     struct cred *cred;                /* objective credentials (M31): what kill/proc/peers see */
     struct k_sigaction sigactions[NSIG];
     uint64_t sig_pending;
+    struct sigpend sigq;              /* M33: siginfo for sig_pending */
+    int exit_signal;                  /* sent to the parent at exit (clone3; 0 = none) */
+    int refs;                         /* pidfd references: freed when reaped and refs == 0 */
+    bool reaped;
+    struct list_node timers;          /* POSIX timers (timer_create) */
+    int next_timer_id;
+    struct list_node tracees;         /* threads traced by this process (thread.ptrace_node) */
+    struct list_node pt_exits;        /* exits of non-child tracees to report (ptrace.c) */
     struct tty *ctty;
     char name[32];
     char *cmdline;                    /* NUL-separated argv for /proc/pid/cmdline */
@@ -60,8 +68,13 @@ struct process *process_find(int pid);
 struct thread *process_find_thread(int tid);  /* caller holds BKL */
 struct process *process_create_init(const char *path);
 int64_t do_wait(int pid, int *ustatus, int options, int *out_pid);
+struct wait_result { int pid, status, code; uint32_t uid; uint64_t utime, stime; };
+int64_t do_wait_ex(int idtype, int id, int options, struct wait_result *res);
+void process_put(struct process *p);      /* drop a pidfd reference */
 __noreturn void thread_exit_only(void);
 void process_exit(int status) __attribute__((noreturn));
 int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid, int *ctid, uint64_t tls);
+int process_fork_ex(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid, int *ctid, uint64_t tls,
+                    int exit_signal, int *upidfd);
 void process_list(void (*fn)(struct process *, void *), void *ctx);
 void process_init(void);

@@ -24,6 +24,21 @@
 #define CLONE_PARENT_SETTID 0x100000
 #define CLONE_CHILD_CLEARTID 0x200000
 #define CLONE_CHILD_SETTID 0x1000000
+#define CLONE_PIDFD 0x1000
+#define CLONE_UNTRACED 0x800000
+#define CLONE_CLEAR_SIGHAND 0x100000000ULL
+
+/* ptrace.c */
+void ptrace_fork_attach(struct thread *child, uint64_t flags, int exit_signal);
+void ptrace_fork_event(uint64_t flags, int exit_signal, int child_tid);
+void ptrace_exit_event(int status);
+void ptrace_thread_gone(struct thread *t, struct process *p, int status);
+void ptrace_tracer_exit(struct process *p);
+int ptrace_wait(struct process *self, int idtype, int id, int options, struct wait_result *res);
+bool ptrace_has_tracees(struct process *self, int idtype, int id);
+/* posix timers (sys_timer.c), pidfd (anonfd.c) */
+void posix_timers_exit(struct process *p);
+int pidfd_create(struct process *p, int flags);
 
 static struct list_node all_procs = LIST_INIT(all_procs);
 static struct process *init_proc;
@@ -67,8 +82,13 @@ static struct process *proc_alloc(void) {
     list_init(&p->children);
     list_init(&p->sibling);
     list_init(&p->threads);
+    list_init(&p->timers);
+    list_init(&p->tracees);
+    list_init(&p->pt_exits);
+    list_init(&p->sigq.rtq);
     wait_queue_init(&p->child_wait);
     p->umask = 022;
+    p->exit_signal = SIGCHLD;
     list_add_tail(&all_procs, &p->all_node);
     return p;
 }
@@ -119,7 +139,16 @@ struct process *process_create_init(const char *path) {
 }
 
 int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid, int *ctid, uint64_t tls) {
+    return process_fork_ex(f, flags & ~0xffULL, newsp, ptid, ctid, tls, (int)(flags & 0xff),
+                           (flags & CLONE_PIDFD) ? ptid : nullptr);
+}
+
+int process_fork_ex(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid, int *ctid, uint64_t tls,
+                    int exit_signal, int *upidfd) {
     struct process *parent = curproc;
+    if (exit_signal < 0 || exit_signal >= NSIG) return -EINVAL;
+    if ((flags & CLONE_PIDFD) && (flags & CLONE_THREAD)) return -EINVAL;
+    if ((flags & CLONE_CLEAR_SIGHAND) && (flags & CLONE_SIGHAND)) return -EINVAL;
     struct thread *t = thread_alloc(current->name);
     if (!t) return -ENOMEM;
     struct process *p;
@@ -138,6 +167,9 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
         if (parent->exe) p->exe = strdup(parent->exe);
         p->start_ticks = jiffies;
         memcpy(p->sigactions, parent->sigactions, sizeof p->sigactions);
+        if (flags & CLONE_CLEAR_SIGHAND)
+            for (int i = 1; i < NSIG; i++) if (p->sigactions[i].handler != SIG_IGN) p->sigactions[i].handler = SIG_DFL;
+        p->exit_signal = exit_signal;
         if (flags & CLONE_VM) { p->mm = parent->mm; __atomic_add_fetch(&p->mm->refcount, 1, __ATOMIC_RELAXED); }
         else {
             p->mm = mm_clone(parent->mm);
@@ -171,6 +203,12 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
     if ((flags & CLONE_PARENT_SETTID) && ptid) copy_to_user(ptid, &t->tid, sizeof(int));
     if ((flags & CLONE_CHILD_SETTID) && ctid) mm_write(p->mm, (vaddr_t)ctid, &t->tid, sizeof(int));
     if (flags & CLONE_CHILD_CLEARTID) t->clear_child_tid = ctid;
+    if (upidfd) {
+        int pfd = pidfd_create(p, 0);
+        if (pfd >= 0 && copy_to_user(upidfd, &pfd, sizeof pfd)) pfd = -EFAULT;
+        if (pfd < 0) pr_warn("clone: pidfd for %d failed (%d)\n", p->pid, pfd);
+    }
+    if (current->ptracer && !(flags & CLONE_UNTRACED)) ptrace_fork_attach(t, flags, exit_signal);
 
     struct vfork_done vd;
     if (flags & CLONE_VFORK) {
@@ -180,6 +218,7 @@ int process_fork(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *ptid
     }
     int tid = t->tid;
     thread_start(t);
+    if (current->ptracer && !(flags & CLONE_UNTRACED)) ptrace_fork_event(flags, exit_signal, tid);
     if (flags & CLONE_VFORK) {
         while (!vd.done) wait_event(&vd.wq);
     }
@@ -198,7 +237,39 @@ static void reparent_children(struct process *p) {
     }
 }
 
+/* robust futexes: mark futexes still held by the dying thread OWNER_DIED and wake a waiter */
+#define FUTEX_WAITERS 0x80000000u
+#define FUTEX_OWNER_DIED 0x40000000u
+#define FUTEX_TID_MASK 0x3fffffffu
+static void robust_futex_death(struct thread *t, uint64_t uaddr) {
+    uint32_t v;
+    if (uaddr & 3) return;
+    /* the BKL serialises kernel writers; a user-space CAS racing with this sees the new word */
+    if (copy_from_user(&v, (void *)uaddr, 4)) return;
+    if ((v & FUTEX_TID_MASK) != (uint32_t)t->tid) return;
+    uint32_t nv = (v & FUTEX_WAITERS) | FUTEX_OWNER_DIED;
+    if (copy_to_user((void *)uaddr, &nv, 4)) return;
+    futex_wake((uint32_t *)uaddr, 1);
+}
+void robust_list_exit(struct thread *t) {
+    uint64_t head = t->robust_list;
+    t->robust_list = 0;
+    if (!head || !t->proc || !t->proc->mm) return;
+    uint64_t h[3];                      /* struct robust_list_head: list.next, futex_offset, list_op_pending */
+    if (copy_from_user(h, (void *)head, sizeof h)) return;
+    int64_t off = (int64_t)h[1];
+    uint64_t entry = h[0] & ~1ULL, pending = h[2] & ~1ULL;
+    for (int n = 0; entry && entry != head && n < 2048; n++) {
+        uint64_t next;
+        if (copy_from_user(&next, (void *)entry, 8)) break;
+        if (entry != pending) robust_futex_death(t, entry + off);
+        entry = next & ~1ULL;
+    }
+    if (pending) robust_futex_death(t, pending + off);
+}
+
 static void release_thread_tid(struct thread *t) {
+    robust_list_exit(t);
     if (t->clear_child_tid && t->proc && t->proc->mm) {
         int zero = 0;
         if (!copy_to_user(t->clear_child_tid, &zero, sizeof zero)) futex_wake((uint32_t *)t->clear_child_tid, 1);
@@ -208,6 +279,7 @@ static void release_thread_tid(struct thread *t) {
 __noreturn void thread_exit_only(void) {
     fd_borrow_release();
     release_thread_tid(current);
+    if (current->ptracer) ptrace_thread_gone(current, curproc, 0);
     arch_irq_disable();
     list_del(&current->proc_node);
     thread_exit();
@@ -217,12 +289,15 @@ __noreturn void process_exit(int status) {
     struct process *p = curproc;
     if (p == init_proc) panic("init exited with status %x", status);
     fd_borrow_release();
+    if (current->ptracer) ptrace_exit_event(status);     /* PTRACE_O_TRACEEXIT stop */
     /* other threads of this process are killed on their next return to user mode */
     list_for_each(it, &p->threads) {
         struct thread *t = list_entry(it, struct thread, proc_node);
         if (t != current) { t->killed = true; thread_wake(t); }
     }
     release_thread_tid(current);
+    posix_timers_exit(p);
+    ptrace_tracer_exit(p);
     for (int i = 0; i < MAX_FDS; i++) if (p->fds[i]) vfs_close(fd_slot_set(p, i, nullptr));
     vfs_ns_lock();
     iput(p->cwd); iput(p->root);
@@ -240,64 +315,104 @@ __noreturn void process_exit(int status) {
     reparent_children(p);
     p->exit_status = status;
     p->state = P_ZOMBIE;
+    if (current->ptracer) ptrace_thread_gone(current, p, status);
     if (p->vfork) { p->vfork->done = true; wake_up(&p->vfork->wq); p->vfork = nullptr; }
     struct process *parent = p->parent;
     if (parent) {
-        signal_send_internal_chld(parent, p);
+        int code = (status & 0x7f) == 0 ? CLD_EXITED : (status & 0x80) ? CLD_DUMPED : CLD_KILLED;
+        signal_send_chld(parent, p, code, code == CLD_EXITED ? (status >> 8) & 0xff : status & 0x7f);
         wake_up(&parent->child_wait);
     }
+    poll_notify();                     /* pidfd pollers */
     thread_exit();
-}
-
-static bool child_matches(struct process *c, int pid, struct process *self) {
-    if (pid > 0) return c->pid == pid;
-    if (pid == -1) return true;
-    if (pid == 0) return c->pgid == self->pgid;
-    return c->pgid == -pid;
 }
 
 #define WNOHANG 1
 #define WUNTRACED 2
+#define WEXITED 4
 #define WCONTINUED 8
+#define WNOWAIT 0x01000000
+#define __WALL 0x40000000
+#define __WCLONE 0x80000000
 
-int64_t do_wait(int pid, int *ustatus, int options, int *out_pid) {
+/* idtype: P_ALL 0, P_PID 1, P_PGID 2 (id 0 = caller's group) */
+static bool child_matches(struct process *c, int idtype, int id, int options, struct process *self) {
+    if (idtype == 1 && c->pid != id) return false;
+    if (idtype == 2 && c->pgid != (id ? id : self->pgid)) return false;
+    /* "clone" children (exit signal other than SIGCHLD) need __WCLONE or __WALL */
+    bool clone_child = c->exit_signal != SIGCHLD;
+    if (!(options & __WALL) && clone_child != !!(options & __WCLONE)) return false;
+    return true;
+}
+
+static void proc_free(struct process *c) {
+    kfree(c->cmdline); kfree(c->exe);
+    cred_put(c->cred);
+    sigq_flush_proc(c);
+    kfree(c);
+}
+void process_put(struct process *p) {
+    if (--p->refs == 0 && p->reaped) proc_free(p);
+}
+
+static void reap(struct process *self, struct process *c) {
+    struct rusage_k cru = { c->utime_ns + c->cutime_ns, c->stime_ns + c->cstime_ns,
+                            c->min_flt + c->cmin_flt, c->nvcsw + c->cnvcsw, c->nivcsw + c->cnivcsw };
+    self->cutime_ns += cru.utime_ns; self->cstime_ns += cru.stime_ns;
+    self->cmin_flt += cru.min_flt; self->cnvcsw += cru.nvcsw; self->cnivcsw += cru.nivcsw;
+    current->reaped_ru = cru;
+    list_del(&c->sibling);
+    list_del(&c->all_node);
+    c->reaped = true;
+    if (!c->refs) proc_free(c);
+}
+
+static void fill_result(struct wait_result *r, struct process *c, int code, int status) {
+    r->pid = c->pid;
+    r->status = status;
+    r->code = code;
+    r->uid = c->cred ? c->cred->uid : 0;
+    r->utime = c->utime_ns / 10000000;
+    r->stime = c->stime_ns / 10000000;
+}
+
+/* Returns the pid reported (res filled), 0 for WNOHANG without a candidate, or -errno. */
+int64_t do_wait_ex(int idtype, int id, int options, struct wait_result *res) {
     struct process *self = curproc;
     uint64_t irqf = arch_irq_save();
     int64_t ret;
+    bool nowait = options & WNOWAIT;
     for (;;) {
         bool any = false;
+        /* ptrace stops and exits of tracees come first (ptrace.c) */
+        int tr = ptrace_wait(self, idtype, id, options, res);
+        if (tr) { ret = tr; goto out; }
+        any = ptrace_has_tracees(self, idtype, id);
         list_for_each_safe(it, tmp, &self->children) {
             struct process *c = list_entry(it, struct process, sibling);
-            if (!child_matches(c, pid, self)) continue;
+            if (!child_matches(c, idtype, id, options, self)) continue;
             any = true;
-            int status = -1;
             if (c->state == P_ZOMBIE) {
-                status = c->exit_status;
-                int cpid = c->pid;
-                struct rusage_k cru = { c->utime_ns + c->cutime_ns, c->stime_ns + c->cstime_ns,
+                if (!(options & WEXITED)) continue;
+                int st = c->exit_status;
+                int code = (st & 0x7f) == 0 ? CLD_EXITED : (st & 0x80) ? CLD_DUMPED : CLD_KILLED;
+                fill_result(res, c, code, st);
+                ret = c->pid;
+                current->reaped_ru = (struct rusage_k){ c->utime_ns + c->cutime_ns, c->stime_ns + c->cstime_ns,
                                         c->min_flt + c->cmin_flt, c->nvcsw + c->cnvcsw, c->nivcsw + c->cnivcsw };
-                self->cutime_ns += cru.utime_ns; self->cstime_ns += cru.stime_ns;
-                self->cmin_flt += cru.min_flt; self->cnvcsw += cru.nvcsw; self->cnivcsw += cru.nivcsw;
-                current->reaped_ru = cru;
-                list_del(&c->sibling);
-                list_del(&c->all_node);
-                kfree(c->cmdline); kfree(c->exe);
-                cred_put(c->cred);
-                kfree(c);
-                ret = cpid;
-                if (ustatus && copy_to_user(ustatus, &status, sizeof status)) ret = -EFAULT;
+                if (!nowait) reap(self, c);
                 goto out;
             }
             if ((options & WUNTRACED) && c->stopped && !c->stop_reported) {
-                c->stop_reported = true;
-                status = (c->stop_sig << 8) | 0x7f;
-            } else if ((options & WCONTINUED) && c->cont_reported) {
-                c->cont_reported = false;
-                status = 0xffff;
-            }
-            if (status != -1) {
+                if (!nowait) c->stop_reported = true;
+                fill_result(res, c, CLD_STOPPED, (c->stop_sig << 8) | 0x7f);
                 ret = c->pid;
-                if (ustatus && copy_to_user(ustatus, &status, sizeof status)) ret = -EFAULT;
+                goto out;
+            }
+            if ((options & WCONTINUED) && c->cont_reported) {
+                if (!nowait) c->cont_reported = false;
+                fill_result(res, c, CLD_CONTINUED, 0xffff);
+                ret = c->pid;
                 goto out;
             }
         }
@@ -309,4 +424,13 @@ int64_t do_wait(int pid, int *ustatus, int options, int *out_pid) {
 out:
     arch_irq_restore(irqf);
     return ret;
+}
+
+int64_t do_wait(int pid, int *ustatus, int options, int *out_pid) {
+    int idtype = pid > 0 ? 1 : pid == -1 ? 0 : 2;
+    int id = pid > 0 ? pid : pid == 0 ? 0 : -pid;
+    struct wait_result res;
+    int64_t r = do_wait_ex(idtype, id, (options & ~WNOWAIT) | WEXITED, &res);
+    if (r > 0 && ustatus && copy_to_user(ustatus, &res.status, sizeof res.status)) return -EFAULT;
+    return r;
 }

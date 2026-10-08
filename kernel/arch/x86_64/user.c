@@ -94,22 +94,28 @@ bool page_fault_handler(struct trap_frame *f) {
     if (addr < USER_TOP && mm_handle_fault(current->proc->mm, addr, write, exec)) return true;
     if (trap_from_user(f)) {
         pr_debug("segfault pid %d at %lx rip %lx\n", current->proc->pid, addr, f->rip);
-        signal_force(current, SIGSEGV);
+        signal_force_info(current, SIGSEGV, (f->error & 1) ? SEGV_ACCERR : SEGV_MAPERR, addr);
         return true;
     }
     return false;
 }
 
 bool user_exception(struct trap_frame *f) {
-    int sig;
+    int sig, code = SI_KERNEL;
+    uint64_t addr = f->rip;
     switch (f->vector) {
-    case 0: case 16: case 19: sig = SIGFPE; break;
-    case 6: sig = SIGILL; break;
-    case 3: case 1: sig = SIGTRAP; break;
-    case 13: case 12: case 11: sig = SIGSEGV; break;
-    case 17: sig = SIGBUS; break;
+    case 0: sig = SIGFPE; code = FPE_INTDIV; break;
+    case 16: case 19: sig = SIGFPE; code = 0; break;
+    case 6: sig = SIGILL; code = ILL_ILLOPC; break;
+    case 3: sig = SIGTRAP; break;                       /* int3: SI_KERNEL like Linux */
+    case 1:                                             /* #DB: single step (ptrace) */
+        sig = SIGTRAP; code = TRAP_TRACE;
+        f->rflags &= ~0x100ULL;
+        break;
+    case 13: case 12: case 11: sig = SIGSEGV; addr = 0; break;
+    case 17: sig = SIGBUS; code = BUS_ADRALN; break;
     default: return false;
     }
-    signal_force(current, sig);
+    signal_force_info(current, sig, code, addr);
     return true;
 }
