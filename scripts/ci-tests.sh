@@ -31,6 +31,10 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext
     "nettest -x 10.0.2.2 @HP@" \
     "wget -q -O - http://10.0.2.2:@HP@/hello | grep -qx 'hello from the host'" \
     "wget -q -O /root/big http://10.0.2.2:@HP@/big && md5sum /root/big | grep -q $BIGMD5 && rm /root/big" \
+    "for i in 1 2 3 4 5 6 7 8 9 10; do ip -6 addr show eth0 | grep -q 'inet6 fec0::' && break; sleep 1; done; ip -6 addr show eth0 | grep -q 'inet6 fec0::.*/64 scope site dynamic'" \
+    "ip -6 route | grep -q '^default via fe80::2 dev eth0'" "ping6 -c 2 -W 2 fec0::2" \
+    "wget -q -O - http://[fec0::2]:@HP@/hello | grep -qx 'hello from the host'" \
+    "ip addr show lo | grep -q 'inet6 ::1/128'" "ip route | grep -q '^default via 10.0.2.2 dev eth0'" \
     "nettest -s 8080" \
     "host:python3 scripts/net-host-server.py --echo-check @FP@" \
     "blktest /dev/vdb" "ext2test /dev/vda1 /mnt" "blktest -w /dev/vdb 77" \

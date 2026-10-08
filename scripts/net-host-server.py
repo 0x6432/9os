@@ -7,7 +7,7 @@ TCP on 127.0.0.1:PORT (the guest reaches it as 10.0.2.2:PORT through QEMU user n
   "GET /big"    -> HTTP/1.0 200, 1 MiB body, byte i = (i * 7 + i // 251) & 0xff  (md5 printed by --md5)
   other GET     -> 404
   anything else -> echoed back until the client shuts down its side
-UDP on the same port: every datagram is echoed.
+UDP on the same port: every datagram is echoed. Both also listen on [::1]:PORT (guest: [fec0::2]:PORT).
 net-host-server.py --md5             print the md5 of the /big body
 net-host-server.py --echo-check PORT send /big's bytes to 127.0.0.1:PORT and expect them echoed back"""
 import hashlib, socket, sys, threading
@@ -33,16 +33,16 @@ def tcp_client(c):
             c.sendall(d)
             d = c.recv(65536)
 
-def tcp_server(port):
-    s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('127.0.0.1', port)); s.listen(16)
+def tcp_server(port, fam=socket.AF_INET, addr='127.0.0.1'):
+    s = socket.socket(fam); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((addr, port)); s.listen(16)
     while True:
         c, _ = s.accept()
         threading.Thread(target=tcp_client, args=(c,), daemon=True).start()
 
-def udp_server(port):
-    u = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    u.bind(('127.0.0.1', port))
+def udp_server(port, fam=socket.AF_INET, addr='127.0.0.1'):
+    u = socket.socket(fam, socket.SOCK_DGRAM)
+    u.bind((addr, port))
     while True:
         d, a = u.recvfrom(65536)
         u.sendto(d, a)
@@ -61,4 +61,8 @@ if __name__ == '__main__':
         print(f'echo-check: {len(got)} of {len(BIG)} bytes {"ok" if ok else "FAIL"}'); sys.exit(0 if ok else 1)
     port = int(sys.argv[1])
     threading.Thread(target=udp_server, args=(port,), daemon=True).start()
+    try:                                        # IPv6 too (M32b): the guest reaches ::1 as fec0::2
+        for f in (tcp_server, udp_server):
+            threading.Thread(target=f, args=(port, socket.AF_INET6, '::1'), daemon=True).start()
+    except OSError: pass
     tcp_server(port)

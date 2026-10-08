@@ -1,5 +1,6 @@
 /*
- * The socket layer for AF_INET (TCP, UDP, raw IP, ICMP ping sockets) and AF_PACKET.
+ * The socket layer for AF_INET and AF_INET6 (TCP, UDP, raw IP, ICMP ping sockets; AF_INET6 sockets
+ * are dual-stack through v4-mapped addresses unless IPV6_V6ONLY), AF_PACKET and AF_NETLINK.
  *
  * Every protocol object is a struct sock guarded by net_mutex. A socket file holds the sock
  * in f->priv; the data path (send/recv/read/write/poll) runs without the BKL. Blocking follows
@@ -10,6 +11,7 @@
  * it (a page fault taking the mm lock under the sleeping mutex is fine).
  */
 #include <kernel/net.h>
+#include <kernel/net6.h>
 #include <kernel/vfs.h>
 #include <kernel/cred.h>
 #include <kernel/kmalloc.h>
@@ -67,6 +69,8 @@ static struct sock *sock_alloc(int family, int type, int proto) {
     s->rcvbuf = type == SOCK_STREAM ? 131072 : 212992;
     s->sndbuf = type == SOCK_STREAM ? 131072 : 212992;
     s->ttl = sysctl_ip_default_ttl;
+    s->mc_ttl = 1; s->mc_loop = true; s->mc_all = true;
+    s->hops6 = s->mc_hops6 = -1; s->tclass6 = -1; s->raw_csum = -1;
     s->uid = current_cred()->euid;
     if (type == SOCK_STREAM) tcp_sock_init(s);
     return s;
@@ -74,6 +78,7 @@ static struct sock *sock_alloc(int family, int type, int proto) {
 
 void sock_free(struct sock *s) {
     unlink_sock(s);
+    sock_mc_drop_all(s);
     pkt_queue_purge(&s->rxq);
     pkt_queue_purge(&s->ooo);
     kfree(s->snd.buf);
@@ -85,8 +90,9 @@ void sock_free(struct sock *s) {
 }
 
 struct sock *sock_new_child(struct sock *l) {
-    struct sock *c = sock_alloc(AF_INET, SOCK_STREAM, l->protocol);
+    struct sock *c = sock_alloc(l->family, SOCK_STREAM, l->protocol);
     if (!c) return nullptr;
+    c->v6only = l->v6only; c->hops6 = l->hops6; c->tclass6 = l->tclass6;
     c->rcvbuf = l->rcvbuf; c->sndbuf = l->sndbuf;
     c->nodelay = l->nodelay; c->keepalive = l->keepalive; c->reuseaddr = l->reuseaddr;
     c->keepidle = l->keepidle; c->keepintvl = l->keepintvl; c->keepcnt = l->keepcnt;
@@ -196,13 +202,23 @@ void sock_queue_rx(struct sock *s, struct pkt *p) {
 }
 
 /* ------------------------------------------------------------------ ports */
-bool inet_port_in_use(int proto, uint32_t laddr, uint16_t port, struct sock *self, bool reuse) {
+static bool is_inet(const struct sock *s) { return s->family == AF_INET || s->family == AF_INET6; }
+static bool is_tcp(const struct sock *s) { return s->type == SOCK_STREAM && is_inet(s); }
+static bool is_ping(const struct sock *s) { return s->type == SOCK_DGRAM && (s->protocol == IPPROTO_ICMP || s->protocol == IPPROTO_ICMPV6); }
+
+static bool bind_overlap(const struct bindid *b, struct sock *o) {
+    if (b->v4 && sock_v4ok(o) && (!b->a4 || !o->laddr || b->a4 == o->laddr)) return true;
+    if (b->v6 && sock_v6ok(o) && (ip6_any(b->a6) || ip6_any(o->laddr6) || ip6_eq(b->a6, o->laddr6))) return true;
+    return false;
+}
+
+bool inet_port_in_use(int proto, const struct bindid *b, uint16_t port, struct sock *self, bool reuse) {
     struct list_node *l = proto == IPPROTO_TCP ? &tcp_socks : proto == IPPROTO_UDP ? &udp_socks : &raw_socks;
     list_for_each(it, l) {
         struct sock *o = list_entry(it, struct sock, node);
         if (o == self || o->lport != port) continue;
-        if (proto == IPPROTO_ICMP && o->type != SOCK_DGRAM) continue;
-        if (o->laddr && laddr && o->laddr != laddr) continue;
+        if (proto == IPPROTO_ICMP && !is_ping(o)) continue;
+        if (!bind_overlap(b, o)) continue;
         if (proto == IPPROTO_TCP && reuse && o->reuseaddr && o->state != TCP_LISTEN) continue;
         if (proto == IPPROTO_TCP && reuse && o->state == TCP_TIME_WAIT) continue;
         if (proto == IPPROTO_UDP && reuse && o->reuseaddr) continue;
@@ -212,27 +228,36 @@ bool inet_port_in_use(int proto, uint32_t laddr, uint16_t port, struct sock *sel
     return false;
 }
 
-uint16_t inet_ephemeral_port(int proto, uint32_t laddr) {
+uint16_t inet_ephemeral_port(int proto, const struct bindid *b) {
     uint32_t lo = 32768, n = 61000 - 32768;
     uint32_t start = (uint32_t)(random_u64() % n);
     for (uint32_t i = 0; i < n; i++) {
         uint16_t port = htons((uint16_t)(lo + (start + i) % n));
-        if (!inet_port_in_use(proto, laddr, port, nullptr, false)) return port;
+        if (!inet_port_in_use(proto, b, port, nullptr, false)) return port;
     }
     return 0;
 }
 
+/* what s (with its current addresses) would cover */
+static struct bindid bindid_of(struct sock *s) {
+    struct bindid b = { sock_v4ok(s), sock_v6ok(s), s->laddr, { 0 } };
+    memcpy(b.a6, s->laddr6, 16);
+    return b;
+}
+
 static int ipproto_of(struct sock *s) {
-    return s->type == SOCK_STREAM ? IPPROTO_TCP : s->type == SOCK_DGRAM && s->protocol != IPPROTO_ICMP ? IPPROTO_UDP : IPPROTO_ICMP;
+    return s->type == SOCK_STREAM ? IPPROTO_TCP : is_ping(s) ? IPPROTO_ICMP : IPPROTO_UDP;
 }
 static struct list_node *table_of(struct sock *s) {
     if (s->family == AF_PACKET) return &packet_socks;
-    return s->type == SOCK_STREAM ? &tcp_socks : ipproto_of(s) == IPPROTO_UDP ? &udp_socks : &raw_socks;
+    if (s->family == AF_NETLINK) return &netlink_socks;
+    return s->type == SOCK_STREAM ? &tcp_socks : ipproto_of(s) == IPPROTO_UDP && s->type != SOCK_RAW ? &udp_socks : &raw_socks;
 }
 
 static int autobind(struct sock *s) {
     if (s->bound || (s->type == SOCK_RAW)) return 0;
-    uint16_t p = inet_ephemeral_port(ipproto_of(s), s->laddr);
+    struct bindid b = bindid_of(s);
+    uint16_t p = inet_ephemeral_port(ipproto_of(s), &b);
     if (!p) return -EAGAIN;
     s->lport = p;
     s->bound = true;
@@ -262,13 +287,31 @@ static void raise_sigpipe(void) {
     if (took) bkl_exit();
 }
 
-static int get_sin(const void *uaddr, int len, struct sockaddr_in_k *a) {
+/* a user sockaddr for an AF_INET / AF_INET6 socket. AF_INET6 sockets take v4-mapped addresses
+ * (and plain AF_INET ones where Linux does: datagram connect/sendto) as IPv4. Returns 1 for
+ * AF_UNSPEC */
+struct inaddr { bool v6; uint32_t a4; uint8_t a6[16]; uint16_t port; uint32_t scope; };
+static int get_addr(struct sock *s, const void *uaddr, int len, struct inaddr *a, bool v4_ok) {
     if (len < (int)sizeof(uint16_t)) return -EINVAL;
+    uint8_t raw[28] = { 0 };
+    if (copy_from_user(raw, uaddr, MIN((size_t)len, sizeof raw))) return -EFAULT;
+    uint16_t fam; memcpy(&fam, raw, 2);
     memset(a, 0, sizeof *a);
-    if (copy_from_user(a, uaddr, MIN((size_t)len, sizeof *a))) return -EFAULT;
-    if (a->family == 0 /* AF_UNSPEC */) return 1;
-    if (len < 16) return -EINVAL;
-    if (a->family != AF_INET) return -EAFNOSUPPORT;
+    if (fam == 0 /* AF_UNSPEC */) { memcpy(&a->a4, raw + 4, 4); return 1; }
+    if (fam == AF_INET && (s->family == AF_INET || v4_ok)) {
+        if (len < 16) return -EINVAL;
+        memcpy(&a->port, raw + 2, 2);
+        memcpy(&a->a4, raw + 4, 4);
+        if (s->family == AF_INET6 && s->v6only) return -ENETUNREACH;
+        return 0;
+    }
+    if (fam != AF_INET6 || s->family != AF_INET6) return -EAFNOSUPPORT;
+    if (len < 24) return -EINVAL;
+    memcpy(&a->port, raw + 2, 2);
+    memcpy(a->a6, raw + 8, 16);
+    if (len >= 28) memcpy(&a->scope, raw + 24, 4);
+    if (ip6_v4mapped(a->a6)) { memcpy(&a->a4, a->a6 + 12, 4); memset(a->a6, 0, 16); }
+    else a->v6 = true;
     return 0;
 }
 static int put_name(void *uaddr, int *ulen, const void *a, int alen) {
@@ -279,6 +322,25 @@ static int put_name(void *uaddr, int *ulen, const void *a, int alen) {
     if (copy_to_user(uaddr, a, (size_t)MIN(l, alen)) || copy_to_user(ulen, &alen, sizeof alen)) return -EFAULT;
     return 0;
 }
+/* a sockaddr of s's family for an address; returns its length */
+static int make_name(struct sock *s, void *out, bool v6, uint32_t a4, const uint8_t *a6, uint16_t port, int ifindex) {
+    if (s->family == AF_INET6) {
+        struct sockaddr_in6_k *n = out;
+        memset(n, 0, sizeof *n);
+        n->family = AF_INET6; n->port = port;
+        if (v6) { memcpy(n->addr, a6, 16); if (ip6_needs_scope(a6)) n->scope_id = (uint32_t)ifindex; }
+        else if (a4) ip6_mapped(n->addr, a4);
+        return sizeof *n;
+    }
+    struct sockaddr_in_k *n = out;
+    *n = (struct sockaddr_in_k){ AF_INET, port, a4, { 0 } };
+    return sizeof *n;
+}
+static int sock_name(struct sock *s, void *out, bool peer) {
+    if (peer) return make_name(s, out, s->v6, s->raddr, s->raddr6, s->rport, s->bound_dev);
+    return make_name(s, out, s->v6 || (!s->laddr && !s->raddr), s->laddr, s->laddr6, s->type == SOCK_RAW ? 0 : s->lport, s->bound_dev);
+}
+struct sockaddr_nl_k { uint16_t family, pad; uint32_t pid, groups; };
 
 static size_t iov_total(const struct iovec_k *iov, size_t n) {
     size_t t = 0;
@@ -313,14 +375,21 @@ static int sock_install(struct sock *s, int flags, struct file **out) {
 
 int inet_socket(int domain, int type, int proto) {
     int t = type & 0xf;
+    bool v6 = domain == AF_INET6;
     if (domain == AF_PACKET) {
         if (t != SOCK_RAW && t != SOCK_DGRAM) return -ESOCKTNOSUPPORT;
         if (!capable(CAP_NET_RAW)) return -EPERM;
+    } else if (domain == AF_NETLINK) {
+        if (t != SOCK_RAW && t != SOCK_DGRAM) return -ESOCKTNOSUPPORT;
+        if (proto != 0 /* NETLINK_ROUTE */) return -EPROTONOSUPPORT;
+    } else if (v6 && sysctl_ipv6_disable) {
+        return -EAFNOSUPPORT;
     } else if (t == SOCK_STREAM) {
         if (proto && proto != IPPROTO_TCP) return -EPROTONOSUPPORT;
         proto = IPPROTO_TCP;
     } else if (t == SOCK_DGRAM) {
-        if (proto && proto != IPPROTO_UDP && proto != IPPROTO_ICMP) return -EPROTONOSUPPORT;
+        int ping = v6 ? IPPROTO_ICMPV6 : IPPROTO_ICMP;
+        if (proto && proto != IPPROTO_UDP && proto != ping) return -EPROTONOSUPPORT;
         if (!proto) proto = IPPROTO_UDP;
     } else if (t == SOCK_RAW) {
         if (!capable(CAP_NET_RAW)) return -EPERM;
@@ -328,13 +397,16 @@ int inet_socket(int domain, int type, int proto) {
     } else return -ESOCKTNOSUPPORT;
     struct sock *s = sock_alloc(domain, t, proto);
     if (!s) return -ENOMEM;
-    if (t == SOCK_RAW && domain == AF_INET && proto == IPPROTO_RAW) s->hdrincl = true;
+    if (t == SOCK_RAW && proto == IPPROTO_RAW && domain == AF_INET) s->hdrincl = true;
+    if (v6 && (t == SOCK_RAW || proto == IPPROTO_ICMPV6)) s->v6 = true;     /* IPv6 only */
+    if (v6 && t == SOCK_RAW && proto == IPPROTO_ICMPV6) s->raw_csum = 2;
     struct file *f;
     int r = sock_install(s, type, &f);
     if (r) { kfree(s); return r; }
     mutex_lock(&net_mutex);
     f->priv = s; s->file = f;
     if (domain == AF_PACKET) { s->pproto = ntohs((uint16_t)proto); link_to(s, &packet_socks); }
+    else if (domain == AF_NETLINK) link_to(s, &netlink_socks);
     else if (t == SOCK_RAW) link_to(s, &raw_socks);
     sock_changed(s);
     mutex_unlock(&net_mutex);
@@ -348,13 +420,38 @@ static void inet_release(struct file *f) {
     if (!s) return;
     mutex_lock(&net_mutex);
     f->priv = nullptr;
-    if (s->type == SOCK_STREAM && s->family == AF_INET) tcp_close(s);
+    if (is_tcp(s)) tcp_close(s);
     else sock_free(s);
     mutex_unlock(&net_mutex);
     poll_notify();
 }
 
 /* ------------------------------------------------------------------ bind / connect / listen / accept */
+static int get_nl(const void *uaddr, int len, struct sockaddr_nl_k *a) {
+    if (len < (int)sizeof *a) return -EINVAL;
+    if (copy_from_user(a, uaddr, sizeof *a)) return -EFAULT;
+    return a->family == AF_NETLINK ? 0 : -EINVAL;
+}
+
+/* IPv6 address checks for bind(): local (usable), multicast or ::; link-local needs an interface */
+static int bind6_check(struct sock *s, struct inaddr *a) {
+    if (ip6_any(a->a6) || ip6_multicast(a->a6)) {
+        if (ip6_needs_scope(a->a6) && a->scope) s->bound_dev = (int)a->scope;
+        return 0;
+    }
+    if (ip6_needs_scope(a->a6)) {
+        int ifi = a->scope ? (int)a->scope : s->bound_dev;
+        if (!ifi) return -EINVAL;
+        struct netdev *d = netdev_by_index(ifi);
+        if (!d) return -ENODEV;
+        struct netdev *ld = ip6_dev_for_local(a->a6);
+        if (ld != d) return -EADDRNOTAVAIL;
+        s->bound_dev = ifi;
+        return 0;
+    }
+    return ip6_is_local(a->a6) ? 0 : -EADDRNOTAVAIL;
+}
+
 int inet_bind(struct file *f, const void *uaddr, int len) {
     struct sock *s = f->priv;
     if (s->family == AF_PACKET) {
@@ -375,22 +472,49 @@ int inet_bind(struct file *f, const void *uaddr, int len) {
         mutex_unlock(&net_mutex);
         return r;
     }
-    struct sockaddr_in_k a;
-    int r = get_sin(uaddr, len, &a);
+    if (s->family == AF_NETLINK) {
+        struct sockaddr_nl_k nl;
+        int r = get_nl(uaddr, len, &nl);
+        if (r) return r;
+        mutex_lock(&net_mutex);
+        r = netlink_bind(s, nl.pid, nl.groups);
+        mutex_unlock(&net_mutex);
+        return r;
+    }
+    struct inaddr a;
+    int r = get_addr(s, uaddr, len, &a, false);
     if (r < 0) return r;
-    if (r == 1) { if (a.addr) return -EAFNOSUPPORT; a.family = AF_INET; }   /* AF_UNSPEC + ANY: Linux compat */
+    if (r == 1) {                                           /* AF_UNSPEC + ANY: Linux compat (AF_INET only) */
+        if (s->family != AF_INET || a.a4) return -EAFNOSUPPORT;
+    }
     if (s->type != SOCK_RAW && a.port && ntohs(a.port) < 1024 && !capable(CAP_NET_BIND_SERVICE)) return -EACCES;
     mutex_lock(&net_mutex);
     if (s->bound && s->type != SOCK_RAW) { r = -EINVAL; goto out; }
     if (s->type == SOCK_STREAM && s->state != TCP_CLOSE) { r = -EINVAL; goto out; }
-    if (a.addr && a.addr != INADDR_BROADCAST && !net_is_local_addr(a.addr) && !ipv4_is_multicast(a.addr)) { r = -EADDRNOTAVAIL; goto out; }
-    if (s->type == SOCK_RAW) { s->laddr = a.addr; goto out; }
+    struct bindid b = { 0 };
+    if (a.v6) {
+        int saved = s->bound_dev;
+        if ((r = bind6_check(s, &a))) { s->bound_dev = saved; goto out; }
+        b.v6 = true;
+        memcpy(b.a6, a.a6, 16);
+        b.v4 = ip6_any(a.a6) && !s->v6only && s->type != SOCK_RAW && !is_ping(s);
+    } else {
+        if (s->family == AF_INET6 && (s->v6only || s->v6)) { r = -EINVAL; goto out; }
+        if (a.a4 && a.a4 != INADDR_BROADCAST && !net_is_local_addr(a.a4) && !ipv4_is_multicast(a.a4)) { r = -EADDRNOTAVAIL; goto out; }
+        b.v4 = true;
+        b.a4 = a.a4;
+    }
+    if (s->type == SOCK_RAW) {
+        if (a.v6) memcpy(s->laddr6, a.a6, 16); else s->laddr = a.a4;
+        goto out;
+    }
     int proto = ipproto_of(s);
     if (a.port) {
-        if (inet_port_in_use(proto, a.addr, a.port, s, s->reuseaddr || s->reuseport)) { r = -EADDRINUSE; goto out; }
+        if (inet_port_in_use(proto, &b, a.port, s, s->reuseaddr || s->reuseport)) { r = -EADDRINUSE; goto out; }
         s->lport = a.port;
-    } else if (!(s->lport = inet_ephemeral_port(proto, a.addr))) { r = -EADDRINUSE; goto out; }
-    s->laddr = a.addr;
+    } else if (!(s->lport = inet_ephemeral_port(proto, &b))) { r = -EADDRINUSE; goto out; }
+    if (a.v6) { memcpy(s->laddr6, a.a6, 16); if (!ip6_any(a.a6)) s->v6 = true; }
+    else s->laddr = a.a4;
     s->bound = true;
     link_to(s, table_of(s));
 out:
@@ -398,28 +522,67 @@ out:
     return r;
 }
 
+/* datagram connect(): the default destination and the source address it implies */
+static int dgram_connect(struct sock *s, struct inaddr *a, int r) {
+    if (r == 1) {                                           /* AF_UNSPEC: dissolve the association */
+        s->connected = false; s->raddr = 0; s->rport = 0;
+        memset(s->raddr6, 0, 16);
+        if (s->family == AF_INET6 && s->type != SOCK_RAW && !is_ping(s) && ip6_any(s->laddr6)) s->v6 = false;
+        return 0;
+    }
+    if (s->type == SOCK_DGRAM && ipproto_of(s) == IPPROTO_UDP && !a->port) return -EINVAL;
+    if (a->v6) {
+        if (s->laddr) return -EAFNOSUPPORT;                 /* bound to an IPv4 address */
+        uint8_t dst[16];
+        memcpy(dst, a->a6, 16);
+        if (ip6_any(dst)) dst[15] = 1;                      /* :: means ::1 */
+        int oif = s->bound_dev;
+        if (ip6_needs_scope(dst)) {
+            if (a->scope) oif = (int)a->scope;
+            else if (!oif && !ip6_multicast(dst)) return -EINVAL;
+        }
+        struct netdev *d; uint8_t nh[16], src[16];
+        r = ip6_route(dst, ip6_multicast(dst) && s->mc_ifindex ? s->mc_ifindex : oif, &d, nh, src);
+        if (r) return r;
+        if (ip6_needs_scope(dst) && a->scope && !s->bound_dev) s->bound_dev = (int)a->scope;
+        if (ip6_any(s->laddr6) && !ip6_multicast(dst)) memcpy(s->laddr6, src, 16);
+        memcpy(s->raddr6, dst, 16);
+        s->v6 = true;
+    } else {
+        if (s->family == AF_INET6 && (s->v6 || s->v6only)) return -ENETUNREACH;
+        uint32_t dst = a->a4 ? a->a4 : INADDR_LOOPBACK;
+        struct netdev *d; uint32_t nh, src;
+        r = ip_route(dst, s->bound_dev, &d, &nh, &src);
+        if (r) return r;
+        if (!s->laddr && dst != INADDR_BROADCAST) s->laddr = src;
+        s->raddr = dst;
+    }
+    s->rport = a->port;
+    s->connected = true;
+    s->err = 0;
+    return autobind(s);
+}
+
 int inet_connect(struct file *f, const void *uaddr, int len) {
     struct sock *s = f->priv;
     if (s->family == AF_PACKET) return -EOPNOTSUPP;
-    struct sockaddr_in_k a;
-    int r = get_sin(uaddr, len, &a);
+    if (s->family == AF_NETLINK) {
+        struct sockaddr_nl_k nl;
+        int r = get_nl(uaddr, len, &nl);
+        if (r) return r;
+        mutex_lock(&net_mutex);
+        netlink_autobind(s);
+        s->nl_dst_pid = nl.pid; s->nl_dst_groups = nl.groups;
+        s->connected = true;
+        mutex_unlock(&net_mutex);
+        return 0;
+    }
+    struct inaddr a;
+    int r = get_addr(s, uaddr, len, &a, s->type != SOCK_STREAM);
     if (r < 0) return r;
     mutex_lock(&net_mutex);
     if (s->type != SOCK_STREAM) {
-        if (r == 1) {                                   /* AF_UNSPEC: dissolve the association */
-            s->connected = false; s->raddr = 0; s->rport = 0;
-        } else {
-            if (s->type == SOCK_DGRAM && ipproto_of(s) == IPPROTO_UDP && !a.port) { r = -EINVAL; goto out; }
-            uint32_t dst = a.addr ? a.addr : INADDR_LOOPBACK;
-            struct netdev *d; uint32_t nh, src;
-            r = ip_route(dst, s->bound_dev, &d, &nh, &src);
-            if (r) goto out;
-            if (!s->laddr && dst != INADDR_BROADCAST) s->laddr = src;
-            s->raddr = dst; s->rport = a.port;
-            s->connected = true;
-            s->err = 0;
-            r = autobind(s);
-        }
+        r = dgram_connect(s, &a, r);
         sock_changed(s);
         goto out;
     }
@@ -431,14 +594,29 @@ int inet_connect(struct file *f, const void *uaddr, int len) {
     default: r = -EISCONN; goto out;
     }
     if (s->was_connected) { r = s->err ? -s->err : -EISCONN; s->err = 0; goto out; }
-    s->raddr = a.addr ? a.addr : INADDR_LOOPBACK;
-    s->rport = a.port;
     if (!a.port) { r = -ECONNREFUSED; goto out; }
+    if (a.v6) {
+        if (s->laddr) { r = -EAFNOSUPPORT; goto out; }
+        memcpy(s->raddr6, a.a6, 16);
+        if (ip6_any(s->raddr6)) s->raddr6[15] = 1;
+        if (ip6_needs_scope(s->raddr6)) {
+            if (ip6_multicast(s->raddr6)) { r = -ENETUNREACH; goto out; }
+            if (a.scope) { if (s->bound_dev && s->bound_dev != (int)a.scope) { r = -EINVAL; goto out; } s->bound_dev = (int)a.scope; }
+            else if (!s->bound_dev) { r = -EINVAL; goto out; }
+        }
+        s->v6 = true;
+    } else {
+        if (s->family == AF_INET6 && (s->v6 || s->v6only)) { r = -ENETUNREACH; goto out; }
+        s->raddr = a.a4 ? a.a4 : INADDR_LOOPBACK;
+    }
+    s->rport = a.port;
     if (!s->bound) {
-        struct netdev *d; uint32_t nh, src;
-        r = ip_route(s->raddr, s->bound_dev, &d, &nh, &src);
+        struct netdev *d;
+        if (s->v6) { uint8_t nh[16]; r = ip6_route(s->raddr6, s->bound_dev, &d, nh, nullptr); }
+        else { uint32_t nh, src; r = ip_route(s->raddr, s->bound_dev, &d, &nh, &src); }
         if (r) goto out;
-        uint16_t p = inet_ephemeral_port(IPPROTO_TCP, 0);
+        struct bindid b = { true, true, 0, { 0 } };          /* unbound: conflicts with any user of the port */
+        uint16_t p = inet_ephemeral_port(IPPROTO_TCP, &b);
         if (!p) { r = -EADDRNOTAVAIL; goto out; }
         s->lport = p;
         s->bound = true;
@@ -465,14 +643,15 @@ out:
 
 int inet_listen(struct file *f, int backlog) {
     struct sock *s = f->priv;
-    if (s->type != SOCK_STREAM || s->family != AF_INET) return -EOPNOTSUPP;
+    if (!is_tcp(s)) return -EOPNOTSUPP;
     mutex_lock(&net_mutex);
     int r = 0;
     if (s->state != TCP_CLOSE && s->state != TCP_LISTEN) r = -EINVAL;
     else if (s->was_connected) r = -EINVAL;
     else {
         if (!s->bound) {
-            s->lport = inet_ephemeral_port(IPPROTO_TCP, 0);
+            struct bindid b = bindid_of(s);
+            s->lport = inet_ephemeral_port(IPPROTO_TCP, &b);
             s->bound = true;
         }
         unlink_sock(s);
@@ -485,7 +664,7 @@ int inet_listen(struct file *f, int backlog) {
 
 int inet_accept(struct file *f, void *uaddr, int *ulen, int flags) {
     struct sock *s = f->priv;
-    if (s->type != SOCK_STREAM || s->family != AF_INET) return -EOPNOTSUPP;
+    if (!is_tcp(s)) return -EOPNOTSUPP;
     if (flags & ~(SOCK_NONBLOCK | SOCK_CLOEXEC)) return -EINVAL;
     struct sock dummy;
     struct file *nf;
@@ -506,7 +685,8 @@ int inet_accept(struct file *f, void *uaddr, int *ulen, int flags) {
         r = lock_wait(dl);
         if (r) break;
     }
-    struct sockaddr_in_k peer = { AF_INET, 0, 0, { 0 } };
+    uint8_t peer[28];
+    int plen = 0;
     if (c) {
         list_del(&c->child_node);
         s->nchildren--;
@@ -514,13 +694,13 @@ int inet_accept(struct file *f, void *uaddr, int *ulen, int flags) {
         c->accepted_ready = false;
         c->file = nf; nf->priv = c;
         c->ino = ino;
-        peer.port = c->rport; peer.addr = c->raddr;
+        plen = sock_name(c, peer, true);
         sock_changed(c);
         sock_changed(s);
     }
     mutex_unlock(&net_mutex);
     if (!c) { vfs_close(nf); return r; }
-    r = put_name(uaddr, ulen, &peer, sizeof peer);
+    r = put_name(uaddr, ulen, peer, plen);
     if (r) { vfs_close(nf); return r; }
     int fd = fd_alloc(nf, 0, flags & SOCK_CLOEXEC);
     if (fd < 0) vfs_close(nf);
@@ -538,15 +718,21 @@ int inet_getname(struct file *f, void *uaddr, int *ulen, bool peer) {
         if (peer) return -EOPNOTSUPP;
         return put_name(uaddr, ulen, &ll, 18);
     }
-    struct sockaddr_in_k a = { AF_INET, 0, 0, { 0 } };
+    if (s->family == AF_NETLINK) {
+        if (!peer) netlink_autobind(s);
+        struct sockaddr_nl_k nl = { AF_NETLINK, 0, peer ? s->nl_dst_pid : s->nl_pid, peer ? s->nl_dst_groups : s->nl_groups };
+        mutex_unlock(&net_mutex);
+        return put_name(uaddr, ulen, &nl, sizeof nl);
+    }
+    uint8_t a[28];
     int r = 0;
     if (peer) {
         bool conn = s->type == SOCK_STREAM ? (s->state != TCP_CLOSE && s->state != TCP_LISTEN && s->state != TCP_SYN_SENT) : s->connected;
         if (!conn) r = -ENOTCONN;
-        a.addr = s->raddr; a.port = s->rport;
-    } else { a.addr = s->laddr; a.port = s->type == SOCK_RAW ? 0 : s->lport; }
+    }
+    int alen = sock_name(s, a, peer);
     mutex_unlock(&net_mutex);
-    return r ? r : put_name(uaddr, ulen, &a, sizeof a);
+    return r ? r : put_name(uaddr, ulen, a, alen);
 }
 
 int inet_shutdown(struct file *f, int how) {
@@ -554,7 +740,7 @@ int inet_shutdown(struct file *f, int how) {
     if (how < 0 || how > 2) return -EINVAL;
     mutex_lock(&net_mutex);
     int r = 0;
-    if (s->type == SOCK_STREAM && s->family == AF_INET) {
+    if (is_tcp(s)) {
         if (s->state == TCP_CLOSE || s->state == TCP_SYN_SENT) r = -ENOTCONN;
         if (s->state == TCP_LISTEN) { s->shut_rd = true; tcp_shutdown(s, 2); }
         else if (!r) {
@@ -562,7 +748,7 @@ int inet_shutdown(struct file *f, int how) {
             if (how != 0 && !s->shut_wr) { s->shut_wr = true; tcp_shutdown(s, how); }
         }
     } else {
-        if (!s->connected && s->family == AF_INET) r = -ENOTCONN;
+        if (!s->connected && is_inet(s)) r = -ENOTCONN;
         if (how != 1) s->shut_rd = true;
         if (how != 0) s->shut_wr = true;
     }
@@ -665,11 +851,63 @@ static void dgram_from(struct sock *s, struct pkt *p, struct msghdr_k *m, size_t
         if (m->name && m->namelen) copy_to_user(m->name, &ll, MIN((size_t)m->namelen, (size_t)18));
         return;
     }
+    if (s->family == AF_NETLINK) {                          /* from the kernel */
+        struct sockaddr_nl_k nl = { AF_NETLINK, 0, 0, 0 };
+        *alen = sizeof nl;
+        if (m->name && m->namelen) copy_to_user(m->name, &nl, MIN((size_t)m->namelen, sizeof nl));
+        return;
+    }
+    uint8_t a[28];
+    uint16_t port = s->type == SOCK_DGRAM && ipproto_of(s) == IPPROTO_UDP ? ((uint16_t *)p->th)[0] : 0;
+    int l;
+    if ((p->nh[0] >> 4) == 6) {
+        struct ip6hdr *h = (struct ip6hdr *)p->nh;
+        l = make_name(s, a, true, 0, h->src, port, p->dev ? p->dev->index : 0);
+    } else {
+        struct iphdr *h = (struct iphdr *)p->nh;
+        l = make_name(s, a, false, h->saddr, nullptr, port, 0);
+    }
+    *alen = (size_t)l;
+    if (m->name && m->namelen) copy_to_user(m->name, a, MIN((size_t)m->namelen, (size_t)l));
+}
+
+/* ancillary data (LP64 struct cmsghdr: size_t len; int level, type) */
+#define MSG_CTRUNC 0x8
+struct cmsg_out { uint8_t buf[160]; size_t len; };
+static void cmsg_put(struct cmsg_out *c, int level, int type, const void *data, size_t n) {
+    size_t sp = 16 + ((n + 7) & ~(size_t)7);
+    if (c->len + sp > sizeof c->buf) return;
+    uint8_t *b = c->buf + c->len;
+    memset(b, 0, sp);
+    uint64_t l = 16 + n;
+    memcpy(b, &l, 8); memcpy(b + 8, &level, 4); memcpy(b + 12, &type, 4);
+    memcpy(b + 16, data, n);
+    c->len += sp;
+}
+static void dgram_cmsgs(struct sock *s, struct pkt *p, struct cmsg_out *c) {
+    if (!is_inet(s) || !p->nh) return;
+    int ifi = p->dev ? p->dev->index : 0;
+    if ((p->nh[0] >> 4) == 6) {
+        struct ip6hdr *h = (struct ip6hdr *)p->nh;
+        if (s->rx_pktinfo6 || s->rx_2292pktinfo) {
+            uint8_t pi[20]; memcpy(pi, h->dst, 16); memcpy(pi + 16, &ifi, 4);
+            cmsg_put(c, 41, s->rx_pktinfo6 ? 50 : 2, pi, 20);
+        }
+        if (s->rx_hlim6 || s->rx_2292hlim) { int hl = h->hlim; cmsg_put(c, 41, s->rx_hlim6 ? 52 : 8, &hl, 4); }
+        if (s->rx_tclass) { int tc = (int)(ntohl(h->vtc_flow) >> 20) & 0xff; cmsg_put(c, 41, 67, &tc, 4); }
+        return;
+    }
     struct iphdr *h = (struct iphdr *)p->nh;
-    struct sockaddr_in_k a = { AF_INET, 0, h->saddr, { 0 } };
-    if (s->type == SOCK_DGRAM && ipproto_of(s) == IPPROTO_UDP) a.port = ((uint16_t *)p->th)[0];
-    *alen = sizeof a;
-    if (m->name && m->namelen) copy_to_user(m->name, &a, MIN((size_t)m->namelen, sizeof a));
+    if (s->pktinfo) {
+        struct { int32_t ifindex; uint32_t spec_dst, addr; } pi = { ifi, h->daddr, h->daddr };
+        cmsg_put(c, 0, 8, &pi, sizeof pi);                  /* IP_PKTINFO */
+    }
+    if (s->rx_ttl) { int t = h->ttl; cmsg_put(c, 0, 2, &t, 4); }   /* IP_TTL */
+    if (s->family == AF_INET6 && s->rx_pktinfo6) {
+        uint8_t pi[20]; ip6_mapped(pi, h->daddr); memcpy(pi + 16, &ifi, 4);
+        cmsg_put(c, 41, 50, pi, 20);
+    }
+    if (s->family == AF_INET6 && s->rx_hlim6) { int hl = h->ttl; cmsg_put(c, 41, 52, &hl, 4); }
 }
 
 static int64_t dgram_recvmsg(struct file *f, struct sock *s, struct msghdr_k *m, int flags) {
@@ -704,36 +942,129 @@ static int64_t dgram_recvmsg(struct file *f, struct sock *s, struct msghdr_k *m,
     if (!r) {
         dgram_from(s, p, m, &alen);
         m->namelen = (uint32_t)alen;
-        m->controllen = 0;
         m->flags = n < len ? MSG_TRUNC : 0;
-        r = (flags & MSG_TRUNC) ? (int64_t)len : (int64_t)n;
+        struct cmsg_out c = { .len = 0 };
+        dgram_cmsgs(s, p, &c);
+        size_t cl = m->control ? MIN(c.len, m->controllen) : 0;
+        if (c.len > cl) m->flags |= MSG_CTRUNC;
+        if (cl && copy_to_user(m->control, c.buf, cl)) r = -EFAULT;
+        m->controllen = cl;
+        if (!r) r = (flags & MSG_TRUNC) ? (int64_t)len : (int64_t)n;
     }
     pkt_free(p);
     return r;
 }
 
+/* IPv6 ancillary data on send: IPV6_PKTINFO (source, interface), IPV6_HOPLIMIT, IPV6_TCLASS */
+struct cmsg6 { bool has_src; uint8_t src[16]; int ifindex, hlim, tclass; };
+static int parse_cmsg6(struct msghdr_k *m, struct cmsg6 *cm) {
+    uint8_t b[256];
+    size_t n = MIN(m->controllen, sizeof b);
+    if (copy_from_user(b, m->control, n)) return -EFAULT;
+    for (size_t off = 0; off + 16 <= n;) {
+        uint64_t l; int level, type;
+        memcpy(&l, b + off, 8); memcpy(&level, b + off + 8, 4); memcpy(&type, b + off + 12, 4);
+        if (l < 16 || off + l > n) return -EINVAL;
+        const uint8_t *d = b + off + 16;
+        size_t dl = l - 16;
+        if (level == 41) {
+            if ((type == 50 || type == 2) && dl >= 20) {
+                memcpy(cm->src, d, 16); cm->has_src = !ip6_any(cm->src);
+                memcpy(&cm->ifindex, d + 16, 4);
+            } else if ((type == 52 || type == 8) && dl >= 4) {
+                memcpy(&cm->hlim, d, 4);
+                if (cm->hlim < -1 || cm->hlim > 255) return -EINVAL;
+            } else if (type == 67 && dl >= 4) {
+                memcpy(&cm->tclass, d, 4);
+                if (cm->tclass < -1 || cm->tclass > 255) return -EINVAL;
+            }
+        }
+        off += (l + 7) & ~(uint64_t)7;
+    }
+    return 0;
+}
+
+static int64_t dgram_send6(struct sock *s, uint8_t *kb, size_t len, const uint8_t *dst, uint16_t dport, int scope,
+                           const struct cmsg6 *cm) {
+    bool mc = ip6_multicast(dst);
+    struct ip6_opts o = { 0 };
+    o.hlim = cm->hlim >= 0 ? cm->hlim : mc ? s->mc_hops6 : s->hops6;
+    if (o.hlim == 0) o.hlim = -1;
+    int tc = cm->tclass >= 0 ? cm->tclass : s->tclass6;
+    o.tclass = (uint8_t)(tc > 0 ? tc : 0);
+    o.oif = cm->ifindex ? cm->ifindex : mc && s->mc_ifindex ? s->mc_ifindex : ip6_needs_scope(dst) && scope ? scope : s->bound_dev;
+    if (ip6_linklocal(dst) && !o.oif) return -EINVAL;
+    o.mcloop = mc && s->mc_loop;
+    o.dontfrag = s->dontfrag;
+    const uint8_t *src = cm->has_src ? cm->src : nullptr;
+    if (src && !ip6_is_local(src)) return -EINVAL;
+    if (s->type == SOCK_DGRAM && ipproto_of(s) == IPPROTO_UDP) {
+        if (!dport) return -EINVAL;
+        int r = autobind(s);
+        if (r) return r;
+        return udp6_send(s, kb, len, dst, dport, &o, src);
+    }
+    struct netdev *d; uint8_t nh[16], psrc[16];
+    int r = ip6_route(dst, o.oif, &d, nh, psrc);
+    if (r) return r;
+    if (src) memcpy(psrc, src, 16);
+    else if (!ip6_any(s->laddr6) && !ip6_multicast(s->laddr6)) memcpy(psrc, s->laddr6, 16);
+    int proto = s->protocol;
+    int csum_off = s->raw_csum;
+    if (s->type == SOCK_DGRAM) {                            /* ICMPv6 ping socket */
+        if (len < 8 || kb[0] != 128 || kb[1]) return -EINVAL;
+        if ((r = autobind(s))) return r;
+        memcpy(kb + 4, &s->lport, 2);
+        proto = IPPROTO_ICMPV6;
+        csum_off = 2;
+    }
+    if (proto == IPPROTO_ICMPV6) csum_off = 2;
+    if (csum_off >= 0) {
+        if ((size_t)csum_off + 2 > len) return -EINVAL;
+        kb[csum_off] = kb[csum_off + 1] = 0;
+        uint16_t c = csum_fold(csum_partial(kb, len, csum_pseudo6(psrc, dst, (uint8_t)proto, (uint32_t)len)));
+        if (!c && proto == IPPROTO_UDP) c = 0xffff;
+        kb[csum_off] = (uint8_t)(c >> 8); kb[csum_off + 1] = (uint8_t)c;
+    }
+    struct pkt *p = pkt_alloc(len);
+    if (!p) return -ENOBUFS;
+    memcpy(p->data, kb, len); p->len = len;
+    r = ip6_output(p, psrc, dst, (uint8_t)proto, &o);
+    return r ? r : (int64_t)len;
+}
+
 static int64_t dgram_sendmsg(struct file *f, struct sock *s, struct msghdr_k *m, int flags) {
     size_t len = iov_total(m->iov, m->iovlen);
-    struct sockaddr_in_k to = { 0 };
+    struct inaddr to = { 0 };
     struct sockaddr_ll_k ll = { 0 };
     bool have_to = false;
-    if (m->name && m->namelen) {
+    if (m->name && m->namelen && s->family != AF_NETLINK) {
         if (s->family == AF_PACKET) {
             if (m->namelen < 12) return -EINVAL;
             if (copy_from_user(&ll, m->name, MIN((size_t)m->namelen, sizeof ll))) return -EFAULT;
         } else {
-            int r = get_sin(m->name, (int)m->namelen, &to);
+            int r = get_addr(s, m->name, (int)m->namelen, &to, true);
             if (r < 0) return r;
             if (r == 0) have_to = true;
         }
     }
     if (len > 65535) return -EMSGSIZE;
+    struct cmsg6 cm = { .hlim = -1, .tclass = -1 };
+    if (s->family == AF_INET6 && m->control && m->controllen) {
+        int r = parse_cmsg6(m, &cm);
+        if (r) return r;
+    }
     uint8_t *kb = kmalloc(len ? len : 1);
     if (!kb) return -ENOMEM;
     int64_t r = iov_xfer(m->iov, m->iovlen, 0, kb, len, false);
     if (r) { kfree(kb); return r; }
     mutex_lock(&net_mutex);
     if (s->shut_wr) { r = -EPIPE; goto out; }
+    if (s->family == AF_NETLINK) {
+        r = netlink_rcv(s, kb, len);
+        if (!r) r = (int64_t)len;
+        goto out;
+    }
     if (s->family == AF_PACKET) {
         int ifi = ll.ifindex ? ll.ifindex : s->ifindex;
         struct netdev *d = ifi ? netdev_by_index(ifi) : nullptr;
@@ -757,18 +1088,34 @@ static int64_t dgram_sendmsg(struct file *f, struct sock *s, struct msghdr_k *m,
         r = (int64_t)len;
         goto out;
     }
-    uint32_t daddr; uint16_t dport;
-    if (have_to) { daddr = to.addr ? to.addr : INADDR_LOOPBACK; dport = to.port; }
-    else if (s->connected) { daddr = s->raddr; dport = s->rport; }
-    else { r = -EDESTADDRREQ; goto out; }
+    uint32_t daddr = 0; uint16_t dport;
+    uint8_t d6[16];
+    bool v6;
+    int scope = 0;
+    if (have_to) {
+        v6 = to.v6;
+        if (v6) { memcpy(d6, to.a6, 16); if (ip6_any(d6)) d6[15] = 1; scope = (int)to.scope; }
+        else {
+            if (s->family == AF_INET6 && (s->v6 || s->v6only)) { r = -ENETUNREACH; goto out; }
+            daddr = to.a4 ? to.a4 : INADDR_LOOPBACK;
+        }
+        dport = to.port;
+    } else if (s->connected) {
+        v6 = s->family == AF_INET6 && s->v6;
+        memcpy(d6, s->raddr6, 16);
+        daddr = s->raddr; dport = s->rport;
+    } else { r = -EDESTADDRREQ; goto out; }
     if (s->connected && s->err) { r = -s->err; s->err = 0; sock_changed(s); goto out; }
+    if (v6) { r = dgram_send6(s, kb, len, d6, dport, scope, &cm); goto out; }
     if (s->type == SOCK_DGRAM && ipproto_of(s) == IPPROTO_UDP) {
         if (!dport) { r = -EINVAL; goto out; }
         if ((r = autobind(s))) goto out;
         r = udp_send(s, kb, len, daddr, dport);
         goto out;
     }
-    struct ip_opts o = { (uint8_t)s->ttl, (uint8_t)s->tos, false, s->bound_dev };
+    int mc_oif(struct sock *s);
+    bool mc = ipv4_is_multicast(daddr);
+    struct ip_opts o = { mc ? s->mc_ttl : (uint8_t)s->ttl, (uint8_t)s->tos, false, mc ? mc_oif(s) : s->bound_dev, mc && s->mc_loop, false };
     if (s->type == SOCK_DGRAM) {                          /* ICMP ping socket */
         if (len < sizeof(struct icmphdr_k)) { r = -EINVAL; goto out; }
         struct icmphdr_k *ic = (struct icmphdr_k *)kb;
@@ -801,17 +1148,20 @@ out:
 
 int64_t inet_sendmsg(struct file *f, struct msghdr_k *m, int flags) {
     struct sock *s = f->priv;
-    if (s->type == SOCK_STREAM && s->family == AF_INET) return tcp_sendmsg(f, s, m->iov, m->iovlen, flags);
+    if (is_tcp(s)) return tcp_sendmsg(f, s, m->iov, m->iovlen, flags);
     return dgram_sendmsg(f, s, m, flags);
 }
 int64_t inet_recvmsg(struct file *f, struct msghdr_k *m, int flags) {
     struct sock *s = f->priv;
-    if (s->type == SOCK_STREAM && s->family == AF_INET) {
+    if (is_tcp(s)) {
         int64_t r = tcp_recvmsg(f, s, m->iov, m->iovlen, flags);
         if (r >= 0 && m->name && m->namelen) {           /* recvfrom on TCP: the peer */
-            struct sockaddr_in_k a = { AF_INET, s->rport, s->raddr, { 0 } };
-            copy_to_user(m->name, &a, MIN((size_t)m->namelen, sizeof a));
-            m->namelen = sizeof a;
+            uint8_t a[28];
+            mutex_lock(&net_mutex);
+            int l = sock_name(s, a, true);
+            mutex_unlock(&net_mutex);
+            copy_to_user(m->name, a, MIN((size_t)m->namelen, (size_t)l));
+            m->namelen = (uint32_t)l;
         } else m->namelen = 0;
         m->controllen = 0;
         m->flags = 0;
@@ -841,11 +1191,82 @@ static unsigned inet_poll(struct file *f) {
 #define SOL_TCP 6
 #define SOL_RAW 255
 #define SOL_PACKET 263
+#define SOL_IPV6 41
+#define SOL_ICMPV6 58
+#define SOL_NETLINK 270
+
+/* IPPROTO_IPV6 options (net_mutex held) */
+static int ipv6_setsockopt(struct sock *s, int name, int v, const uint8_t *raw, int len) {
+    switch (name) {
+    case 26:                                             /* IPV6_V6ONLY */
+        if (s->bound || (s->type == SOCK_STREAM && s->state != TCP_CLOSE)) return -EINVAL;
+        s->v6only = v != 0;
+        return 0;
+    case 16: if (v < -1 || v > 255) return -EINVAL; s->hops6 = v; return 0;           /* UNICAST_HOPS */
+    case 18: if (v < -1 || v > 255) return -EINVAL; s->mc_hops6 = v; return 0;        /* MULTICAST_HOPS */
+    case 19: if (v != 0 && v != 1) return -EINVAL; s->mc_loop = v; return 0;          /* MULTICAST_LOOP */
+    case 17:                                             /* MULTICAST_IF */
+        if (v && !netdev_by_index(v)) return -ENODEV;
+        if (s->bound_dev && v && v != s->bound_dev) return -EINVAL;
+        s->mc_ifindex = v;
+        return 0;
+    case 20: case 21: {                                  /* JOIN_GROUP / LEAVE_GROUP: struct ipv6_mreq */
+        if (s->type == SOCK_STREAM) return -EPROTO;
+        if (len < 20) return -EINVAL;
+        uint8_t grp[16]; int ifi;
+        memcpy(grp, raw, 16); memcpy(&ifi, raw + 16, 4);
+        if (!ip6_multicast(grp)) return -EINVAL;
+        if (!ifi && name == 20) {
+            struct netdev *d; uint8_t nh[16];
+            if (ip6_route(grp, s->bound_dev, &d, nh, nullptr)) return -ENODEV;
+            ifi = d->index;
+        }
+        return name == 20 ? sock_mc_join(s, grp, true, ifi) : sock_mc_leave(s, grp, true, ifi);
+    }
+    case 49: s->rx_pktinfo6 = v != 0; return 0;          /* RECVPKTINFO */
+    case 2: s->rx_2292pktinfo = v != 0; return 0;        /* 2292PKTINFO */
+    case 51: s->rx_hlim6 = v != 0; return 0;             /* RECVHOPLIMIT */
+    case 8: s->rx_2292hlim = v != 0; return 0;           /* 2292HOPLIMIT */
+    case 66: s->rx_tclass = v != 0; return 0;            /* RECVTCLASS */
+    case 67: if (v < -1 || v > 255) return -EINVAL; s->tclass6 = v; return 0;         /* TCLASS */
+    case 62: s->dontfrag = v != 0; return 0;             /* DONTFRAG */
+    case 25: s->recverr = v != 0; return 0;              /* RECVERR */
+    case 23: case 24: case 50: case 57: case 64: return 0;   /* MTU_DISCOVER, MTU, PKTINFO, RECVPATHMTU, ADDR_PREFERENCES */
+    case 36: if (s->type != SOCK_RAW) return -ENOPROTOOPT; return 0;   /* IPV6_HDRINCL */
+    default: return -ENOPROTOOPT;
+    }
+}
+static int ipv6_getsockopt(struct sock *s, int name, int *v) {
+    switch (name) {
+    case 26: *v = s->v6only; return 0;
+    case 16: *v = s->hops6 < 0 ? sysctl_ipv6_hop_limit : s->hops6; return 0;
+    case 18: *v = s->mc_hops6 < 0 ? 1 : s->mc_hops6; return 0;
+    case 19: *v = s->mc_loop; return 0;
+    case 17: *v = s->mc_ifindex; return 0;
+    case 49: *v = s->rx_pktinfo6; return 0;
+    case 2: *v = s->rx_2292pktinfo; return 0;
+    case 51: *v = s->rx_hlim6; return 0;
+    case 8: *v = s->rx_2292hlim; return 0;
+    case 66: *v = s->rx_tclass; return 0;
+    case 67: *v = s->tclass6 < 0 ? 0 : s->tclass6; return 0;
+    case 62: *v = s->dontfrag; return 0;
+    case 25: *v = s->recverr; return 0;
+    case 23: *v = 0; return 0;
+    case 24: {                                           /* IPV6_MTU */
+        if (!s->v6 || ip6_any(s->raddr6)) return -ENOTCONN;
+        int m = ip6_sock_mtu(s->raddr6, s->bound_dev);
+        if (m < 0) return m;
+        *v = m;
+        return 0;
+    }
+    default: return -ENOPROTOOPT;
+    }
+}
 
 int inet_setsockopt(struct file *f, int level, int name, const void *uval, int len) {
     struct sock *s = f->priv;
     int v = 0;
-    uint8_t raw[16] = { 0 };
+    uint8_t raw[64] = { 0 };
     if (len < 0) return -EINVAL;
     if (uval && len && copy_from_user(raw, uval, MIN((size_t)len, sizeof raw))) return -EFAULT;
     if (len >= 4) memcpy(&v, raw, 4);
@@ -912,14 +1333,49 @@ int inet_setsockopt(struct file *f, int level, int name, const void *uval, int l
         case 1: case 5: case 10: case 11: case 16: case 18: case 19: case 29: case 35: break;   /* accepted, no effect */
         default: r = -ENOPROTOOPT;
         }
-    } else if (level == SOL_IP && s->family == AF_INET) {
+    } else if (level == SOL_IP && is_inet(s)) {
         switch (name) {
         case 1: s->tos = v & 0xff; break;                /* IP_TOS */
         case 2: if (v == -1) v = sysctl_ip_default_ttl; if (v < 1 || v > 255) r = -EINVAL; else s->ttl = v; break;
         case 3: s->hdrincl = v; break;
         case 8: s->pktinfo = v; break;
         case 11: s->recverr = v; break;
-        case 10: case 4: case 33: case 34: case 35: case 36: case 32: case 15: break;   /* MTU_DISCOVER, OPTIONS, multicast */
+        case 12: s->rx_ttl = v != 0; break;              /* IP_RECVTTL */
+        case 10: case 4: case 15: break;                 /* MTU_DISCOVER, OPTIONS, FREEBIND */
+        case 33:                                         /* IP_MULTICAST_TTL: int or byte */
+            if (len < 1) { r = -EINVAL; break; }
+            if (v == -1) v = 1;
+            if (v < 0 || v > 255) r = -EINVAL; else s->mc_ttl = (uint8_t)v;
+            break;
+        case 34: if (len < 1) r = -EINVAL; else s->mc_loop = v != 0; break;   /* IP_MULTICAST_LOOP */
+        case 49: s->mc_all = v != 0; break;              /* IP_MULTICAST_ALL */
+        case 32: {                                       /* IP_MULTICAST_IF: in_addr, ip_mreq or ip_mreqn */
+            uint32_t a; int ifi = 0;
+            if (len < 4) { r = -EINVAL; break; }
+            if (len >= 12) { memcpy(&a, raw + 4, 4); memcpy(&ifi, raw + 8, 4); }
+            else if (len >= 8) memcpy(&a, raw + 4, 4);
+            else memcpy(&a, raw, 4);
+            if (ifi) { if (!netdev_by_index(ifi)) { r = -ENODEV; break; } s->mc_ifindex = ifi; s->mc_addr = 0; break; }
+            if (a && !net_dev_for_local(a)) { r = -EADDRNOTAVAIL; break; }
+            s->mc_ifindex = 0; s->mc_addr = a;
+            break;
+        }
+        case 35: case 36: {                              /* IP_ADD/DROP_MEMBERSHIP: ip_mreq or ip_mreqn */
+            if (s->type == SOCK_STREAM) { r = -EPROTO; break; }
+            if (len < 8) { r = -EINVAL; break; }
+            uint32_t grp, ia; int ifi = 0;
+            memcpy(&grp, raw, 4); memcpy(&ia, raw + 4, 4);
+            if (len >= 12) memcpy(&ifi, raw + 8, 4);
+            if (!ipv4_is_multicast(grp)) { r = -EINVAL; break; }
+            if (!ifi && ia) { struct netdev *d = net_dev_for_local(ia); if (!d) { r = -ENODEV; break; } ifi = d->index; }
+            if (!ifi && name == 35) {                    /* the interface a datagram to the group would use */
+                struct netdev *d; uint32_t nh;
+                if (ip_route(grp, 0, &d, &nh, nullptr)) { r = -ENODEV; break; }
+                ifi = d->index;
+            }
+            r = name == 35 ? sock_mc_join(s, &grp, false, ifi) : sock_mc_leave(s, &grp, false, ifi);
+            break;
+        }
         default: r = -ENOPROTOOPT;
         }
     } else if (level == SOL_TCP && s->type == SOCK_STREAM) {
@@ -933,8 +1389,19 @@ int inet_setsockopt(struct file *f, int level, int name, const void *uval, int l
         case 12: case 18: case 13: case 9: case 10: break;  /* QUICKACK, USER_TIMEOUT, CONGESTION, DEFER_ACCEPT, WINDOW_CLAMP */
         default: r = -ENOPROTOOPT;
         }
+    } else if (level == SOL_IPV6 && s->family == AF_INET6) {
+        r = ipv6_setsockopt(s, name, v, raw, len);
+    } else if (level == SOL_ICMPV6 && s->family == AF_INET6 && name == 1) {      /* ICMP6_FILTER */
+        if (s->type != SOCK_RAW || s->protocol != IPPROTO_ICMPV6) r = -EOPNOTSUPP;
+        else { memset(s->icmp6_filter, 0, 32); memcpy(s->icmp6_filter, raw, (size_t)MIN(len, 32)); }
+    } else if ((level == SOL_RAW || level == SOL_IPV6) && s->family == AF_INET6 && s->type == SOCK_RAW && name == 7) {   /* IPV6_CHECKSUM */
+        if (level == SOL_IPV6 && s->protocol == IPPROTO_ICMPV6) r = -EINVAL;
+        else if (v != -1 && (v < 0 || (v & 1))) r = -EINVAL;
+        else if (s->protocol != IPPROTO_ICMPV6) s->raw_csum = v;
     } else if (level == SOL_RAW && s->type == SOCK_RAW && s->protocol == IPPROTO_ICMP && name == 1) {
         s->icmp_filter = (uint32_t)v;
+    } else if (level == SOL_NETLINK && s->family == AF_NETLINK) {
+        r = 0;                                           /* (DROP_)MEMBERSHIP, PKTINFO, ...: accepted */
     } else if (level == SOL_PACKET && s->family == AF_PACKET) {
         r = name == 1 || name == 2 ? 0 : -ENOPROTOOPT;   /* (DROP_)MEMBERSHIP accepted; no AUXDATA */
     } else r = -ENOPROTOOPT;
@@ -987,13 +1454,14 @@ int inet_getsockopt(struct file *f, int level, int name, void *uval, int *ulen) 
         }
         default: r = -ENOPROTOOPT;
         }
-    } else if (level == SOL_IP && s->family == AF_INET) {
+    } else if (level == SOL_IP && is_inet(s)) {
         switch (name) {
         case 1: v = s->tos; break;
         case 2: v = s->ttl; break;
         case 3: v = s->hdrincl; break;
         case 8: v = s->pktinfo; break;
         case 11: v = s->recverr; break;
+        case 12: v = s->rx_ttl; break;
         case 14: {                                     /* IP_MTU */
             struct netdev *d; uint32_t nh;
             if (!s->raddr || ip_route(s->raddr, s->bound_dev, &d, &nh, nullptr)) r = -ENOTCONN;
@@ -1001,6 +1469,16 @@ int inet_getsockopt(struct file *f, int level, int name, void *uval, int *ulen) 
             break;
         }
         case 10: v = 0; break;
+        case 33: v = s->mc_ttl; if (len < 4) olen = 1; break;
+        case 34: v = s->mc_loop; if (len < 4) olen = 1; break;
+        case 49: v = s->mc_all; break;
+        case 32: {
+            uint32_t a = s->mc_addr;
+            struct netdev *d = s->mc_ifindex ? netdev_by_index(s->mc_ifindex) : nullptr;
+            if (d) a = d->addr;
+            memcpy(&v, &a, 4);
+            break;
+        }
         default: r = -ENOPROTOOPT;
         }
     } else if (level == SOL_TCP && s->type == SOCK_STREAM) {
@@ -1029,12 +1507,19 @@ int inet_getsockopt(struct file *f, int level, int name, void *uval, int *ulen) 
         case 13: memcpy(out, "reno", 5); olen = 5; break;
         default: r = -ENOPROTOOPT;
         }
+    } else if (level == SOL_IPV6 && s->family == AF_INET6) {
+        r = ipv6_getsockopt(s, name, &v);
+    } else if (level == SOL_ICMPV6 && s->family == AF_INET6 && name == 1 && s->type == SOCK_RAW && s->protocol == IPPROTO_ICMPV6) {
+        memcpy(out, s->icmp6_filter, 32); olen = 32;
+    } else if ((level == SOL_RAW || level == SOL_IPV6) && s->family == AF_INET6 && s->type == SOCK_RAW && name == 7) {
+        v = s->protocol == IPPROTO_ICMPV6 ? 2 : s->raw_csum;
     } else if (level == SOL_RAW && s->type == SOCK_RAW && name == 1) {
         v = (int)s->icmp_filter;
     } else r = -ENOPROTOOPT;
     mutex_unlock(&net_mutex);
     if (r) return r;
     if (olen == 4) memcpy(out, &v, 4);
+    else if (olen == 1) out[0] = (uint8_t)v;
     else if (olen == 8 && name == 13 && level == SOL_SOCKET) memcpy(out, &v, 4);
     int n = MIN(len, olen);
     if (copy_to_user(uval, out, (size_t)n) || copy_to_user(ulen, &n, sizeof n)) return -EFAULT;
@@ -1094,6 +1579,20 @@ static void dev_addr_changed(struct netdev *d) {
     route_add_connected(d);
     poll_notify();
 }
+void net_dev_addr_changed(struct netdev *d) { dev_addr_changed(d); }
+
+/* SIOCSIFFLAGS / RTM_NEWLINK: user-settable flags; bringing a device up or down */
+void netdev_set_flags(struct netdev *d, unsigned nf) {
+    unsigned old = d->flags;
+    unsigned keep = IFF_LOOPBACK | IFF_BROADCAST | IFF_RUNNING | IFF_NOARP;
+    d->flags = (old & keep) | (nf & ~keep);
+    if (d->type == ARPHRD_LOOPBACK) d->flags |= IFF_NOARP;
+    if (nf & IFF_UP) d->flags |= IFF_RUNNING; else d->flags &= ~IFF_RUNNING;
+    if ((old ^ d->flags) & IFF_UP) {
+        if (d->flags & IFF_UP) { dev_addr_changed(d); netdev_up_hook(d); }
+        else { route_flush_dev(d); arp_flush_dev(d); netdev_down_hook(d); }
+    }
+}
 
 static int ifconf(void *arg) {
     struct { int32_t len; int32_t pad; void *buf; } ic;
@@ -1137,18 +1636,7 @@ static int dev_ioctl(uint64_t cmd, void *arg) {
     case SIOCGIFNAME: memset(q.name, 0, 16); strncpy(q.name, d->name, 15); break;
     case SIOCGIFINDEX: q.ival = d->index; break;
     case SIOCGIFFLAGS: q.flags = (int16_t)d->flags; break;
-    case SIOCSIFFLAGS: {
-        unsigned nf = (unsigned)(uint16_t)q.flags, old = d->flags;
-        unsigned keep = IFF_LOOPBACK | IFF_BROADCAST | IFF_RUNNING | IFF_NOARP;
-        d->flags = (old & keep) | (nf & ~keep);
-        if (d->type == ARPHRD_LOOPBACK) d->flags |= IFF_NOARP;
-        if (nf & IFF_UP) d->flags |= IFF_RUNNING; else d->flags &= ~IFF_RUNNING;
-        if ((old ^ d->flags) & IFF_UP) {
-            if (d->flags & IFF_UP) dev_addr_changed(d);
-            else { route_flush_dev(d); arp_flush_dev(d); }
-        }
-        break;
-    }
+    case SIOCSIFFLAGS: netdev_set_flags(d, (unsigned)(uint16_t)q.flags); break;
     case SIOCGIFADDR: case SIOCGIFDSTADDR:
         if (!d->addr) { r = -EADDRNOTAVAIL; break; }
         q.addr = (struct sockaddr_in_k){ AF_INET, 0, d->addr, { 0 } };
@@ -1268,7 +1756,7 @@ static int inet_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
     switch (cmd) {
     case 0x541B:                                            /* FIONREAD / SIOCINQ */
         mutex_lock(&net_mutex);
-        if (s->type == SOCK_STREAM && s->family == AF_INET) v = s->state == TCP_LISTEN ? -1 : (int)s->rcv.len;
+        if (is_tcp(s)) v = s->state == TCP_LISTEN ? -1 : (int)s->rcv.len;
         else if (list_empty(&s->rxq)) v = 0;
         else {
             struct pkt *p = list_first(&s->rxq, struct pkt, node);

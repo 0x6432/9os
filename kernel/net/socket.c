@@ -1,7 +1,7 @@
 /*
  * Socket system calls (M32): dispatch on the address family at creation and on the socket
  * file's operations afterwards. AF_UNIX lives in unix.c (whose entry points still resolve the
- * fd themselves); AF_INET and AF_PACKET in inet.c. AF_INET6 and AF_NETLINK are not
+ * fd themselves); AF_INET and AF_PACKET in inet.c. AF_INET6 and AF_NETLINK also live in inet.c (ip6.c, netlink.c); previously they were not
  * implemented and fail with EAFNOSUPPORT, which makes musl, BusyBox and most programs fall
  * back to IPv4 and /proc.
  */
@@ -64,13 +64,13 @@ int64_t sys_socket(int domain, int type, int proto) {
     if (type & ~(0xf | 04000 | 02000000)) return -EINVAL;
     switch (domain) {
     case AF_UNIX: return unix_sys_socket(domain, type, proto);
-    case AF_INET: case AF_PACKET: return inet_socket(domain, type, proto);
+    case AF_INET: case AF_INET6: case AF_NETLINK: case AF_PACKET: return inet_socket(domain, type, proto);
     default: return -EAFNOSUPPORT;
     }
 }
 int64_t sys_socketpair(int domain, int type, int proto, int *sv) {
     if (domain == AF_UNIX) return unix_sys_socketpair(domain, type, proto, sv);
-    return domain == AF_INET ? -EOPNOTSUPP : -EAFNOSUPPORT;
+    return domain == AF_INET || domain == AF_INET6 ? -EOPNOTSUPP : -EAFNOSUPPORT;
 }
 int64_t sys_bind(int fd, const void *a, int l) { return DISPATCH(fd, unix_sys_bind(fd, a, l), inet_bind(f_, a, l)); }
 int64_t sys_listen(int fd, int b) { return DISPATCH(fd, unix_sys_listen(fd, b), inet_listen(f_, b)); }

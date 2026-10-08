@@ -11,6 +11,7 @@
  * of recursion).
  */
 #include <kernel/net.h>
+#include <kernel/net6.h>
 #include <kernel/kmalloc.h>
 #include <kernel/string.h>
 #include <kernel/printk.h>
@@ -205,13 +206,18 @@ static void eth_input(struct netdev *d, struct pkt *p) {
     p->proto = (uint16_t)(e[12] << 8 | e[13]);
     static const uint8_t bc[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     if (!memcmp(e, bc, 6)) p->pkttype = PACKET_BROADCAST;
-    else if (e[0] & 1) { p->pkttype = PACKET_MULTICAST; d->multicast++; }
+    else if (e[0] & 1) {
+        /* multicast: only groups joined on the device (IFF_PROMISC/IFF_ALLMULTI: all) */
+        p->pkttype = d->type == ARPHRD_ETHER && !mc_mac_ok(d, e) ? PACKET_OTHERHOST : PACKET_MULTICAST;
+        d->multicast++;
+    }
     else if (d->type == ARPHRD_ETHER && memcmp(e, d->hwaddr, 6)) p->pkttype = PACKET_OTHERHOST;
     else p->pkttype = PACKET_HOST;
     packet_input(d, p, false);                /* AF_PACKET taps see the whole frame */
     if (p->pkttype == PACKET_OTHERHOST) { pkt_free(p); return; }
     pkt_pull(p, ETH_HLEN);
     if (p->proto == ETH_P_IP) ip_input(d, p);
+    else if (p->proto == ETH_P_IPV6) ip6_input(d, p);
     else if (p->proto == ETH_P_ARP && !(d->flags & IFF_NOARP)) arp_input(d, p);
     else pkt_free(p);
 }
@@ -253,6 +259,7 @@ struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, in
     d->txqlen = 1000;
     d->xmit = xmit;
     d->priv = priv;
+    list_init(&d->mcgroups);
     d->flags = type == ARPHRD_LOOPBACK ? IFF_LOOPBACK | IFF_NOARP : IFF_BROADCAST | IFF_MULTICAST;
     mutex_lock(&net_mutex);
     d->index = next_ifindex++;
@@ -266,6 +273,8 @@ void netdev_unregister(struct netdev *d) {
     d->flags &= ~(IFF_UP | IFF_RUNNING);
     route_flush_dev(d);
     arp_flush_dev(d);
+    netdev_down_hook(d);
+    mc_dev_flush(d);
     d->addr = d->netmask = d->bcast = 0;
     list_del(&d->node);
     list_init(&d->node);
@@ -351,6 +360,21 @@ int net_proc_file(int which, char *buf, size_t max) {
                       udp_stats[0], udp_stats[1], udp_stats[2], udp_stats[3]);
         return MIN(n, (int)max);
     }
+    case 8: return net_proc_igmp(buf, max, false);
+    case 9: return net_proc_igmp(buf, max, true);
+    case 10: return net_proc_if_inet6(buf, max);
+    case 11: return net_proc_ipv6_route(buf, max);
+    case 12: return net_proc_tcp6(buf, max);
+    case 13: return net_proc_udp6(buf, max, false);
+    case 14: return net_proc_udp6(buf, max, true);
+    case 15: return net_proc_snmp6(buf, max);
+    case 16: return net_proc_netlink(buf, max);
+    case 17: {
+        extern uint64_t tcp_ext_stats[6];
+        return snprintf(buf, max, "TcpExt: TCPTimeouts TCPLossProbes TCPLostRetransmit TCPSackRecovery TCPRenoRecovery TCPEarlyRetrans\n"
+                                  "TcpExt: %lu %lu %lu %lu %lu %lu\n", tcp_ext_stats[0], tcp_ext_stats[1], tcp_ext_stats[2],
+                        tcp_ext_stats[3], tcp_ext_stats[4], tcp_ext_stats[5]);
+    }
     }
     return 0;
 }
@@ -362,6 +386,7 @@ void net_init(void) {
     loopback_dev->netmask = htonl(0xff000000u);
     loopback_dev->flags |= IFF_UP | IFF_RUNNING;
     arp_init();
+    ip6_init();
     tcp_init();
     tun_init();
     net_thread = thread_create("net", net_thread_fn, nullptr);

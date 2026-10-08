@@ -569,7 +569,10 @@ static void privileges(void) {
     CHECK(ioctl(s, SIOCGIFINDEX, &q) == 0 && q.ifr_ifindex == 1, "SIOCGIFINDEX lo");
     struct ifreq v[8]; struct ifconf ic = { .ifc_len = sizeof v, .ifc_req = v };
     CHECK(ioctl(s, SIOCGIFCONF, &ic) == 0 && ic.ifc_len >= (int)sizeof(struct ifreq) && !strcmp(v[0].ifr_name, "lo"), "SIOCGIFCONF");
-    CHECK(socket(AF_INET6, SOCK_STREAM, 0) < 0 && errno == EAFNOSUPPORT, "no IPv6");
+    int s6 = socket(AF_INET6, SOCK_STREAM, 0);
+    CHECK(s6 >= 0, "AF_INET6 socket");
+    close(s6);
+    CHECK(socket(AF_BLUETOOTH, SOCK_STREAM, 0) < 0 && errno == EAFNOSUPPORT, "unknown family");
     close(s);
     OK("privileges and interfaces");
 }

@@ -19,7 +19,9 @@ make run                    # boot in QEMU (serial on stdio)
 ```
 
 The QEMU targets attach a virtio-net card on QEMU user networking; the guest gets 10.0.2.15
-by DHCP at boot, so `ping 10.0.2.2` and `wget http://…` work out of the box.
+by DHCP at boot, so `ping 10.0.2.2` and `wget http://…` work out of the box. IPv6 is
+configured by SLAAC from slirp's router advertisements (`fec0::…/64`, `ping6 fec0::2`), and
+BusyBox `ip` (`ip addr`, `ip -6 route`, …) talks to the kernel over rtnetlink.
 
 See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [docs/HANDOFF.md](docs/HANDOFF.md) for the current state.
 

@@ -66,6 +66,7 @@ NUMA, cgroups v2 controllers, eBPF, live patching, hundreds of real-hardware dri
 | M30 ✅ | **ext2 + unified page cache** | ext2 read/write, page cache for every fs with write-back, `fsync`, root on disk (`root=/dev/vda1`), dentry/inode caches with negative entries | persistence, git, package installs |
 | M31 ✅ | **Users and permissions** | uid/gid checks in VFS, `setuid` exec, capabilities subset, `/etc/passwd` login (`getty` + `login`), umask | multi-user, sane daemons |
 | M32 ✅ | **Networking** | virtio-net, own IPv4/TCP/UDP/ARP/ICMP stack (DHCP via udhcpc), `AF_INET` sockets, loopback, `/etc/resolv.conf` | ping, curl, wget, ssh |
+| M32b ✅ | **Networking v2** | TCP window scaling/timestamps/SACK, tail loss probe + lost-retransmit detection, `/proc/sys`, IPv4 forwarding, TUN/TAP, IPv4 multicast + IGMPv2, `AF_NETLINK` rtnetlink (BusyBox `ip`, `getifaddrs`), IPv6 (ND, SLAAC, MLD, TCP/UDP/raw/ping over v6, dual stack) | ip, IPv6 networks, mDNS, VPN-style tools |
 | M33 | **ptrace + POSIX timers** | `ptrace` (gdb, strace), `timer_create`, robust futexes, `clone3` extras, `waitid`, file locks (`flock`, `fcntl` locks), xattrs on tmpfs/ext2 | debugging, toolkits |
 | M34 | **sysfs + uevents** | `/sys/class`, `/sys/devices`, `/sys/dev/char`, netlink `NETLINK_KOBJECT_UEVENT`, a static udev db shim | libinput, wlroots, KDE |
 | M35 | **Input/seat stack** | xkeyboard-config, libevdev, mtdev, libinput, seatd ports | wlroots |

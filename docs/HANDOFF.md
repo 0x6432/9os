@@ -1021,13 +1021,16 @@ managers and a self-hosted toolchain can live on), not just by "read sectors".
   random; a zero-window probe byte that the peer accepted was not counted in `snd_max`, so the
   peer's ACK looked like it acknowledged unsent data and both ends ACKed each other forever
   (now the probe ACK is accepted and out-of-window ACK replies are rate-limited).
-- Known limits: see "M32b" below for what was lifted; still IPv4 only (AF_INET6 → EAFNOSUPPORT),
-  no netlink, no multicast/IGMP, no TCP_FASTOPEN, one global `net_mutex`, copies in the driver.
+- Known limits: lifted in "M32b" below (TCP options and loss recovery, IPv4 multicast, AF_NETLINK,
+  IPv6, TUN/TAP); still no TCP_FASTOPEN, one global `net_mutex`, copies in the driver.
 
-## M32b: Lifting M32 limits (in progress)
+## M32b: Lifting M32 limits
 
-Done (x86_64 tested: nettest, net2test, external echo, socktest all pass; riscv64/aarch64 and the
-full `ci-tests.sh` NOT re-run yet — do that first):
+Validation: full `scripts/ci-tests.sh` on x86_64, riscv64 and aarch64 (SMP 4) and the four host
+test scripts pass; `NET2_LOSS=7 net2test tcp_loss` passes on x86_64.
+Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
+
+### Part 1 (3af0993): TCP options, /proc/sys, forwarding, TUN/TAP
 - TCP options (kernel/net/tcp.c): RFC 7323 window scaling (`pick_wscale` from the receive ring;
   windows rounded down, "never shrink" rounding up is capped at the ring space — the ring has no
   slack, overshooting made the receiver truncate segments and stall on RTOs), timestamps (RTTM
@@ -1044,8 +1047,7 @@ full `ci-tests.sh` NOT re-run yet — do that first):
   root files): kernel/{hostname,ostype,osrelease,randomize_va_space}, net/core/{somaxconn,
   9os_lo_drop_every (test aid: random 1/N loss on lo)}, net/ipv4/{ip_forward, conf/all/forwarding,
   ip_default_ttl, icmp_echo_ignore_all, icmp_echo_ignore_broadcasts, tcp_window_scaling,
-  tcp_timestamps, tcp_sack, tcp_fin_timeout}, net/ipv6/conf/all/{forwarding,disable_ipv6}
-  (placeholders until IPv6). Add a knob = one table line + an int.
+  tcp_timestamps, tcp_sack, tcp_fin_timeout}, net/ipv6/conf/all/{forwarding,disable_ipv6}. Add a knob = one table line + an int.
 - IPv4 forwarding (ip.c `ip_forward`): TTL decrement with incremental checksum, ICMP time
   exceeded, net unreachable, frag-needed with next-hop MTU (`icmp_send_unreach_mtu`),
   re-fragmentation; /proc/net/snmp Forwarding/DefaultTTL/ForwDatagrams.
@@ -1058,15 +1060,103 @@ full `ci-tests.sh` NOT re-run yet — do that first):
   sets the loss rate; in ci-tests main run). nettest gained TCP_INFO option checks and
   tcp_bigwindow (>1 MiB absorbed by an unread receiver).
 
-Known issues / next steps (plan order):
-1. Heavy loss (1/7 on every lo packet) is slow: SACK run finishes, NewReno run exceeds the
-   120 s watchdog. Missing: RACK/TLP, lost-retransmission detection, early retransmit. 1/53 is fine.
-2. Run full ci-tests on all 3 arches.
-3. IPv4 multicast + IGMPv2 (IP_ADD/DROP_MEMBERSHIP, IP_MULTICAST_*, per-device groups, dst-MAC
-   filter in eth_input); TAP makes it testable.
-4. AF_NETLINK NETLINK_ROUTE (GETLINK/GETADDR/GETROUTE dumps, NEW/DELADDR, NEW/DELROUTE, SETLINK)
-   for busybox `ip` and getifaddrs; socket.c returns EAFNOSUPPORT for it today.
-5. IPv6 (ip6.c, ICMPv6/ND/SLAAC on slirp fec0::/64, MLD, TCP/UDP over v6, sockaddr_in6,
-   /proc/net/if_inet6 etc.); nettest `privileges` checks AF_INET6 → EAFNOSUPPORT, update it.
-6. Zero-copy virtio-net; TCP_FASTOPEN; splitting net_mutex (likely stays).
+### TCP loss recovery
+- Tail loss probe (RFC 8985 §7, `pto_ms`/`tlp_armed` in tcp.c): with data outstanding and an RTT
+  sample, the retransmission timer first fires after PTO = max(2·SRTT, 10 ms) (+40 ms delayed-ACK
+  allowance when one segment is out) and resends the head without touching cwnd; one probe per
+  flight, then the normal RTO. Off after an RTO until new data is acknowledged.
+- Lost-retransmission detection (RACK-style): in recovery, a duplicate ACK arriving more than
+  SRTT·5/4 + 1 ms after the head was last resent (`head_rtx_ns`) means the retransmission was lost
+  → resend (SACK: rescan holes from snd_una) instead of waiting for the RTO.
+- Early retransmit (RFC 5827): with 2–3 segments out and nothing unsent, oseg−1 dup ACKs suffice.
+- Knobs `net/ipv4/9os_tcp_tlp`, `net/ipv4/9os_tcp_lost_rexmit` (both 1); counters in
+  `/proc/net/netstat` (TcpExt: TCPTimeouts TCPLossProbes TCPLostRetransmit TCPSackRecovery
+  TCPRenoRecovery TCPEarlyRetrans).
+- 8 MiB over lo with 1/7 loss (x86_64 TCG): SACK ≈ 2 s, NewReno ≈ 35 s (was > 120 s, watchdog);
+  1/53 loss: ~0.3 s each, zero RTOs. NewReno at 1/7 is still RTO-bound (lost probes back off to
+  400 ms+); `NET2_LOSS=7 net2test tcp_loss` is not in CI (too slow on riscv64/aarch64 TCG).
 
+### IPv4 multicast + IGMPv2 (kernel/net/mcast.c)
+- Per-device group lists shared by IPv4 and IPv6 (`mc_dev_join/leave`, refcounted per socket
+  membership), destination-MAC filter in `eth_input` (01:00:5e / 33:33 + all-hosts), IGMPv2
+  unsolicited reports (twice), report suppression, queries with max response time (`mc_query`),
+  leave to 224.0.0.2; IP_ADD/DROP_MEMBERSHIP (ip_mreq and ip_mreqn), IP_MULTICAST_IF (address or
+  ip_mreqn), IP_MULTICAST_TTL/LOOP/ALL; multicast loopback copies; `/proc/net/igmp`, `/proc/net/igmp6`.
+
+### AF_NETLINK, NETLINK_ROUTE (kernel/net/netlink.c)
+- A netlink socket is a `struct sock` (AF_NETLINK, SOCK_RAW/DGRAM, protocol 0 only) on the inet
+  file ops; requests are processed synchronously in sendmsg under `net_mutex` and replies are
+  queued on the datagram queue (musl reads them with MSG_DONTWAIT right after send). Port ids:
+  pid first, then unique negative numbers; bind/getsockname with sockaddr_nl; no multicast
+  notifications (groups accepted on bind, never sent).
+- RTM_GETLINK (dump / by index or IFLA_IFNAME), RTM_NEWLINK/SETLINK (up/down via IFF_UP, IFLA_MTU,
+  IFLA_IFNAME rename), RTM_GET/NEW/DELADDR (IPv4: one address per interface — a different one
+  needs `ip addr replace` or ifconfig, `ip addr add` answers EEXIST; IPv6: any number),
+  RTM_GET/NEW/DELROUTE (dump, `ip route get` for both families, NLM_F_REPLACE),
+  RTM_GET/NEW/DELNEIGH (ARP + ND caches, NTF_ROUTER). Dumps pack NLM_F_MULTI messages into ≤4 KiB
+  datagrams then NLMSG_DONE; errors and NLM_F_ACK give NLMSG_ERROR. RTA_CACHEINFO is emitted for
+  cloned/expiring v6 routes (BusyBox dereferences it unchecked for RTM_F_CLONED).
+- Works: BusyBox `ip link/addr/route/neigh show`, `ip link set`, `ip [-6] addr add/del`,
+  `ip [-6] route add/del/get`; musl `getifaddrs()` (AF_PACKET + v4 + v6 entries) and
+  `if_nameindex()`. BusyBox `ip neigh` itself cannot add/delete (the test uses raw messages).
+  `/proc/net/netlink`.
+
+### IPv6 (kernel/net/ip6.c, kernel/include/kernel/net6.h)
+- Addresses (`struct inet6_ifaddr`): ::1/128 on lo, EUI-64 link-local fe80::/64 when an Ethernet
+  device comes up (`netdev_up_hook`; everything is removed on down/unregister), manual ones via
+  netlink; DAD (one NS from ::, 1 s, `IFA_F_TENTATIVE`/`DADFAILED`, `dad_transmits` sysctl);
+  preferred/valid lifetimes ticked by `ip6_tick`; RFC 6724-lite source selection (scope, then
+  non-deprecated). `/proc/net/if_inet6`.
+- Routes (`struct rt6_info`): longest prefix then metric; local addresses → lo; multicast → oif
+  or first up multicast device; prefix routes metric 256, RA default routes metric 1024 with
+  expiry. Equal-metric defaults on two links: the first wins (as Linux without ECMP).
+  `/proc/net/ipv6_route`.
+- Neighbour discovery: cache INCOMPLETE/REACHABLE(30 s)/STALE/PERMANENT, queue of 8 packets,
+  3 multicast NS at 1 s then ICMPv6 address unreachable; STALE entries send at once plus a
+  unicast probe; NS/NA processing incl. override/solicited/router flags; we answer NS for our
+  (non-tentative) addresses. Router solicitation (3× every 4 s after link-local DAD), RA
+  processing: default router, MTU option (lowers the device MTU), prefix information (on-link
+  routes, SLAAC /64 with RFC 4862 5.5.3e lifetime rules). On QEMU slirp the guest gets
+  `fec0::5054:ff:fe12:3456/64` and `default via fe80::2`; slirp's host is `fec0::2` (host ::1),
+  DNS `fec0::3`.
+- MLDv1: reports for joined groups (solicited-node groups included) with hop-by-hop Router
+  Alert and hop limit 1, done to ff02::2, query handling via the shared `mc_query`.
+- IP layer: extension headers (hop-by-hop/destination options with unknown-option actions,
+  routing headers with segments left → parameter problem, fragment), reassembly and
+  fragmentation, parameter problem / packet too big / time exceeded / unreachable errors (not
+  rate-limited), forwarding when
+  `net/ipv6/conf/all/forwarding=1`, ICMPv6 echo (`net/ipv6/icmp/echo_ignore_all`), errors mapped
+  to UDP/TCP socket errors. Sysctls `net/ipv6/conf/all/{hop_limit,accept_ra,dad_transmits,
+  autoconf,forwarding,disable_ipv6}`. `/proc/net/snmp6`.
+- Sockets (inet.c, dgram.c, tcp.c): AF_INET6 TCP/UDP/raw/ping (SOCK_DGRAM IPPROTO_ICMPV6),
+  sockaddr_in6 (scope ids required for link-local, → bound device), dual stack: a v6 socket
+  without IPV6_V6ONLY receives IPv4 as ::ffff:a.b.c.d (TCP listeners, UDP), sends to v4-mapped
+  addresses over IPv4, and owns the IPv4 port for bind conflicts (`struct bindid`,
+  `inet_port_in_use`). Options: IPV6_V6ONLY, UNICAST_HOPS, MULTICAST_IF/HOPS/LOOP,
+  JOIN/LEAVE_GROUP, RECVPKTINFO/PKTINFO, RECVHOPLIMIT/HOPLIMIT (+ the RFC 2292 numbers BusyBox
+  ping6 uses), RECVTCLASS/TCLASS, DONTFRAG, MTU (get), IPV6_CHECKSUM (raw), ICMP6_FILTER;
+  ancillary data out (pktinfo, hoplimit, tclass; MSG_CTRUNC) and in (pktinfo, hoplimit, tclass).
+  ICMPv6 raw sockets get kernel checksums (offset 2). TCP MSS = MTU − 60 on v6. `/proc/net/tcp6`,
+  `udp6`, `raw6`.
+- `PKT_HEADROOM` is 96 bytes (40-byte IPv6 header + hop-by-hop).
+
+### Tests
+- net2test: `netlink_tests` (raw dump + error ack, port ids, getifaddrs/if_nameindex, BusyBox ip
+  on a TAP: link set, addr add/del, route add/get/del, v6 addr/route, raw RTM_NEWNEIGH/DELNEIGH),
+  `ipv6_lo_tests` (4 MiB TCP over ::1, /proc/net/tcp6, dual-stack accept with v4-mapped peers,
+  V6ONLY, port ownership, bind errors, UDP cmsgs in/out, v4→v6 datagrams, raw ICMPv6 with filter,
+  ping socket, BusyBox ping6), `ipv6_tap_tests` (DAD NS, RS, injected RA → SLAAC address +
+  routes, route get, STALE send + unicast probe, NA answers, echo reply, bad checksum, port
+  unreachable, MLD report/query/done, multicast send with IPV6_MULTICAST_IF, TCP SYN checksum +
+  RST → ECONNREFUSED, DAD failure, router lifetime 0, cleanup on close). `net2test NAME` runs one.
+- nettest `privileges`: AF_INET6 sockets now succeed, an unknown family still gives EAFNOSUPPORT.
+- ci-tests: SLAAC address on eth0, IPv6 default route via fe80::2, `ping6 fec0::2`, wget over
+  `[fec0::2]` (net-host-server.py now also listens on [::1]), ::1 on lo, `ip route`.
+
+### Known limits / next steps
+1. Zero-copy virtio-net (RX buffers handed up as `struct pkt`, TX scatter-gather) — not started;
+   TCP_FASTOPEN not implemented (TCP_FASTOPEN setsockopt → ENOPROTOOPT).
+2. One IPv4 address per interface; no netlink multicast notifications (`ip monitor`); no
+   MLDv2/IGMPv3 source filtering (v2 queries are read as v1); no privacy addresses, no DHCPv6;
+   RA MTU changes the device MTU for IPv4 too; no ECMP.
+3. NewReno under very heavy loss is RTO-bound (see above); one global `net_mutex`.

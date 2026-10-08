@@ -103,12 +103,30 @@ void route_add_connected(struct netdev *d) {
 }
 
 /* ------------------------------------------------------------------ output */
-static void ip_finish(struct netdev *d, struct pkt *p, uint32_t nexthop) {
+/* IP_MULTICAST_LOOP: a copy of a datagram sent to a group joined on the device comes back in
+ * as if received there (through the receive queue, so no recursion) */
+static void mc_loopback(struct netdev *d, struct pkt *p) {
+    struct iphdr *h = (struct iphdr *)p->data;
+    if (d == loopback_dev || !mc_dev_has(d, &h->daddr, false)) return;
+    struct pkt *c = pkt_alloc_rx(ETH_HLEN + p->len);
+    if (!c) return;
+    uint32_t g = ntohl(h->daddr);
+    uint8_t *e = c->data;
+    e[0] = 0x01; e[1] = 0x00; e[2] = 0x5e; e[3] = (g >> 16) & 0x7f; e[4] = (g >> 8) & 0xff; e[5] = g & 0xff;
+    memcpy(e + 6, d->hwaddr, 6);
+    e[12] = 0x08; e[13] = 0x00;
+    memcpy(e + ETH_HLEN, p->data, p->len);
+    c->csum_ok = true;
+    net_rx(d, c);
+}
+
+static void ip_finish(struct netdev *d, struct pkt *p, uint32_t nexthop, bool loop) {
     ip_stats[2]++;
+    if (loop && ipv4_is_multicast(nexthop)) mc_loopback(d, p);
     eth_output(d, p, nexthop, ETH_P_IP);
 }
 
-static void ip_fragment(struct netdev *d, struct pkt *p, uint32_t nexthop) {
+static void ip_fragment(struct netdev *d, struct pkt *p, uint32_t nexthop, bool loop) {
     struct iphdr *h = (struct iphdr *)p->data;
     unsigned hl = (h->ver_ihl & 15) * 4, total = ntohs(h->tot_len);
     unsigned room = ((d->mtu - hl) & ~7u);
@@ -128,19 +146,19 @@ static void ip_fragment(struct netdev *d, struct pkt *p, uint32_t nexthop) {
         fh->check = 0;
         fh->check = htons(csum_fold(csum_partial(fh, hl, 0)));
         ip_stats[3]++;
-        ip_finish(d, f, nexthop);
+        ip_finish(d, f, nexthop, loop);
     }
     pkt_free(p);
 }
 
-static int ip_send_built(struct pkt *p, struct netdev *d, uint32_t nexthop) {
+static int ip_send_built(struct pkt *p, struct netdev *d, uint32_t nexthop, bool loop) {
     struct iphdr *h = (struct iphdr *)p->data;
     if (p->len > (size_t)d->mtu) {
         if (ntohs(h->frag_off) & IP_DF) { pkt_free(p); return -EMSGSIZE; }
-        ip_fragment(d, p, nexthop);
+        ip_fragment(d, p, nexthop, loop);
         return 0;
     }
-    ip_finish(d, p, nexthop);
+    ip_finish(d, p, nexthop, loop);
     return 0;
 }
 
@@ -149,8 +167,10 @@ int ip_output(struct pkt *p, uint32_t src, uint32_t dst, uint8_t proto, const st
     int r = ip_route(dst, o ? o->oif : 0, &d, &nh, &psrc);
     if (r) { pkt_free(p); return r; }
     if (!src) src = psrc;
+    bool ra = o && o->ra;
+    if (ra) { uint8_t *opt = pkt_push(p, 4); opt[0] = 0x94; opt[1] = 4; opt[2] = opt[3] = 0; }  /* Router Alert */
     struct iphdr *h = (struct iphdr *)pkt_push(p, sizeof *h);
-    h->ver_ihl = 0x45;
+    h->ver_ihl = ra ? 0x46 : 0x45;
     h->tos = o ? o->tos : 0;
     h->tot_len = htons((uint16_t)p->len);
     h->id = htons(ip_ident++);
@@ -160,8 +180,8 @@ int ip_output(struct pkt *p, uint32_t src, uint32_t dst, uint8_t proto, const st
     h->saddr = src;
     h->daddr = dst;
     h->check = 0;
-    h->check = htons(csum_fold(csum_partial(h, sizeof *h, 0)));
-    return ip_send_built(p, d, nh);
+    h->check = htons(csum_fold(csum_partial(h, ra ? 24 : sizeof *h, 0)));
+    return ip_send_built(p, d, nh, o && o->mcloop);
 }
 
 int ip_output_hdrincl(struct pkt *p, int oif) {
@@ -177,7 +197,7 @@ int ip_output_hdrincl(struct pkt *p, int oif) {
     h->tot_len = htons((uint16_t)p->len);
     h->check = 0;
     h->check = htons(csum_fold(csum_partial(h, hl, 0)));
-    return ip_send_built(p, d, nh);
+    return ip_send_built(p, d, nh, false);
 }
 
 /* ------------------------------------------------------------------ ICMP */
@@ -356,7 +376,7 @@ static void ip_forward(struct netdev *in, struct pkt *p) {
     uint32_t c = ntohs(h->check) + 0x0100;                                  /* RFC 1624 incremental update */
     h->check = htons((uint16_t)(c + (c >> 16)));
     ip_fwd_stats++;
-    ip_send_built(p, out, nh);
+    ip_send_built(p, out, nh, false);
 }
 
 void ip_input(struct netdev *d, struct pkt *p) {
@@ -367,8 +387,11 @@ void ip_input(struct netdev *d, struct pkt *p) {
     if ((h->ver_ihl >> 4) != 4 || hl < 20 || hl > p->len || tot < hl || tot > p->len) goto bad;
     if (!p->csum_ok && csum_fold(csum_partial(h, hl, 0))) goto bad;
     p->len = tot;                                  /* strip ethernet padding */
+    bool mc = ipv4_is_multicast(h->daddr);
+    if (mc && d != loopback_dev && ntohl(h->daddr) != 0xe0000001u && !mc_dev_has(d, &h->daddr, false) &&
+        !(d->flags & IFF_PROMISC)) { pkt_free(p); return; }      /* a group nobody joined here */
     bool local = net_is_local_addr(h->daddr) || h->daddr == INADDR_BROADCAST || (d->bcast && h->daddr == d->bcast) ||
-                 (d->addr && h->daddr == (d->addr | ~d->netmask)) || ipv4_is_multicast(h->daddr) ||
+                 (d->addr && h->daddr == (d->addr | ~d->netmask)) || mc ||
                  (!d->addr && p->pkttype == PACKET_HOST);         /* DHCP before configuration */
     if (!local) {
         if (sysctl_ip_forward) ip_forward(d, p); else pkt_free(p);
@@ -384,6 +407,7 @@ void ip_input(struct netdev *d, struct pkt *p) {
     ip_stats[1]++;
     switch (h->protocol) {
     case IPPROTO_ICMP: icmp_input(p); return;
+    case IPPROTO_IGMP: raw_input(p); igmp_input(p); return;
     case IPPROTO_UDP: raw_input(p); udp_input(p); return;
     case IPPROTO_TCP: raw_input(p); tcp_input(p); return;
     default:

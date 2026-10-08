@@ -17,6 +17,7 @@
  * it or by accept() adopting them.
  */
 #include <kernel/net.h>
+#include <kernel/net6.h>
 #include <kernel/kmalloc.h>
 #include <kernel/string.h>
 #include <kernel/printk.h>
@@ -49,6 +50,9 @@ struct tcphdr {
 #define DELACK_MS 40
 
 int sysctl_tcp_window_scaling = 1, sysctl_tcp_timestamps = 1, sysctl_tcp_sack = 1, sysctl_tcp_fin_timeout = 60;
+/* TcpExt (/proc/net/netstat): timeouts, loss probes, lost retransmits, SACK / Reno recoveries, early retransmits */
+uint64_t tcp_ext_stats[6];
+int sysctl_tcp_tlp = 1, sysctl_tcp_lost_rexmit = 1;     /* M32b loss recovery knobs (0: plain NewReno/SACK) */
 static int tw_count;
 
 static inline bool seq_lt(uint32_t a, uint32_t b) { return (int32_t)(a - b) < 0; }
@@ -179,8 +183,9 @@ static struct pkt *tcp_build(struct sock *s, uint32_t seq, uint8_t flags, size_t
     t->window = htons((uint16_t)field);
     memcpy(t + 1, opts, optlen);
     if (dlen) ring_get(&s->snd, (uint8_t *)(t + 1) + optlen, dlen, roff, false);
-    uint16_t c = csum_fold(csum_partial(t, p->len, csum_pseudo(s->laddr, s->raddr, IPPROTO_TCP, (uint16_t)p->len)));
-    t->check = htons(c);
+    uint32_t ps = s->v6 ? csum_pseudo6(s->laddr6, s->raddr6, IPPROTO_TCP, (uint32_t)p->len)
+                        : csum_pseudo(s->laddr, s->raddr, IPPROTO_TCP, (uint16_t)p->len);
+    t->check = htons(csum_fold(csum_partial(t, p->len, ps)));
     if (flags & TH_ACK) {
         s->rcv_adv = s->rcv_nxt + (field << sh);
         s->last_ack_sent = s->rcv_nxt;
@@ -193,7 +198,12 @@ static struct pkt *tcp_build(struct sock *s, uint32_t seq, uint8_t flags, size_t
 static void tcp_xmit(struct sock *s, struct pkt *p) {
     if (!p) return;
     tcp_stats[1]++;
-    struct ip_opts o = { (uint8_t)s->ttl, (uint8_t)s->tos, false, s->bound_dev };
+    if (s->v6) {
+        struct ip6_opts o6 = { .hlim = s->hops6, .tclass = (uint8_t)(s->tclass6 > 0 ? s->tclass6 : 0), .oif = s->bound_dev };
+        ip6_output(p, s->laddr6, s->raddr6, IPPROTO_TCP, &o6);
+        return;
+    }
+    struct ip_opts o = { (uint8_t)s->ttl, (uint8_t)s->tos, false, s->bound_dev, false, false };
     ip_output(p, s->laddr, s->raddr, IPPROTO_TCP, &o);
 }
 
@@ -210,9 +220,11 @@ static void send_rst_for(struct sock *s) {
 /* RST in answer to a segment that matched no synchronised connection (RFC 793 p.36) */
 static void tcp_reset_reply(struct pkt *p) {
     struct iphdr *ih = (struct iphdr *)p->nh;
+    struct ip6hdr *h6 = (struct ip6hdr *)p->nh;
+    bool v6 = (p->nh[0] >> 4) == 6;
     struct tcphdr *t = (struct tcphdr *)p->data;
     if (t->flags & TH_RST) return;
-    if (ih->daddr == INADDR_BROADCAST || ipv4_is_multicast(ih->daddr)) return;
+    if (v6 ? ip6_multicast(h6->dst) : ih->daddr == INADDR_BROADCAST || ipv4_is_multicast(ih->daddr)) return;
     tcp_stats[5]++;
     struct pkt *q = pkt_alloc(sizeof(struct tcphdr));
     if (!q) return;
@@ -227,12 +239,33 @@ static void tcp_reset_reply(struct pkt *p) {
         r->flags = TH_RST | TH_ACK;
     }
     r->off = 5 << 4;
+    if (v6) {
+        uint8_t src[16], dst[16];
+        memcpy(src, h6->dst, 16); memcpy(dst, h6->src, 16);
+        r->check = htons(csum_fold(csum_partial(r, q->len, csum_pseudo6(src, dst, IPPROTO_TCP, (uint32_t)q->len))));
+        struct ip6_opts o = { .oif = ip6_needs_scope(dst) && p->dev ? p->dev->index : 0 };
+        ip6_output(q, src, dst, IPPROTO_TCP, &o);
+        return;
+    }
     r->check = htons(csum_fold(csum_partial(r, q->len, csum_pseudo(ih->daddr, ih->saddr, IPPROTO_TCP, (uint16_t)q->len))));
     ip_output(q, ih->daddr, ih->saddr, IPPROTO_TCP, nullptr);
 }
 
+/* M32b: tail loss probe (RFC 8985 7): with data outstanding, a probe goes out after
+ * PTO = max(2·SRTT, 10 ms) instead of waiting for the (≥ 200 ms) RTO; it resends the oldest
+ * segment so a lost retransmission or a lost tail is repaired without collapsing cwnd. One probe
+ * per flight (tlp_sent is cleared when an ACK advances snd_una). */
+static uint64_t pto_ms(struct sock *s) {
+    uint64_t p = MAX(2 * s->srtt_us / 1000, 10ull);
+    if (s->snd_nxt - s->snd_una <= mss(s)) p += DELACK_MS;      /* one segment: the peer may delay its ACK */
+    return MIN(p, (uint64_t)s->rto_ms);
+}
 static void rearm_rexmt(struct sock *s) {
-    if (s->snd_una != s->snd_nxt) { s->persist = false; ntimer_mod(&s->t_rexmt, s->rto_ms * NS_MS); }
+    if (s->snd_una != s->snd_nxt) {
+        s->persist = false;
+        s->tlp_armed = sysctl_tcp_tlp && !s->tlp_sent && s->srtt_us && syn_acked(s) && !s->retries;
+        ntimer_mod(&s->t_rexmt, (s->tlp_armed ? pto_ms(s) : s->rto_ms) * NS_MS);
+    }
     else if (unsent(s) && !s->snd_wnd) {                          /* zero window: persist */
         if (!s->persist || !s->t_rexmt.active) { s->persist = true; ntimer_mod(&s->t_rexmt, s->rto_ms * NS_MS); }
     } else if (s->state != TCP_TIME_WAIT) { s->persist = false; ntimer_del(&s->t_rexmt); }
@@ -290,6 +323,7 @@ static void retransmit_head(struct sock *s) {
     size_t n = MIN(s->snd.len, (size_t)mss(s));
     if (s->fin_sent && s->snd_una == s->fin_seq) { tcp_xmit(s, tcp_build(s, s->fin_seq, TH_FIN | TH_ACK, 0, 0, false)); return; }
     if (n) tcp_xmit(s, tcp_build(s, s->snd_una, TH_ACK | TH_PSH, 0, n, false));
+    s->head_rtx_ns = time_ns();
     if (n && seq_lt(s->high_rxt, s->snd_una + (uint32_t)n)) s->high_rxt = s->snd_una + (uint32_t)n;
     if (n && seq_lt(s->rtx_high, s->snd_una + (uint32_t)n)) s->rtx_high = s->snd_una + (uint32_t)n;
 }
@@ -311,7 +345,17 @@ static void tcp_timer_rexmt(struct ntimer *t) {
         return;
     }
     if (s->snd_una == s->snd_nxt) return;
+    if (s->tlp_armed) {                         /* probe timeout: resend the head, then wait for the RTO */
+        s->tlp_armed = false;
+        s->tlp_sent = true;
+        tcp_ext_stats[1]++;
+        retransmit_head(s);
+        uint64_t left = s->rto_ms > pto_ms(s) ? s->rto_ms - pto_ms(s) : 1;
+        ntimer_mod(&s->t_rexmt, MAX(left, 10ull) * NS_MS);
+        return;
+    }
     s->retries++;
+    tcp_ext_stats[0]++;
     if (s->retries > (syn_acked(s) ? MAX_RETRIES : MAX_SYN_RETRIES)) { tcp_abort(s, ETIMEDOUT); return; }
     s->rto_ms = MIN(s->rto_ms * 2, MAX_RTO_MS);
     if (!syn_acked(s)) { retransmit_head(s); ntimer_mod(&s->t_rexmt, s->rto_ms * NS_MS); return; }
@@ -375,7 +419,7 @@ static bool tcp_alloc_rings(struct sock *s) {
 }
 
 static void set_mss(struct sock *s, struct netdev *d) {
-    uint32_t m = (uint32_t)(d ? d->mtu : 576) - 40;
+    uint32_t m = s->v6 ? (uint32_t)(d ? d->mtu : 1280) - 60 : (uint32_t)(d ? d->mtu : 576) - 40;
     s->rcv_mss = m > 65495 ? 65495 : m;
     if (!s->snd_mss || s->snd_mss > s->rcv_mss) s->snd_mss = s->rcv_mss;
 }
@@ -383,10 +427,21 @@ static void set_mss(struct sock *s, struct netdev *d) {
 static uint32_t new_iss(void) { return (uint32_t)random_u64(); }
 
 int tcp_connect(struct sock *s) {
-    struct netdev *d; uint32_t nh, src;
-    int r = ip_route(s->raddr, s->bound_dev, &d, &nh, &src);
-    if (r) return r;
-    if (!s->laddr) s->laddr = src;
+    struct netdev *d;
+    if (s->v6) {
+        uint8_t nh6[16], src6[16];
+        int r = ip6_route(s->raddr6, s->bound_dev, &d, nh6, src6);
+        if (r) return r;
+        if (ip6_any(s->laddr6)) {
+            if (ip6_any(src6)) return -EADDRNOTAVAIL;
+            memcpy(s->laddr6, src6, 16);
+        }
+    } else {
+        uint32_t nh, src;
+        int r = ip_route(s->raddr, s->bound_dev, &d, &nh, &src);
+        if (r) return r;
+        if (!s->laddr) s->laddr = src;
+    }
     if (!tcp_alloc_rings(s)) return -ENOBUFS;
     set_mss(s, d);
     s->snd_mss = 536;                         /* until the peer's MSS option arrives */
@@ -478,18 +533,28 @@ void tcp_recv_window_update(struct sock *s) {
 }
 
 /* ------------------------------------------------------------------ input */
-static struct sock *tcp_lookup(uint32_t saddr, uint16_t sport, uint32_t daddr, uint16_t dport, struct netdev *dev) {
+static struct sock *tcp_lookup(struct pkt *p, uint16_t sport, uint16_t dport) {
     struct sock *listener = nullptr;
+    struct netdev *dev = p->dev;
+    bool v6 = (p->nh[0] >> 4) == 6;
+    struct iphdr *ih = (struct iphdr *)p->nh;
+    struct ip6hdr *h6 = (struct ip6hdr *)p->nh;
+    int lscore = -1;
     list_for_each(it, &tcp_socks) {
         struct sock *s = list_entry(it, struct sock, node);
         if (s->lport != dport) continue;
+        if (v6 ? !sock_v6ok(s) : !sock_v4ok(s)) continue;
         if (s->state == TCP_LISTEN) {
-            if (s->laddr && s->laddr != daddr) continue;
+            bool spec = v6 ? !ip6_any(s->laddr6) : s->laddr != 0;
+            if (spec && (v6 ? !ip6_eq(s->laddr6, h6->dst) : s->laddr != ih->daddr)) continue;
             if (s->bound_dev && dev && dev != loopback_dev && s->bound_dev != dev->index) continue;
-            if (!listener || (s->laddr && !listener->laddr)) listener = s;
+            int sc = (spec ? 2 : 0) + (s->family == (v6 ? AF_INET6 : AF_INET) ? 1 : 0);
+            if (sc > lscore) { listener = s; lscore = sc; }
             continue;
         }
-        if (s->raddr == saddr && s->rport == sport && s->laddr == daddr) return s;
+        if (s->rport != sport) continue;
+        if (v6) { if (ip6_eq(s->raddr6, h6->src) && ip6_eq(s->laddr6, h6->dst)) return s; }
+        else if (s->raddr == ih->saddr && s->laddr == ih->daddr) return s;
     }
     return listener;
 }
@@ -606,6 +671,7 @@ static bool sack_retransmit(struct sock *s) {
         n = (uint32_t)MIN((size_t)n, s->snd.len - roff);
         tcp_stats[2]++;
         tcp_xmit(s, tcp_build(s, h, TH_ACK, roff, n, false));
+        if (h == s->snd_una) s->head_rtx_ns = time_ns();
         s->high_rxt = h + n;
         if (seq_lt(s->rtx_high, h + n)) s->rtx_high = h + n;
         return true;
@@ -680,6 +746,7 @@ static bool process_ack(struct sock *s, struct tcphdr *t, uint32_t seq, uint32_t
         ring_drop(&s->snd, data);
         s->snd_una = ack;
         s->retries = 0;
+        s->tlp_sent = false;
         if (o && s->sack_ok) sack_update(s, o);
         sack_trim(s);
         /* congestion control */
@@ -707,18 +774,33 @@ static bool process_ack(struct sock *s, struct tcphdr *t, uint32_t seq, uint32_t
         /* duplicate ACK; with SACK, also enter recovery once 3 segments above a hole were SACKed */
         if (o && s->sack_ok) sack_update(s, o);
         ++s->dupacks;
-        if (!s->in_recovery && (s->dupacks == 3 || (s->sack_ok && sacked_bytes(s) >= 3 * mss(s)))) {
+        /* early retransmit (RFC 5827): with fewer than 4 segments out and nothing new to send,
+         * fewer than 3 duplicate ACKs can ever arrive — use oseg − 1 */
+        uint32_t oseg = (s->snd_max - s->snd_una + mss(s) - 1) / mss(s), thresh = 3;
+        if (sysctl_tcp_lost_rexmit && oseg >= 2 && oseg < 4 && !unsent(s)) thresh = oseg - 1;
+        if (!s->in_recovery && ((uint32_t)s->dupacks >= thresh || (s->sack_ok && sacked_bytes(s) >= 3 * mss(s)))) {
             uint32_t flight = s->snd_max - s->snd_una;
             s->ssthresh = MAX(flight / 2, 2 * mss(s));
             s->recover = s->snd_max;
             s->in_recovery = true;
+            tcp_ext_stats[s->sack_ok ? 3 : 4]++;
+            if (s->dupacks < 3 && !(s->sack_ok && sacked_bytes(s) >= 3 * mss(s))) tcp_ext_stats[5]++;
             s->high_rxt = s->snd_una;
             s->rtt_timing = false;
             if (!sack_retransmit(s)) retransmit_head(s);
             s->cwnd = s->ssthresh + 3 * mss(s);
         } else if (s->in_recovery) {
             s->cwnd += mss(s);
-            sack_retransmit(s);                                          /* next hole, one per ACK */
+            /* lost retransmission (RACK-style, RFC 8985): ACKs keep arriving more than
+             * SRTT + SRTT/4 after the head was resent, yet it is still unacknowledged — the
+             * retransmission was lost too; resend it instead of waiting for the RTO */
+            uint64_t now = time_ns();
+            if (sysctl_tcp_lost_rexmit && s->srtt_us && s->head_rtx_ns &&
+                now - s->head_rtx_ns > (s->srtt_us + s->srtt_us / 4) * 1000 + NS_MS) {
+                s->high_rxt = s->snd_una;
+                tcp_ext_stats[2]++;
+                if (!sack_retransmit(s)) retransmit_head(s);
+            } else sack_retransmit(s);                                   /* next hole, one per ACK */
         }
     }
     return true;
@@ -774,25 +856,28 @@ static bool ooo_drain(struct sock *s) {
 
 void tcp_input(struct pkt *p) {
     struct iphdr *ih = (struct iphdr *)p->nh;
+    struct ip6hdr *h6 = (struct ip6hdr *)p->nh;
+    bool v6 = (p->nh[0] >> 4) == 6;
     struct tcphdr *t = (struct tcphdr *)p->data;
     tcp_stats[0]++;
     if (p->len < sizeof *t || (t->off >> 4) < 5 || (size_t)(t->off >> 4) * 4 > p->len) goto bad;
-    if (!p->csum_ok && csum_fold(csum_partial(t, p->len, csum_pseudo(ih->saddr, ih->daddr, IPPROTO_TCP, (uint16_t)p->len)))) goto bad;
-    if (ih->daddr == INADDR_BROADCAST || ipv4_is_multicast(ih->daddr)) goto drop;
+    uint32_t ps = v6 ? csum_pseudo6(h6->src, h6->dst, IPPROTO_TCP, (uint32_t)p->len) : csum_pseudo(ih->saddr, ih->daddr, IPPROTO_TCP, (uint16_t)p->len);
+    if (!p->csum_ok && csum_fold(csum_partial(t, p->len, ps))) goto bad;
+    if (v6 ? ip6_multicast(h6->dst) : ih->daddr == INADDR_BROADCAST || ipv4_is_multicast(ih->daddr)) goto drop;
     size_t hl = (t->off >> 4) * 4;
     size_t dlen = p->len - hl;
     uint32_t seq = ntohl(t->seq), ack = ntohl(t->ack), wnd = ntohs(t->window);
     uint8_t fl = t->flags;
     struct tcp_opts o;
     parse_opts(t, &o);
-    struct sock *s = tcp_lookup(ih->saddr, t->sport, ih->daddr, t->dport, p->dev);
+    struct sock *s = tcp_lookup(p, t->sport, t->dport);
     if (!s) { tcp_reset_reply(p); goto drop; }
 
     /* TIME_WAIT: a new SYN may reuse the pair (RFC 1122 4.2.2.13) */
     if (s->state == TCP_TIME_WAIT && (fl & TH_SYN) && !(fl & TH_ACK) &&
         (seq_gt(seq, s->rcv_nxt) || (s->ts_ok && o.ts && (int32_t)(o.tsval - s->ts_recent) > 0))) {
         tcp_done(s);
-        s = tcp_lookup(ih->saddr, t->sport, ih->daddr, t->dport, p->dev);
+        s = tcp_lookup(p, t->sport, t->dport);
         if (!s || s->state != TCP_LISTEN) { if (!s) tcp_reset_reply(p); goto drop; }
     }
 
@@ -803,10 +888,19 @@ void tcp_input(struct pkt *p) {
         if (s->nchildren >= s->backlog + 1) goto drop;        /* the client retries its SYN */
         struct sock *c = sock_new_child(s);
         if (!c) goto drop;
-        c->laddr = ih->daddr; c->lport = t->dport;
-        c->raddr = ih->saddr; c->rport = t->sport;
-        struct netdev *d; uint32_t nh, src;
-        if (ip_route(c->raddr, c->bound_dev, &d, &nh, &src)) d = nullptr;
+        c->lport = t->dport; c->rport = t->sport;
+        struct netdev *d;
+        if (v6) {
+            c->v6 = true;
+            memcpy(c->laddr6, h6->dst, 16); memcpy(c->raddr6, h6->src, 16);
+            if (!c->bound_dev && ip6_needs_scope(h6->src) && p->dev && p->dev != loopback_dev) c->bound_dev = p->dev->index;
+            uint8_t nh6[16];
+            if (ip6_route(c->raddr6, c->bound_dev, &d, nh6, nullptr)) d = nullptr;
+        } else {
+            c->laddr = ih->daddr; c->raddr = ih->saddr;
+            uint32_t nh, src;
+            if (ip_route(c->raddr, c->bound_dev, &d, &nh, &src)) d = nullptr;
+        }
         set_mss(c, d);
         c->snd_mss = 536;
         apply_mss(c, &o);
@@ -992,32 +1086,53 @@ bad:
 void tcp_err(uint32_t laddr, uint16_t lport, uint32_t raddr, uint16_t rport, int err) {
     list_for_each(it, &tcp_socks) {
         struct sock *s = list_entry(it, struct sock, node);
-        if (s->lport != lport || s->rport != rport || s->raddr != raddr || s->state == TCP_LISTEN) continue;
+        if (s->lport != lport || s->rport != rport || s->raddr != raddr || s->state == TCP_LISTEN || s->v6) continue;
+        if (s->state == TCP_SYN_SENT || s->state == TCP_SYN_RECV) tcp_abort(s, err);
+        return;
+    }
+}
+void tcp6_err(const uint8_t *laddr, uint16_t lport, const uint8_t *raddr, uint16_t rport, int err) {
+    list_for_each(it, &tcp_socks) {
+        struct sock *s = list_entry(it, struct sock, node);
+        if (!s->v6 || s->lport != lport || s->rport != rport || !ip6_eq(s->raddr6, raddr) || s->state == TCP_LISTEN) continue;
+        if (!ip6_eq(s->laddr6, laddr)) continue;
         if (s->state == TCP_SYN_SENT || s->state == TCP_SYN_RECV) tcp_abort(s, err);
         return;
     }
 }
 
-int net_proc_tcp(char *buf, size_t max) {
+static int proc_tcp(char *buf, size_t max, bool v6) {
     mutex_lock(&net_mutex);
-    int n = snprintf(buf, max, "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n");
+    int n = snprintf(buf, max, v6 ? "  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n"
+                                  : "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n");
     int i = 0;
     list_for_each(it, &tcp_socks) {
         struct sock *s = list_entry(it, struct sock, node);
-        if ((size_t)n >= max) break;
+        if ((size_t)n + 200 >= max) break;
+        if ((s->family == AF_INET6) != v6) continue;
         /* timer kind as Linux shows it: 1 retransmit, 2 keepalive, 3 TIME_WAIT, 4 zero-window probe */
         int tr = 0; uint64_t when = 0, now = time_ns();
         struct ntimer *tm = nullptr;
         if (s->t_rexmt.active) { tm = &s->t_rexmt; tr = s->state == TCP_TIME_WAIT ? 3 : s->persist ? 4 : 1; }
         else if (s->t_keep.active) { tm = &s->t_keep; tr = 2; }
         if (tm && tm->when > now) when = tm->when - now;
-        n += snprintf(buf + n, max - n, "%4d: %08X:%04X %08X:%04X %02X %08X:%08X %02X:%08X %08X %5u        0 %lu 1 0000000000000000 %lu 4 0 10 -1\n",
-                      i++, s->laddr, ntohs(s->lport), s->raddr, ntohs(s->rport), s->state,
-                      (unsigned)s->snd.len, (unsigned)(s->state == TCP_LISTEN ? (unsigned)s->nchildren : s->rcv.len),
+        if (v6) {
+            uint8_t la[16], ra[16];
+            sock_addr6(s, false, la); sock_addr6(s, true, ra);
+            n += snprintf(buf + n, max - n, "%4d: ", i++);
+            n += net_fmt_addr6(buf + n, max - n, la);
+            n += snprintf(buf + n, max - n, ":%04X ", ntohs(s->lport));
+            n += net_fmt_addr6(buf + n, max - n, ra);
+            n += snprintf(buf + n, max - n, ":%04X ", ntohs(s->rport));
+        } else n += snprintf(buf + n, max - n, "%4d: %08X:%04X %08X:%04X ", i++, s->laddr, ntohs(s->lport), s->raddr, ntohs(s->rport));
+        n += snprintf(buf + n, max - n, "%02X %08X:%08X %02X:%08X %08X %5u        0 %lu 1 0000000000000000 %lu 4 0 10 -1\n",
+                      s->state, (unsigned)s->snd.len, (unsigned)(s->state == TCP_LISTEN ? (unsigned)s->nchildren : s->rcv.len),
                       tr, (unsigned)(when / 10000000), s->retries, s->uid, s->file ? s->ino : 0, s->rto_ms / 10);
     }
     mutex_unlock(&net_mutex);
     return MIN(n, (int)max);
 }
+int net_proc_tcp(char *buf, size_t max) { return proc_tcp(buf, max, false); }
+int net_proc_tcp6(char *buf, size_t max) { return proc_tcp(buf, max, true); }
 
 void tcp_init(void) {}

@@ -234,6 +234,31 @@ int net_proc_arp(char *buf, size_t max) {
     return MIN(n, (int)max);
 }
 
+/* netlink (RTM_*NEIGH) access to the cache; state uses the NUD_* values */
+void arp_dump(void (*cb)(void *ctx, struct netdev *d, uint32_t ip, const uint8_t *mac, int state), void *ctx) {
+    uint64_t now = time_ns();
+    list_for_each(it, &neighs) {
+        struct neigh *n = list_entry(it, struct neigh, node);
+        int st = n->permanent ? 0x80 : !n->complete ? (n->tries ? 0x01 : 0x20) : now < n->expires ? 0x02 : 0x04;
+        cb(ctx, n->dev, n->ip, n->complete ? n->mac : nullptr, st);
+    }
+}
+int arp_set(struct netdev *d, uint32_t ip, const uint8_t *mac, bool perm) {
+    struct neigh *n = neigh_find(d, ip);
+    if (!n && !(n = neigh_new(d, ip))) return -ENOMEM;
+    n->permanent = perm;
+    neigh_complete(n, mac);
+    return 0;
+}
+int arp_del(struct netdev *d, uint32_t ip) {
+    struct neigh *n = neigh_find(d, ip);
+    if (!n) return -ENOENT;
+    neigh_free(n);
+    return 0;
+}
+
+void eth_send(struct netdev *d, struct pkt *p, const uint8_t *mac, uint16_t type) { frame_send(d, p, mac, type); }
+
 /* AF_PACKET transmit: a complete frame */
 void eth_xmit_raw(struct netdev *d, struct pkt *p) {
     p->dev = d;

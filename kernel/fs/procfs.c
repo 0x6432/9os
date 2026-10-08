@@ -23,7 +23,8 @@ int net_proc_file(int which, char *buf, size_t max);
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR, P_SYSDIR };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
              G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS,
-             N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP, S_SYSCTL };
+             N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP, N_IGMP,
+             N_IGMP6, N_IF_INET6, N_IPV6_ROUTE, N_TCP6, N_UDP6, N_RAW6, N_SNMP6, N_NETLINK, N_NETSTAT, S_SYSCTL };
 /* P_SYSDIR: the /proc/sys directory whose path is sysctls[sysi].path[0, syslen) */
 struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; int sysi, syslen; };
 
@@ -31,7 +32,8 @@ struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; int sysi, sysl
  * the paths. Writes need write permission on the 0644 root-owned file (DAC) as on Linux. */
 extern int sysctl_ip_forward, sysctl_ip_default_ttl, sysctl_icmp_echo_ignore_all, sysctl_icmp_echo_ignore_broadcasts;
 extern int sysctl_somaxconn, sysctl_lo_drop_every, sysctl_tcp_window_scaling, sysctl_tcp_timestamps;
-extern int sysctl_tcp_sack, sysctl_tcp_fin_timeout, sysctl_ipv6_forwarding, sysctl_ipv6_disable;
+extern int sysctl_tcp_sack, sysctl_tcp_tlp, sysctl_tcp_lost_rexmit, sysctl_tcp_fin_timeout, sysctl_ipv6_forwarding, sysctl_ipv6_disable;
+extern int sysctl_ipv6_hop_limit, sysctl_ipv6_accept_ra, sysctl_ipv6_dad_transmits, sysctl_ipv6_autoconf, sysctl_icmpv6_echo_ignore_all;
 extern int randomize_va_space;
 const char *kernel_hostname(void);
 int kernel_set_hostname(const char *name, size_t len);
@@ -57,9 +59,16 @@ static const struct sysctl {
     { "net/ipv4/tcp_window_scaling", &sysctl_tcp_window_scaling, 0, 1, nullptr, nullptr },
     { "net/ipv4/tcp_timestamps", &sysctl_tcp_timestamps, 0, 1, nullptr, nullptr },
     { "net/ipv4/tcp_sack", &sysctl_tcp_sack, 0, 1, nullptr, nullptr },
+    { "net/ipv4/9os_tcp_tlp", &sysctl_tcp_tlp, 0, 1, nullptr, nullptr },
+    { "net/ipv4/9os_tcp_lost_rexmit", &sysctl_tcp_lost_rexmit, 0, 1, nullptr, nullptr },
     { "net/ipv4/tcp_fin_timeout", &sysctl_tcp_fin_timeout, 1, 3600, nullptr, nullptr },
     { "net/ipv6/conf/all/forwarding", &sysctl_ipv6_forwarding, 0, 1, nullptr, nullptr },
     { "net/ipv6/conf/all/disable_ipv6", &sysctl_ipv6_disable, 0, 1, nullptr, nullptr },
+    { "net/ipv6/conf/all/hop_limit", &sysctl_ipv6_hop_limit, 1, 255, nullptr, nullptr },
+    { "net/ipv6/conf/all/accept_ra", &sysctl_ipv6_accept_ra, 0, 2, nullptr, nullptr },
+    { "net/ipv6/conf/all/dad_transmits", &sysctl_ipv6_dad_transmits, 0, 10, nullptr, nullptr },
+    { "net/ipv6/conf/all/autoconf", &sysctl_ipv6_autoconf, 0, 1, nullptr, nullptr },
+    { "net/ipv6/icmp/echo_ignore_all", &sysctl_icmpv6_echo_ignore_all, 0, 1, nullptr, nullptr },
 };
 /* the entry under directory (sysi, len) named 'name' (len 0 = /proc/sys); *dir: it is a directory */
 static int sys_child(int sysi, int len, const char *name, size_t nlen, bool *dir) {
@@ -120,7 +129,9 @@ static const struct { const char *name; enum pfile f; } global_files[] = {
 /* /proc/net (M32) */
 static const struct { const char *name; enum pfile f; } net_files[] = {
     { "dev", N_DEV }, { "route", N_ROUTE }, { "arp", N_ARP }, { "tcp", N_TCP }, { "udp", N_UDP }, { "raw", N_RAW },
-    { "unix", N_UNIX }, { "snmp", N_SNMP },
+    { "unix", N_UNIX }, { "snmp", N_SNMP }, { "igmp", N_IGMP },
+    { "igmp6", N_IGMP6 }, { "if_inet6", N_IF_INET6 }, { "ipv6_route", N_IPV6_ROUTE }, { "tcp6", N_TCP6 }, { "udp6", N_UDP6 },
+    { "raw6", N_RAW6 }, { "snmp6", N_SNMP6 }, { "netlink", N_NETLINK }, { "netstat", N_NETSTAT },
 };
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
@@ -389,7 +400,8 @@ static void gen(struct pinfo *pi, struct buf *b) {
         }
         break;
     }
-    case N_DEV: case N_ROUTE: case N_ARP: case N_TCP: case N_UDP: case N_RAW: case N_UNIX: case N_SNMP: {
+    case N_DEV: case N_ROUTE: case N_ARP: case N_TCP: case N_UDP: case N_RAW: case N_UNIX: case N_SNMP: case N_IGMP:
+    case N_IGMP6: case N_IF_INET6: case N_IPV6_ROUTE: case N_TCP6: case N_UDP6: case N_RAW6: case N_SNMP6: case N_NETLINK: case N_NETSTAT: {
         char *t = kmalloc(65536);
         if (t) {
             int n = net_proc_file(pi->file - N_DEV, t, 65536);

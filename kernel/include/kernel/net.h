@@ -30,6 +30,7 @@ static inline uint32_t ntohl(uint32_t v) { return __builtin_bswap32(v); }
 
 #define IPPROTO_IP   0
 #define IPPROTO_ICMP 1
+#define IPPROTO_IGMP 2
 #define IPPROTO_TCP  6
 #define IPPROTO_UDP  17
 #define IPPROTO_RAW  255
@@ -41,7 +42,7 @@ static inline bool ipv4_is_loopback(uint32_t a) { return (ntohl(a) >> 24) == 127
 static inline bool ipv4_is_multicast(uint32_t a) { return (ntohl(a) >> 28) == 14; }
 
 /* ------------------------------------------------------------------ packets */
-#define PKT_HEADROOM 80        /* virtio hdr + ethernet + IP + TCP with options */
+#define PKT_HEADROOM 96        /* virtio hdr + ethernet + IPv6 + hop-by-hop / IPv4 + options */
 
 struct netdev;
 struct pkt {
@@ -81,6 +82,7 @@ void pkt_queue_purge(struct list_node *q);
 #define IFF_RUNNING 0x40
 #define IFF_NOARP 0x80
 #define IFF_PROMISC 0x100
+#define IFF_ALLMULTI 0x200
 #define IFF_MULTICAST 0x1000
 #define ARPHRD_ETHER 1
 #define ARPHRD_LOOPBACK 772
@@ -96,6 +98,9 @@ struct netdev {
     /* transmit a complete ethernet frame; consumes p. Called under net_mutex. */
     void (*xmit)(struct netdev *d, struct pkt *p);
     void *priv;
+    struct list_node mcgroups;       /* struct mc_group: IPv4 (IGMP) and IPv6 (MLD) memberships */
+    int rs_left, hlim6;              /* IPv6: router solicitations still to send; RA hop limit */
+    uint64_t rs_at;
     uint64_t rx_packets, rx_bytes, rx_errors, rx_dropped, tx_packets, tx_bytes, tx_errors, tx_dropped, multicast;
 };
 
@@ -106,6 +111,15 @@ struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, in
                                void (*xmit)(struct netdev *, struct pkt *), void *priv);
 void netdev_unregister(struct netdev *d);        /* net_mutex held; the struct stays allocated */
 void tun_init(void);
+void netdev_set_flags(struct netdev *d, unsigned flags);   /* SIOCSIFFLAGS semantics */
+void net_dev_addr_changed(struct netdev *d);               /* IPv4 address/netmask changed */
+void netdev_up_hook(struct netdev *d);                     /* ip6.c: link-local address, RS */
+void netdev_down_hook(struct netdev *d);
+int route_add(uint32_t dst, uint32_t mask, uint32_t gw, struct netdev *d, int metric, unsigned flags);
+int route_del(uint32_t dst, uint32_t mask, uint32_t gw, struct netdev *d, int metric);
+void arp_dump(void (*cb)(void *ctx, struct netdev *d, uint32_t ip, const uint8_t *mac, int state), void *ctx);
+int arp_set(struct netdev *d, uint32_t ip, const uint8_t *mac, bool perm);
+int arp_del(struct netdev *d, uint32_t ip);
 int net_if_ioctl(uint64_t cmd, void *uarg);   /* SIOC* interface/route/ARP ioctls */
 struct netdev *netdev_by_index(int idx);
 struct netdev *netdev_by_name(const char *name);
@@ -113,6 +127,30 @@ struct netdev *netdev_by_name(const char *name);
 void net_rx(struct netdev *d, struct pkt *p);
 bool net_is_local_addr(uint32_t a);              /* one of our addresses (or 127/8) */
 struct netdev *net_dev_for_local(uint32_t a);
+
+/* ------------------------------------------------------------------ multicast (mcast.c) */
+struct mc_group {
+    struct list_node node;
+    uint8_t addr[16];                /* IPv4: first 4 bytes */
+    bool v6, reporter;
+    int users;
+    uint64_t report_at;              /* pending (solicited or repeated) report, 0: none */
+};
+struct sock;
+int mc_dev_join(struct netdev *d, const void *grp, bool v6);
+int mc_dev_leave(struct netdev *d, const void *grp, bool v6);
+bool mc_dev_has(struct netdev *d, const void *grp, bool v6);
+bool mc_mac_ok(struct netdev *d, const uint8_t *mac);
+void mc_dev_flush(struct netdev *d);
+void mc_query(struct netdev *d, const void *grp, bool v6, uint64_t max_ns);   /* grp nullptr: general */
+void mc_heard_report(struct netdev *d, const void *grp, bool v6);
+void igmp_input(struct pkt *p);
+int sock_mc_join(struct sock *s, const void *grp, bool v6, int ifindex);
+int sock_mc_leave(struct sock *s, const void *grp, bool v6, int ifindex);
+void sock_mc_drop_all(struct sock *s);
+bool sock_mc_allowed(struct sock *s, const void *grp, bool v6, int ifindex);
+int net_proc_igmp(char *buf, size_t max, bool v6);
+void mld_send(struct netdev *d, const uint8_t *grp, int type);   /* ip6.c: 131 report, 132 done */
 
 /* ------------------------------------------------------------------ timers (net_mutex held) */
 struct ntimer {
@@ -159,7 +197,7 @@ uint16_t csum_fold(uint32_t sum);
 uint32_t csum_pseudo(uint32_t s, uint32_t d, uint8_t proto, uint16_t len);
 
 /* build the IP header in front of p->data (the transport payload) and send; consumes p */
-struct ip_opts { uint8_t ttl, tos; bool df; int oif; };
+struct ip_opts { uint8_t ttl, tos; bool df; int oif; bool mcloop, ra; };   /* ra: Router Alert option */
 int ip_output(struct pkt *p, uint32_t src, uint32_t dst, uint8_t proto, const struct ip_opts *o);
 int ip_output_hdrincl(struct pkt *p, int oif);       /* p->data: a complete IP datagram */
 void ip_input(struct netdev *d, struct pkt *p);
@@ -239,15 +277,48 @@ struct sock {
     uint32_t high_rxt;                 /* SACK loss recovery: holes retransmitted below this */
     int quickack;                      /* ACK the next segments at once (after loss) */
     uint32_t rtx_high;                 /* no RTT samples for ACKs below this (retransmitted) */
+    uint64_t head_rtx_ns;              /* when the segment at snd_una was last retransmitted */
+    bool tlp_armed, tlp_sent;          /* tail loss probe pending / sent in this flight */
     void *filter;                      /* SO_ATTACH_FILTER program */
     uint32_t icmp_filter;              /* raw ICMP: ICMP_FILTER type mask */
+    /* multicast (IP_MULTICAST_*, IP_ADD_MEMBERSHIP; IPV6_* equivalents) */
+    uint8_t mc_ttl;
+    bool mc_loop, mc_all;
+    int mc_ifindex;                    /* IP_MULTICAST_IF / IPV6_MULTICAST_IF */
+    uint32_t mc_addr;                  /* IP_MULTICAST_IF by address */
+    struct sock_mc { uint8_t grp[16]; bool v6; int ifindex; } mc[20];
+    int nmc;
+    /* AF_NETLINK */
+    uint32_t nl_pid, nl_groups, nl_dst_pid, nl_dst_groups;
+    /* AF_INET6: v6 = the socket's addresses are IPv6 ones (else it is unbound/wildcard or speaks
+     * IPv4 through v4-mapped addresses in laddr/raddr) */
+    uint8_t laddr6[16], raddr6[16];
+    bool v6, v6only, rx_pktinfo6, rx_hlim6, rx_2292pktinfo, rx_2292hlim, rx_tclass, dontfrag, rx_ttl;
+    int hops6, mc_hops6, tclass6;      /* -1: default */
+    int raw_csum;                      /* IPV6_CHECKSUM offset, -1: none */
+    uint32_t icmp6_filter[8];          /* ICMP6_FILTER: set bits block */
 };
+/* may this socket see IPv4 / IPv6 traffic? */
+static inline bool sock_v4ok(const struct sock *s) {
+    if (s->family == AF_INET) return true;
+    return s->family == AF_INET6 && !s->v6 && !s->v6only && s->type != 3 && !(s->type == 2 && s->protocol == 58);
+}
+static inline bool sock_v6ok(const struct sock *s) { return s->family == AF_INET6 && (s->v6 || (!s->laddr && !s->raddr)); }
+int net_proc_tcp6(char *buf, size_t max);
+int net_proc_udp6(char *buf, size_t max, bool raw);
+int net_proc_netlink(char *buf, size_t max);
+extern struct list_node netlink_socks;
+int netlink_rcv(struct sock *s, const uint8_t *buf, size_t len);   /* a request was sent */
+int netlink_bind(struct sock *s, uint32_t pid, uint32_t groups);
+void netlink_autobind(struct sock *s);
 
 extern struct list_node udp_socks, raw_socks, tcp_socks, packet_socks;
 void sock_changed(struct sock *s);    /* recompute pollmask, wake pollers */
 unsigned sock_poll_mask(struct sock *s);
-uint16_t inet_ephemeral_port(int proto, uint32_t laddr);
-bool inet_port_in_use(int proto, uint32_t laddr, uint16_t port, struct sock *self, bool reuse);
+/* what a binding covers: IPv4 (address a4, 0 = any) and/or IPv6 (a6, :: = any) */
+struct bindid { bool v4, v6; uint32_t a4; uint8_t a6[16]; };
+uint16_t inet_ephemeral_port(int proto, const struct bindid *b);
+bool inet_port_in_use(int proto, const struct bindid *b, uint16_t port, struct sock *self, bool reuse);
 void sock_queue_rx(struct sock *s, struct pkt *p);   /* datagram queue (respects rcvbuf) */
 void sock_free(struct sock *s);
 
@@ -276,6 +347,7 @@ void tcp_recv_window_update(struct sock *s);
 void tcp_abort(struct sock *s, int err);
 int net_proc_tcp(char *buf, size_t max);
 extern int sysctl_ip_forward, sysctl_ip_default_ttl, sysctl_somaxconn, sysctl_ipv6_forwarding, sysctl_ipv6_disable;
+extern int sysctl_ipv6_hop_limit, sysctl_ipv6_accept_ra, sysctl_ipv6_dad_transmits, sysctl_ipv6_autoconf, sysctl_icmpv6_echo_ignore_all;
 extern int sysctl_tcp_window_scaling, sysctl_tcp_timestamps, sysctl_tcp_sack, sysctl_tcp_fin_timeout;
 void ring_free(struct ring *r);
 int net_proc_udp(char *buf, size_t max, bool raw);
