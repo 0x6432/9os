@@ -54,8 +54,12 @@ int64_t sys_fchown();
 int64_t sys_fchownat();
 int64_t sys_fcntl();
 int64_t sys_fdatasync();
+int64_t sys_fgetxattr();
+int64_t sys_flistxattr();
 int64_t sys_flock();
 int64_t sys_fork();
+int64_t sys_fremovexattr();
+int64_t sys_fsetxattr();
 int64_t sys_fstat();
 int64_t sys_fstatfs();
 int64_t sys_fsync();
@@ -88,6 +92,7 @@ int64_t sys_getsockopt();
 int64_t sys_gettid();
 int64_t sys_gettimeofday();
 int64_t sys_getuid();
+int64_t sys_getxattr();
 int64_t sys_inotify_add_watch();
 int64_t sys_inotify_init();
 int64_t sys_inotify_init1();
@@ -95,10 +100,15 @@ int64_t sys_inotify_rm_watch();
 int64_t sys_ioctl();
 int64_t sys_kill();
 int64_t sys_lchown();
+int64_t sys_lgetxattr();
 int64_t sys_link();
 int64_t sys_linkat();
 int64_t sys_listen();
+int64_t sys_listxattr();
+int64_t sys_llistxattr();
+int64_t sys_lremovexattr();
 int64_t sys_lseek();
+int64_t sys_lsetxattr();
 int64_t sys_lstat();
 int64_t sys_madvise();
 int64_t sys_membarrier();
@@ -146,6 +156,7 @@ int64_t sys_reboot();
 int64_t sys_recvfrom();
 int64_t sys_recvmmsg();
 int64_t sys_recvmsg();
+int64_t sys_removexattr();
 int64_t sys_rename();
 int64_t sys_renameat();
 int64_t sys_renameat2();
@@ -193,6 +204,7 @@ int64_t sys_setrlimit();
 int64_t sys_setsid();
 int64_t sys_setsockopt();
 int64_t sys_setuid();
+int64_t sys_setxattr();
 int64_t sys_shutdown();
 int64_t sys_sigaltstack();
 int64_t sys_signalfd();
@@ -235,6 +247,42 @@ int64_t sys_writev();
 int64_t sys_zero();
 
 static const syscall_fn syscall_table[NR_SYSCALLS] = {
+#ifdef __NR_setxattr
+    [__NR_setxattr] = (syscall_fn)sys_setxattr,
+#endif
+#ifdef __NR_lsetxattr
+    [__NR_lsetxattr] = (syscall_fn)sys_lsetxattr,
+#endif
+#ifdef __NR_fsetxattr
+    [__NR_fsetxattr] = (syscall_fn)sys_fsetxattr,
+#endif
+#ifdef __NR_getxattr
+    [__NR_getxattr] = (syscall_fn)sys_getxattr,
+#endif
+#ifdef __NR_lgetxattr
+    [__NR_lgetxattr] = (syscall_fn)sys_lgetxattr,
+#endif
+#ifdef __NR_fgetxattr
+    [__NR_fgetxattr] = (syscall_fn)sys_fgetxattr,
+#endif
+#ifdef __NR_listxattr
+    [__NR_listxattr] = (syscall_fn)sys_listxattr,
+#endif
+#ifdef __NR_llistxattr
+    [__NR_llistxattr] = (syscall_fn)sys_llistxattr,
+#endif
+#ifdef __NR_flistxattr
+    [__NR_flistxattr] = (syscall_fn)sys_flistxattr,
+#endif
+#ifdef __NR_removexattr
+    [__NR_removexattr] = (syscall_fn)sys_removexattr,
+#endif
+#ifdef __NR_lremovexattr
+    [__NR_lremovexattr] = (syscall_fn)sys_lremovexattr,
+#endif
+#ifdef __NR_fremovexattr
+    [__NR_fremovexattr] = (syscall_fn)sys_fremovexattr,
+#endif
 #ifdef __NR_getcwd
     [__NR_getcwd] = (syscall_fn)sys_getcwd,
 #endif

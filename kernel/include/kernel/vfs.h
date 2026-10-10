@@ -95,7 +95,16 @@ struct inode_ops {
     void (*evict)(struct inode *ino);
     /* magic links (procfs): resolve directly to an inode */
     int (*follow_link)(struct inode *ino, struct inode **out);
+    /* extended attributes (M33): full names ("user.foo"). get/list return the length (size 0:
+     * the length needed, -ERANGE if buf is too small); set with val == nullptr removes. */
+    int (*getxattr)(struct inode *ino, const char *name, void *buf, size_t size);
+    int (*setxattr)(struct inode *ino, const char *name, const void *val, size_t size, int flags);
+    int (*listxattr)(struct inode *ino, char *buf, size_t size);
 };
+#define XATTR_CREATE 1
+#define XATTR_REPLACE 2
+#define XATTR_NAME_MAX 255
+#define XATTR_SIZE_MAX 65536
 
 struct file_ops {
     bool nobkl;             /* read/write are safe without the BKL (see pipe.c) */
@@ -132,6 +141,7 @@ struct inode {
     struct super_block *sb;          /* owning filesystem instance, null for pseudo files */
     struct list_node i_hash, i_lru;  /* filesystem inode cache (sb-owned inodes) */
     uint32_t i_state;
+    struct list_node *xattrs;        /* in-memory extended attributes (tmpfs), see xattr.c */
 };
 
 /*
@@ -286,6 +296,11 @@ int vfs_mount(const char *path, struct inode *root);
 int vfs_getcwd(struct inode *cwd, char *buf, size_t size);
 void vfs_ns_lock(void);            /* recursive namespace mutex (see vfs.c) */
 void vfs_ns_unlock(void);
+/* in-memory xattrs (xattr.c) for filesystems without on-disk storage */
+int simple_getxattr(struct inode *i, const char *name, void *buf, size_t size);
+int simple_setxattr(struct inode *i, const char *name, const void *val, size_t size, int flags);
+int simple_listxattr(struct inode *i, char *buf, size_t size);
+void simple_xattrs_free(struct inode *i);
 
 /* filesystems */
 struct inode *tmpfs_create_root(void);

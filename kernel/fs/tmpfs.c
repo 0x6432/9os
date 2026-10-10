@@ -277,6 +277,7 @@ static const struct inode_ops tmpfs_iops = {
     .lookup = t_lookup, .create = t_create, .unlink = t_unlink, .symlink = t_symlink,
     .readlink = t_readlink, .link = t_link, .rename = t_rename, .truncate = t_truncate,
     .iterate = t_iterate, .evict = t_evict,
+    .getxattr = simple_getxattr, .setxattr = simple_setxattr, .listxattr = simple_listxattr,
 };
 /* file_ops.fault_page: runs under mm->lock (atomic). Returns the page with a reference. */
 static int t_fault_page(struct inode *ino, uint64_t pgoff, bool shared, paddr_t *out) {

@@ -177,6 +177,7 @@ void iput(struct inode *i) {
     if (i->sb) { sb_iput(i); return; }
     if (__atomic_sub_fetch(&i->refcount, 1, __ATOMIC_ACQ_REL) <= 0 && i->nlink == 0) {
         if (i->iops && i->iops->evict) i->iops->evict(i);
+        simple_xattrs_free(i);
         kfree(i);
     }
 }
