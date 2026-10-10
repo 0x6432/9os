@@ -20,9 +20,10 @@ int net_proc_file(int which, char *buf, size_t max);
 #include <kernel/sched.h>
 #include <arch/syscall.h>
 
+int locks_report(char *buf, int cap);
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR, P_SYSDIR };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS,
+             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS, G_LOCKS,
              N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP, N_IGMP,
              N_IGMP6, N_IF_INET6, N_IPV6_ROUTE, N_TCP6, N_UDP6, N_RAW6, N_SNMP6, N_NETLINK, N_NETSTAT, S_SYSCTL };
 /* P_SYSDIR: the /proc/sys directory whose path is sysctls[sysi].path[0, syslen) */
@@ -124,7 +125,7 @@ static const struct { const char *name; enum pfile f; } global_files[] = {
     { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cpuinfo", G_CPUINFO },
     { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS }, { "sched", G_SCHED },
     { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP }, { "hardening", G_HARDEN }, { "interrupts", G_INTERRUPTS },
-    { "partitions", G_PARTITIONS }, { "diskstats", G_DISKSTATS },
+    { "partitions", G_PARTITIONS }, { "diskstats", G_DISKSTATS }, { "locks", G_LOCKS },
 };
 /* /proc/net (M32) */
 static const struct { const char *name; enum pfile f; } net_files[] = {
@@ -394,11 +395,12 @@ static void gen(struct pinfo *pi, struct buf *b) {
             bprintf(b, "processor\t: %d\nvendor_id\t: 9os\nmodel name\t: 9os virtual CPU (%s)\nhwid\t\t: 0x%lx\nflags\t\t: fpu sse sse2\n\n",
                     i, ARCH_PLATFORM, cpus[i].hwid);
         break;
-    case G_MOUNTS: case G_FILESYSTEMS: case G_PARTITIONS: case G_DISKSTATS: {
+    case G_MOUNTS: case G_FILESYSTEMS: case G_PARTITIONS: case G_DISKSTATS: case G_LOCKS: {
         char *t = kmalloc(8192);
         if (t) {
             int n = pi->file == G_MOUNTS ? vfs_proc_mounts(t, 8192) : pi->file == G_FILESYSTEMS ? vfs_proc_filesystems(t, 8192)
-                  : pi->file == G_PARTITIONS ? blk_proc_partitions(t, 8192) : blk_proc_diskstats(t, 8192);
+                  : pi->file == G_PARTITIONS ? blk_proc_partitions(t, 8192) : pi->file == G_LOCKS ? locks_report(t, 8192)
+                  : blk_proc_diskstats(t, 8192);
             if (b->len + n + 1 > b->cap) { b->cap = b->len + n + 1; b->data = krealloc(b->data, b->cap); }
             memcpy(b->data + b->len, t, n);
             b->len += n;
