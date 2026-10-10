@@ -94,6 +94,22 @@ void trap_dispatch(struct trap_frame *f) {
             else if (c == 3) {
                 sig = SIGTRAP; code = TRAP_BRKPT; addr = f->sepc;
                 if (current->pt_ss_n && ptrace_step_trap(current, f->sepc)) code = TRAP_TRACE;   /* software step */
+                else if (current->arch.hwdbg) {             /* an SBI debug trigger, not an ebreak? */
+                    uint16_t lo = 0, hi = 0;
+                    copy_from_user(&lo, (void *)f->sepc, 2);
+                    if ((lo & 3) == 3) copy_from_user(&hi, (void *)(f->sepc + 2), 2);
+                    uint32_t in = lo | (uint32_t)hi << 16;
+                    if (lo != 0x9002 && in != 0x00100073) {
+                        code = TRAP_HWBKPT;
+                        bool exec = false;
+                        for (int i = 0; i < 16; i++) exec |= (current->arch.bcr[i] & 1) && current->arch.bvr[i] == f->sepc;
+                        if (!exec) {
+                            addr = f->stval;
+                            if (!addr || addr == f->sepc)
+                                for (int i = 15; i >= 0; i--) if (current->arch.wcr[i] & 1) addr = current->arch.wvr[i];
+                        }
+                    }
+                }
             }
             else if (c == 0 || c == 4 || c == 6) { sig = SIGBUS; code = BUS_ADRALN; }
             signal_force_info(current, sig, code, addr);

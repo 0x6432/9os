@@ -620,13 +620,13 @@ struct pt_iovec { uint64_t base, len; };
 
 #define NT_ARM_HW_BREAK 0x402
 #define NT_ARM_HW_WATCH 0x403
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__riscv)
 /* struct user_hwdebug_state: u32 dbg_info, u32 pad, { u64 addr; u32 ctrl; u32 pad; } regs[16].
  * ctrl uses the DBGBCR/DBGWCR layout: E (bit 0), privilege (2:1, only EL0 = 2), LSC (4:3,
  * watchpoints: 1 load, 2 store, 3 both), byte address select (12:5). */
-int a64_num_brps(void), a64_num_wrps(void);
+int arch_num_brps(void), arch_num_wrps(void);   /* riscv64: same layout over SBI debug triggers (9os extension) */
 static size_t hwdebug_get(struct thread *t, bool watch, uint8_t *buf) {
-    int n = watch ? a64_num_wrps() : a64_num_brps();
+    int n = watch ? arch_num_wrps() : arch_num_brps();
     memset(buf, 0, 8 + 16 * 16);
     uint32_t info = (6u << 8) | (uint32_t)n;           /* debug architecture ARMv8 */
     memcpy(buf, &info, 4);
@@ -639,7 +639,7 @@ static size_t hwdebug_get(struct thread *t, bool watch, uint8_t *buf) {
     return 8 + 16 * (size_t)n;
 }
 static int hwdebug_set(struct thread *t, bool watch, const uint8_t *buf, size_t len) {
-    int n = watch ? a64_num_wrps() : a64_num_brps();
+    int n = watch ? arch_num_wrps() : arch_num_brps();
     if (len < 8) return 0;
     size_t cnt = (len - 8) / 16;
     if (cnt > (size_t)n) return -ENOSPC;
@@ -652,6 +652,12 @@ static int hwdebug_set(struct thread *t, bool watch, const uint8_t *buf, size_t 
         if (((c >> 1) & 3) != 2) return -EINVAL;               /* EL0 only */
         if (addr[i] >= 0x1000000000000ULL) return -EINVAL;
         uint32_t bas = (c >> 5) & 0xff;
+#if defined(__riscv)
+        if (addr[i] >= 0x800000000000ULL || (!watch && (addr[i] & 1))) return -EINVAL;
+        if (watch && (!((c >> 3) & 3) || !bas)) return -EINVAL;
+        ctrl[i] = watch ? (c & 0x1fff) : (c & 7) | (0xf << 5);
+        continue;
+#endif
         if (watch) {
             if (!((c >> 3) & 3) || !bas || (addr[i] & 7)) return -EINVAL;
             ctrl[i] = c & 0x1fff;
@@ -682,6 +688,8 @@ static int64_t regset(struct thread *t, bool set, int type, struct pt_iovec *uio
 #if defined(__aarch64__)
     case NT_ARM_TLS: size = 8; memcpy(buf, &t->arch.tpidr, 8); break;
     case NT_ARM_SYSTEM_CALL: { size = 4; int32_t n = t->pt_sc_nr; memcpy(buf, &n, 4); break; }
+#endif
+#if defined(__aarch64__) || defined(__riscv)
     case NT_ARM_HW_BREAK: case NT_ARM_HW_WATCH: size = hwdebug_get(t, type == NT_ARM_HW_WATCH, buf); break;
 #endif
     default: return -EINVAL;
@@ -699,6 +707,8 @@ static int64_t regset(struct thread *t, bool set, int type, struct pt_iovec *uio
 #if defined(__aarch64__)
         case NT_ARM_TLS: memcpy(&t->arch.tpidr, buf, 8); break;
         case NT_ARM_SYSTEM_CALL: { int32_t v; memcpy(&v, buf, 4); t->pt_sc_nr = v; break; }
+#endif
+#if defined(__aarch64__) || defined(__riscv)
         case NT_ARM_HW_BREAK: case NT_ARM_HW_WATCH: r = hwdebug_set(t, type == NT_ARM_HW_WATCH, buf, n); break;
 #endif
         }

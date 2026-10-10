@@ -110,8 +110,8 @@ static void dbg_count(void) {
     if (nbrps > 16) nbrps = 16;
     if (nwrps > 16) nwrps = 16;
 }
-int a64_num_brps(void) { dbg_count(); return nbrps; }
-int a64_num_wrps(void) { dbg_count(); return nwrps; }
+int arch_num_brps(void) { dbg_count(); return nbrps; }
+int arch_num_wrps(void) { dbg_count(); return nwrps; }
 static void dbg_load(struct thread *t) {
     dbg_count();
     for (int i = 0; i < nbrps; i++) dbg_b(i, t ? t->arch.bvr[i] : 0, t ? t->arch.bcr[i] : 0);
