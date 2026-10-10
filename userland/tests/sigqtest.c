@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/ptrace.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
@@ -259,7 +260,61 @@ static void test_pidfd(void) {
     close(fd); close(pp[0]); close(pp[1]);
 }
 
+/* nanosleep/clock_nanosleep resume transparently across stop/continue and ptrace attach
+ * (restart_syscall with the remaining time); a caught signal still gives EINTR */
+static long ms_now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec * 1000 + t.tv_nsec / 1000000; }
+static void on_usr1(int s) { (void)s; }
+static pid_t sleeper(int abs) {
+    pid_t c = fork();
+    if (!c) {
+        long t0 = ms_now();
+        int r;
+        if (abs) {
+            struct timespec d; clock_gettime(CLOCK_MONOTONIC, &d);
+            d.tv_nsec += 600000000L; if (d.tv_nsec >= 1000000000L) { d.tv_sec++; d.tv_nsec -= 1000000000L; }
+            r = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &d, NULL);
+        } else {
+            struct timespec d = { 0, 600000000L };
+            r = nanosleep(&d, NULL);
+        }
+        long el = ms_now() - t0;
+        _exit(r == 0 && el >= 590 && el < 3000 ? 0 : r ? 2 : 3);
+    }
+    return c;
+}
+static void test_restart(void) {
+    for (int abs = 0; abs < 2; abs++) {
+        pid_t c = sleeper(abs);
+        usleep(100000);
+        kill(c, SIGSTOP);
+        int st;
+        CHECK(waitpid(c, &st, WUNTRACED) == c && WIFSTOPPED(st), "stopped");
+        usleep(100000);
+        kill(c, SIGCONT);
+        CHECK(waitpid(c, &st, 0) == c && WIFEXITED(st) && WEXITSTATUS(st) == 0, "sleep across stop (abs=%d): %x", abs, st);
+        c = sleeper(abs);
+        usleep(100000);
+        CHECK(ptrace(PTRACE_ATTACH, c, 0, 0) == 0, "attach");
+        CHECK(waitpid(c, &st, 0) == c && WIFSTOPPED(st), "attach stop");
+        usleep(50000);
+        CHECK(ptrace(PTRACE_DETACH, c, 0, 0) == 0, "detach");
+        CHECK(waitpid(c, &st, 0) == c && WIFEXITED(st) && WEXITSTATUS(st) == 0, "sleep across ptrace attach (abs=%d): %x", abs, st);
+    }
+    pid_t c = fork();
+    if (!c) {
+        signal(SIGUSR1, on_usr1);
+        struct timespec d = { 2, 0 }, rem = { 0, 0 };
+        int r = nanosleep(&d, &rem);
+        _exit(r < 0 && errno == EINTR && rem.tv_sec >= 1 ? 0 : 1);
+    }
+    usleep(200000);
+    kill(c, SIGUSR1);
+    int st;
+    CHECK(waitpid(c, &st, 0) == c && WIFEXITED(st) && WEXITSTATUS(st) == 0, "handled signal: EINTR + rem");
+}
+
 int main(void) {
+    test_restart(); fprintf(stderr, "sigqtest: restart done\n");
     test_queue();  fprintf(stderr, "sigqtest: queue done\n");
     test_timers(); fprintf(stderr, "sigqtest: timers done\n");
     test_robust(); fprintf(stderr, "sigqtest: robust done\n");

@@ -66,11 +66,19 @@ static void *cvwaiter(void *a) {
     return 0;
 }
 
-/* 4: CMP_REQUEUE wakes everyone parked on the word */
+/* 4: CMP_REQUEUE wakes one, moves the rest to rq2 */
 static volatile uint32_t rq, rq2, parked;
 static void *rqwaiter(void *a) {
     __atomic_add_fetch(&parked, 1, __ATOMIC_RELEASE);
     while (__atomic_load_n(&rq, __ATOMIC_ACQUIRE) == 0) fx(&rq, FUTEX_WAIT | FUTEX_PRIVATE, 0, 0, 0, 0);
+    return 0;
+}
+/* 5: requeued waiters really move to the second word */
+static volatile uint32_t mq, mq2, mparked, mdone;
+static void *mqwaiter(void *a) {
+    __atomic_add_fetch(&mparked, 1, __ATOMIC_RELEASE);
+    fx(&mq, FUTEX_WAIT | FUTEX_PRIVATE, 0, 0, 0, 0);
+    __atomic_add_fetch(&mdone, 1, __ATOMIC_RELEASE);
     return 0;
 }
 static void *nothing(void *a) { return a; }
@@ -124,9 +132,22 @@ int main(void) {
     CHECK(fx(&rq, FUTEX_CMP_REQUEUE | FUTEX_PRIVATE, 1, (void *)(uintptr_t)INT32_MAX, &rq2, 7) == -EAGAIN, "CMP_REQUEUE mismatch");
     rq = 1;
     long woke = fx(&rq, FUTEX_CMP_REQUEUE | FUTEX_PRIVATE, 1, (void *)(uintptr_t)INT32_MAX, &rq2, 1);
+    fx(&rq2, FUTEX_WAKE | FUTEX_PRIVATE, INT32_MAX, 0, 0, 0);     /* the requeued ones */
     for (int i = 0; i < NT; i++) pthread_join(t[i], 0);
     CHECK(woke >= 0 && woke <= NT, "CMP_REQUEUE woke=%ld", woke);
 
+    for (long i = 0; i < NT; i++) pthread_create(&t[i], 0, mqwaiter, 0);
+    while (__atomic_load_n(&mparked, __ATOMIC_ACQUIRE) < NT) usleep(1000);
+    usleep(50000);                                /* all asleep in FUTEX_WAIT on mq */
+    long moved = fx(&mq, FUTEX_CMP_REQUEUE | FUTEX_PRIVATE, 1, (void *)(uintptr_t)INT32_MAX, &mq2, 0);
+    CHECK(moved == NT, "CMP_REQUEUE woke+moved=%ld", moved);
+    usleep(50000);
+    CHECK(__atomic_load_n(&mdone, __ATOMIC_ACQUIRE) == 1, "only one woken: %u", mdone);
+    CHECK(fx(&mq, FUTEX_WAKE | FUTEX_PRIVATE, INT32_MAX, 0, 0, 0) == 0, "nobody left on mq");
+    long w2 = fx(&mq2, FUTEX_WAKE | FUTEX_PRIVATE, INT32_MAX, 0, 0, 0);
+    CHECK(w2 == NT - 1, "requeued waiters on mq2: %ld", w2);
+    for (int i = 0; i < NT; i++) pthread_join(t[i], 0);
+    CHECK(mdone == NT, "all done");
     fprintf(stderr, "futextest: requeue done\n");
     for (int i = 0; i < 300; i++) { pthread_t x; pthread_create(&x, 0, nothing, 0); pthread_join(x, 0); }
 
