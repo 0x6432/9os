@@ -1433,6 +1433,7 @@ static void e2_evict(struct inode *i) {
         ifree(fs, (uint32_t)i->ino, S_ISDIR(i->mode));
     }
     struct inode *p = i->parent;
+    acl_forget(i);
     kfree(ei);
     if (p && p != i) iput(p);
 }

@@ -178,6 +178,7 @@ void iput(struct inode *i) {
     if (__atomic_sub_fetch(&i->refcount, 1, __ATOMIC_ACQ_REL) <= 0 && i->nlink == 0) {
         if (i->iops && i->iops->evict) i->iops->evict(i);
         simple_xattrs_free(i);
+        acl_forget(i);
         kfree(i);
     }
 }
@@ -282,10 +283,12 @@ int cred_inode_permission(const struct cred *c, struct inode *i, int mask) {
     uint32_t m = i->mode, bits;
     if ((mask & MAY_WRITE) && i->sb && (i->sb->flags & SB_RDONLY) && (S_ISREG(m) || S_ISDIR(m) || S_ISLNK(m)))
         return -EROFS;
+    int acl = 1;
     if (c->fsuid == i->uid) bits = m >> 6;
+    else if (!(acl = acl_permission(c, i, mask))) return 0;
     else if (in_group(c, i->gid)) bits = m >> 3;
     else bits = m;
-    if ((bits & mask & 7) == (unsigned)mask) return 0;
+    if (acl > 0 && (bits & mask & 7) == (unsigned)mask) return 0;
     if (S_ISDIR(m)) {
         if (!(mask & MAY_WRITE) && cred_capable(c, CAP_DAC_READ_SEARCH)) return 0;
         if (cred_capable(c, CAP_DAC_OVERRIDE)) return 0;
@@ -336,6 +339,7 @@ int vfs_setattr_mode(struct inode *i, uint32_t mode) {
     i->mode = (i->mode & S_IFMT) | mode;
     i->ctime = now_timespec();
     mark_inode_dirty(i);
+    acl_chmod(i);
     return 0;
 }
 
@@ -490,13 +494,12 @@ static int open_prepare(struct inode *base, const char *path, int flags, uint32_
         struct inode *dir; char last[256];
         r = vfs_lookup_parent_at_l(base, path, &dir, last);
         if (r) return r;
-        uint32_t um = curproc ? curproc->umask : 022;
         if (!dir->iops->create) { iput(dir); return -EROFS; }
         if ((r = may_create(dir))) { iput(dir); return r; }
         created = true;
-        r = dir->iops->create(dir, last, S_IFREG | (mode & 07777 & ~um), 0, &ino);
+        r = dir->iops->create(dir, last, S_IFREG | acl_create_mode(dir, mode & 07777), 0, &ino);
         dcache_forget(dir, last);
-        if (!r) fsnotify_dirent(dir, last, IN_CREATE, false, 0);
+        if (!r) { acl_inherit(dir, ino); fsnotify_dirent(dir, last, IN_CREATE, false, 0); }
         iput(dir);
         if (r) return r;
     } else if (r) {
@@ -613,16 +616,17 @@ static int vfs_mknod_at_l(struct inode *base, const char *path, uint32_t mode, u
     if (!lookup_child(dir, last, &ex)) { iput(ex); iput(dir); return -EEXIST; }
     if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD)) { iput(dir); return -EPERM; }
     if ((r = may_create(dir))) { iput(dir); return r; }
+    if (mode & VFS_MODE_UMASK) mode = (mode & S_IFMT) | acl_create_mode(dir, mode & 07777);
     r = dir->iops->create(dir, last, mode, rdev, &ino);
     dcache_forget(dir, last);
+    if (!r) acl_inherit(dir, ino);
     if (!r) { fsnotify_dirent(dir, last, IN_CREATE, S_ISDIR(mode), 0); iput(ino); }
     iput(dir);
     return r;
 }
 
 int vfs_mkdir_at(struct inode *base, const char *path, uint32_t mode) {
-    uint32_t um = curproc ? curproc->umask : 022;
-    return vfs_mknod_at(base, path, S_IFDIR | (mode & 07777 & ~um), 0);
+    return vfs_mknod_at(base, path, S_IFDIR | (mode & 07777) | VFS_MODE_UMASK, 0);
 }
 
 static int vfs_unlink_at_l(struct inode *base, const char *path, bool rmdir) {

@@ -142,6 +142,7 @@ struct inode {
     struct list_node i_hash, i_lru;  /* filesystem inode cache (sb-owned inodes) */
     uint32_t i_state;
     struct list_node *xattrs;        /* in-memory extended attributes (tmpfs), see xattr.c */
+    struct posix_acl *i_acl[2];      /* cached access/default ACL (acl.c), null: not loaded */
 };
 
 /*
@@ -301,6 +302,16 @@ int simple_getxattr(struct inode *i, const char *name, void *buf, size_t size);
 int simple_setxattr(struct inode *i, const char *name, const void *val, size_t size, int flags);
 int simple_listxattr(struct inode *i, char *buf, size_t size);
 void simple_xattrs_free(struct inode *i);
+/* POSIX ACLs (acl.c) */
+struct cred;
+int acl_type(const char *name);                  /* 0 access, 1 default, -1 not an ACL name */
+int acl_permission(const struct cred *c, struct inode *i, int mask);   /* 1: no ACL */
+int acl_xattr_set(struct inode *i, int type, const void *val, size_t size);
+void acl_chmod(struct inode *i);
+uint32_t acl_create_mode(struct inode *dir, uint32_t mode);   /* umask unless default ACL */
+void acl_inherit(struct inode *dir, struct inode *child);
+void acl_forget(struct inode *i);
+#define VFS_MODE_UMASK 0x80000000u               /* vfs_mknod_at: apply umask/default ACL */
 
 /* filesystems */
 struct inode *tmpfs_create_root(void);

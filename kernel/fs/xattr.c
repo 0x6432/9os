@@ -5,7 +5,8 @@
  *
  * Namespaces: user.* (regular files and directories only, DAC read/write permission),
  * trusted.* (CAP_SYS_ADMIN; hidden from listxattr otherwise), security.* (anyone reads,
- * CAP_SYS_ADMIN writes, no LSM). system.* (POSIX ACLs) and unknown prefixes: EOPNOTSUPP.
+ * CAP_SYS_ADMIN writes, no LSM), system.posix_acl_access/default (anyone reads, the owner or
+ * CAP_FOWNER writes, validated and mirrored into the mode by acl.c). Others: EOPNOTSUPP.
  */
 #include <kernel/vfs.h>
 #include <kernel/kmalloc.h>
@@ -102,11 +103,12 @@ void simple_xattrs_free(struct inode *i) {
 }
 
 /* ---- permission rules ---- */
-enum { NS_USER, NS_TRUSTED, NS_SECURITY, NS_BAD };
+enum { NS_USER, NS_TRUSTED, NS_SECURITY, NS_ACL, NS_BAD };
 static int ns_of(const char *name) {
     if (!strncmp(name, "user.", 5) && name[5]) return NS_USER;
     if (!strncmp(name, "trusted.", 8) && name[8]) return NS_TRUSTED;
     if (!strncmp(name, "security.", 9) && name[9]) return NS_SECURITY;
+    if (acl_type(name) >= 0) return NS_ACL;
     return NS_BAD;
 }
 
@@ -117,6 +119,7 @@ static int xattr_perm(struct inode *i, const char *name, int mask) {
     switch (ns) {
     case NS_TRUSTED: return capable(CAP_SYS_ADMIN) ? 0 : -EPERM;
     case NS_SECURITY: return (mask & MAY_WRITE) && !capable(CAP_SYS_ADMIN) ? -EPERM : 0;
+    case NS_ACL: return (mask & MAY_WRITE) && !inode_owner_or_capable(i) ? -EPERM : 0;
     default:
         if (!S_ISREG(i->mode) && !S_ISDIR(i->mode)) return mask & MAY_WRITE ? -EPERM : -ENODATA;
         return inode_permission(i, mask);
@@ -143,7 +146,8 @@ static int64_t do_setxattr(struct inode *i, const char *uname, const void *uval,
     void *kv = kmalloc(size ? size : 1);
     if (!kv) return -ENOMEM;
     if (size && copy_from_user(kv, uval, size)) { kfree(kv); return -EFAULT; }
-    r = i->iops->setxattr(i, name, kv, size, flags);
+    int t = acl_type(name);
+    r = t >= 0 ? acl_xattr_set(i, t, kv, size) : i->iops->setxattr(i, name, kv, size, flags);
     kfree(kv);
     if (!r) { i->ctime = now_timespec(); mark_inode_dirty(i); fsnotify_inode(i, IN_ATTRIB); }
     return r;
@@ -170,7 +174,8 @@ static int64_t do_removexattr(struct inode *i, const char *uname) {
     if (r) return r;
     if ((r = xattr_perm(i, name, MAY_WRITE))) return r;
     if (!i->iops || !i->iops->setxattr) return -EOPNOTSUPP;
-    r = i->iops->setxattr(i, name, nullptr, 0, XATTR_REPLACE);
+    int t = acl_type(name);
+    r = t >= 0 ? acl_xattr_set(i, t, nullptr, 0) : i->iops->setxattr(i, name, nullptr, 0, XATTR_REPLACE);
     if (!r) { i->ctime = now_timespec(); mark_inode_dirty(i); fsnotify_inode(i, IN_ATTRIB); }
     return r;
 }

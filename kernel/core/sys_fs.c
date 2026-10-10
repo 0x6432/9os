@@ -583,7 +583,7 @@ int64_t sys_mknodat(int dirfd, const char *upath, uint32_t mode, uint64_t dev) {
     struct inode *base;
     int64_t r = dirfd_base(dirfd, path, &base);
     if (!(mode & S_IFMT)) mode |= S_IFREG;
-    if (!r) r = vfs_mknod_at(base, path, mode & ~curproc->umask, dev);
+    if (!r) r = vfs_mknod_at(base, path, (mode & (S_IFMT | 07777)) | VFS_MODE_UMASK, dev);
     kfree(path);
     return r;
 }
