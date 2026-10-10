@@ -563,6 +563,7 @@ int vfs_open(const char *path, int flags, uint32_t mode, struct file **out) {
     return vfs_open_at(nullptr, path, flags, mode, out);
 }
 
+void locks_release_file(struct file *f);   /* locks.c */
 void vfs_close(struct file *f) {
     if (__atomic_sub_fetch(&f->refcount, 1, __ATOMIC_ACQ_REL) > 0) return;
     /* the last reference may be dropped by a lock-free syscall: release under the BKL */
@@ -570,6 +571,7 @@ void vfs_close(struct file *f) {
     if (took) bkl_enter();
     if (f->inode && (S_ISREG(f->inode->mode) || S_ISDIR(f->inode->mode)) && !(f->flags & O_PATH))
         fsnotify_file(f, (f->flags & O_ACCMODE) != O_RDONLY ? IN_CLOSE_WRITE_ : IN_CLOSE_NOWRITE);
+    locks_release_file(f);
     if (f->fops && f->fops->release) f->fops->release(f);
     iput(f->inode);
     kfree(f->path);

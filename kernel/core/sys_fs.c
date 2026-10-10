@@ -66,6 +66,7 @@ struct file *fd_get_ref(int fd) {
 }
 
 /* swap a slot under fd_lock; returns the previous file (caller closes it) */
+void locks_close_posix(struct process *p, struct file *f);   /* fs/locks.c */
 struct file *fd_slot_set(struct process *p, int fd, struct file *f) {
     uint64_t fl = spin_lock_irqsave(&p->fd_lock);
     struct file *old = p->fds[fd];
@@ -82,7 +83,7 @@ int fd_install(int fd, struct file *f, bool cloexec) {
     p->fds[fd] = f;
     cloexec_set(p, fd, cloexec);
     spin_unlock_irqrestore(&p->fd_lock, fl);
-    if (old) vfs_close(old);
+    if (old) { locks_close_posix(p, old); vfs_close(old); }
     return fd;
 }
 
@@ -110,6 +111,7 @@ int fd_close(int fd) {
     cloexec_set(p, fd, false);
     spin_unlock_irqrestore(&p->fd_lock, fl);
     if (!f) return -EBADF;
+    locks_close_posix(p, f);
     vfs_close(f);
     return 0;
 }
@@ -136,7 +138,7 @@ void files_close_on_exec(struct process *p) {
         struct file *f = nullptr;
         if (p->fds[i] && cloexec_get(p, i)) { f = p->fds[i]; p->fds[i] = nullptr; cloexec_set(p, i, false); }
         spin_unlock_irqrestore(&p->fd_lock, fl);
-        if (f) vfs_close(f);
+        if (f) { locks_close_posix(p, f); vfs_close(f); }
     }
 }
 
@@ -453,6 +455,7 @@ int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
     return r;
 }
 
+int64_t fcntl_lock(struct file *f, int cmd, void *uarg);   /* fs/locks.c */
 int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
@@ -472,13 +475,9 @@ int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
         while (!__atomic_compare_exchange_n(&f->flags, &o, n, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED));
         return 0;
     }
-    case F_GETLK: {
-        struct { int16_t type, whence; int64_t start, len; int32_t pid; } fl;
-        if (copy_from_user(&fl, (void *)arg, sizeof fl)) return -EFAULT;
-        fl.type = 2;   /* F_UNLCK */
-        return copy_to_user((void *)arg, &fl, sizeof fl);
-    }
-    case F_SETLK: case F_SETLKW: return 0;
+    case F_GETLK: case F_SETLK: case F_SETLKW:
+    case 36: case 37: case 38:            /* F_OFD_GETLK / F_OFD_SETLK / F_OFD_SETLKW */
+        return fcntl_lock(f, cmd, (void *)arg);
     default: return -EINVAL;
     }
 }

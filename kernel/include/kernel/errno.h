@@ -67,3 +67,7 @@
 #define EHOSTUNREACH 113
 #define EALREADY 114
 #define EINPROGRESS 115
+#define ENOLCK 37
+#define ENODATA 61
+#define EWOULDBLOCK 11
+#define EOVERFLOW 75

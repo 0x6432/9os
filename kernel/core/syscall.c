@@ -54,6 +54,7 @@ int64_t sys_fchown();
 int64_t sys_fchownat();
 int64_t sys_fcntl();
 int64_t sys_fdatasync();
+int64_t sys_flock();
 int64_t sys_fork();
 int64_t sys_fstat();
 int64_t sys_fstatfs();
@@ -269,6 +270,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_ioctl
     [__NR_ioctl] = (syscall_fn)sys_ioctl,
+#endif
+#ifdef __NR_flock
+    [__NR_flock] = (syscall_fn)sys_flock,
 #endif
 #ifdef __NR_mknodat
     [__NR_mknodat] = (syscall_fn)sys_mknodat,

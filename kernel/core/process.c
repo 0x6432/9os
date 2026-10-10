@@ -39,6 +39,7 @@ int ptrace_wait(struct process *self, int idtype, int id, int options, struct wa
 bool ptrace_has_tracees(struct process *self, int idtype, int id);
 /* posix timers (sys_timer.c), pidfd (anonfd.c) */
 void posix_timers_exit(struct process *p);
+void locks_close_posix(struct process *p, struct file *f);
 int pidfd_create(struct process *p, int flags);
 
 static struct list_node all_procs = LIST_INIT(all_procs);
@@ -300,7 +301,8 @@ __noreturn void process_exit(int status) {
     release_thread_tid(current);
     posix_timers_exit(p);
     ptrace_tracer_exit(p);
-    for (int i = 0; i < MAX_FDS; i++) if (p->fds[i]) vfs_close(fd_slot_set(p, i, nullptr));
+    for (int i = 0; i < MAX_FDS; i++)
+        if (p->fds[i]) { struct file *f = fd_slot_set(p, i, nullptr); locks_close_posix(p, f); vfs_close(f); }
     vfs_ns_lock();
     iput(p->cwd); iput(p->root);
     p->cwd = p->root = nullptr;
