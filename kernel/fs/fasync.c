@@ -20,13 +20,6 @@
 #include <kernel/cred.h>
 #include <kernel/syscall.h>
 
-#define POLLIN 1
-#define POLLPRI 2
-#define POLLOUT 4
-#define POLLERR 8
-#define POLLHUP 0x10
-#define POLLRDNORM 0x40
-#define POLLWRNORM 0x100
 #define POLLMSG 0x400
 #define POLL_IN 1
 #define POLL_OUT 2
@@ -91,7 +84,7 @@ static void scan(void) {
     for (int k = 0; k < n; k++) {
         struct file *f = fs[k];
         unsigned m = f->fops && f->fops->poll ? f->fops->poll(f) : POLLIN | POLLOUT;
-        unsigned nw = m & ~__atomic_exchange_n(&f->async_last, m, __ATOMIC_RELAXED);
+        unsigned old = __atomic_exchange_n(&f->async_last, m, __ATOMIC_RELAXED), nw = m & ~old;
         if (!(f->flags & O_ASYNC) || !nw) continue;
         int code = nw & POLLERR ? POLL_ERR : nw & POLLHUP ? POLL_HUP : nw & POLLPRI ? POLL_PRI : nw & POLLIN ? POLL_IN : POLL_OUT;
         unsigned band = m & (POLLIN | POLLPRI | POLLOUT | POLLERR | POLLHUP);
@@ -115,12 +108,19 @@ static void kasync_main(void *arg) {
 
 /* O_ASYNC on/off for f (fd = the descriptor used, reported as si_fd) */
 void fasync_set(struct file *f, int fd, bool on) {
+    unsigned m0 = 0;
+    if (on && !f->on_async) {                  /* what is ready now never signals */
+        bool took = !bkl_held();
+        if (took) bkl_enter();
+        m0 = f->fops && f->fops->poll ? f->fops->poll(f) : POLLIN | POLLOUT;
+        if (took) bkl_exit();
+    }
     uint64_t fl = spin_lock_irqsave(&async_lock);
     if (on) {
         f->async_fd = fd;
         if (!f->on_async) {
             f->on_async = true;
-            f->async_last = ~0u;           /* no signal for what is already ready */
+            f->async_last = m0;
             list_add_tail(&async_files, &f->async_node);
             nasync++;
         }
@@ -133,7 +133,6 @@ void fasync_set(struct file *f, int fd, bool on) {
     if (on) {
         if (!__atomic_exchange_n(&kasyncd_started, 1, __ATOMIC_ACQ_REL)) thread_create("kasyncd", kasync_main, nullptr);
         wake_up(&kasync_wq);
-        poll_notify();                     /* first scan records the current mask */
     }
 }
 
