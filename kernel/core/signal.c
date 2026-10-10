@@ -13,7 +13,7 @@
 
 static bool no_restart(uint64_t nr) {
     return nr == __NR_nanosleep || nr == __NR_clock_nanosleep || nr == __NR_ppoll || nr == __NR_pselect6 ||
-           nr == __NR_rt_sigsuspend
+           nr == __NR_rt_sigsuspend || nr == __NR_restart_syscall
 #ifdef __NR_poll
            || nr == __NR_poll || nr == __NR_select || nr == __NR_pause
 #endif
@@ -298,8 +298,16 @@ static void do_stop(struct process *p, int sig) {
 
 /* the syscall interrupted by a signal that runs no handler is restarted transparently */
 static void maybe_restart(struct trap_frame *f, struct thread *t) {
-    if (FRAME_IS_SYSCALL(f) && (int64_t)SC_RET(f) == -EINTR && !no_restart(t->last_syscall))
-        frame_restart_syscall(f, t->last_syscall);
+    if (!FRAME_IS_SYSCALL(f) || (int64_t)SC_RET(f) != -EINTR) return;
+    uint64_t nr = t->last_syscall;
+    if (!no_restart(nr)) frame_restart_syscall(f, nr);
+    else if ((nr == __NR_nanosleep || nr == __NR_clock_nanosleep || nr == __NR_restart_syscall) && t->restart_sleep)
+        frame_restart_syscall(f, __NR_restart_syscall);     /* resume with the remaining time */
+    else if (nr == __NR_rt_sigsuspend
+#ifdef __NR_pause
+             || nr == __NR_pause
+#endif
+            ) frame_restart_syscall(f, nr);                 /* ERESTARTNOHAND: same arguments */
 }
 
 /* Called on every return to user mode with interrupts disabled. */

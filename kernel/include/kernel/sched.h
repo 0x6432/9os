@@ -51,6 +51,8 @@ struct thread {
     uint32_t pt_opts;              /* PTRACE_O_* */
     bool pt_seized, pt_stopped, pt_reported, pt_interrupt, pt_listen;
     bool pt_step;                  /* hardware single step armed (aarch64: MDSCR_EL1.SS on switch) */
+    /* riscv64 software single step: c.ebreak planted at the possible next PCs */
+    uint64_t pt_ss_addr[2]; uint16_t pt_ss_orig[2]; int pt_ss_n;
     bool pt_icache;                /* text was poked: flush the I-cache before returning to user */
     int pt_mode;                   /* resume request: PTRACE_CONT / SYSCALL / SINGLESTEP */
     int pt_why;                    /* kind of the current stop (PT_STOP_*) */
@@ -63,6 +65,8 @@ struct thread {
     uint64_t altstack_sp, altstack_size;
     int altstack_flags;
     uint64_t last_syscall;
+    /* restart_syscall(2) state (M33): an interrupted nanosleep resumes until restart_end_ns */
+    uint64_t restart_end_ns; struct timespec *restart_urem; bool restart_sleep;
     bool killed;
     /* SMP / scheduling */
     struct cpu *cpu;               /* CPU this thread last ran on */

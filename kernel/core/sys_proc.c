@@ -1,3 +1,4 @@
+#include <kernel/vmm.h>
 /* Process, time and miscellaneous system calls. */
 #include <kernel/vfs.h>
 #include <kernel/syscall.h>
@@ -223,10 +224,13 @@ int64_t sys_sched_yield(void) { schedule(); return 0; }
 
 static struct wait_queue sleep_wq = WAIT_QUEUE_INIT(sleep_wq);
 
-static int64_t sleep_interruptible(uint64_t ns, struct timespec *urem) {
-    uint64_t end = time_ns() + ns;
+static int64_t sleep_until(uint64_t end, struct timespec *urem) {
+    uint64_t now0 = time_ns(), ns = end > now0 ? end - now0 : 0;
+    current->restart_sleep = false;
     int r = ns ? wait_event_timeout(&sleep_wq, ns) : 0;
     if (r == -EINTR) {
+        /* a signal without handler (stop, ptrace stop, ignored) resumes via restart_syscall */
+        current->restart_end_ns = end; current->restart_urem = urem; current->restart_sleep = true;
         if (urem) {
             uint64_t now = time_ns(), left = end > now ? end - now : 0;
             struct timespec rem = { left / 1000000000ULL, left % 1000000000ULL };
@@ -235,6 +239,11 @@ static int64_t sleep_interruptible(uint64_t ns, struct timespec *urem) {
         return -EINTR;
     }
     return 0;
+}
+static int64_t sleep_interruptible(uint64_t ns, struct timespec *urem) { return sleep_until(time_ns() + ns, urem); }
+int64_t sys_restart_syscall(void) {
+    if (!current->restart_sleep) return -EINTR;
+    return sleep_until(current->restart_end_ns, current->restart_urem);
 }
 
 int64_t sys_nanosleep(const struct timespec *ureq, struct timespec *urem) {
@@ -584,12 +593,13 @@ int64_t sys_reboot(uint64_t m1_, uint64_t m2_, uint64_t cmd_, void *arg) {
  * pattern (woken is re-checked under sched_lock). A waiter always retakes its bucket lock
  * before returning, so a waker that still holds the lock never touches a dead stack frame. */
 #define FUTEX_BUCKETS 64
-struct futex_waiter { struct list_node node; struct mm *mm; uint32_t *addr; struct wait_queue wq; bool woken; };
+struct futex_bucket;
+struct futex_waiter { struct list_node node; struct mm *mm; uint32_t *addr; struct wait_queue wq; bool woken; struct futex_bucket *bucket; };
 struct futex_bucket { spinlock_t lock; struct list_node head; } __attribute__((aligned(64)));
 static struct futex_bucket futex_buckets[FUTEX_BUCKETS];
 static volatile bool futex_ready;
 static spinlock_t futex_init_lock = SPINLOCK_INIT;
-static const struct lock_class futex_class = { "futex_bucket", LR_FUTEX, false };
+static const struct lock_class futex_class = { "futex_bucket", LR_FUTEX, true };   /* requeue nests two buckets in address order */
 uint64_t futex_waits, futex_wakes;      /* approximate counters for /proc/sched-style debugging */
 
 static struct futex_bucket *futex_bucket(struct mm *mm, uint32_t *uaddr) {
@@ -630,7 +640,8 @@ int futex_wake(uint32_t *uaddr, int n) { return futex_wake_mm(curproc->mm, uaddr
 
 /* M33: shared futexes (no FUTEX_PRIVATE_FLAG) in MAP_SHARED file/shmem mappings are keyed by
  * (inode, file offset) so that waiters in different processes meet; the (mm, addr) pair of a
- * waiter is an opaque key here: mm = inode | 1, addr = offset. Everything else keys by mm + address. */
+ * waiter is an opaque key here: mm = inode | 1, addr = offset; other shared mappings (device
+ * memory, driver pages) use mm = 3, addr = physical address. Everything else keys by mm + address. */
 struct futex_key { struct mm *mm; uint32_t *addr; };
 static struct futex_key futex_key_of(uint32_t *uaddr, bool shared) {
     struct mm *mm = curproc->mm;
@@ -642,6 +653,13 @@ static struct futex_key futex_key_of(uint32_t *uaddr, bool shared) {
         uint64_t off = (v->pgoff << PAGE_SHIFT) + ((vaddr_t)uaddr - v->start);
         k.mm = (struct mm *)((uintptr_t)v->file->inode | 1);
         k.addr = (uint32_t *)(uintptr_t)off;
+    } else if (v && (vaddr_t)uaddr >= v->start && (v->flags & VMA_SHARED)) {
+        /* device memory / driver pages: always resident and never moved, key by physical address */
+        paddr_t pa; unsigned fl;
+        if (vmm_query(mm->pt, (vaddr_t)uaddr & ~(vaddr_t)(PAGE_SIZE - 1), &pa, &fl)) {
+            k.mm = (struct mm *)(uintptr_t)3;
+            k.addr = (uint32_t *)(uintptr_t)((pa & ~(paddr_t)(PAGE_SIZE - 1)) + ((vaddr_t)uaddr & (PAGE_SIZE - 1)));
+        }
     }
     mm_unlock(mm);
     return k;
@@ -654,12 +672,49 @@ int futex_wake_any(uint32_t *uaddr, int n) {
     return r;
 }
 
+/* move up to n waiters from key a to key b (FUTEX_REQUEUE): a waiter's bucket may change, so
+ * it records which bucket currently holds it (w->bucket) and re-checks that when it leaves */
+static int futex_requeue(struct futex_key a, struct futex_key b, int n) {
+    struct futex_bucket *ba = futex_bucket(a.mm, a.addr), *bb = futex_bucket(b.mm, b.addr);
+    if (n <= 0) return 0;
+    /* lock both buckets in address order */
+    struct futex_bucket *l1 = ba < bb ? ba : bb, *l2 = ba < bb ? bb : ba;
+    uint64_t f = arch_irq_save();
+    spin_lock_ipi(&l1->lock);
+    if (l2 != l1) spin_lock_ipi(&l2->lock);
+    int moved = 0;
+    list_for_each_safe(it, tmp, &ba->head) {
+        if (moved >= n) break;
+        struct futex_waiter *w = list_entry(it, struct futex_waiter, node);
+        if (w->addr != a.addr || w->mm != a.mm) continue;
+        list_del(&w->node);
+        w->mm = b.mm; w->addr = b.addr;
+        __atomic_store_n(&w->bucket, bb, __ATOMIC_RELEASE);
+        list_add_tail(&bb->head, &w->node);
+        moved++;
+    }
+    if (l2 != l1) spin_unlock(&l2->lock);
+    spin_unlock(&l1->lock);
+    arch_irq_restore(f);
+    return moved;
+}
+
+/* lock the bucket that currently holds w (it can be requeued concurrently) */
+static struct futex_bucket *fw_lock(struct futex_waiter *w, uint64_t *f) {
+    for (;;) {
+        struct futex_bucket *b = __atomic_load_n(&w->bucket, __ATOMIC_ACQUIRE);
+        *f = fb_lock(b);
+        if (__atomic_load_n(&w->bucket, __ATOMIC_ACQUIRE) == b) return b;
+        fb_unlock(b, *f);
+    }
+}
+
 static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns, bool shared) {
     if ((uintptr_t)uaddr & 3) return -EINVAL;
     struct futex_key key = futex_key_of(uaddr, shared);
     struct mm *mm = key.mm;
     struct futex_bucket *b = futex_bucket(mm, key.addr);
-    struct futex_waiter w = { .mm = mm, .addr = key.addr };
+    struct futex_waiter w = { .mm = mm, .addr = key.addr, .bucket = b };
     wait_queue_init(&w.wq);
     uint64_t f = fb_lock(b);
     uint32_t cur;
@@ -683,7 +738,7 @@ static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns, bool shared) {
         }
         if ((r = wait_event_timeout_locked(&w.wq, left, g))) break;
     }
-    f = fb_lock(b);
+    b = fw_lock(&w, &f);
     bool woken = w.woken;
     if (!woken) list_del(&w.node);
     fb_unlock(b, f);
@@ -721,10 +776,11 @@ int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *
             fb_unlock(b, f);
             if (e) return e;
         }
-        struct futex_key k = futex_key_of(uaddr, shared);
+        struct futex_key k = futex_key_of(uaddr, shared), k2 = futex_key_of(uaddr2, shared);
+        if ((uintptr_t)uaddr2 & 3) return -EINVAL;
         int n = futex_wake_mm(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX));
         int lim = (int)MIN((uint64_t)(uintptr_t)uts, (uint64_t)INT32_MAX);    /* val2 travels in the timeout slot */
-        return n + futex_wake_mm(k.mm, k.addr, lim);     /* "requeued" waiters see a spurious wakeup */
+        return n + futex_requeue(k, k2, lim);
     }
     default: return -ENOSYS;
     }

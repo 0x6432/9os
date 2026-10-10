@@ -8,6 +8,7 @@
 #include <kernel/sched.h>
 #include <arch/trapframe.h>
 #include <arch/cpu.h>
+bool ptrace_step_trap(struct thread *t, uint64_t pc);
 
 void syscall_dispatch(struct trap_frame *f);
 void user_return_work(struct trap_frame *f);
@@ -90,7 +91,10 @@ void trap_dispatch(struct trap_frame *f) {
             int sig = SIGSEGV, code = SEGV_ACCERR;
             uint64_t addr = f->stval;
             if (c == 2) { sig = SIGILL; code = ILL_ILLOPC; addr = f->sepc; }
-            else if (c == 3) { sig = SIGTRAP; code = TRAP_BRKPT; addr = f->sepc; }
+            else if (c == 3) {
+                sig = SIGTRAP; code = TRAP_BRKPT; addr = f->sepc;
+                if (current->pt_ss_n && ptrace_step_trap(current, f->sepc)) code = TRAP_TRACE;   /* software step */
+            }
             else if (c == 0 || c == 4 || c == 6) { sig = SIGBUS; code = BUS_ADRALN; }
             signal_force_info(current, sig, code, addr);
             goto out;

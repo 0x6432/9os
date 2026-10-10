@@ -194,12 +194,82 @@ static void sc_args(struct trap_frame *f, uint64_t *a) {
 }
 static void sc_entry_prepare(struct trap_frame *f) { (void)f; }
 static int64_t sc_entry_nr(struct thread *t, struct trap_frame *f) { f->orig_x0 = f->regs[0]; return t->pt_sc_nr; }
-#else /* riscv64: no hardware single step for U-mode (Linux returns EIO too; gdb steps in software) */
-#define ARCH_HAS_STEP 0
+#else /* riscv64: no hardware single step for U-mode, so the kernel steps in software: decode the
+       * instruction at pc, plant c.ebreak at every possible successor (both sides of a branch),
+       * and take them out again at the next stop (see ptrace_step_trap). */
+#define ARCH_HAS_STEP 1
 #define AUDIT_ARCH 0xc00000f3u
 #define PRSTATUS_SIZE (32 * 8)
 #define FPREGS_SIZE (33 * 8)
-static void arch_step(struct thread *t, bool on) { (void)t; (void)on; }
+#define C_EBREAK 0x9002
+static int64_t sext(uint64_t v, int bits) { return (int64_t)(v << (64 - bits)) >> (64 - bits); }
+static uint64_t xreg(struct trap_frame *f, unsigned r) { return r ? f->regs[r] : 0; }
+/* possible next PCs of the instruction at pc: returns how many (1 or 2) */
+static int next_pcs(struct trap_frame *f, uint64_t pc, uint32_t in, uint64_t *out) {
+    if ((in & 3) == 3) {
+        unsigned op = in & 0x7f;
+        out[0] = pc + 4;
+        if (op == 0x6f) {                                   /* jal */
+            uint64_t imm = ((in >> 31) & 1) << 20 | ((in >> 21) & 0x3ff) << 1 | ((in >> 20) & 1) << 11 | ((in >> 12) & 0xff) << 12;
+            out[0] = pc + sext(imm, 21); return 1;
+        }
+        if (op == 0x67) { out[0] = (xreg(f, (in >> 15) & 31) + sext(in >> 20, 12)) & ~1ULL; return 1; }   /* jalr */
+        if (op == 0x63) {                                   /* branches */
+            uint64_t imm = ((in >> 31) & 1) << 12 | ((in >> 25) & 0x3f) << 5 | ((in >> 8) & 0xf) << 1 | ((in >> 7) & 1) << 11;
+            out[1] = pc + sext(imm, 13); return out[1] == out[0] ? 1 : 2;
+        }
+        return 1;
+    }
+    in &= 0xffff;
+    unsigned q = in & 3, f3 = in >> 13;
+    out[0] = pc + 2;
+    if (q == 1 && f3 == 5) {                                /* c.j */
+        uint64_t imm = ((in >> 12) & 1) << 11 | ((in >> 11) & 1) << 4 | ((in >> 9) & 3) << 8 | ((in >> 8) & 1) << 10 |
+                       ((in >> 7) & 1) << 6 | ((in >> 6) & 1) << 7 | ((in >> 3) & 7) << 1 | ((in >> 2) & 1) << 5;
+        out[0] = pc + sext(imm, 12); return 1;
+    }
+    if (q == 1 && (f3 == 6 || f3 == 7)) {                   /* c.beqz / c.bnez */
+        uint64_t imm = ((in >> 12) & 1) << 8 | ((in >> 10) & 3) << 3 | ((in >> 5) & 3) << 6 | ((in >> 3) & 3) << 1 | ((in >> 2) & 1) << 5;
+        out[1] = pc + sext(imm, 9); return out[1] == out[0] ? 1 : 2;
+    }
+    if (q == 2 && f3 == 4 && !((in >> 2) & 31) && ((in >> 7) & 31)) {   /* c.jr / c.jalr */
+        out[0] = xreg(f, (in >> 7) & 31) & ~1ULL; return 1;
+    }
+    return 1;
+}
+static void step_remove(struct thread *t) {
+    struct mm *mm = t->proc ? t->proc->mm : nullptr;
+    for (int i = t->pt_ss_n - 1; i >= 0; i--)
+        if (mm) mm_write(mm, t->pt_ss_addr[i], &t->pt_ss_orig[i], 2);
+    t->pt_ss_n = 0;
+}
+static void arch_step(struct thread *t, bool on) {
+    struct trap_frame *f = thread_user_frame(t);
+    struct mm *mm = t->proc ? t->proc->mm : nullptr;
+    step_remove(t);
+    t->pt_step = on;
+    if (!on || !mm) return;
+    uint32_t in = 0;
+    uint16_t lo, hi = 0;
+    if (mm_read(mm, f->sepc, &lo, 2)) return;
+    if ((lo & 3) == 3 && mm_read(mm, f->sepc + 2, &hi, 2)) return;
+    in = lo | (uint32_t)hi << 16;
+    uint64_t nx[2];
+    int n = next_pcs(f, f->sepc, in, nx);
+    for (int i = 0; i < n; i++) {
+        uint16_t orig, eb = C_EBREAK;
+        if (nx[i] == f->sepc || (nx[i] & 1) || nx[i] >= 0x800000000000ULL) continue;
+        if (i == 1 && t->pt_ss_n && t->pt_ss_addr[0] == nx[i]) continue;
+        if (mm_read(mm, nx[i], &orig, 2) || mm_write(mm, nx[i], &eb, 2)) continue;
+        t->pt_ss_addr[t->pt_ss_n] = nx[i]; t->pt_ss_orig[t->pt_ss_n] = orig; t->pt_ss_n++;
+    }
+}
+/* ebreak trap from user mode at pc: one of our step breakpoints? (then it is a TRAP_TRACE) */
+bool ptrace_step_trap(struct thread *t, uint64_t pc) {
+    for (int i = 0; i < t->pt_ss_n; i++)
+        if (t->pt_ss_addr[i] == pc) { step_remove(t); t->pt_step = false; return true; }
+    return false;
+}
 /* user_regs_struct: pc, ra, sp, gp, tp, t0-t2, s0-s1, a0-a7, s2-s11, t3-t6 == pc + x1..x31 */
 static int regs_get(struct thread *t, uint64_t *r) {
     struct trap_frame *f = thread_user_frame(t);
@@ -224,6 +294,12 @@ static void sc_entry_prepare(struct trap_frame *f) { (void)f; }
 static int64_t sc_entry_nr(struct thread *t, struct trap_frame *f) {
     (void)t; f->orig_a0 = f->regs[10]; return (int64_t)f->regs[17];
 }
+#endif
+
+#if defined(__riscv)
+#define ARCH_STEP_SYSCALL_REPORT 0      /* the c.ebreak after the ecall reports the step */
+#else
+#define ARCH_STEP_SYSCALL_REPORT 1
 #endif
 
 static void icache_sync(void) {
@@ -398,7 +474,7 @@ void ptrace_syscall_exit(struct trap_frame *f) {
         int sig = SIGTRAP | ((t->pt_opts & PTRACE_O_TRACESYSGOOD) ? 0x80 : 0);
         si_trap(t, sig);
         pt_stop(t, PT_STOP_SC_EXIT, (sig << 8) | 0x7f);
-    } else if (t->pt_mode == PTRACE_SINGLESTEP && ARCH_HAS_STEP) {
+    } else if (t->pt_mode == PTRACE_SINGLESTEP && ARCH_STEP_SYSCALL_REPORT) {
         /* the stepped instruction was the syscall: report the step now, like Linux */
         arch_step(t, false);
         signal_force_info(t, SIGTRAP, TRAP_TRACE, FRAME_PC(f));

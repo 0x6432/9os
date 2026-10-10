@@ -160,6 +160,7 @@ int64_t sys_removexattr();
 int64_t sys_rename();
 int64_t sys_renameat();
 int64_t sys_renameat2();
+int64_t sys_restart_syscall();
 int64_t sys_riscv_flush_icache();
 int64_t sys_rmdir();
 int64_t sys_rseq();
@@ -561,6 +562,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_sched_rr_get_interval
     [__NR_sched_rr_get_interval] = (syscall_fn)sys_sched_rr_get_interval,
+#endif
+#ifdef __NR_restart_syscall
+    [__NR_restart_syscall] = (syscall_fn)sys_restart_syscall,
 #endif
 #ifdef __NR_kill
     [__NR_kill] = (syscall_fn)sys_kill,
