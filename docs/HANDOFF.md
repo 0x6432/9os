@@ -1262,9 +1262,16 @@ Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
   show/store callbacks, uevent callback) and `device_add()` it. The /sys/devices path follows
   the parent chain, with a `<class>/` glue directory for class devices below a device of another
   subsystem (`.../virtio1/input/input3/event3`, `.../virtio2/net/eth0`, `.../vda/vda1`);
-  parentless class devices go to `/devices/virtual/<class>/`. Devices are never freed
-  (`device_del` only unlinks), so attribute reads race safely with removal. Registry mutex
-  rank `LR_MUTEX_DEV` (after net_mutex: `netdev_unregister` deletes under it).
+  parentless class devices go to `/devices/virtual/<class>/`. Devices are refcounted
+  (`device_get/put`, the owner's reference is implicit; `release` runs after the last put):
+  sysfs inodes and queued packets (`pkt_set_dev`, IP/IPv6 fragment queues) pin a netdev, so a
+  closed TAP is freed once nothing references it. `device_rename` rebuilds the paths of the
+  device and its descendants and sends `move` with DEVPATH_OLD (SIOCSIFNAME, RTM_SETLINK
+  IFLA_IFNAME; only while down, -EEXIST/-EBUSY). `driver` names give DRIVER=, `driver` links,
+  /sys/bus/<b>/drivers/<drv>/{<dev>,module} and /sys/module/<mod>/drivers (virtio_net,
+  virtio_blk, virtio_input, virtio_gpu on bus virtio; virtio-pci on bus pci, with a `bind`
+  event). Registry mutex rank `LR_MUTEX_DEV` (after net_mutex: `netdev_unregister` deletes
+  under it).
 - **Registered**: PCI (`pci0000:00/0000:BB:DD.F`, bus `pci`: vendor/device/class/subsystem_*/
   revision/irq/modalias, PCI_* + MODALIAS), virtio (`virtioN`, bus `virtio`), input (`inputN`
   with name/phys/uniq/properties/id/*/capabilities/*/modalias and PRODUCT/NAME/PHYS/PROP/EV/
@@ -1280,6 +1287,9 @@ Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
   /sys/dev/{char,block}/M:m, /sys/block/<disk>, /sys/kernel/uevent_seqnum and
   /sys/devices/system/cpu/{online,possible,present,kernel_max,cpuN}. Links are relative.
   Writing an action (`add`, `change`, ...; trailing UUID/vars ignored) to `uevent` re-sends it.
+  Every device has `power/` (control accepts on/auto, runtime_status "unsupported"); binary
+  attributes (`dev_attr.read` + `size`) back PCI `config` (4096 bytes, 64 without
+  CAP_SYS_ADMIN, as Linux).
 - **NETLINK_KOBJECT_UEVENT** (`netlink.c`): kernel events go to group 1 from pid 0 as
   `action@devpath\0ACTION=..\0DEVPATH=..\0SUBSYSTEM=..\0...SEQNUM=n\0`; user multicast to other
   groups needs CAP_NET_ADMIN, unicast to a port id is allowed; recvmsg reports the sender's
@@ -1293,18 +1303,31 @@ Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
   nodes and re-broadcasts to group 2 in libudev's monitor format (header, MurmurHash2
   subsystem/devtype hashes, tag bloom) so libudev monitors and their BPF filters work; `-t`
   triggers coldplug events; `-q PATH` prints properties. rcS runs `udevshim -c`.
+  Builtins: input_id, path_id (ID_PATH/ID_PATH_TAG), blkid (ext2/3/4 UUID/LABEL/TYPE),
+  net_id (ID_NET_NAME_PATH/MAC), hwdb (`*.hwdb` in /etc/udev/hwdb.d and /lib/udev/hwdb.d
+  matched against modaliases and `evdev:name:...`). Rules (`*.rules` in /etc, /run, /lib
+  udev/rules.d, sorted by file name): match ACTION KERNEL(S) SUBSYSTEM(S) DRIVER(S) DEVPATH
+  DEVTYPE NAME TAG ENV ATTR(S) SYSCTL TEST with ==/!= globs and `|`; assign ENV SYMLINK TAG
+  MODE OWNER GROUP RUN with =/+=/:=, GOTO/LABEL, %k %n %p %M %m %N %E{} $attr{} substitutions.
+  Persistent links /dev/input/by-path, /dev/disk/by-{path,uuid,label} (S: in the db,
+  DEVLINKS), RUN programs, `-s` settle (the daemon writes /run/udev/queue-seqnum). Invoked
+  as `udevadm` (symlink): settle, trigger, info -q property -n|-p, info --export-db, monitor,
+  control.
 
 ### Tests
 `sysfstest` (main suite and disk root): /sys/dev links vs stat()/EVIOCGNAME/EVIOCGBIT/
 if_nameindex/BLKGETSIZE64, class/bus/device links, full /sys walk (every file read, every link
 resolved, no duplicate names), uevent delivery/fields/SEQNUM/credentials, EINVAL/EACCES/EPERM,
-unprivileged listeners, TAP add/remove, group-2 multicast. `sysfstest -u`: udevshim daemon end
-to end (libudev header, hashes, ID_INPUT, TAGS, db file). CI also checks `udevshim -c`/`-q`.
+unprivileged listeners, TAP add/remove/rename (move, EEXIST, EBUSY) and re-create, an open
+attribute of a removed device, group-2 multicast, driver/module links, power/, PCI config
+(size, contents, 64-byte unprivileged view). `sysfstest -u`: udevshim daemon end to end
+(libudev header, hashes, ID_INPUT, TAGS, db file) plus a rules file in /run/udev/rules.d
+(GOTO/LABEL, ATTRS, %k/$major, SYMLINK, TAG, RUN), by-path links, `udevadm settle/info
+/--export-db`. CI also checks `udevshim -c`/`-q`.
 
 ### Known limits
-1. No kobject refcounting: removed devices are leaked (only TUN/TAP churn), renames (`ip link
-   set name`) do not move sysfs entries.
-2. Attribute files are generated at open (no seq_file, 4 KiB max), no binary attributes
-   (`config`, `descriptors`), no `power/`, `driver` links or `/sys/module`.
-3. udevshim implements no rules language, hwdb, persistent names, symlinks (`/dev/input/by-id`)
-   or `udevadm settle`; it is a database writer, not udevd.
+1. Only netdevs are ever removed (TUN/TAP); other buses have no hot-unplug. Attribute files
+   are generated at open (4 KiB max, no seq_file); no `descriptors`/`resource` files.
+2. udevshim: `*S` match keys may be satisfied by different ancestors; no IMPORT/PROGRAM,
+   OPTIONS, NAME= for netdevs, by-id links (no serials), or compiled hwdb.bin (text files are
+   parsed at startup). `power/` is static (no runtime PM).

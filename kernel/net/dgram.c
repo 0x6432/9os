@@ -320,7 +320,7 @@ void packet_input(struct netdev *d, struct pkt *p, bool outgoing) {
         if (s->ifindex && s->ifindex != d->index) continue;
         struct pkt *c = pkt_clone(p);
         if (!c) continue;
-        c->dev = d;
+        pkt_set_dev(c, d);
         c->proto = proto;
         c->pkttype = outgoing ? PACKET_OUTGOING : p->pkttype;
         c->nh = c->data;                     /* frame start */

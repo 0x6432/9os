@@ -16,7 +16,10 @@
 #include <kernel/printk.h>
 #include <kernel/cpu.h>
 
-enum skind { K_DIR, K_ATTR, K_UEVENT, K_DEV, K_LINK, K_GLOBAL };
+enum skind { K_DIR, K_ATTR, K_UEVENT, K_DEV, K_LINK, K_GLOBAL, K_POWER, K_BIN };
+/* power/ of every device: runtime PM is not implemented, so it reports "unsupported" */
+static const char *const power_files[] = { "power/control", "power/runtime_status", "power/async", "power/runtime_enabled",
+                                           "power/runtime_active_time", "power/runtime_suspended_time" };
 struct snode { int kind; struct device *dev; int idx; char path[256]; char target[200]; };
 
 static const char *const fixed_dirs[] = {
@@ -58,7 +61,28 @@ static void gen_device(struct device *d, void *arg) {
     }
     for (int k = 0; d->attrs && d->attrs[k].name; k++) {
         snprintf(g->p, sizeof g->p, "%s/%s", d->path, d->attrs[k].name);
-        yield(g, g->p, K_ATTR, d, k, nullptr);
+        yield(g, g->p, d->attrs[k].read ? K_BIN : K_ATTR, d, k, nullptr);
+    }
+    for (int k = 0; k < (int)ARRAY_SIZE(power_files); k++) {
+        snprintf(g->p, sizeof g->p, "%s/%s", d->path, power_files[k]);
+        yield(g, g->p, K_POWER, d, k, nullptr);
+    }
+    if (d->driver && d->bus) {                       /* driver links and the built-in "module" */
+        char mod[32];
+        size_t l = 0;
+        for (; d->driver[l] && l < sizeof mod - 1; l++) mod[l] = d->driver[l] == '-' ? '_' : d->driver[l];
+        mod[l] = 0;
+        snprintf(g->p, sizeof g->p, "%s/driver", d->path);
+        snprintf(g->t, sizeof g->t, "/bus/%s/drivers/%s", d->subsys, d->driver);
+        yield(g, g->p, K_LINK, d, 0, g->t);
+        snprintf(g->p, sizeof g->p, "/bus/%s/drivers/%s/%s", d->subsys, d->driver, d->name);
+        yield(g, g->p, K_LINK, d, 0, d->path);
+        snprintf(g->p, sizeof g->p, "/bus/%s/drivers/%s/module", d->subsys, d->driver);
+        snprintf(g->t, sizeof g->t, "/module/%s", mod);
+        yield(g, g->p, K_LINK, d, 0, g->t);
+        snprintf(g->p, sizeof g->p, "/module/%s/drivers/%s:%s", mod, d->subsys, d->driver);
+        snprintf(g->t, sizeof g->t, "/bus/%s/drivers/%s", d->subsys, d->driver);
+        yield(g, g->p, K_LINK, d, 0, g->t);
     }
     if (d->subsys) {
         if (d->bus) snprintf(g->p, sizeof g->p, "/bus/%s/devices/%s", d->subsys, d->name);
@@ -103,7 +127,8 @@ static uint32_t kind_mode(int kind, struct device *d, int idx) {
     case K_DIR: return S_IFDIR | 0755;
     case K_LINK: return S_IFLNK | 0777;
     case K_UEVENT: return S_IFREG | 0644;
-    case K_ATTR: return S_IFREG | (d->attrs[idx].mode ? d->attrs[idx].mode : 0444);
+    case K_ATTR: case K_BIN: return S_IFREG | (d->attrs[idx].mode ? d->attrs[idx].mode : 0444);
+    case K_POWER: return S_IFREG | (idx == 0 ? 0644 : 0444);
     default: return S_IFREG | 0444;
     }
 }
@@ -111,7 +136,7 @@ static struct inode *snew(int kind, const char *path, struct device *d, int idx,
     struct inode *i = inode_alloc(kind_mode(kind, d, idx));
     struct snode *s = kzalloc(sizeof *s);
     if (!i || !s) { kfree(s); return i; }
-    s->kind = kind; s->dev = d; s->idx = idx;
+    s->kind = kind; s->dev = d; s->idx = idx;           /* d: a reference handed over by the caller */
     strncpy(s->path, path, sizeof s->path - 1);
     if (target) strncpy(s->target, target, sizeof s->target - 1);
     i->priv = s;
@@ -121,7 +146,7 @@ static struct inode *snew(int kind, const char *path, struct device *d, int idx,
     i->ino = *path ? path_ino(path) : 1;
     i->uid = i->gid = 0;
     i->nlink = S_ISDIR(i->mode) ? 2 : 1;
-    i->size = S_ISREG(i->mode) ? 4096 : 0;
+    i->size = kind == K_BIN ? d->attrs[idx].size : S_ISREG(i->mode) ? 4096 : 0;
     return i;
 }
 
@@ -131,6 +156,7 @@ static bool lk_cb(void *ctx, const char *path, int kind, struct device *d, int i
     if (strncmp(path, l->full, l->flen)) return true;
     if (!path[l->flen]) {
         l->found = true; l->kind = kind; l->d = d; l->idx = idx;
+        if (d) device_get(d);                        /* under the registry mutex: d is alive */
         if (target) strncpy(l->target, target, sizeof l->target - 1);
         return false;
     }
@@ -151,6 +177,7 @@ static int s_lookup(struct inode *dir, const char *name, struct inode **out) {
         generate(lk_cb, l);
         if (l->found) {
             struct inode *i = snew(l->kind, full, l->d, l->idx, l->target);
+            if (!i || !i->priv) { if (l->d) device_put(l->d); }
             if (!i) r = -ENOMEM;
             else { if (S_ISDIR(i->mode)) i->parent = dir; *out = i; r = 0; }
         }
@@ -226,7 +253,11 @@ static int s_readlink(struct inode *i, char *buf, size_t size) {
     memcpy(buf, tmp, l);
     return (int)l;
 }
-static void s_evict(struct inode *i) { kfree(i->priv); }
+static void s_evict(struct inode *i) {
+    struct snode *s = i->priv;
+    if (s && s->dev) device_put(s->dev);
+    kfree(s);
+}
 
 /* ---- files */
 struct sbuf { char *data; size_t len; };
@@ -235,6 +266,10 @@ static int gen_file(struct snode *s, char *b, size_t cap) {
     switch (s->kind) {
     case K_ATTR: return d->attrs[s->idx].show ? d->attrs[s->idx].show(d, b, cap) : 0;
     case K_DEV: return dev_printf(b, cap, "%u:%u\n", (unsigned)MAJOR(d->devt), (unsigned)MINOR(d->devt));
+    case K_POWER: {
+        static const char *const v[] = { "on", "unsupported", "disabled", "disabled", "0", "0" };
+        return dev_printf(b, cap, "%s\n", v[s->idx]);
+    }
     case K_UEVENT: {
         struct uenv *e = kmalloc(sizeof *e);
         if (!e) return 0;
@@ -257,6 +292,7 @@ static int gen_file(struct snode *s, char *b, size_t cap) {
     return 0;
 }
 static int sf_open(struct inode *i, struct file *f) {
+    if (((struct snode *)i->priv)->kind == K_BIN) { f->priv = nullptr; return 0; }
     struct sbuf *b = kzalloc(sizeof *b);
     if (!b) return -ENOMEM;
     b->data = kmalloc(4096);
@@ -266,6 +302,15 @@ static int sf_open(struct inode *i, struct file *f) {
     return 0;
 }
 static ssize_t sf_read(struct file *f, void *buf, size_t n, off_t *off) {
+    struct snode *s = f->inode->priv;
+    if (s->kind == K_BIN) {
+        const struct dev_attr *a = &s->dev->attrs[s->idx];
+        if (*off < 0 || (uint64_t)*off >= a->size) return 0;
+        n = MIN(n, a->size - (size_t)*off);
+        ssize_t r = a->read(s->dev, buf, n, (uint64_t)*off);
+        if (r > 0) *off += r;
+        return r;
+    }
     struct sbuf *b = f->priv;
     if (!b || *off >= (off_t)b->len) return 0;
     n = MIN(n, b->len - (size_t)*off);
@@ -286,6 +331,8 @@ static ssize_t sf_write(struct file *f, const void *buf, size_t n, off_t *off) {
         t[l] = 0;                                    /* "add [UUID [VAR=x ...]]": the action only */
         int r = device_uevent(s->dev, t);
         if (r) return r;
+    } else if (s->kind == K_POWER && s->idx == 0) {
+        if (strncmp(t, "on", 2) && strncmp(t, "auto", 4)) return -EINVAL;
     } else if (s->kind == K_ATTR && s->dev->attrs[s->idx].store) {
         int r = s->dev->attrs[s->idx].store(s->dev, t, n);
         if (r) return r;

@@ -44,7 +44,7 @@ static void frame_send(struct netdev *d, struct pkt *p, const uint8_t *dst, uint
     memcpy(e + 6, d->hwaddr, 6);
     e[12] = type >> 8; e[13] = type & 0xff;
     if (!(d->flags & IFF_UP)) { d->tx_dropped++; pkt_free(p); return; }
-    p->dev = d;
+    pkt_set_dev(p, d);
     packet_input(d, p, true);                 /* ETH_P_ALL taps see outgoing frames */
     d->xmit(d, p);
 }
@@ -261,7 +261,7 @@ void eth_send(struct netdev *d, struct pkt *p, const uint8_t *mac, uint16_t type
 
 /* AF_PACKET transmit: a complete frame */
 void eth_xmit_raw(struct netdev *d, struct pkt *p) {
-    p->dev = d;
+    pkt_set_dev(p, d);
     packet_input(d, p, true);
     d->xmit(d, p);
 }

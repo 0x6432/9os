@@ -10,6 +10,7 @@
 #include <kernel/string.h>
 #include <kernel/printk.h>
 #include <kernel/errno.h>
+#include <kernel/cred.h>
 
 #define MAX_PCI 64
 static struct pci_dev devs[MAX_PCI];
@@ -107,7 +108,17 @@ static int a_modalias(struct device *k, char *b, size_t n) {
     return dev_printf(b, n, "pci:v%08Xd%08Xsv%08Xsd%08Xbc%02Xsc%02Xi%02X\n", d->vendor, d->device, pci_read16(d, 0x2c),
                       pci_read16(d, 0x2e), d->class_code, d->subclass, d->prog_if);
 }
+/* config space: 4 KiB (ECAM); unprivileged readers see the 64-byte header, the rest reads 0 */
+static ssize_t a_config(struct device *k, char *b, size_t n, uint64_t off) {
+    if (!capable(CAP_SYS_ADMIN)) {                   /* as Linux: only the standard header */
+        if (off >= 64) return 0;
+        if (n > 64 - off) n = (size_t)(64 - off);
+    }
+    for (size_t i = 0; i < n; i++) b[i] = (char)pci_read8(pdev(k), (unsigned)(off + i));
+    return (ssize_t)n;
+}
 static const struct dev_attr pci_attrs[] = {
+    { "config", 0644, nullptr, nullptr, a_config, 4096 },
     { "vendor", 0444, a_vendor, nullptr }, { "device", 0444, a_device, nullptr }, { "class", 0444, a_class, nullptr },
     { "subsystem_vendor", 0444, a_svendor, nullptr }, { "subsystem_device", 0444, a_sdevice, nullptr },
     { "revision", 0444, a_revision, nullptr }, { "irq", 0444, a_irq, nullptr }, { "modalias", 0444, a_modalias, nullptr },

@@ -53,6 +53,11 @@ static void build_path(struct device *d) {
     else snprintf(p, cap, "/devices/%s", d->name);
 }
 
+static bool below(struct device *e, struct device *d) {
+    for (struct device *p = e->parent; p; p = p->parent) if (p == d) return true;
+    return false;
+}
+
 void device_uevent_env(struct device *d, struct uenv *e) {
     if (d->devt) {
         uenv_add(e, "MAJOR=%u", (unsigned)MAJOR(d->devt));
@@ -60,12 +65,13 @@ void device_uevent_env(struct device *d, struct uenv *e) {
         if (d->devname[0]) uenv_add(e, "DEVNAME=%s", d->devname);
     }
     if (d->devtype) uenv_add(e, "DEVTYPE=%s", d->devtype);
+    if (d->driver) uenv_add(e, "DRIVER=%s", d->driver);
     if (d->uevent) d->uevent(d, e);
 }
 
 static const char *const actions[] = { "add", "remove", "change", "move", "online", "offline", "bind", "unbind" };
 
-int device_uevent(struct device *d, const char *action) {
+static int uevent_ext(struct device *d, const char *action, const char *extra) {
     bool ok = false;
     for (size_t k = 0; k < ARRAY_SIZE(actions); k++) if (!strcmp(action, actions[k])) ok = true;
     if (!ok) return -EINVAL;
@@ -76,10 +82,33 @@ int device_uevent(struct device *d, const char *action) {
     uenv_add(e, "ACTION=%s", action);
     uenv_add(e, "DEVPATH=%s", d->path);
     if (d->subsys) uenv_add(e, "SUBSYSTEM=%s", d->subsys);
+    if (extra) uenv_add(e, "%s", extra);
     device_uevent_env(d, e);
     uenv_add(e, "SEQNUM=%lu", __atomic_add_fetch(&seqnum, 1, __ATOMIC_RELAXED));
     netlink_uevent_broadcast(e->buf, e->len);
     kfree(e);
+    return 0;
+}
+
+int device_uevent(struct device *d, const char *action) { return uevent_ext(d, action, nullptr); }
+
+/* new name: the device and everything below it move (sysfs paths follow) */
+int device_rename(struct device *d, const char *name) {
+    if (!d->added) { strncpy(d->name, name, sizeof d->name - 1); return 0; }
+    char *old = kmalloc(sizeof d->path + 16);
+    if (!old) return -ENOMEM;
+    snprintf(old, sizeof d->path + 16, "DEVPATH_OLD=%s", d->path);
+    mutex_lock(&dev_mtx);
+    memset(d->name, 0, sizeof d->name);
+    strncpy(d->name, name, sizeof d->name - 1);
+    build_path(d);
+    list_for_each(it, &devices) {                   /* parents precede children in the list */
+        struct device *e = list_entry(it, struct device, node);
+        if (below(e, d)) build_path(e);
+    }
+    mutex_unlock(&dev_mtx);
+    uevent_ext(d, "move", old);
+    kfree(old);
     return 0;
 }
 

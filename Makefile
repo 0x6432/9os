@@ -9,7 +9,7 @@ CSTD := $(shell echo 'int x;' | $(CC) -std=c23 -x c -fsyntax-only - 2>/dev/null 
 
 CFLAGS := -std=$(CSTD) -ffreestanding -fno-builtin -nostdlib -fstack-protector-strong \
           -fno-stack-check -fno-lto -fno-pic -fno-omit-frame-pointer \
-          -Wall -Wextra -Wno-unused-parameter -O2 -g -MMD -MP \
+          -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -O2 -g -MMD -MP \
           -Ikernel/include -Ithird_party/limine -Ikernel/arch/$(ARCH)/include \
           -D__9OS_ARCH_$(ARCH)__
 

@@ -1,25 +1,42 @@
 /*
- * udevshim (M34): a static stand-in for systemd-udevd, enough for libudev users (libinput,
- * wlroots) on 9os. It keeps the udev database in /run/udev/data/<id> ("E:KEY=value" lines,
- * "G:/Q:" tags, "I:" init time) with the properties udev's input_id builtin would set
- * (ID_INPUT, ID_INPUT_KEYBOARD, ID_INPUT_MOUSE, ...), tags seat/uaccess, creates missing
- * /dev nodes, and in daemon mode re-broadcasts every kernel uevent to netlink group 2 in
- * libudev's monitor format (prefix "libudev", magic 0xfeedcafe, subsystem/devtype MurmurHash2
- * and a tag bloom filter for socket filters) once the database entry is written.
+ * udevshim (M34): a small stand-in for systemd-udevd, enough for libudev users (libinput,
+ * wlroots, seatd) on 9os. It keeps the udev database in /run/udev/data/<id> ("I:" init time,
+ * "E:KEY=value", "S:" links, "G:/Q:" tags) with the properties udev's builtins would set:
+ *   input_id  ID_INPUT, ID_INPUT_KEY/KEYBOARD/MOUSE/TOUCHPAD/TOUCHSCREEN/TABLET/JOYSTICK/SWITCH
+ *   path_id   ID_PATH, ID_PATH_TAG (pci-0000:00:03.0)
+ *   blkid     ID_FS_TYPE/UUID/UUID_ENC/LABEL (ext2/3/4 superblocks)
+ *   net_id    ID_NET_NAME_PATH (enp0s3), ID_NET_NAME_MAC (enx525400123456)
+ *   hwdb      records from /etc/udev/hwdb.d and /lib/udev/hwdb.d (*.hwdb) matched against the
+ *             modalias (and evdev:name:<name>:phys:<phys>:ev:<ev> for input)
+ * then applies rules from /etc/udev/rules.d, /run/udev/rules.d and /lib/udev/rules.d (*.rules,
+ * by file name; /etc overrides): matches ACTION KERNEL SUBSYSTEM DEVPATH DRIVER DEVTYPE NAME
+ * TAG ENV{} ATTR{} (== !=, globs with |), assignments ENV{} SYMLINK TAG MODE OWNER GROUP RUN
+ * (= += :=), GOTO/LABEL, substitutions %k %n %M %m %p %E{} $env{} $attr{} $kernel $devpath %%.
+ * Device nodes get MODE/OWNER/GROUP, persistent links (/dev/input/by-path, /dev/disk/by-path,
+ * by-uuid, by-label) and rule SYMLINKs; RUN programs get the properties as environment.
  *
- *   udevshim -c             coldplug: database entries for every device in /sys
- *   udevshim -d [-f]        daemon (-f: stay in the foreground)
+ *   udevshim -c             coldplug: process every device in /sys
+ *   udevshim -d [-f]        daemon: process kernel uevents, then re-broadcast them to netlink
+ *                           group 2 in libudev's monitor format (prefix "libudev", magic
+ *                           0xfeedcafe, MurmurHash2 subsystem/devtype hashes, tag bloom)
  *   udevshim -t [ACTION]    trigger: write ACTION (add) to every /sys/.../uevent
- *   udevshim -q PATH        print the properties of a /sys or /dev path (udevadm info -q property)
+ *   udevshim -s [SECONDS]   settle: wait until the daemon handled every kernel event
+ *   udevshim -q PATH        properties of a /sys or /dev path
+ * Invoked as "udevadm": settle, trigger [--action=X], info [-q property] -n NODE | -p PATH,
+ * info --export-db, monitor [--property], control (no-op).
  */
 #define _GNU_SOURCE
 #include <dirent.h>
 #include <endian.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
+#include <grp.h>
 #include <limits.h>
+#include <pwd.h>
+#include <signal.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,32 +44,61 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
 #define NETLINK_KOBJECT_UEVENT 15
 struct sockaddr_nl_u { unsigned short family, pad; uint32_t pid, groups; };
+#define MAXP 160
+#define MAXL 16
 
-/* ---------------------------------------------------------------- property lists */
-struct props { char *kv[128]; int n; char *tags[8]; int ntags; };
-static void pset(struct props *p, const char *k, const char *fmt, ...) {
-    char v[512];
+/* ---------------------------------------------------------------- device state */
+struct dev {
+    char syspath[PATH_MAX];
+    char *kv[MAXP]; int n;
+    char *tags[16]; int ntags;
+    char *links[MAXL]; int nlinks;
+    char *run[8]; int nrun;
+    int mode; uid_t uid; gid_t gid;           /* -1: unchanged */
+    bool final_env[MAXP];
+};
+static void pset(struct dev *d, const char *k, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
+static void pset(struct dev *d, const char *k, const char *fmt, ...) {
+    char v[1024];
     va_list ap;
     va_start(ap, fmt);
     vsnprintf(v, sizeof v, fmt, ap);
     va_end(ap);
     size_t kl = strlen(k);
-    for (int i = 0; i < p->n; i++)
-        if (!strncmp(p->kv[i], k, kl) && p->kv[i][kl] == '=') { free(p->kv[i]); p->kv[i] = NULL; asprintf(&p->kv[i], "%s=%s", k, v); return; }
-    if (p->n < 128) asprintf(&p->kv[p->n++], "%s=%s", k, v);
+    for (int i = 0; i < d->n; i++)
+        if (!strncmp(d->kv[i], k, kl) && d->kv[i][kl] == '=') {
+            free(d->kv[i]);
+            if (!*v) { d->kv[i] = d->kv[--d->n]; return; }      /* ENV{X}="": unset */
+            if (asprintf(&d->kv[i], "%s=%s", k, v) < 0) d->kv[i] = d->kv[--d->n];
+            return;
+        }
+    if (*v && d->n < MAXP && asprintf(&d->kv[d->n], "%s=%s", k, v) >= 0) d->n++;
 }
-static const char *pget(const struct props *p, const char *k) {
+static const char *pget(const struct dev *d, const char *k) {
     size_t kl = strlen(k);
-    for (int i = 0; i < p->n; i++) if (!strncmp(p->kv[i], k, kl) && p->kv[i][kl] == '=') return p->kv[i] + kl + 1;
+    for (int i = 0; i < d->n; i++) if (!strncmp(d->kv[i], k, kl) && d->kv[i][kl] == '=') return d->kv[i] + kl + 1;
     return NULL;
 }
-static void ptag(struct props *p, const char *t) { if (p->ntags < 8) p->tags[p->ntags++] = (char *)t; }
-static void pfree(struct props *p) { for (int i = 0; i < p->n; i++) free(p->kv[i]); p->n = p->ntags = 0; }
+static bool has_tag(const struct dev *d, const char *t) { for (int i = 0; i < d->ntags; i++) if (!strcmp(d->tags[i], t)) return true; return false; }
+static void add_tag(struct dev *d, const char *t) { if (!has_tag(d, t) && d->ntags < 16) d->tags[d->ntags++] = strdup(t); }
+static void add_link(struct dev *d, const char *l) {
+    for (int i = 0; i < d->nlinks; i++) if (!strcmp(d->links[i], l)) return;
+    if (d->nlinks < MAXL) d->links[d->nlinks++] = strdup(l);
+}
+static void dev_init(struct dev *d) { memset(d, 0, sizeof *d); d->mode = -1; d->uid = (uid_t)-1; d->gid = (gid_t)-1; }
+static void dev_free(struct dev *d) {
+    for (int i = 0; i < d->n; i++) free(d->kv[i]);
+    for (int i = 0; i < d->ntags; i++) free(d->tags[i]);
+    for (int i = 0; i < d->nlinks; i++) free(d->links[i]);
+    for (int i = 0; i < d->nrun; i++) free(d->run[i]);
+    dev_init(d);
+}
 
 static int readfile(const char *path, char *buf, size_t cap) {
     int fd = open(path, O_RDONLY | O_CLOEXEC);
@@ -64,14 +110,16 @@ static int readfile(const char *path, char *buf, size_t cap) {
     while (n && (buf[n - 1] == '\n' || buf[n - 1] == ' ')) buf[--n] = 0;
     return (int)n;
 }
+static const char *sysname(const struct dev *d) { const char *b = strrchr(d->syspath, '/'); return b ? b + 1 : d->syspath; }
+static bool is(const char *a, const char *b) { return a && b && !strcmp(a, b); }
 
-/* ---------------------------------------------------------------- input_id (as udev's builtin) */
+/* ---------------------------------------------------------------- builtins */
 struct bits { uint64_t w[12]; };
 static void readbits(const char *dir, const char *name, struct bits *b) {
     char path[PATH_MAX], buf[512];
     memset(b, 0, sizeof *b);
-    snprintf(path, sizeof path, "%s/capabilities/%s", dir, name);
     if (!strcmp(name, "properties")) snprintf(path, sizeof path, "%s/properties", dir);
+    else snprintf(path, sizeof path, "%s/capabilities/%s", dir, name);
     if (readfile(path, buf, sizeof buf) < 0) return;
     char *words[12]; int n = 0;                      /* most significant word first */
     for (char *s = strtok(buf, " "); s && n < 12; s = strtok(NULL, " ")) words[n++] = s;
@@ -79,11 +127,11 @@ static void readbits(const char *dir, const char *name, struct bits *b) {
 }
 static bool tb(const struct bits *b, unsigned bit) { return bit < 768 && (b->w[bit / 64] >> (bit % 64) & 1); }
 
-static void input_props(const char *inputdir, struct props *p) {
+static void builtin_input_id(const char *inputdir, struct dev *d) {
     struct bits ev, key, rel, abs, prop;
     readbits(inputdir, "ev", &ev); readbits(inputdir, "key", &key); readbits(inputdir, "rel", &rel);
     readbits(inputdir, "abs", &abs); readbits(inputdir, "properties", &prop);
-    pset(p, "ID_INPUT", "1");
+    pset(d, "ID_INPUT", "1");
     bool any_key = false;
     for (unsigned k = 1; k < 0x100; k++) if (tb(&key, k)) any_key = true;
     for (unsigned k = 0x160; k < 0x2ff; k++) if (tb(&key, k)) any_key = true;
@@ -92,114 +140,475 @@ static void input_props(const char *inputdir, struct props *p) {
     bool mouse_btn = tb(&key, 0x110), direct = tb(&prop, 1);
     bool joy = tb(&key, 0x120) || tb(&key, 0x130) || tb(&key, 0x2c0);
     if (abs_xy) {
-        if (pen) pset(p, "ID_INPUT_TABLET", "1");
-        else if (finger && !direct) pset(p, "ID_INPUT_TOUCHPAD", "1");
-        else if (touch || direct) pset(p, "ID_INPUT_TOUCHSCREEN", "1");
-        else if (mouse_btn) pset(p, "ID_INPUT_MOUSE", "1");
-        else if (joy) pset(p, "ID_INPUT_JOYSTICK", "1");
+        if (pen) pset(d, "ID_INPUT_TABLET", "1");
+        else if (finger && !direct) pset(d, "ID_INPUT_TOUCHPAD", "1");
+        else if (touch || direct) pset(d, "ID_INPUT_TOUCHSCREEN", "1");
+        else if (mouse_btn) pset(d, "ID_INPUT_MOUSE", "1");
+        else if (joy) pset(d, "ID_INPUT_JOYSTICK", "1");
     }
-    if (rel_xy && mouse_btn) pset(p, "ID_INPUT_MOUSE", "1");
-    if (!abs_xy && joy) pset(p, "ID_INPUT_JOYSTICK", "1");
-    if (any_key) pset(p, "ID_INPUT_KEY", "1");
-    if ((key.w[0] & 0xfffffffeull) == 0xfffffffeull) pset(p, "ID_INPUT_KEYBOARD", "1");
-    if (tb(&ev, 5)) pset(p, "ID_INPUT_SWITCH", "1");
-    if (tb(&prop, 6)) pset(p, "ID_INPUT_ACCELEROMETER", "1");
+    if (rel_xy && mouse_btn) pset(d, "ID_INPUT_MOUSE", "1");
+    if (!abs_xy && joy) pset(d, "ID_INPUT_JOYSTICK", "1");
+    if (any_key) pset(d, "ID_INPUT_KEY", "1");
+    if ((key.w[0] & 0xfffffffeull) == 0xfffffffeull) pset(d, "ID_INPUT_KEYBOARD", "1");
+    if (tb(&ev, 5)) pset(d, "ID_INPUT_SWITCH", "1");
+    if (tb(&prop, 6)) pset(d, "ID_INPUT_ACCELEROMETER", "1");
 }
 
-/* ---------------------------------------------------------------- devices */
-/* the subsystem of a /sys device directory (basename of its "subsystem" link) */
-static bool subsystem_of(const char *syspath, char *out, size_t cap) {
-    char l[PATH_MAX], t[PATH_MAX];
-    snprintf(l, sizeof l, "%s/subsystem", syspath);
-    ssize_t n = readlink(l, t, sizeof t - 1);
-    if (n <= 0) return false;
-    t[n] = 0;
-    const char *b = strrchr(t, '/');
-    snprintf(out, cap, "%s", b ? b + 1 : t);
-    return true;
-}
-/* uevent file + derived properties; false if not a device */
-static bool collect(const char *syspath, struct props *p) {
-    char buf[4096], sub[64];
-    char u[PATH_MAX];
-    snprintf(u, sizeof u, "%s/uevent", syspath);
-    if (readfile(u, buf, sizeof buf) < 0) return false;
-    if (subsystem_of(syspath, sub, sizeof sub)) pset(p, "SUBSYSTEM", "%s", sub);
-    const char *dp = strstr(syspath, "/devices/");
-    if (dp) pset(p, "DEVPATH", "%s", dp);
-    for (char *line = strtok(buf, "\n"); line; line = strtok(NULL, "\n")) {
-        char *eq = strchr(line, '=');
-        if (!eq) continue;
-        *eq = 0;
-        pset(p, line, "%s", eq + 1);
+/* the PCI function the device sits below: pci-0000:00:03.0 */
+static bool builtin_path_id(struct dev *d) {
+    const char *p = strstr(d->syspath, "/devices/pci");
+    if (!p) return false;
+    const char *last = NULL;
+    for (const char *c = strchr(p + 9, '/'); c; c = strchr(c + 1, '/')) {
+        unsigned a, b, s, f;
+        char t;
+        if (sscanf(c + 1, "%x:%x:%x.%x%c", &a, &b, &s, &f, &t) >= 4) last = c + 1;
     }
+    if (!last) return false;
+    char slot[16];
+    snprintf(slot, sizeof slot, "%.12s", last);
+    slot[strcspn(slot, "/")] = 0;
+    pset(d, "ID_PATH", "pci-%s", slot);
+    char tag[32];
+    snprintf(tag, sizeof tag, "pci-%s", slot);
+    for (char *c = tag; *c; c++) if (*c == ':' || *c == '.') *c = '_';
+    pset(d, "ID_PATH_TAG", "%s", tag);
     return true;
 }
-static void derive(const char *syspath, struct props *p) {
-    const char *sub = pget(p, "SUBSYSTEM");
+
+static void builtin_blkid(struct dev *d) {
+    const char *dn = pget(d, "DEVNAME");
+    if (!dn) return;
+    char path[PATH_MAX];
+    snprintf(path, sizeof path, "/dev/%s", dn);
+    int fd = open(path, O_RDONLY | O_CLOEXEC);
+    if (fd < 0) return;
+    uint8_t sb[1024];
+    ssize_t n = pread(fd, sb, sizeof sb, 1024);
+    close(fd);
+    if (n != (ssize_t)sizeof sb || sb[56] != 0x53 || sb[57] != 0xef) return;
+    uint32_t compat = sb[92] | sb[93] << 8, incompat = sb[96] | sb[97] << 8;
+    pset(d, "ID_FS_TYPE", "%s", incompat & 0x40 ? "ext4" : compat & 4 ? "ext3" : "ext2");
+    pset(d, "ID_FS_USAGE", "filesystem");
+    const uint8_t *u = sb + 104;
+    char us[40];
+    snprintf(us, sizeof us, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+             u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8], u[9], u[10], u[11], u[12], u[13], u[14], u[15]);
+    bool zero = true;
+    for (int i = 0; i < 16; i++) if (u[i]) zero = false;
+    if (!zero) { pset(d, "ID_FS_UUID", "%s", us); pset(d, "ID_FS_UUID_ENC", "%s", us); }
+    char label[17];
+    memcpy(label, sb + 120, 16);
+    label[16] = 0;
+    if (label[0]) { pset(d, "ID_FS_LABEL", "%s", label); pset(d, "ID_FS_LABEL_ENC", "%s", label); }
+}
+
+static void builtin_net_id(struct dev *d) {
+    char buf[64], p[PATH_MAX + 16];
+    snprintf(p, sizeof p, "%s/address", d->syspath);
+    unsigned m[6];
+    if (readfile(p, buf, sizeof buf) > 0 && sscanf(buf, "%x:%x:%x:%x:%x:%x", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5]) == 6 &&
+        (m[0] | m[1] | m[2] | m[3] | m[4] | m[5]))
+        pset(d, "ID_NET_NAME_MAC", "enx%02x%02x%02x%02x%02x%02x", m[0], m[1], m[2], m[3], m[4], m[5]);
+    const char *path = pget(d, "ID_PATH");
+    unsigned dom, bus, slot, fn;
+    if (path && sscanf(path, "pci-%x:%x:%x.%x", &dom, &bus, &slot, &fn) == 4) {
+        if (fn) pset(d, "ID_NET_NAME_PATH", "enp%us%uf%u", bus, slot, fn);
+        else pset(d, "ID_NET_NAME_PATH", "enp%us%u", bus, slot);
+    }
+}
+
+/* hwdb: "match\n KEY=VALUE\n..." records separated by blank lines */
+static void hwdb_lookup(struct dev *d, const char *key) {
+    static const char *const dirs[] = { "/etc/udev/hwdb.d", "/lib/udev/hwdb.d" };
+    for (int k = 0; k < 2; k++) {
+        DIR *dr = opendir(dirs[k]);
+        struct dirent *e;
+        while (dr && (e = readdir(dr))) {
+            size_t l = strlen(e->d_name);
+            if (l < 6 || strcmp(e->d_name + l - 5, ".hwdb")) continue;
+            char path[PATH_MAX];
+            snprintf(path, sizeof path, "%s/%s", dirs[k], e->d_name);
+            FILE *f = fopen(path, "re");
+            char line[1024];
+            bool matched = false, in_props = false;
+            while (f && fgets(line, sizeof line, f)) {
+                line[strcspn(line, "\n")] = 0;
+                if (line[0] == '#') continue;
+                if (!line[0]) { matched = in_props = false; continue; }
+                if (line[0] != ' ') {
+                    if (in_props) { matched = false; in_props = false; }
+                    if (!fnmatch(line, key, 0)) matched = true;
+                    continue;
+                }
+                in_props = true;
+                if (!matched) continue;
+                char *kv = line + strspn(line, " "), *eq = strchr(kv, '=');
+                if (!eq) continue;
+                *eq = 0;
+                pset(d, kv, "%s", eq + 1);
+            }
+            if (f) fclose(f);
+        }
+        if (dr) closedir(dr);
+    }
+}
+
+static void builtins(struct dev *d) {
+    const char *sub = pget(d, "SUBSYSTEM");
     if (!sub) return;
-    if (!strcmp(sub, "input")) {
-        const char *base = strrchr(syspath, '/');
-        char dir[PATH_MAX];
-        if (base && !strncmp(base + 1, "event", 5)) snprintf(dir, sizeof dir, "%s/device", syspath);
-        else snprintf(dir, sizeof dir, "%s", syspath);
-        input_props(dir, p);
-        ptag(p, "seat"); ptag(p, "uaccess");
-    } else if (!strcmp(sub, "drm")) {
-        ptag(p, "seat"); ptag(p, "master-of-seat"); ptag(p, "uaccess");
-    } else if (!strcmp(sub, "graphics")) {
-        ptag(p, "seat"); ptag(p, "uaccess");
-    }
-    if (p->ntags) {
-        char t[256] = ":";
-        for (int i = 0; i < p->ntags; i++) { strcat(t, p->tags[i]); strcat(t, ":"); }
-        pset(p, "TAGS", "%s", t);
-        pset(p, "CURRENT_TAGS", "%s", t);
+    builtin_path_id(d);
+    const char *ma = pget(d, "MODALIAS");
+    if (ma) hwdb_lookup(d, ma);
+    if (is(sub, "input")) {
+        char dir[PATH_MAX + 8], b[256], name[128] = "", phys[64] = "", ev[32] = "", p[PATH_MAX + 32];
+        bool event = !strncmp(sysname(d), "event", 5);
+        snprintf(dir, sizeof dir, event ? "%s/device" : "%s", d->syspath);
+        builtin_input_id(dir, d);
+        snprintf(p, sizeof p, "%s/modalias", dir);
+        if (readfile(p, b, sizeof b) > 0) {
+            char key[300];
+            snprintf(key, sizeof key, "evdev:%s", b);
+            hwdb_lookup(d, key);
+        }
+        snprintf(p, sizeof p, "%s/name", dir); readfile(p, name, sizeof name);
+        snprintf(p, sizeof p, "%s/phys", dir); readfile(p, phys, sizeof phys);
+        snprintf(p, sizeof p, "%s/capabilities/ev", dir); readfile(p, ev, sizeof ev);
+        char key[300];
+        snprintf(key, sizeof key, "evdev:name:%s:phys:%s:ev:%s", name, phys, ev);
+        hwdb_lookup(d, key);
+        add_tag(d, "seat"); add_tag(d, "uaccess");
+        const char *path = pget(d, "ID_PATH");
+        if (event && path) {
+            const char *suf = pget(d, "ID_INPUT_KEYBOARD") ? "-event-kbd" : pget(d, "ID_INPUT_MOUSE") ? "-event-mouse"
+                            : pget(d, "ID_INPUT_JOYSTICK") ? "-event-joystick" : "-event";
+            snprintf(p, sizeof p, "/dev/input/by-path/%s%s", path, suf);
+            add_link(d, p);
+        }
+    } else if (is(sub, "block")) {
+        builtin_blkid(d);
+        const char *path = pget(d, "ID_PATH"), *pn = pget(d, "PARTN"), *v;
+        char p[PATH_MAX];
+        if (path) {
+            if (pn) snprintf(p, sizeof p, "/dev/disk/by-path/%s-part%s", path, pn);
+            else snprintf(p, sizeof p, "/dev/disk/by-path/%s", path);
+            add_link(d, p);
+        }
+        if ((v = pget(d, "ID_FS_UUID_ENC"))) { snprintf(p, sizeof p, "/dev/disk/by-uuid/%s", v); add_link(d, p); }
+        if ((v = pget(d, "ID_FS_LABEL_ENC"))) { snprintf(p, sizeof p, "/dev/disk/by-label/%s", v); add_link(d, p); }
+    } else if (is(sub, "net")) {
+        builtin_net_id(d);
+    } else if (is(sub, "drm")) {
+        add_tag(d, "seat"); add_tag(d, "master-of-seat"); add_tag(d, "uaccess");
+    } else if (is(sub, "graphics")) {
+        add_tag(d, "seat"); add_tag(d, "uaccess");
     }
 }
-/* the database id of a device: c13:64, b253:1, n2, +pci:0000:00:03.0 */
-static void dbid(const struct props *p, const char *syspath, char *out, size_t cap) {
-    const char *ma = pget(p, "MAJOR"), *mi = pget(p, "MINOR"), *sub = pget(p, "SUBSYSTEM"), *ifi = pget(p, "IFINDEX");
-    const char *name = strrchr(syspath, '/');
-    name = name ? name + 1 : syspath;
-    if (ma && mi) snprintf(out, cap, "%c%s:%s", sub && !strcmp(sub, "block") ? 'b' : 'c', ma, mi);
-    else if (ifi && sub && !strcmp(sub, "net")) snprintf(out, cap, "n%s", ifi);
-    else snprintf(out, cap, "+%s:%s", sub ? sub : "", name);
+
+/* ---------------------------------------------------------------- rules */
+static void subst(const struct dev *d, const char *in, char *out, size_t cap) {
+    size_t o = 0;
+    char tmp[512];
+    for (const char *c = in; *c && o + 1 < cap; c++) {
+        const char *rep = NULL;
+        tmp[0] = 0;
+        if (*c == '%' && c[1]) {
+            c++;
+            switch (*c) {
+            case 'k': rep = sysname(d); break;
+            case 'n': { const char *s = sysname(d), *e = s + strlen(s); while (e > s && e[-1] >= '0' && e[-1] <= '9') e--; rep = e; break; }
+            case 'M': rep = pget(d, "MAJOR"); break;
+            case 'm': rep = pget(d, "MINOR"); break;
+            case 'p': rep = pget(d, "DEVPATH"); break;
+            case 'N': snprintf(tmp, sizeof tmp, "/dev/%s", pget(d, "DEVNAME") ? pget(d, "DEVNAME") : ""); rep = tmp; break;
+            case '%': rep = "%"; break;
+            case 'E': if (c[1] == '{') { const char *e = strchr(c, '}'); if (e) { snprintf(tmp, sizeof tmp, "%.*s", (int)(e - c - 2), c + 2); rep = pget(d, tmp); c = e; } } break;
+            case 's': if (c[1] == '{') { const char *e = strchr(c, '}'); if (e) { char a[256], p[PATH_MAX + 256];
+                snprintf(a, sizeof a, "%.*s", (int)(e - c - 2), c + 2); snprintf(p, sizeof p, "%s/%s", d->syspath, a);
+                if (readfile(p, tmp, sizeof tmp) >= 0) rep = tmp; c = e; } } break;
+            default: rep = ""; break;
+            }
+        } else if (*c == '$') {
+            static const char *const words[] = { "kernel", "number", "devpath", "major", "minor", "env{", "attr{", "$" };
+            int w = -1;
+            for (int k = 0; k < 8 && w < 0; k++) if (!strncmp(c + 1, words[k], strlen(words[k]))) w = k;
+            if (w < 0) { out[o++] = *c; continue; }
+            if (w == 5 || w == 6) {
+                const char *s = c + 1 + strlen(words[w]), *e = strchr(s, '}');
+                if (!e) { out[o++] = *c; continue; }
+                char a[256];
+                snprintf(a, sizeof a, "%.*s", (int)(e - s), s);
+                if (w == 5) rep = pget(d, a);
+                else { char p[PATH_MAX + 256]; snprintf(p, sizeof p, "%s/%s", d->syspath, a); if (readfile(p, tmp, sizeof tmp) >= 0) rep = tmp; }
+                c = e;
+            } else {
+                c += strlen(words[w]);
+                char pc[3] = { '%', "knpMm$"[w == 7 ? 5 : w == 2 ? 2 : w], 0 };
+                if (w == 7) rep = "$";
+                else { subst(d, pc, tmp, sizeof tmp); rep = tmp; }
+            }
+        } else { out[o++] = *c; continue; }
+        if (rep) for (; *rep && o + 1 < cap; rep++) out[o++] = *rep;
+    }
+    out[o] = 0;
+}
+static bool glob_any(const char *pat, const char *val) {
+    char p[1024];
+    snprintf(p, sizeof p, "%s", pat);
+    for (char *s = strtok(p, "|"); s; s = strtok(NULL, "|"))
+        if (!fnmatch(s, val ? val : "", 0)) return true;
+    return !*pat && (!val || !*val);
+}
+
+struct rtok { char key[64], attr[256], op[3], val[1024]; };
+/* KEY{attr}op"value" ; returns pointer past it, NULL at end */
+static const char *next_tok(const char *s, struct rtok *t) {
+    while (*s == ' ' || *s == '\t' || *s == ',') s++;
+    if (!*s || *s == '#') return NULL;
+    size_t k = 0;
+    while (*s && ((*s >= 'A' && *s <= 'Z') || *s == '_') && k < sizeof t->key - 1) t->key[k++] = *s++;
+    t->key[k] = 0;
+    t->attr[0] = 0;
+    if (*s == '{') {
+        const char *e = strchr(s, '}');
+        if (!e) return NULL;
+        snprintf(t->attr, sizeof t->attr, "%.*s", (int)(e - s - 1), s + 1);
+        s = e + 1;
+    }
+    while (*s == ' ') s++;
+    if ((s[0] == '=' || s[0] == '!' || s[0] == '+' || s[0] == ':' || s[0] == '-') && s[1] == '=') { t->op[0] = s[0]; t->op[1] = '='; t->op[2] = 0; s += 2; }
+    else if (s[0] == '=') { strcpy(t->op, "="); s++; }
+    else return NULL;
+    while (*s == ' ') s++;
+    if (*s != '"') return NULL;
+    s++;
+    size_t v = 0;
+    while (*s && *s != '"' && v < sizeof t->val - 1) { if (*s == '\\' && s[1]) s++; t->val[v++] = *s++; }
+    t->val[v] = 0;
+    return *s == '"' ? s + 1 : NULL;
+}
+
+struct rules { char **lines; int n; };
+static int cmpstr(const void *a, const void *b) { return strcmp(strrchr(*(char *const *)a, '/') + 1, strrchr(*(char *const *)b, '/') + 1); }
+static void load_rules(struct rules *r) {
+    static const char *const dirs[] = { "/etc/udev/rules.d", "/run/udev/rules.d", "/lib/udev/rules.d" };
+    char *files[128]; int nf = 0;
+    for (int k = 0; k < 3; k++) {
+        DIR *dr = opendir(dirs[k]);
+        struct dirent *e;
+        while (dr && (e = readdir(dr)) && nf < 128) {
+            size_t l = strlen(e->d_name);
+            if (l < 7 || strcmp(e->d_name + l - 6, ".rules")) continue;
+            bool dup = false;
+            for (int i = 0; i < nf; i++) if (!strcmp(strrchr(files[i], '/') + 1, e->d_name)) dup = true;
+            if (dup) continue;                        /* an earlier directory overrides */
+            if (asprintf(&files[nf], "%s/%s", dirs[k], e->d_name) >= 0) nf++;
+        }
+        if (dr) closedir(dr);
+    }
+    qsort(files, (size_t)nf, sizeof *files, cmpstr);
+    r->lines = NULL; r->n = 0;
+    for (int i = 0; i < nf; i++) {
+        FILE *f = fopen(files[i], "re");
+        char line[2048], acc[4096] = "";
+        while (f && fgets(line, sizeof line, f)) {
+            line[strcspn(line, "\n")] = 0;
+            size_t l = strlen(line);
+            bool cont = l && line[l - 1] == '\\';
+            if (cont) line[l - 1] = 0;
+            strncat(acc, line, sizeof acc - strlen(acc) - 1);
+            if (cont) continue;
+            const char *s = acc + strspn(acc, " \t");
+            if (*s && *s != '#') { r->lines = realloc(r->lines, sizeof *r->lines * (size_t)(r->n + 1)); r->lines[r->n++] = strdup(s); }
+            acc[0] = 0;
+        }
+        if (f) fclose(f);
+        free(files[i]);
+    }
+}
+
+static bool match_tok(struct dev *d, const struct rtok *t, const char *action) {
+    const char *v = NULL;
+    char buf[1024];
+    if (!strcmp(t->key, "ACTION")) v = action;
+    else if (!strcmp(t->key, "KERNEL")) v = sysname(d);
+    else if (!strcmp(t->key, "SUBSYSTEM")) v = pget(d, "SUBSYSTEM");
+    else if (!strcmp(t->key, "DEVPATH")) v = pget(d, "DEVPATH");
+    else if (!strcmp(t->key, "DRIVER")) v = pget(d, "DRIVER");
+    else if (!strcmp(t->key, "DEVTYPE")) v = pget(d, "DEVTYPE");
+    else if (!strcmp(t->key, "NAME")) v = pget(d, "INTERFACE") ? pget(d, "INTERFACE") : pget(d, "DEVNAME");
+    else if (!strcmp(t->key, "ENV")) v = pget(d, t->attr);
+    else if (!strcmp(t->key, "ATTR") || !strcmp(t->key, "SYSCTL")) {
+        char p[PATH_MAX + 256];
+        if (t->key[0] == 'S') { snprintf(p, sizeof p, "/proc/sys/%s", t->attr); for (char *c = p + 10; *c; c++) if (*c == '.') *c = '/'; }
+        else snprintf(p, sizeof p, "%s/%s", d->syspath, t->attr);
+        v = readfile(p, buf, sizeof buf) >= 0 ? buf : NULL;
+    } else if (!strcmp(t->key, "TAG")) {
+        bool any = false;
+        for (int i = 0; i < d->ntags; i++) if (glob_any(t->val, d->tags[i])) any = true;
+        return any == (t->op[0] == '=');
+    } else if (!strcmp(t->key, "TEST")) {
+        char p[PATH_MAX], q[PATH_MAX + 1100];
+        subst(d, t->val, p, sizeof p);
+        if (p[0] == '/') snprintf(q, sizeof q, "%s", p); else snprintf(q, sizeof q, "%s/%s", d->syspath, p);
+        return (access(q, F_OK) == 0) == (t->op[0] == '=');
+    } else if (!strcmp(t->key, "KERNELS") || !strcmp(t->key, "SUBSYSTEMS") || !strcmp(t->key, "DRIVERS") ||
+               !strcmp(t->key, "ATTRS")) {
+        /* walk up from the device itself to /sys/devices (simplification: each key may match a
+         * different ancestor; udev wants one device to satisfy all of them) */
+        char pat[1024], cur[PATH_MAX], p[PATH_MAX + 256], l[PATH_MAX];
+        subst(d, t->val, pat, sizeof pat);
+        snprintf(cur, sizeof cur, "%s", d->syspath);
+        bool any = false;
+        while (!any && !strncmp(cur, "/sys/devices/", 13)) {
+            const char *val = NULL;
+            if (t->key[0] == 'K') val = strrchr(cur, '/') + 1;
+            else if (t->key[0] == 'A') { snprintf(p, sizeof p, "%s/%s", cur, t->attr); if (readfile(p, buf, sizeof buf) >= 0) val = buf; }
+            else {
+                snprintf(p, sizeof p, "%s/%s", cur, t->key[0] == 'S' ? "subsystem" : "driver");
+                ssize_t n = readlink(p, l, sizeof l - 1);
+                if (n > 0) { l[n] = 0; val = strrchr(l, '/') ? strrchr(l, '/') + 1 : l; }
+            }
+            if (val && glob_any(pat, val)) any = true;
+            *strrchr(cur, '/') = 0;
+        }
+        return any == (t->op[0] == '=');
+    } else return t->op[0] != '=';                 /* unknown match key: never matches with == */
+    char pat[1024];
+    subst(d, t->val, pat, sizeof pat);
+    return glob_any(pat, v) == (t->op[0] == '=');
+}
+
+static void apply_tok(struct dev *d, const struct rtok *t) {
+    char v[1024];
+    subst(d, t->val, v, sizeof v);
+    bool add = t->op[0] == '+', final = t->op[0] == ':';
+    if (!strcmp(t->key, "ENV")) pset(d, t->attr, "%s", v);
+    else if (!strcmp(t->key, "SYMLINK")) {
+        if (!add) { for (int i = 0; i < d->nlinks; i++) free(d->links[i]); d->nlinks = 0; }
+        char *save;
+        for (char *s = strtok_r(v, " ", &save); s; s = strtok_r(NULL, " ", &save)) {
+            char p[PATH_MAX];
+            snprintf(p, sizeof p, s[0] == '/' ? "%s" : "/dev/%s", s);
+            add_link(d, p);
+        }
+    } else if (!strcmp(t->key, "TAG")) {
+        if (t->op[0] == '-') { for (int i = 0; i < d->ntags; i++) if (!strcmp(d->tags[i], v)) { free(d->tags[i]); d->tags[i] = d->tags[--d->ntags]; } }
+        else add_tag(d, v);
+    } else if (!strcmp(t->key, "MODE")) d->mode = (int)strtol(v, NULL, 8);
+    else if (!strcmp(t->key, "OWNER")) { struct passwd *p = getpwnam(v); d->uid = p ? p->pw_uid : (uid_t)strtoul(v, NULL, 10); }
+    else if (!strcmp(t->key, "GROUP")) { struct group *g = getgrnam(v); d->gid = g ? g->gr_gid : (gid_t)strtoul(v, NULL, 10); }
+    else if (!strcmp(t->key, "RUN")) {
+        if (!add) { for (int i = 0; i < d->nrun; i++) free(d->run[i]); d->nrun = 0; }
+        if (d->nrun < 8) d->run[d->nrun++] = strdup(v);
+    }
+    (void)final;
+}
+
+static void run_rules(const struct rules *r, struct dev *d, const char *action) {
+    for (int i = 0; i < r->n; i++) {
+        const char *s = r->lines[i];
+        struct rtok t;
+        bool ok = true;
+        const char *p = s;
+        /* first pass: every match key must hold */
+        while (ok && (p = next_tok(p, &t))) {
+            bool assign = !strcmp(t.op, "=") || !strcmp(t.op, "+=") || !strcmp(t.op, ":=") || !strcmp(t.op, "-=");
+            if (!assign && !match_tok(d, &t, action)) ok = false;
+        }
+        if (!ok) continue;
+        const char *go = NULL;
+        p = s;
+        while ((p = next_tok(p, &t))) {
+            bool assign = !strcmp(t.op, "=") || !strcmp(t.op, "+=") || !strcmp(t.op, ":=") || !strcmp(t.op, "-=");
+            if (!assign) continue;
+            if (!strcmp(t.key, "GOTO")) { go = strdup(t.val); continue; }
+            if (!strcmp(t.key, "LABEL") || !strcmp(t.key, "OPTIONS") || !strcmp(t.key, "IMPORT") || !strcmp(t.key, "PROGRAM")) continue;
+            apply_tok(d, &t);
+        }
+        if (go) {                                   /* jump to the LABEL="go" line */
+            for (int j = i + 1; j < r->n; j++) {
+                struct rtok u;
+                const char *q = r->lines[j];
+                bool hit = false;
+                while ((q = next_tok(q, &u))) if (!strcmp(u.key, "LABEL") && !strcmp(u.val, go)) hit = true;
+                if (hit) { i = j; break; }
+            }
+            free((void *)go);
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- database, nodes, links */
+static void dbid(const struct dev *d, char *out, size_t cap) {
+    const char *ma = pget(d, "MAJOR"), *mi = pget(d, "MINOR"), *sub = pget(d, "SUBSYSTEM"), *ifi = pget(d, "IFINDEX");
+    if (ma && mi) snprintf(out, cap, "%c%s:%s", is(sub, "block") ? 'b' : 'c', ma, mi);
+    else if (ifi && is(sub, "net")) snprintf(out, cap, "n%s", ifi);
+    else snprintf(out, cap, "+%s:%s", sub ? sub : "", sysname(d));
 }
 static uint64_t usec_now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return (uint64_t)t.tv_sec * 1000000 + (uint64_t)t.tv_nsec / 1000; }
-
 static void mkdirs(void) {
     mkdir("/run", 0755); mkdir("/run/udev", 0755); mkdir("/run/udev/data", 0755); mkdir("/run/udev/tags", 0755);
     int fd = open("/run/udev/control", O_CREAT | O_WRONLY | O_CLOEXEC, 0600);
     if (fd >= 0) close(fd);
 }
-static void db_write(const char *id, struct props *p) {
-    char path[PATH_MAX], tmp[PATH_MAX];
+static void mkparents(char *path) {
+    for (char *s = path + 1; (s = strchr(s, '/')); s++) { *s = 0; mkdir(path, 0755); *s = '/'; }
+}
+/* relative link target from the link's directory to /dev/<devname> */
+static void link_create(const char *link, const char *devname) {
+    char l[PATH_MAX], t[PATH_MAX] = "";
+    snprintf(l, sizeof l, "%s", link);
+    mkparents(l);
+    int depth = 0;
+    for (const char *c = link + 5; *c; c++) if (*c == '/') depth++;       /* below /dev */
+    for (int i = 0; i < depth; i++) strcat(t, "../");
+    strncat(t, devname, sizeof t - strlen(t) - 1);
+    char cur[PATH_MAX];
+    ssize_t n = readlink(link, cur, sizeof cur - 1);
+    if (n >= 0) { cur[n] = 0; if (!strcmp(cur, t)) return; unlink(link); }
+    if (symlink(t, link) < 0 && errno != EEXIST) fprintf(stderr, "udevshim: %s: %s\n", link, strerror(errno));
+}
+static void db_old(const char *id, struct dev *old) {
+    char path[PATH_MAX], line[1200];
+    snprintf(path, sizeof path, "/run/udev/data/%s", id);
+    FILE *f = fopen(path, "re");
+    while (f && fgets(line, sizeof line, f)) {
+        line[strcspn(line, "\n")] = 0;
+        if (!strncmp(line, "S:", 2)) { char p[PATH_MAX]; snprintf(p, sizeof p, "/dev/%s", line + 2); add_link(old, p); }
+        else if (!strncmp(line, "I:", 2)) pset(old, "USEC_INITIALIZED", "%s", line + 2);
+        else if (!strncmp(line, "G:", 2)) add_tag(old, line + 2);
+    }
+    if (f) fclose(f);
+}
+static void db_write(const char *id, struct dev *d) {
+    char path[PATH_MAX], tmp[PATH_MAX + 8];
     snprintf(path, sizeof path, "/run/udev/data/%s", id);
     snprintf(tmp, sizeof tmp, "%s.tmp", path);
     FILE *f = fopen(tmp, "we");
     if (!f) return;
-    const char *ui = pget(p, "USEC_INITIALIZED");
-    fprintf(f, "I:%s\n", ui ? ui : "1");
+    fprintf(f, "I:%s\n", pget(d, "USEC_INITIALIZED") ? pget(d, "USEC_INITIALIZED") : "1");
+    for (int i = 0; i < d->nlinks; i++) fprintf(f, "S:%s\n", d->links[i] + 5);
     static const char *const skip[] = { "ACTION", "DEVPATH", "SUBSYSTEM", "SEQNUM", "MAJOR", "MINOR", "DEVNAME", "DEVTYPE",
                                         "IFINDEX", "INTERFACE", "TAGS", "CURRENT_TAGS", "USEC_INITIALIZED", "PRODUCT", "NAME",
-                                        "PHYS", "PROP", "EV", "KEY", "REL", "ABS", "MSC", "LED", "MODALIAS", "PARTN", "DRIVER" };
-    for (int i = 0; i < p->n; i++) {
+                                        "PHYS", "PROP", "EV", "KEY", "REL", "ABS", "MSC", "LED", "MODALIAS", "PARTN", "DRIVER",
+                                        "DEVLINKS", "DEVPATH_OLD" };
+    for (int i = 0; i < d->n; i++) {
         bool k = true;
         for (size_t s = 0; s < sizeof skip / sizeof *skip; s++) {
             size_t l = strlen(skip[s]);
-            if (!strncmp(p->kv[i], skip[s], l) && p->kv[i][l] == '=') k = false;
+            if (!strncmp(d->kv[i], skip[s], l) && d->kv[i][l] == '=') k = false;
         }
-        if (k) fprintf(f, "E:%s\n", p->kv[i]);
+        if (k) fprintf(f, "E:%s\n", d->kv[i]);
     }
-    for (int i = 0; i < p->ntags; i++) fprintf(f, "G:%s\nQ:%s\n", p->tags[i], p->tags[i]);
+    for (int i = 0; i < d->ntags; i++) fprintf(f, "G:%s\nQ:%s\n", d->tags[i], d->tags[i]);
     fprintf(f, "V:1\n");
     fclose(f);
     rename(tmp, path);
-    for (int i = 0; i < p->ntags; i++) {
-        snprintf(path, sizeof path, "/run/udev/tags/%s", p->tags[i]);
+    for (int i = 0; i < d->ntags; i++) {
+        snprintf(path, sizeof path, "/run/udev/tags/%s", d->tags[i]);
         mkdir(path, 0755);
-        snprintf(path, sizeof path, "/run/udev/tags/%s/%s", p->tags[i], id);
+        snprintf(path, sizeof path, "/run/udev/tags/%s/%s", d->tags[i], id);
         int fd = open(path, O_CREAT | O_WRONLY | O_CLOEXEC, 0644);
         if (fd >= 0) close(fd);
     }
@@ -208,79 +617,140 @@ static void db_remove(const char *id) {
     char path[PATH_MAX];
     snprintf(path, sizeof path, "/run/udev/data/%s", id);
     unlink(path);
-    DIR *d = opendir("/run/udev/tags");
+    DIR *dr = opendir("/run/udev/tags");
     struct dirent *e;
-    while (d && (e = readdir(d))) {
+    while (dr && (e = readdir(dr))) {
         if (e->d_name[0] == '.') continue;
         snprintf(path, sizeof path, "/run/udev/tags/%s/%s", e->d_name, id);
         unlink(path);
     }
-    if (d) closedir(d);
+    if (dr) closedir(dr);
 }
-static void node_create(const struct props *p) {
-    const char *dn = pget(p, "DEVNAME"), *ma = pget(p, "MAJOR"), *mi = pget(p, "MINOR"), *sub = pget(p, "SUBSYSTEM");
+static void node_update(const struct dev *d, bool create) {
+    const char *dn = pget(d, "DEVNAME"), *ma = pget(d, "MAJOR"), *mi = pget(d, "MINOR");
     if (!dn || !ma || !mi) return;
     char path[PATH_MAX];
     snprintf(path, sizeof path, "/dev/%s", dn);
     struct stat st;
-    if (!lstat(path, &st)) return;
-    for (char *s = path + 5; (s = strchr(s, '/')); s++) { *s = 0; mkdir(path, 0755); *s = '/'; }
-    bool blk = sub && !strcmp(sub, "block");
-    mknod(path, (blk ? S_IFBLK : S_IFCHR) | 0660, makedev(atoi(ma), atoi(mi)));
+    if (lstat(path, &st) && create) {
+        mkparents(path);
+        mknod(path, (is(pget(d, "SUBSYSTEM"), "block") ? S_IFBLK : S_IFCHR) | (d->mode >= 0 ? d->mode : 0660), makedev(atoi(ma), atoi(mi)));
+    }
+    if (d->mode >= 0) chmod(path, (mode_t)d->mode);
+    if (d->uid != (uid_t)-1 || d->gid != (gid_t)-1) if (chown(path, d->uid, d->gid)) {}
+}
+static void run_programs(const struct dev *d, const char *action) {
+    for (int i = 0; i < d->nrun; i++) {
+        pid_t p = fork();
+        if (p == 0) {
+            clearenv();
+            for (int k = 0; k < d->n; k++) putenv(d->kv[k]);
+            setenv("ACTION", action, 1);
+            setenv("PATH", "/usr/sbin:/usr/bin:/sbin:/bin", 1);
+            execl("/bin/sh", "sh", "-c", d->run[i], (char *)NULL);
+            _exit(127);
+        }
+        if (p > 0) waitpid(p, NULL, 0);
+    }
 }
 
-/* full property set of a device directory (coldplug, -q) */
-static bool device_props(const char *syspath, struct props *p) {
-    if (!collect(syspath, p)) return false;
-    derive(syspath, p);
-    char id[128], path[PATH_MAX], buf[64];
-    dbid(p, syspath, id, sizeof id);
-    snprintf(path, sizeof path, "/run/udev/data/%s", id);
-    FILE *f = fopen(path, "re");                    /* keep the original initialization time */
-    char line[600];
-    while (f && fgets(line, sizeof line, f)) if (!strncmp(line, "I:", 2)) { snprintf(buf, sizeof buf, "%s", line + 2); buf[strcspn(buf, "\n")] = 0; pset(p, "USEC_INITIALIZED", "%s", buf); }
-    if (f) fclose(f);
-    if (!pget(p, "USEC_INITIALIZED")) pset(p, "USEC_INITIALIZED", "%llu", (unsigned long long)usec_now());
+/* finish a device after its uevent variables are in d: builtins, rules, db, nodes, links */
+static struct rules rules;
+static void process(struct dev *d, const char *action) {
+    char id[160];
+    pset(d, "ACTION", "%s", action);
+    if (!pget(d, "SUBSYSTEM")) {
+        char l[PATH_MAX + 16], t[PATH_MAX];
+        snprintf(l, sizeof l, "%s/subsystem", d->syspath);
+        ssize_t n = readlink(l, t, sizeof t - 1);
+        if (n > 0) { t[n] = 0; pset(d, "SUBSYSTEM", "%s", strrchr(t, '/') ? strrchr(t, '/') + 1 : t); }
+    }
+    struct dev *old = calloc(1, sizeof *old);
+    dev_init(old);
+    dbid(d, id, sizeof id);
+    db_old(id, old);
+    if (!strcmp(action, "remove")) {
+        for (int i = 0; i < old->nlinks; i++) unlink(old->links[i]);
+        db_remove(id);
+        run_rules(&rules, d, action);
+        run_programs(d, action);
+        dev_free(old); free(old);
+        return;
+    }
+    builtins(d);
+    run_rules(&rules, d, action);
+    pset(d, "USEC_INITIALIZED", "%s", pget(old, "USEC_INITIALIZED") ? pget(old, "USEC_INITIALIZED") : "");
+    if (!pget(d, "USEC_INITIALIZED")) pset(d, "USEC_INITIALIZED", "%llu", (unsigned long long)usec_now());
+    if (d->ntags) {
+        char t[512] = ":";
+        for (int i = 0; i < d->ntags; i++) { strncat(t, d->tags[i], sizeof t - strlen(t) - 2); strcat(t, ":"); }
+        pset(d, "TAGS", "%s", t);
+        pset(d, "CURRENT_TAGS", "%s", t);
+    }
+    if (d->nlinks) {
+        char t[2048] = "";
+        for (int i = 0; i < d->nlinks; i++) { if (i) strcat(t, " "); strncat(t, d->links[i], sizeof t - strlen(t) - 2); }
+        pset(d, "DEVLINKS", "%s", t);
+    }
+    for (int i = 0; i < old->nlinks; i++) {          /* links no longer wanted */
+        bool keep = false;
+        for (int k = 0; k < d->nlinks; k++) if (!strcmp(old->links[i], d->links[k])) keep = true;
+        if (!keep) unlink(old->links[i]);
+    }
+    node_update(d, !strcmp(action, "add") || !strcmp(action, "change"));
+    if (pget(d, "DEVNAME")) for (int i = 0; i < d->nlinks; i++) link_create(d->links[i], pget(d, "DEVNAME"));
+    db_write(id, d);
+    run_programs(d, action);
+    dev_free(old); free(old);
+}
+
+/* uevent file of a /sys device directory into d */
+static bool collect(const char *syspath, struct dev *d) {
+    char buf[4096], u[PATH_MAX + 16];
+    snprintf(d->syspath, sizeof d->syspath, "%s", syspath);
+    snprintf(u, sizeof u, "%s/uevent", syspath);
+    if (readfile(u, buf, sizeof buf) < 0) return false;
+    const char *dp = strstr(syspath, "/devices/");
+    if (dp) pset(d, "DEVPATH", "%s", dp);
+    for (char *line = strtok(buf, "\n"); line; line = strtok(NULL, "\n")) {
+        char *eq = strchr(line, '=');
+        if (!eq) continue;
+        *eq = 0;
+        pset(d, line, "%s", eq + 1);
+    }
     return true;
 }
 
-/* walk /sys/class/X/Y and /sys/bus/X/devices/Y */
 static void for_each_device(void (*cb)(const char *syspath, void *arg), void *arg) {
-    static const char *const roots[] = { "/sys/class", "/sys/bus" };
+    static const char *const roots[] = { "/sys/bus", "/sys/class" };
     for (int r = 0; r < 2; r++) {
-        DIR *d = opendir(roots[r]);
+        DIR *dr = opendir(roots[r]);
         struct dirent *e;
-        while (d && (e = readdir(d))) {
+        while (dr && (e = readdir(dr))) {
             if (e->d_name[0] == '.') continue;
             char dir[PATH_MAX];
-            snprintf(dir, sizeof dir, r ? "%s/%s/devices" : "%s/%s", roots[r], e->d_name);
+            snprintf(dir, sizeof dir, r ? "%s/%s" : "%s/%s/devices", roots[r], e->d_name);
             DIR *d2 = opendir(dir);
             struct dirent *e2;
             while (d2 && (e2 = readdir(d2))) {
                 if (e2->d_name[0] == '.') continue;
-                char l[PATH_MAX], t[PATH_MAX];
+                char l[PATH_MAX + 256], t[PATH_MAX];
                 snprintf(l, sizeof l, "%s/%s", dir, e2->d_name);
-                if (!realpath(l, t)) continue;
-                cb(t, arg);
+                if (realpath(l, t)) cb(t, arg);
             }
             if (d2) closedir(d2);
         }
-        if (d) closedir(d);
+        if (dr) closedir(dr);
     }
 }
 static void cold_one(const char *syspath, void *arg) {
-    struct props p = { 0 };
-    if (device_props(syspath, &p)) {
-        char id[128];
-        dbid(&p, syspath, id, sizeof id);
-        node_create(&p);
-        db_write(id, &p);
-        (*(int *)arg)++;
-    }
-    pfree(&p);
+    struct dev *d = malloc(sizeof *d);
+    dev_init(d);
+    if (collect(syspath, d)) { process(d, "add"); (*(int *)arg)++; }
+    dev_free(d); free(d);
 }
 static void trig_one(const char *syspath, void *arg) {
-    char u[PATH_MAX];
+    char u[PATH_MAX + 16];
     snprintf(u, sizeof u, "%s/uevent", syspath);
     int fd = open(u, O_WRONLY | O_CLOEXEC);
     if (fd < 0) return;
@@ -293,39 +763,37 @@ static uint32_t murmur2(const char *s) {
     const uint32_t m = 0x5bd1e995;
     size_t len = strlen(s);
     uint32_t h = (uint32_t)len;
-    const uint8_t *d = (const uint8_t *)s;
-    while (len >= 4) {
-        uint32_t k = (uint32_t)d[0] | (uint32_t)d[1] << 8 | (uint32_t)d[2] << 16 | (uint32_t)d[3] << 24;
-        k *= m; k ^= k >> 24; k *= m;
-        h *= m; h ^= k;
-        d += 4; len -= 4;
+    const uint8_t *p = (const uint8_t *)s;
+    for (; len >= 4; p += 4, len -= 4) {
+        uint32_t k = (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
+        k *= m; k ^= k >> 24; k *= m; h *= m; h ^= k;
     }
     switch (len) {
-    case 3: h ^= (uint32_t)d[2] << 16; __attribute__((fallthrough));
-    case 2: h ^= (uint32_t)d[1] << 8; __attribute__((fallthrough));
-    case 1: h ^= d[0]; h *= m;
+    case 3: h ^= (uint32_t)p[2] << 16; __attribute__((fallthrough));
+    case 2: h ^= (uint32_t)p[1] << 8; __attribute__((fallthrough));
+    case 1: h ^= p[0]; h *= m;
     }
     h ^= h >> 13; h *= m; h ^= h >> 15;
     return h;
 }
 struct mon_hdr { char prefix[8]; uint32_t magic, header_size, properties_off, properties_len, sub_hash, devtype_hash, bloom_hi, bloom_lo; };
-static void broadcast(int sk, struct props *p) {
-    static char msg[8192];
+static void broadcast(int sk, struct dev *d) {
+    static char msg[16384];
     struct mon_hdr h = { "libudev", htobe32(0xfeedcafe), sizeof h, sizeof h, 0, 0, 0, 0, 0 };
     size_t n = sizeof h;
-    for (int i = 0; i < p->n; i++) {
-        size_t l = strlen(p->kv[i]) + 1;
+    for (int i = 0; i < d->n; i++) {
+        size_t l = strlen(d->kv[i]) + 1;
         if (n + l > sizeof msg) break;
-        memcpy(msg + n, p->kv[i], l);
+        memcpy(msg + n, d->kv[i], l);
         n += l;
     }
     h.properties_len = (uint32_t)(n - sizeof h);
-    const char *sub = pget(p, "SUBSYSTEM"), *dt = pget(p, "DEVTYPE");
+    const char *sub = pget(d, "SUBSYSTEM"), *dt = pget(d, "DEVTYPE");
     if (sub) h.sub_hash = htobe32(murmur2(sub));
     if (dt) h.devtype_hash = htobe32(murmur2(dt));
     uint64_t bloom = 0;
-    for (int i = 0; i < p->ntags; i++) {
-        uint32_t x = murmur2(p->tags[i]);
+    for (int i = 0; i < d->ntags; i++) {
+        uint32_t x = murmur2(d->tags[i]);
         bloom |= 1ull << (x & 63) | 1ull << ((x >> 6) & 63) | 1ull << ((x >> 12) & 63) | 1ull << ((x >> 18) & 63);
     }
     h.bloom_hi = htobe32((uint32_t)(bloom >> 32)); h.bloom_lo = htobe32((uint32_t)bloom);
@@ -334,77 +802,255 @@ static void broadcast(int sk, struct props *p) {
     sendto(sk, msg, n, 0, (struct sockaddr *)&to, sizeof to);
 }
 
-static int daemon_loop(void) {
+static int uevent_socket(unsigned groups) {
     int sk = socket(AF_NETLINK, SOCK_DGRAM | SOCK_CLOEXEC, NETLINK_KOBJECT_UEVENT);
-    struct sockaddr_nl_u a = { AF_NETLINK, 0, 0, 1 };
-    if (sk < 0 || bind(sk, (struct sockaddr *)&a, sizeof a) < 0) { perror("udevshim: uevent socket"); return 1; }
-    int on = 1;
+    struct sockaddr_nl_u a = { AF_NETLINK, 0, 0, groups };
+    if (sk < 0 || bind(sk, (struct sockaddr *)&a, sizeof a) < 0) { perror("udevshim: uevent socket"); return -1; }
+    int on = 1, sz = 1 << 20;
     setsockopt(sk, SOL_SOCKET, SO_PASSCRED, &on, sizeof on);
-    static char buf[8192];
-    for (;;) {
+    setsockopt(sk, SOL_SOCKET, SO_RCVBUF, &sz, sizeof sz);
+    return sk;
+}
+static void write_seqnum(const char *s) {
+    FILE *f = fopen("/run/udev/queue-seqnum.tmp", "we");
+    if (!f) return;
+    fprintf(f, "%s\n", s);
+    fclose(f);
+    rename("/run/udev/queue-seqnum.tmp", "/run/udev/queue-seqnum");
+}
+static volatile sig_atomic_t stop;
+static void on_term(int s) { (void)s; stop = 1; }
+static int daemon_loop(void) {
+    int sk = uevent_socket(1);
+    if (sk < 0) return 1;
+    char sq[32] = "0";
+    readfile("/sys/kernel/uevent_seqnum", sq, sizeof sq);
+    write_seqnum(sq);                                /* events before we listened are coldplug's */
+    FILE *pf = fopen("/run/udev/udevshim.pid", "we");
+    if (pf) { fprintf(pf, "%d\n", getpid()); fclose(pf); }
+    struct sigaction sa = { .sa_handler = on_term };
+    sigaction(SIGTERM, &sa, NULL);
+    sigaction(SIGINT, &sa, NULL);
+    static char buf[16384];
+    while (!stop) {
         struct sockaddr_nl_u from;
         socklen_t fl = sizeof from;
         ssize_t n = recvfrom(sk, buf, sizeof buf - 1, 0, (struct sockaddr *)&from, &fl);
-        if (n < 0) { if (errno == EINTR) continue; perror("udevshim: recv"); return 1; }
+        if (n < 0) { if (errno == EINTR) continue; perror("udevshim: recv"); break; }
         if (from.pid != 0 || !(from.groups & 1)) continue;         /* kernel messages only */
         buf[n] = 0;
-        struct props p = { 0 };
+        struct dev *d = malloc(sizeof *d);
+        dev_init(d);
         for (char *s = buf + strlen(buf) + 1; s < buf + n; s += strlen(s) + 1) {
             char *eq = strchr(s, '=');
             if (!eq) continue;
-            *eq = 0; pset(&p, s, "%s", eq + 1); *eq = '=';
+            *eq = 0; pset(d, s, "%s", eq + 1); *eq = '=';
         }
-        const char *act = pget(&p, "ACTION"), *dp = pget(&p, "DEVPATH");
-        if (!act || !dp) { pfree(&p); continue; }
-        char syspath[PATH_MAX], id[128];
-        snprintf(syspath, sizeof syspath, "/sys%s", dp);
-        if (!strcmp(act, "remove")) {
-            dbid(&p, syspath, id, sizeof id);
-            db_remove(id);
-        } else {
-            derive(syspath, &p);
-            dbid(&p, syspath, id, sizeof id);
-            char path[PATH_MAX], line[600];
-            snprintf(path, sizeof path, "/run/udev/data/%s", id);
-            FILE *f = fopen(path, "re");
-            while (f && fgets(line, sizeof line, f))
-                if (!strncmp(line, "I:", 2)) { line[strcspn(line, "\n")] = 0; pset(&p, "USEC_INITIALIZED", "%s", line + 2); }
-            if (f) fclose(f);
-            if (!pget(&p, "USEC_INITIALIZED")) pset(&p, "USEC_INITIALIZED", "%llu", (unsigned long long)usec_now());
-            if (!strcmp(act, "add")) node_create(&p);
-            db_write(id, &p);
+        const char *act = pget(d, "ACTION"), *dp = pget(d, "DEVPATH");
+        if (act && dp) {
+            char a[16];
+            snprintf(a, sizeof a, "%s", act);
+            snprintf(d->syspath, sizeof d->syspath, "/sys%s", dp);
+            const char *old = pget(d, "DEVPATH_OLD");
+            if (!strcmp(a, "move") && old) {           /* the db id may change (net: n<ifindex> does not) */
+            }
+            process(d, a);
+            broadcast(sk, d);
         }
-        broadcast(sk, &p);
-        pfree(&p);
+        if (pget(d, "SEQNUM")) write_seqnum(pget(d, "SEQNUM"));
+        dev_free(d); free(d);
+    }
+    unlink("/run/udev/udevshim.pid");
+    return 0;
+}
+
+static bool daemon_running(void) {
+    char b[32];
+    if (readfile("/run/udev/udevshim.pid", b, sizeof b) <= 0) return false;
+    return kill(atoi(b), 0) == 0 || errno == EPERM;
+}
+static int settle(int seconds) {
+    for (long t = 0; t < seconds * 100L; t++) {
+        if (!daemon_running()) return 0;
+        char k[32], q[32];
+        if (readfile("/sys/kernel/uevent_seqnum", k, sizeof k) > 0 && readfile("/run/udev/queue-seqnum", q, sizeof q) > 0 &&
+            strtoull(q, NULL, 10) >= strtoull(k, NULL, 10)) return 0;
+        usleep(10000);
+    }
+    fprintf(stderr, "udevshim: settle timed out\n");
+    return 1;
+}
+
+static int resolve(const char *arg, char *sp) {
+    struct stat st;
+    if (!strncmp(arg, "/sys/", 5) || !strncmp(arg, "/devices/", 9)) {
+        char p[PATH_MAX];
+        snprintf(p, sizeof p, "%s%s", arg[1] == 'd' ? "/sys" : "", arg);
+        return realpath(p, sp) ? 0 : -1;
+    }
+    char n[PATH_MAX];
+    snprintf(n, sizeof n, arg[0] == '/' ? "%s" : "/dev/%s", arg);
+    if (stat(n, &st) || !(S_ISCHR(st.st_mode) || S_ISBLK(st.st_mode))) return -1;
+    char l[64];
+    snprintf(l, sizeof l, "/sys/dev/%s/%u:%u", S_ISBLK(st.st_mode) ? "block" : "char", major(st.st_rdev), minor(st.st_rdev));
+    return realpath(l, sp) ? 0 : -1;
+}
+/* properties as the database has them (falls back to computing them) */
+static int query(const char *arg, bool all) {
+    char sp[PATH_MAX];
+    if (resolve(arg, sp)) { fprintf(stderr, "udevshim: %s: no such device\n", arg); return 1; }
+    struct dev *d = malloc(sizeof *d);
+    dev_init(d);
+    if (!collect(sp, d)) return 1;
+    pset(d, "ACTION", "add");
+    char l[PATH_MAX + 16], t[PATH_MAX];
+    snprintf(l, sizeof l, "%s/subsystem", sp);
+    ssize_t n = readlink(l, t, sizeof t - 1);
+    if (n > 0) { t[n] = 0; pset(d, "SUBSYSTEM", "%s", strrchr(t, '/') ? strrchr(t, '/') + 1 : t); }
+    char id[160], path[PATH_MAX], line[1200];
+    dbid(d, id, sizeof id);
+    snprintf(path, sizeof path, "/run/udev/data/%s", id);
+    FILE *f = fopen(path, "re");
+    if (f) {
+        while (fgets(line, sizeof line, f)) {
+            line[strcspn(line, "\n")] = 0;
+            if (!strncmp(line, "E:", 2)) { char *eq = strchr(line + 2, '='); if (eq) { *eq = 0; pset(d, line + 2, "%s", eq + 1); } }
+            else if (!strncmp(line, "I:", 2)) pset(d, "USEC_INITIALIZED", "%s", line + 2);
+            else if (!strncmp(line, "S:", 2)) { char p[PATH_MAX]; snprintf(p, sizeof p, "/dev/%s", line + 2); add_link(d, p); }
+            else if (!strncmp(line, "G:", 2)) add_tag(d, line + 2);
+        }
+        fclose(f);
+    } else { builtins(d); run_rules(&rules, d, "add"); }
+    for (int i = 0; i < d->n; i++) {
+        if (!strncmp(d->kv[i], "ACTION=", 7)) continue;
+        if (!strncmp(d->kv[i], "DEVNAME=", 8) && d->kv[i][8] != '/') printf("DEVNAME=/dev/%s\n", d->kv[i] + 8);
+        else printf("%s\n", d->kv[i]);
+    }
+    if (d->nlinks) { printf("DEVLINKS="); for (int i = 0; i < d->nlinks; i++) printf("%s%s", i ? " " : "", d->links[i]); printf("\n"); }
+    if (d->ntags) { printf("TAGS=:"); for (int i = 0; i < d->ntags; i++) printf("%s:", d->tags[i]); printf("\n"); }
+    (void)all;
+    return 0;
+}
+/* db id (c13:64, b254:0, n2, +pci:0000:00:03.0) back to a /sys path */
+static bool id_syspath(const char *id, char *sp) {
+    char p[PATH_MAX];
+    if (id[0] == 'c' || id[0] == 'b') snprintf(p, sizeof p, "/sys/dev/%s/%s", id[0] == 'b' ? "block" : "char", id + 1);
+    else if (id[0] == 'n') {
+        DIR *dr = opendir("/sys/class/net");
+        struct dirent *e;
+        bool ok = false;
+        while (dr && !ok && (e = readdir(dr))) {
+            char q[PATH_MAX], b[32];
+            if (e->d_name[0] == '.') continue;
+            snprintf(q, sizeof q, "/sys/class/net/%s/ifindex", e->d_name);
+            if (readfile(q, b, sizeof b) > 0 && !strcmp(b, id + 1)) { snprintf(p, sizeof p, "/sys/class/net/%s", e->d_name); ok = true; }
+        }
+        if (dr) closedir(dr);
+        if (!ok) return false;
+    } else if (id[0] == '+') {
+        char sub[64];
+        const char *c = strchr(id, ':');
+        if (!c || c - id - 1 >= (long)sizeof sub) return false;
+        memcpy(sub, id + 1, (size_t)(c - id - 1)); sub[c - id - 1] = 0;
+        snprintf(p, sizeof p, "/sys/bus/%s/devices/%s", sub, c + 1);
+        if (access(p, F_OK)) snprintf(p, sizeof p, "/sys/class/%s/%s", sub, c + 1);
+    } else return false;
+    return realpath(p, sp) != NULL;
+}
+/* udevadm info --export-db: P: N: S: E: G: records separated by blank lines */
+static int export_db(void) {
+    DIR *dr = opendir("/run/udev/data");
+    struct dirent *e;
+    while (dr && (e = readdir(dr))) {
+        if (e->d_name[0] == '.') continue;
+        char p[PATH_MAX], sp[PATH_MAX], line[1200], ue[4096];
+        if (!id_syspath(e->d_name, sp)) continue;              /* stale entry */
+        printf("P: %s\n", sp + 4);
+        snprintf(p, sizeof p, "%s/uevent", sp);
+        if (readfile(p, ue, sizeof ue) > 0) {
+            char *dn = strstr(ue, "DEVNAME=");
+            if (dn && (dn == ue || dn[-1] == '\n')) { dn += 8; dn[strcspn(dn, "\n")] = 0; printf("N: %s\n", dn); }
+        }
+        snprintf(p, sizeof p, "/run/udev/data/%s", e->d_name);
+        FILE *f = fopen(p, "re");
+        while (f && fgets(line, sizeof line, f)) if (line[0] != 'I') printf("%c: %s", line[0], line + 2);
+        if (f) fclose(f);
+        printf("\n");
+    }
+    if (dr) closedir(dr);
+    return 0;
+}
+static int monitor(bool props) {
+    int sk = uevent_socket(2);
+    if (sk < 0) return 1;
+    static char buf[16384];
+    for (;;) {
+        ssize_t n = recv(sk, buf, sizeof buf - 1, 0);
+        if (n < 40 || memcmp(buf, "libudev", 8)) continue;
+        buf[n] = 0;
+        const char *a = "", *dp = "", *sub = "";
+        for (char *s = buf + 40; s < buf + n; s += strlen(s) + 1) {
+            if (!strncmp(s, "ACTION=", 7)) a = s + 7;
+            else if (!strncmp(s, "DEVPATH=", 8)) dp = s + 8;
+            else if (!strncmp(s, "SUBSYSTEM=", 10)) sub = s + 10;
+        }
+        struct timespec t;
+        clock_gettime(CLOCK_MONOTONIC, &t);
+        printf("UDEV  [%ld.%06ld] %-8s %s (%s)\n", (long)t.tv_sec, t.tv_nsec / 1000, a, dp, sub);
+        if (props) { for (char *s = buf + 40; s < buf + n; s += strlen(s) + 1) printf("%s\n", s); printf("\n"); }
+        fflush(stdout);
     }
 }
 
-int main(int argc, char **argv) {
-    if (argc < 2) goto usage;
-    mkdirs();
-    if (!strcmp(argv[1], "-c")) {
-        int n = 0;
-        for_each_device(cold_one, &n);
-        return n ? 0 : 1;
+static int usage(void) {
+    fprintf(stderr, "usage: udevshim -c | -d [-f] | -t [ACTION] | -s [SECONDS] | -q PATH\n"
+                    "       udevadm settle | trigger [--action=X] | info [-q property] -n NODE|-p PATH | info --export-db | monitor [--property]\n");
+    return 2;
+}
+static int udevadm(int argc, char **argv) {
+    if (argc < 2) return usage();
+    const char *cmd = argv[1];
+    if (!strcmp(cmd, "settle")) {
+        int to = 120;
+        for (int i = 2; i < argc; i++) if (!strncmp(argv[i], "--timeout=", 10)) to = atoi(argv[i] + 10); else if (!strcmp(argv[i], "-t") && i + 1 < argc) to = atoi(argv[++i]);
+        return settle(to);
     }
-    if (!strcmp(argv[1], "-t")) { for_each_device(trig_one, argc > 2 ? argv[2] : "add"); return 0; }
-    if (!strcmp(argv[1], "-q") && argc > 2) {
-        char sp[PATH_MAX];
-        struct stat st;
-        if (!strncmp(argv[2], "/sys/", 5)) { if (!realpath(argv[2], sp)) { perror(argv[2]); return 1; } }
-        else if (!stat(argv[2], &st) && (S_ISCHR(st.st_mode) || S_ISBLK(st.st_mode))) {
-            char l[64];
-            snprintf(l, sizeof l, "/sys/dev/%s/%u:%u", S_ISBLK(st.st_mode) ? "block" : "char", major(st.st_rdev), minor(st.st_rdev));
-            if (!realpath(l, sp)) { perror(l); return 1; }
-        } else { fprintf(stderr, "udevshim: %s: not a device\n", argv[2]); return 1; }
-        struct props p = { 0 };
-        if (!device_props(sp, &p)) return 1;
-        for (int i = 0; i < p.n; i++) printf("%s\n", p.kv[i]);
+    if (!strcmp(cmd, "trigger")) {
+        const char *a = "change";
+        for (int i = 2; i < argc; i++) if (!strncmp(argv[i], "--action=", 9)) a = argv[i] + 9; else if (!strcmp(argv[i], "-c") && i + 1 < argc) a = argv[++i];
+        for_each_device(trig_one, (void *)a);
         return 0;
     }
+    if (!strcmp(cmd, "info")) {
+        for (int i = 2; i < argc; i++) {
+            if (!strcmp(argv[i], "--export-db") || !strcmp(argv[i], "-e")) return export_db();
+            if ((!strcmp(argv[i], "-n") || !strcmp(argv[i], "-p") || !strcmp(argv[i], "--name") || !strcmp(argv[i], "--path")) && i + 1 < argc) return query(argv[i + 1], true);
+            if (!strncmp(argv[i], "--name=", 7) || !strncmp(argv[i], "--path=", 7)) return query(argv[i] + 7, true);
+            if (argv[i][0] == '/' ) return query(argv[i], true);
+        }
+        return usage();
+    }
+    if (!strcmp(cmd, "monitor")) {
+        bool p = false;
+        for (int i = 2; i < argc; i++) if (!strcmp(argv[i], "--property") || !strcmp(argv[i], "-p")) p = true;
+        return monitor(p);
+    }
+    if (!strcmp(cmd, "control")) return 0;
+    return usage();
+}
+
+int main(int argc, char **argv) {
+    const char *me = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
+    load_rules(&rules);
+    if (!strcmp(me, "udevadm")) return udevadm(argc, argv);
+    if (argc < 2) return usage();
+    mkdirs();
+    if (!strcmp(argv[1], "-c")) { int n = 0; for_each_device(cold_one, &n); return n ? 0 : 1; }
+    if (!strcmp(argv[1], "-t")) { for_each_device(trig_one, argc > 2 ? argv[2] : "add"); return 0; }
+    if (!strcmp(argv[1], "-s")) return settle(argc > 2 ? atoi(argv[2]) : 120);
+    if (!strcmp(argv[1], "-q") && argc > 2) return query(argv[2], false);
     if (!strcmp(argv[1], "-d")) {
-        bool fg = argc > 2 && !strcmp(argv[2], "-f");
-        if (!fg) {
+        if (!(argc > 2 && !strcmp(argv[2], "-f"))) {
             pid_t pid = fork();
             if (pid < 0) return 1;
             if (pid) return 0;
@@ -412,7 +1058,5 @@ int main(int argc, char **argv) {
         }
         return daemon_loop();
     }
-usage:
-    fprintf(stderr, "usage: udevshim -c | -d [-f] | -t [ACTION] | -q PATH\n");
-    return 2;
+    return usage();
 }

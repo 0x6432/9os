@@ -877,7 +877,10 @@ struct frag6_q {
 static struct list_node frag6qs = LIST_INIT(frag6qs);
 static int nfrag6qs;
 
-static void frag6_free(struct frag6_q *q) { list_del(&q->node); kfree(q->data); kfree(q); nfrag6qs--; }
+static void frag6_free(struct frag6_q *q) {
+    if (q->dev) device_put(&q->dev->kdev);
+    list_del(&q->node); kfree(q->data); kfree(q); nfrag6qs--;
+}
 
 /* p->data at the fragment header. Returns the reassembled datagram (data after the IPv6 header)
  * and its first next-header, or nullptr */
@@ -908,6 +911,7 @@ static struct pkt *ip6_reassemble(struct pkt *p, uint8_t *nxt) {
         q->id = id;
         q->expires = time_ns() + 60 * NS_S;
         q->dev = p->dev;
+        if (q->dev) device_get(&q->dev->kdev);
         list_add(&frag6qs, &q->node);
         nfrag6qs++;
         ip6_kick(NS_S);
@@ -921,7 +925,7 @@ static struct pkt *ip6_reassemble(struct pkt *p, uint8_t *nxt) {
     for (unsigned u = 0; u < (q->total + 7) / 8; u++) if (!(q->have[u / 8] & (1 << (u % 8)))) return nullptr;
     struct pkt *r = pkt_alloc(40 + q->total);
     if (!r) { frag6_free(q); return nullptr; }
-    r->dev = q->dev;
+    pkt_set_dev(r, q->dev);
     r->len = 40 + q->total;
     memcpy(r->data, q->hdr, 40);
     memcpy(r->data + 40, q->data, q->total);

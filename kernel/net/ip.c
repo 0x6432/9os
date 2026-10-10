@@ -293,7 +293,10 @@ static struct list_node fragqs = LIST_INIT(fragqs);
 static int nfragqs;
 static struct ntimer frag_timer;
 
-static void fragq_free(struct frag_q *q) { list_del(&q->node); kfree(q->data); kfree(q); nfragqs--; }
+static void fragq_free(struct frag_q *q) {
+    if (q->dev) device_put(&q->dev->kdev);
+    list_del(&q->node); kfree(q->data); kfree(q); nfragqs--;
+}
 
 static void frag_tick(struct ntimer *t) {
     uint64_t now = time_ns();
@@ -329,6 +332,7 @@ static struct pkt *ip_reassemble(struct pkt *p) {
         q->src = h->saddr; q->dst = h->daddr; q->id = h->id; q->proto = h->protocol;
         q->expires = time_ns() + 30 * NS_S;
         q->dev = p->dev;
+        if (q->dev) device_get(&q->dev->kdev);
         list_add(&fragqs, &q->node);
         nfragqs++;
         if (!frag_timer.active) { frag_timer.fn = frag_tick; ntimer_mod(&frag_timer, NS_S); }
@@ -341,7 +345,7 @@ static struct pkt *ip_reassemble(struct pkt *p) {
     if (!q->hl || !frag_complete(q)) return nullptr;
     struct pkt *r = pkt_alloc(q->hl + q->total);
     if (!r) { fragq_free(q); return nullptr; }
-    r->dev = q->dev;
+    pkt_set_dev(r, q->dev);
     r->len = q->hl + q->total;
     memcpy(r->data, q->hdr, q->hl);
     memcpy(r->data + q->hl, q->data, q->total);

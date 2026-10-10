@@ -1563,6 +1563,7 @@ int inet_getsockopt(struct file *f, int level, int name, void *uval, int *ulen) 
 #define SIOCSIFMETRIC 0x891e
 #define SIOCGIFMTU 0x8921
 #define SIOCSIFMTU 0x8922
+#define SIOCSIFNAME 0x8923
 #define SIOCSIFHWADDR 0x8924
 #define SIOCGIFHWADDR 0x8927
 #define SIOCGIFINDEX 0x8933
@@ -1643,7 +1644,7 @@ static int dev_ioctl(uint64_t cmd, void *arg) {
     q.name[15] = 0;
     bool set = cmd == SIOCSIFFLAGS || cmd == SIOCSIFADDR || cmd == SIOCSIFDSTADDR || cmd == SIOCSIFBRDADDR ||
                cmd == SIOCSIFNETMASK || cmd == SIOCSIFMETRIC || cmd == SIOCSIFMTU || cmd == SIOCSIFHWADDR ||
-               cmd == SIOCSIFTXQLEN || cmd == SIOCSIFMAP;
+               cmd == SIOCSIFTXQLEN || cmd == SIOCSIFMAP || cmd == SIOCSIFNAME;
     if (set && !capable(CAP_NET_ADMIN)) return -EPERM;
     mutex_lock(&net_mutex);
     int r = 0;
@@ -1699,6 +1700,7 @@ static int dev_ioctl(uint64_t cmd, void *arg) {
     case SIOCSIFHWADDR: r = -EOPNOTSUPP; break;
     case SIOCGIFTXQLEN: q.ival = d->txqlen; break;
     case SIOCSIFTXQLEN: if (q.ival < 0) r = -EINVAL; else d->txqlen = q.ival; break;
+    case SIOCSIFNAME: q.newname[15] = 0; r = netdev_rename(d, q.newname); break;
     case SIOCGIFMAP: memset(q.map, 0, sizeof q.map); break;
     case SIOCSIFMAP: break;
     default: r = -ENOTTY;

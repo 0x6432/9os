@@ -61,10 +61,18 @@ struct pkt *pkt_clone(const struct pkt *o) {
     if (p->nh) p->nh += d;
     if (p->th) p->th += d;
     list_init(&p->node);
+    if (p->dev) device_get(&p->dev->kdev);
     return p;
 }
 
-void pkt_free(struct pkt *p) { kfree(p); }
+/* M34: packets pin their device (a removed TUN/TAP netdev is freed with its last packet) */
+void pkt_set_dev(struct pkt *p, struct netdev *d) {
+    if (p->dev == d) return;
+    if (d) device_get(&d->kdev);
+    if (p->dev) device_put(&p->dev->kdev);
+    p->dev = d;
+}
+void pkt_free(struct pkt *p) { if (p->dev) device_put(&p->dev->kdev); kfree(p); }
 void pkt_queue_purge(struct list_node *q) {
     list_for_each_safe(it, tmp, q) { list_del(it); pkt_free(list_entry(it, struct pkt, node)); }
 }
@@ -187,7 +195,7 @@ static int rxq_len;
 #define RXQ_MAX 2000
 
 void net_rx(struct netdev *d, struct pkt *p) {
-    p->dev = d;
+    pkt_set_dev(p, d);
     uint64_t f = arch_irq_save();
     spin_lock_ipi(&rxq_lock);
     bool drop = rxq_len >= RXQ_MAX;
@@ -294,6 +302,8 @@ static void net_uevent(struct device *k, struct uenv *e) {
     uenv_add(e, "IFINDEX=%d", nd(k)->index < 0 ? -nd(k)->index : nd(k)->index);
 }
 
+static void netdev_release(struct device *k) { kfree(nd(k)); }
+
 struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, int mtu,
                                void (*xmit)(struct netdev *, struct pkt *), void *priv, struct device *parent) {
     struct netdev *d = kzalloc(sizeof *d);
@@ -313,12 +323,13 @@ struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, in
     mutex_unlock(&net_mutex);
     struct device *k = &d->kdev;
     strncpy(k->name, d->name, sizeof k->name - 1);
+    k->release = netdev_release;
     k->parent = parent; k->subsys = "net"; k->attrs = net_attrs; k->uevent = net_uevent; k->priv = d;
     device_add(k);
     return d;
 }
 /* a device going away (TUN/TAP close): forget its addresses, routes and neighbours. Frames for it
- * may still sit in the receive queue, so the struct is never freed (it is small) */
+ * may still sit in queues: packets hold a reference, the struct is freed with the last one */
 void netdev_unregister(struct netdev *d) {
     d->flags &= ~(IFF_UP | IFF_RUNNING);
     route_flush_dev(d);
@@ -330,6 +341,20 @@ void netdev_unregister(struct netdev *d) {
     list_init(&d->node);
     device_del(&d->kdev);
     d->index = -d->index;
+    device_put(&d->kdev);       /* freed once queued packets and sysfs files let go */
+}
+/* SIOCSIFNAME / RTM_SETLINK IFLA_IFNAME (net_mutex held): only while down, names unique */
+int netdev_rename(struct netdev *d, const char *name) {
+    char n[16] = { 0 };
+    strncpy(n, name, 15);
+    if (!n[0] || strchr(n, '/') || strchr(n, ':') || strchr(n, ' ') || !strcmp(n, ".") || !strcmp(n, "..")) return -EINVAL;
+    struct netdev *x = netdev_by_name(n);
+    if (x == d) return 0;
+    if (x) return -EEXIST;
+    if (d->flags & IFF_UP) return -EBUSY;
+    memcpy(d->name, n, 16);
+    device_rename(&d->kdev, n);
+    return 0;
 }
 struct netdev *netdev_by_index(int idx) {
     list_for_each(it, &netdevs) { struct netdev *d = list_entry(it, struct netdev, node); if (d->index == idx) return d; }

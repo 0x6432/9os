@@ -23,6 +23,8 @@ for src in "$TOP"/tests/*.c "$TOP"/demos/*.c "$TOP"/tools/*.c; do
     [ "$n" = hello ] && continue
     "$TOP/musl-cc" -O2 -o "bin/$n" "$src" -lm
 done
+# M34: udevadm is udevshim's second personality (argv[0])
+ln -sf udevshim bin/udevadm
 # dynamic linking: musl's libc.so is also its dynamic linker
 if [ -f "$TOP/sysroot/$ARCH/lib/libc.so" ]; then
     mkdir -p lib

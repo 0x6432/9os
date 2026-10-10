@@ -19,6 +19,9 @@ struct dev_attr {
     uint16_t mode;               /* 0444 or 0644 */
     int (*show)(struct device *d, char *buf, size_t cap);           /* bytes written */
     int (*store)(struct device *d, const char *buf, size_t n);      /* 0 or -errno */
+    /* binary attributes (pci config): read at an offset, size = file size */
+    ssize_t (*read)(struct device *d, char *buf, size_t n, uint64_t off);
+    size_t size;
 };
 
 struct device {
@@ -34,12 +37,21 @@ struct device {
     const struct dev_attr *attrs;    /* terminated by a null name */
     void (*uevent)(struct device *d, struct uenv *e);   /* subsystem-specific variables */
     void *priv;
+    const char *driver;          /* bound driver (bus devices): /sys/bus/<b>/drivers/<driver> */
+    void (*release)(struct device *d);   /* last reference gone (dynamic devices) */
+    int refs;                    /* references beyond the owner's (sysfs inodes, packets) */
     char path[192];              /* /devices/... (set by device_add) */
     bool added;
 };
+static inline void device_get(struct device *d) { __atomic_add_fetch(&d->refs, 1, __ATOMIC_RELAXED); }
+/* drop a reference; the owner drops its implicit one after device_del() */
+static inline void device_put(struct device *d) {
+    if (__atomic_sub_fetch(&d->refs, 1, __ATOMIC_ACQ_REL) < 0 && d->release) d->release(d);
+}
 
 void device_add(struct device *d);
 void device_del(struct device *d);       /* "remove" uevent; may be called under net_mutex */
+int device_rename(struct device *d, const char *name);   /* "move" uevent with DEVPATH_OLD */
 int device_uevent(struct device *d, const char *action);   /* emit; -EINVAL for a bad action */
 void device_uevent_env(struct device *d, struct uenv *e);   /* the variables of the uevent file */
 int dev_printf(char *buf, size_t cap, const char *fmt, ...) __attribute__((format(printf, 3, 4)));

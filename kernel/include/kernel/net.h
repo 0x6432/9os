@@ -67,6 +67,7 @@ struct pkt {
 #define PACKET_OTHERHOST 3
 #define PACKET_OUTGOING 4
 
+void pkt_set_dev(struct pkt *p, struct netdev *d);   /* takes a device reference */
 struct pkt *pkt_alloc(size_t payload);           /* PKT_HEADROOM + payload, data at the payload */
 struct pkt *pkt_alloc_rx(size_t len);            /* frame of len bytes, aligned so the IP header is */
 struct pkt *pkt_clone(const struct pkt *p);
@@ -111,7 +112,8 @@ extern struct list_node netdevs;
 extern struct netdev *loopback_dev;
 struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, int mtu,
                                void (*xmit)(struct netdev *, struct pkt *), void *priv, struct device *parent);
-void netdev_unregister(struct netdev *d);        /* net_mutex held; the struct stays allocated */
+void netdev_unregister(struct netdev *d);        /* net_mutex held; freed with the last reference */
+int netdev_rename(struct netdev *d, const char *name);   /* net_mutex held; "move" uevent */
 void tun_init(void);
 void netdev_set_flags(struct netdev *d, unsigned flags);   /* SIOCSIFFLAGS semantics */
 void net_dev_addr_changed(struct netdev *d);               /* IPv4 address/netmask changed */

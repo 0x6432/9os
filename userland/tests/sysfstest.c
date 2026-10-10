@@ -121,6 +121,43 @@ static void test_net(void) {
     }
 }
 
+/* driver links, power/, the binary PCI config attribute (M34 limits) */
+static void test_driver(void) {
+    char b[256], lb[64], p[PATH_MAX], rp[PATH_MAX];
+    if (access("/sys/class/net/eth0", F_OK)) return;
+    CHECK(!strcmp(link_base("/sys/class/net/eth0/device/driver", lb, sizeof lb), "virtio_net"), "eth0 driver %s", lb);
+    CHECK(rd("/sys/class/net/eth0/device/uevent", b, sizeof b) > 0 && strstr(b, "DRIVER=virtio_net\n"), "DRIVER= %s", b);
+    CHECK(realpath("/sys/class/net/eth0/device", rp) != NULL, "eth0 device");
+    snprintf(p, sizeof p, "/sys/bus/virtio/drivers/virtio_net/%s", strrchr(rp, '/') + 1);
+    CHECK(realpath(p, b) && !strcmp(b, rp), "driver's device link %s", p);
+    CHECK(!strcmp(link_base("/sys/bus/virtio/drivers/virtio_net/module", lb, sizeof lb), "virtio_net"), "module %s", lb);
+    *strrchr(rp, '/') = 0;                                         /* the PCI function */
+    snprintf(p, sizeof p, "%s/driver", rp);
+    CHECK(!strcmp(link_base(p, lb, sizeof lb), "virtio-pci"), "pci driver %s", lb);
+    snprintf(p, sizeof p, "%s/power/control", rp);
+    CHECK(rd(p, b, sizeof b) > 0 && !strcmp(b, "on"), "power/control %s", b);
+    CHECK(wr(p, "auto") == 0 && wr(p, "sleep") == -EINVAL, "power/control writes");
+    snprintf(p, sizeof p, "%s/power/runtime_status", rp);
+    CHECK(rd(p, b, sizeof b) > 0 && !strcmp(b, "unsupported"), "runtime_status %s", b);
+    snprintf(p, sizeof p, "%s/config", rp);
+    struct stat st;
+    CHECK(stat(p, &st) == 0 && st.st_size == 4096 && (st.st_mode & 0777) == 0644, "config size %lld mode %o", (long long)st.st_size, st.st_mode);
+    int fd = open(p, O_RDONLY);
+    unsigned char c[4096];
+    CHECK(fd >= 0 && pread(fd, c, 4, 0) == 4 && c[0] == 0xf4 && c[1] == 0x1a, "config vendor %02x%02x", c[1], c[0]);
+    CHECK(pread(fd, c, sizeof c, 0) == 4096 && pread(fd, c, 16, 4090) == 6 && pread(fd, c, 16, 4096) == 0, "config ranges");
+    close(fd);
+    pid_t pid = fork();
+    if (!pid) {
+        if (setgid(1000) || setuid(1000)) _exit(99);
+        int f = open(p, O_RDONLY);
+        _exit(f >= 0 && read(f, c, sizeof c) == 64 && read(f, c, sizeof c) == 0 ? 0 : 98);
+    }
+    int ws;
+    waitpid(pid, &ws, 0);
+    CHECK(WIFEXITED(ws) && WEXITSTATUS(ws) == 0, "unprivileged config read is 64 bytes (%x)", ws);
+}
+
 static void test_block(void) {
     struct stat st, sp;
     if (stat("/dev/vda", &st)) { printf("sysfstest: no disks, skipped\n"); return; }
@@ -291,10 +328,47 @@ static void test_uevent(void) {
     CHECK((v = uev_get(m, "IFINDEX")) && (unsigned)atoi(v) == if_nametoindex(q.ifr_name), "IFINDEX");
     snprintf(path, sizeof path, "/sys/class/net/%s/ifindex", q.ifr_name);
     CHECK(rd(path, b, sizeof b) > 0 && (unsigned)atoi(b) == if_nametoindex(q.ifr_name), "tap ifindex %s", b);
+    /* rename (down only): "move" with DEVPATH_OLD, sysfs follows */
+    int ctl = socket(AF_INET, SOCK_DGRAM, 0);
+    struct ifreq rq = { 0 };
+    char oldname[IFNAMSIZ];
+    strcpy(oldname, q.ifr_name);
+    strcpy(rq.ifr_name, oldname);
+    strcpy(rq.ifr_newname, "sysfren0");
+    CHECK(ioctl(ctl, SIOCSIFNAME, &rq) == 0, "SIOCSIFNAME");
+    CHECK(uev_wait(s, m, "move@/devices/virtual/net/sysfren0"), "move: %s", m->buf);
+    snprintf(pre, sizeof pre, "/devices/virtual/net/%s", oldname);
+    CHECK((v = uev_get(m, "DEVPATH_OLD")) && !strcmp(v, pre), "DEVPATH_OLD %s", v ? v : "-");
+    CHECK((v = uev_get(m, "INTERFACE")) && !strcmp(v, "sysfren0"), "INTERFACE after move");
+    snprintf(path, sizeof path, "/sys/class/net/%s", oldname);
+    CHECK(access(path, F_OK) < 0 && access("/sys/class/net/sysfren0/ifindex", F_OK) == 0, "sysfs renamed");
+    CHECK(realpath("/sys/class/net/sysfren0", path) && !strcmp(path, "/sys/devices/virtual/net/sysfren0"), "renamed path %s", path);
+    strcpy(rq.ifr_name, "sysfren0");
+    strcpy(rq.ifr_newname, "lo");
+    CHECK(ioctl(ctl, SIOCSIFNAME, &rq) < 0 && errno == EEXIST, "rename to lo EEXIST");
+    rq.ifr_flags = IFF_UP;
+    CHECK(ioctl(ctl, SIOCSIFFLAGS, &rq) == 0, "up");
+    strcpy(rq.ifr_newname, "sysfren1");
+    CHECK(ioctl(ctl, SIOCSIFNAME, &rq) < 0 && errno == EBUSY, "rename while up EBUSY");
+    int held = open("/sys/class/net/sysfren0/address", O_RDONLY);  /* an open attribute pins the device */
+    CHECK(held >= 0, "open address");
     close(t);
-    snprintf(pre, sizeof pre, "remove@/devices/virtual/net/%s", q.ifr_name);
-    CHECK(uev_wait(s, m, pre), "tap remove: %s", m->buf);
-    CHECK(access(path, F_OK) < 0 && errno == ENOENT, "tap gone from sysfs");
+    CHECK(uev_wait(s, m, "remove@/devices/virtual/net/sysfren0"), "tap remove: %s", m->buf);
+    CHECK(access("/sys/class/net/sysfren0", F_OK) < 0 && errno == ENOENT, "tap gone from sysfs");
+    CHECK(read(held, b, sizeof b) >= 0 || errno == ENODEV, "read of a removed device's attribute");
+    close(held);
+    /* the name is free again: a new TAP gets it (and a new ifindex) */
+    for (int round = 0; round < 3; round++) {
+        t = open("/dev/net/tun", O_RDWR);
+        memset(&q, 0, sizeof q);
+        strcpy(q.ifr_name, "sysfren0");
+        q.ifr_flags = IFF_TAP | IFF_NO_PI;
+        CHECK(t >= 0 && ioctl(t, TUNSETIFF, &q) == 0 && !strcmp(q.ifr_name, "sysfren0"), "re-create");
+        CHECK(uev_wait(s, m, "add@/devices/virtual/net/sysfren0"), "re-add: %s", m->buf);
+        close(t);
+        CHECK(uev_wait(s, m, "remove@/devices/virtual/net/sysfren0"), "re-remove: %s", m->buf);
+    }
+    close(ctl);
 
     /* user multicast to group 2 */
     int a = uev_socket(0), g2 = uev_socket(2), g1 = uev_socket(1);
@@ -332,6 +406,20 @@ static uint32_t murmur2(const char *s) {
 }
 static void test_udevshim(void) {
     unlink("/run/udev/control");
+    unlink("/tmp/sysftest.run");
+    mkdir("/run/udev", 0755);
+    mkdir("/run/udev/rules.d", 0755);
+    FILE *rf = fopen("/run/udev/rules.d/90-sysftest.rules", "w");
+    CHECK(rf != NULL, "rules file");
+    if (rf) {
+        fputs("# sysfstest\n"
+              "ACTION!=\"add|change\", GOTO=\"sysft_end\"\n"
+              "SUBSYSTEM==\"input\", KERNEL==\"event0\", ATTRS{name}==\"?*\", SYMLINK+=\"input/sysftest\", \\\n"
+              "  ENV{SYSFTEST}=\"yes-%k-$major\", TAG+=\"sysft\", RUN+=\"/bin/touch /tmp/sysftest.run\"\n"
+              "SUBSYSTEM==\"input\", ENV{SYSFTEST}==\"no\", ENV{SYSFTEST_BAD}=\"1\"\n"
+              "LABEL=\"sysft_end\"\n", rf);
+        fclose(rf);
+    }
     pid_t d = fork();
     if (!d) { execlp("udevshim", "udevshim", "-d", "-f", (char *)NULL); _exit(127); }
     for (int i = 0; i < 50 && access("/run/udev/control", F_OK); i++) usleep(20000);
@@ -362,8 +450,32 @@ static void test_udevshim(void) {
     CHECK(got, "libudev message for event0");
     char b[4096];
     CHECK(rd("/run/udev/data/c13:64", b, sizeof b) > 0 && strstr(b, "E:ID_INPUT=1") && strstr(b, "G:seat") && !strncmp(b, "I:", 2), "db: %s", b);
+    CHECK(strstr(b, "E:SYSFTEST=yes-event0-13\n") && strstr(b, "S:input/sysftest\n") && strstr(b, "G:sysft\n") && !strstr(b, "SYSFTEST_BAD"), "rules in db: %s", b);
+    char rp[PATH_MAX];
+    CHECK(realpath("/dev/input/sysftest", rp) && !strcmp(rp, "/dev/input/event0"), "SYMLINK %s", rp);
+    DIR *bp = opendir("/dev/input/by-path");
+    int nbp = 0;
+    for (struct dirent *e; bp && (e = readdir(bp));) if (strstr(e->d_name, "-event")) nbp++;
+    if (bp) closedir(bp);
+    CHECK(nbp >= 1, "/dev/input/by-path links (%d)", nbp);
+    for (int i = 0; i < 100 && access("/tmp/sysftest.run", F_OK); i++) usleep(20000);
+    CHECK(access("/tmp/sysftest.run", F_OK) == 0, "RUN+=");
+    CHECK(system("udevadm settle --timeout=10") == 0, "udevadm settle");
+    FILE *pf = popen("udevadm info -q property -n input/event0", "r");
+    size_t got_n = pf ? fread(b, 1, sizeof b - 1, pf) : 0;
+    b[got_n] = 0;
+    if (pf) pclose(pf);
+    CHECK(strstr(b, "SYSFTEST=yes-event0-13\n") && strstr(b, "DEVNAME=/dev/input/event0\n") && strstr(b, "DEVLINKS="), "udevadm info: %s", b);
+    static char db[65536];
+    pf = popen("udevadm info --export-db", "r");
+    got_n = 0;
+    for (size_t r; pf && got_n < sizeof db - 1 && (r = fread(db + got_n, 1, sizeof db - 1 - got_n, pf)) > 0;) got_n += r;
+    db[got_n] = 0;
+    if (pf) pclose(pf);
+    CHECK(strstr(db, "P: /devices/") && strstr(db, "\nN: input/event0\n") && strstr(db, "\nS: input/sysftest\n"), "export-db: %.300s", db);
     kill(d, SIGTERM);
     waitpid(d, NULL, 0);
+    unlink("/run/udev/rules.d/90-sysftest.rules");
     close(g2);
     free(m);
 }
@@ -373,6 +485,7 @@ int main(int argc, char **argv) {
     else {
         test_input();
         test_net();
+        test_driver();
         test_block();
         test_misc();
         walk("/sys", 0);

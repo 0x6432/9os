@@ -7,6 +7,7 @@
 #include <kernel/arch.h>
 #include <kernel/irq.h>
 #include <kernel/kmalloc.h>
+#include <kernel/string.h>
 
 _Static_assert(sizeof(struct virtio_common) == 56, "virtio common cfg layout");
 
@@ -65,6 +66,10 @@ bool virtio_pci_probe_features(struct virtio_dev *v, struct pci_dev *d, const ch
         snprintf(k->name, sizeof k->name, "virtio%d", nvirtio++);
         k->parent = &d->kdev; k->subsys = "virtio"; k->bus = true;
         k->attrs = virtio_attrs; k->uevent = virtio_uevent; k->priv = d;
+        static const char *const drv[][2] = { { "virtio-net", "virtio_net" }, { "virtio-blk", "virtio_blk" },
+                                              { "virtio-input", "virtio_input" }, { "virtio-gpu", "virtio_gpu" } };
+        for (size_t i = 0; i < ARRAY_SIZE(drv); i++) if (!strcmp(who, drv[i][0])) k->driver = drv[i][1];
+        if (!d->kdev.driver) { d->kdev.driver = "virtio-pci"; device_uevent(&d->kdev, "bind"); }
         device_add(k);
     }
     v->msix_vec = 0xffff;

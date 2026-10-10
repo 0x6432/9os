@@ -249,10 +249,8 @@ static int do_link(struct nlout *o, const struct nlmsghdr *h, const uint8_t *bod
     if (tb[IFLA_IFNAME] && m.index) {                       /* rename */
         char n[16] = { 0 };
         memcpy(n, tb[IFLA_IFNAME], MIN(tl[IFLA_IFNAME], (size_t)15));
-        struct netdev *x = netdev_by_name(n);
-        if (x && x != d) return -EEXIST;
-        if (d->flags & IFF_UP) return -EBUSY;
-        memcpy(d->name, n, 16);
+        int r = netdev_rename(d, n);
+        if (r) return r;
     }
     if (tb[IFLA_TXQLEN] && tl[IFLA_TXQLEN] >= 4) { uint32_t q; memcpy(&q, tb[IFLA_TXQLEN], 4); d->txqlen = (int)q; }
     if (m.change || m.flags) {
