@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M23 and M25 complete; M24 (fine-grained locking) remains in progress — per-CPU run-queue locks and allocator caches, periodic balancing, CPU accounting and deadline-driven idle on all three architectures
+## Current state: M33 complete (ptrace, POSIX timers, robust/shared futexes, clone3/pidfd, waitid, file locks, xattrs); M26–M32b done; M24 locking work continues opportunistically
 
 | Milestone | Status |
 |-----------|--------|
@@ -32,6 +32,8 @@ _Updated after every milestone. Read this first when picking up the project._
 | M24 Locking (in progress) | ◐ `sched_lock` for run queue/sleep list/wait queues (held across the switch), BKL dropped on switch and retaken after, idle without BKL, `thread_interrupt()`; lock-free syscall fast path; per-mm lock, atomic page refcounts, page faults + user copies without BKL; IRQ-safe console lock; lock-free read/write for pipes + eventfd + AF_UNIX (unix_lock); futex with hashed bucket locks; `sysbench`, `faulttest`, `pipetest`, `futextest`, `efdtest`, `socktest` |
 | M25 Scheduling | ✅ independent per-CPU run-queue locks, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing, bounded per-CPU PMM/slab caches, deadline-driven tickless idle |
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
+| M26–M32b | ✅ VMM v2, hardening, interrupt-driven I/O, block layer + virtio-blk, ext2 + unified page cache, users/permissions, networking v1/v2 (see the sections below) |
+| M33 ptrace + POSIX timers | ✅ `ptrace` (stops, events, regsets, syscall info, single step on x86_64/aarch64), queued siginfo + `rt_sigqueueinfo`, `timer_create` family, robust futexes, process-shared futexes, `clone3` + pidfds, `waitid` (P_PIDFD, WNOWAIT), `flock`/POSIX/OFD locks + `/proc/locks`, xattrs on tmpfs and ext2; `ptracetest`, `sigqtest`, `locktest`, `xattrtest` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -1160,3 +1162,55 @@ Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
    MLDv2/IGMPv3 source filtering (v2 queries are read as v1); no privacy addresses, no DHCPv6;
    RA MTU changes the device MTU for IPv4 too; no ECMP.
 3. NewReno under very heavy loss is RTO-bound (see above); one global `net_mutex`.
+
+## M33: ptrace, POSIX timers, file locks, xattrs
+
+### What landed
+- **Signals** (`core/signal.c`): per-thread and per-process siginfo queues; RT signals queue
+  (FIFO per signal, lowest number first), standard signals coalesce; `rt_sigqueueinfo` /
+  `rt_tgsigqueueinfo` (positive si_code only to yourself), `tkill`, `signal_thread_queue(t, sig,
+  code, kick)` — `kick=false` for threads that have not started yet (ptrace auto-attach), or the
+  run-queue enqueue happens twice.
+- **POSIX timers** (`core/sys_timer.c`): `timer_create/settime/gettime/getoverrun/delete` on
+  REALTIME/MONOTONIC/BOOTTIME; SIGEV_SIGNAL, SIGEV_NONE, SIGEV_THREAD_ID (musl's SIGEV_THREAD);
+  one queued siginfo per timer with si_overrun; TIMER_ABSTIME.
+- **Robust futexes**: `set/get_robust_list`, the list is walked at thread exit (owner died bit,
+  wakes one waiter). **Process-shared futexes** (`sys_proc.c`): ops without FUTEX_PRIVATE_FLAG in
+  a MAP_SHARED file/shmem mapping are keyed by (inode, file offset), so waiters in different
+  processes meet; everything else is keyed by (mm, address) as before.
+- **clone3 + pidfds**: `clone3` (CLONE_PIDFD, exit_signal, stack, tls, set_tid → EPERM/EINVAL),
+  `pidfd_open` (pollable: POLLIN at exit), `pidfd_send_signal`, `pidfd_getfd`; `waitid` with
+  P_PID/P_PGID/P_ALL/P_PIDFD, WNOHANG, WNOWAIT, WSTOPPED, WCONTINUED.
+- **ptrace** (`core/ptrace.c`): TRACEME/ATTACH/SEIZE/INTERRUPT/LISTEN/DETACH/KILL, PEEK/POKE
+  (text breakpoints, aarch64 icache flush), PEEKUSER/POKEUSER + GETREGS/SETREGS/GETFPREGS
+  (x86_64), GETREGSET/SETREGSET (NT_PRSTATUS, NT_PRFPREG, aarch64 NT_ARM_TLS and
+  NT_ARM_SYSTEM_CALL), SETOPTIONS (TRACESYSGOOD, TRACEFORK/VFORK/CLONE/EXEC/EXIT/VFORKDONE,
+  EXITKILL), GETEVENTMSG, GET/SETSIGINFO, GET/SETSIGMASK, GET_SYSCALL_INFO; syscall-entry/exit
+  stops (changing or skipping the syscall with nr -1); single step via TF (x86_64) and
+  MDSCR_EL1.SS/SPSR.SS (aarch64, MDSCR switched per thread). Traced threads leave the lock-free
+  syscall fast path. `/proc/<pid>/status` shows `TracerPid:` and state `t`; int3 gate is DPL 3.
+- **File locks** (`fs/locks.c`): flock (per open file), POSIX record locks (owner = process,
+  split/merge, F_GETLK, F_SETLKW with EDEADLK detection, released by any close of the inode and at
+  exit), OFD locks (F_OFD_*; owner = open file). One global `locks_lock` spinlock + a generation
+  counter / wait queue for blockers; `/proc/locks`.
+- **xattrs** (`fs/xattr.c`): the 12 *xattr syscalls; user.* (regular files/dirs, DAC), trusted.*
+  (CAP_SYS_ADMIN, hidden from list otherwise), security.* (CAP_SYS_ADMIN to write);
+  system.*/unknown → EOPNOTSUPP. tmpfs keeps them in memory (`inode->xattrs`); ext2 stores one
+  EA block per inode in the on-disk format (entry + block hashes as e2fsprogs, sorted entries,
+  copy-on-write of shared blocks, freed with the inode; sets the ext_attr feature) — e2fsck clean.
+
+### Tests
+- `ptracetest` (basic, breakpoint + single step, events, seize/listen/attach/detach, EXITKILL),
+  `sigqtest` (queueing, timers, robust thread/process owner death, clone3/pidfd/waitid),
+  `locktest [file]` (flock, POSIX, OFD, /proc/locks), `xattrtest [dir] | -w dir | -r dir`.
+- ci-tests: all four in the main suite; xattrtest + locktest on the ext2 disk at /mnt and on the
+  ext2 root; the second disk-root boot verifies attributes written by the first (`-r`).
+
+### Known limits
+1. No hardware watchpoints/breakpoints; riscv64 has no single step (PTRACE_SINGLESTEP → EIO).
+2. Attaching interrupts sleeping syscalls like nanosleep with EINTR instead of restarting them
+   transparently in every case.
+3. No in-inode ext2 xattrs (ext4 extra isize), no POSIX ACLs, no mandatory locks or leases;
+   shared futexes only in file/shmem MAP_SHARED mappings; FUTEX_REQUEUE still wakes instead of
+   moving waiters.
+
