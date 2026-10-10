@@ -327,6 +327,7 @@ static void resume(struct thread *t) {
     wake_up(&pt_wq);
 }
 
+void arch_hw_debug_reset(struct thread *t);
 static void untrace(struct thread *t) {
     if (!t->ptracer) return;
     list_del(&t->ptrace_node);
@@ -335,6 +336,7 @@ static void untrace(struct thread *t) {
     t->pt_mode = 0;
     t->pt_seized = t->pt_interrupt = false;
     arch_step(t, false);
+    arch_hw_debug_reset(t);
     if (t->pt_stopped) resume(t);
 }
 
@@ -616,6 +618,59 @@ bool ptrace_has_tracees(struct process *self, int idtype, int id) {
 
 struct pt_iovec { uint64_t base, len; };
 
+#define NT_ARM_HW_BREAK 0x402
+#define NT_ARM_HW_WATCH 0x403
+#if defined(__aarch64__)
+/* struct user_hwdebug_state: u32 dbg_info, u32 pad, { u64 addr; u32 ctrl; u32 pad; } regs[16].
+ * ctrl uses the DBGBCR/DBGWCR layout: E (bit 0), privilege (2:1, only EL0 = 2), LSC (4:3,
+ * watchpoints: 1 load, 2 store, 3 both), byte address select (12:5). */
+int a64_num_brps(void), a64_num_wrps(void);
+static size_t hwdebug_get(struct thread *t, bool watch, uint8_t *buf) {
+    int n = watch ? a64_num_wrps() : a64_num_brps();
+    memset(buf, 0, 8 + 16 * 16);
+    uint32_t info = (6u << 8) | (uint32_t)n;           /* debug architecture ARMv8 */
+    memcpy(buf, &info, 4);
+    for (int i = 0; i < n; i++) {
+        uint64_t a = watch ? t->arch.wvr[i] : t->arch.bvr[i];
+        uint32_t c = watch ? t->arch.wcr[i] : t->arch.bcr[i];
+        memcpy(buf + 8 + 16 * i, &a, 8);
+        memcpy(buf + 16 + 16 * i, &c, 4);
+    }
+    return 8 + 16 * (size_t)n;
+}
+static int hwdebug_set(struct thread *t, bool watch, const uint8_t *buf, size_t len) {
+    int n = watch ? a64_num_wrps() : a64_num_brps();
+    if (len < 8) return 0;
+    size_t cnt = (len - 8) / 16;
+    if (cnt > (size_t)n) return -ENOSPC;
+    uint64_t addr[16]; uint32_t ctrl[16];
+    for (size_t i = 0; i < cnt; i++) {
+        memcpy(&addr[i], buf + 8 + 16 * i, 8);
+        memcpy(&ctrl[i], buf + 16 + 16 * i, 4);
+        uint32_t c = ctrl[i];
+        if (!(c & 1)) { ctrl[i] = c & 0x1ffe; continue; }      /* disabled: kept, not armed */
+        if (((c >> 1) & 3) != 2) return -EINVAL;               /* EL0 only */
+        if (addr[i] >= 0x1000000000000ULL) return -EINVAL;
+        uint32_t bas = (c >> 5) & 0xff;
+        if (watch) {
+            if (!((c >> 3) & 3) || !bas || (addr[i] & 7)) return -EINVAL;
+            ctrl[i] = c & 0x1fff;
+        } else {
+            if (addr[i] & 3) return -EINVAL;
+            ctrl[i] = (c & 7) | (0xf << 5);                    /* A64 instructions: BAS = 0b1111 */
+        }
+    }
+    for (size_t i = 0; i < cnt; i++) {
+        if (watch) { t->arch.wvr[i] = addr[i]; t->arch.wcr[i] = ctrl[i]; }
+        else { t->arch.bvr[i] = addr[i]; t->arch.bcr[i] = ctrl[i]; }
+    }
+    bool any = false;
+    for (int i = 0; i < 16; i++) any |= (t->arch.bcr[i] | t->arch.wcr[i]) & 1;
+    t->arch.hwdbg = any;
+    return 0;
+}
+#endif
+
 static int64_t regset(struct thread *t, bool set, int type, struct pt_iovec *uiov) {
     struct pt_iovec iov;
     if (copy_from_user(&iov, uiov, sizeof iov)) return -EFAULT;
@@ -627,6 +682,7 @@ static int64_t regset(struct thread *t, bool set, int type, struct pt_iovec *uio
 #if defined(__aarch64__)
     case NT_ARM_TLS: size = 8; memcpy(buf, &t->arch.tpidr, 8); break;
     case NT_ARM_SYSTEM_CALL: { size = 4; int32_t n = t->pt_sc_nr; memcpy(buf, &n, 4); break; }
+    case NT_ARM_HW_BREAK: case NT_ARM_HW_WATCH: size = hwdebug_get(t, type == NT_ARM_HW_WATCH, buf); break;
 #endif
     default: return -EINVAL;
     }
@@ -634,7 +690,7 @@ static int64_t regset(struct thread *t, bool set, int type, struct pt_iovec *uio
     if (!set) {
         if (copy_to_user((void *)iov.base, buf, n)) return -EFAULT;
     } else {
-        if (n < size && type != NT_PRSTATUS && type != NT_PRFPREG) return -EINVAL;
+        if (n < size && type != NT_PRSTATUS && type != NT_PRFPREG && type != NT_ARM_HW_BREAK && type != NT_ARM_HW_WATCH) return -EINVAL;
         if (copy_from_user(buf, (void *)iov.base, n)) return -EFAULT;   /* partial writes keep the rest */
         int r = 0;
         switch (type) {
@@ -643,6 +699,7 @@ static int64_t regset(struct thread *t, bool set, int type, struct pt_iovec *uio
 #if defined(__aarch64__)
         case NT_ARM_TLS: memcpy(&t->arch.tpidr, buf, 8); break;
         case NT_ARM_SYSTEM_CALL: { int32_t v; memcpy(&v, buf, 4); t->pt_sc_nr = v; break; }
+        case NT_ARM_HW_BREAK: case NT_ARM_HW_WATCH: r = hwdebug_set(t, type == NT_ARM_HW_WATCH, buf, n); break;
 #endif
         }
         if (r) return r;
@@ -689,7 +746,12 @@ static int64_t peekuser(struct thread *t, uint64_t off, uint64_t *out) {
 #if defined(__x86_64__)
     if (off & 7) return -EIO;
     if (off < PRSTATUS_SIZE) { uint64_t r[27]; regs_get(t, r); *out = r[off / 8]; return 0; }
-    if (off < 928) { *out = 0; return 0; }           /* rest of struct user incl. u_debugreg: none in use */
+    if (off >= 848 && off < 848 + 64) {              /* u_debugreg[8] */
+        int i = (int)(off - 848) / 8;
+        *out = i < 4 ? t->arch.dr[i] : i == 6 ? t->arch.dr6 : i == 7 ? t->arch.dr7 : 0;
+        return 0;
+    }
+    if (off < 928) { *out = 0; return 0; }           /* rest of struct user: not used */
 #endif
     (void)t; (void)off; (void)out;
     return -EIO;
@@ -703,7 +765,29 @@ static int64_t pokeuser(struct thread *t, uint64_t off, uint64_t v) {
         r[off / 8] = v;
         return regs_set(t, r);
     }
-    if (off >= 848 && off < 848 + 64) return v ? -EIO : 0;          /* no hardware breakpoints */
+    if (off >= 848 && off < 848 + 64) {              /* u_debugreg: DR0-3 addresses, DR6, DR7 */
+        int i = (int)(off - 848) / 8;
+        if (i < 4) {
+            if (v > 0x800000000000ULL - 8) return -EIO;
+            t->arch.dr[i] = v;
+            return 0;
+        }
+        if (i == 6) { t->arch.dr6 = v; return 0; }
+        if (i != 7) return v ? -EIO : 0;
+        if (v & ~0xffff03ffULL) return -EIO;          /* GD and reserved bits */
+        uint64_t d7 = 0;
+        for (int n = 0; n < 4; n++) {
+            uint64_t en = (v >> (2 * n)) & 3, rw = (v >> (16 + 4 * n)) & 3, len = (v >> (18 + 4 * n)) & 3;
+            if (!en) continue;
+            if (rw == 2) return -EIO;                    /* I/O breakpoints */
+            if (rw == 0 && len) return -EIO;             /* execute: length 1 */
+            uint64_t sz = len == 0 ? 1 : len == 1 ? 2 : len == 3 ? 4 : 8;
+            if (t->arch.dr[n] & (sz - 1)) return -EIO;   /* naturally aligned */
+            d7 |= (1ULL << (2 * n)) | (rw << (16 + 4 * n)) | (len << (18 + 4 * n));   /* local enable */
+        }
+        t->arch.dr7 = d7 ? d7 | 0x100 : 0;               /* LE */
+        return 0;
+    }
 #endif
     (void)t; (void)off; (void)v;
     return -EIO;

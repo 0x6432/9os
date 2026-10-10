@@ -62,3 +62,5 @@ void arch_switch_to(struct thread *prev, struct thread *next) {
     fp_restore(next->arch.fpu);
     riscv_switch_stack(&prev->arch.sp, next->arch.sp);
 }
+
+void arch_hw_debug_reset(struct thread *t) { (void)t; }

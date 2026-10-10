@@ -93,6 +93,10 @@ void trap_dispatch(struct trap_frame *f) {
         timer_tick();
         goto out;
     }
+    if (v == 1 && !trap_from_user(f)) {     /* user watchpoint hit by a kernel user-copy: ignore */
+        __asm__ volatile("mov %0, %%dr6" :: "r"(0xffff0ff0ULL));
+        return;
+    }
     if (v == 14 && kernel_fault_check(f, read_cr2(), f->error & 16)) return;   /* SMEP/SMAP triage */
     if (v == 14 && page_fault_fast(f)) {     /* resolved without the BKL */
         if (trap_from_user(f)) user_return_work(f);

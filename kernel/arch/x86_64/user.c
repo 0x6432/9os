@@ -108,10 +108,23 @@ bool user_exception(struct trap_frame *f) {
     case 16: case 19: sig = SIGFPE; code = 0; break;
     case 6: sig = SIGILL; code = ILL_ILLOPC; break;
     case 3: sig = SIGTRAP; break;                       /* int3: SI_KERNEL like Linux */
-    case 1:                                             /* #DB: single step (ptrace) */
+    case 1: {                                           /* #DB: single step or debug register hit */
+        uint64_t dr6;
+        __asm__ volatile("mov %%dr6, %0" : "=r"(dr6));
+        __asm__ volatile("mov %0, %%dr6" :: "r"(0xffff0ff0ULL));
+        current->arch.dr6 = dr6;
         sig = SIGTRAP; code = TRAP_TRACE;
-        f->rflags &= ~0x100ULL;
+        if (dr6 & 0xf) {
+            int n = __builtin_ctzll(dr6 & 0xf);
+            uint64_t rw = (current->arch.dr7 >> (16 + 4 * n)) & 3;
+            code = TRAP_HWBKPT;
+            addr = current->arch.dr[n];
+            if (rw == 0) f->rflags |= 0x10000;          /* RF: an execute breakpoint does not refire */
+        }
+        if (dr6 & 0x4000) f->rflags &= ~0x100ULL;       /* BS */
+        if (!(dr6 & 0xf)) f->rflags &= ~0x100ULL;
         break;
+    }
     case 13: case 12: case 11: sig = SIGSEGV; addr = 0; break;
     case 17: sig = SIGBUS; code = BUS_ADRALN; break;
     default: return false;

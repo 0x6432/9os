@@ -1,4 +1,5 @@
 /* aarch64 platform glue (QEMU virt): PL011 console, GICv2/v3, generic timer, PL031 RTC, PSCI. */
+void a64_debug_init(void);
 #include <kernel/arch.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
@@ -247,6 +248,7 @@ __noreturn void a64_ap_entry(struct limine_mp_info *info) {
     sysreg_write(oslar_el1, 0);         /* unlock the OS lock: debug exceptions (ptrace step) */
     sysreg_write(mdscr_el1, 0);
     isb();
+    a64_debug_init();
     c->arch_data[1] = 2;
     a64_ap_mmu_init();
     c->arch_data[1] = 3;
@@ -351,6 +353,7 @@ void arch_early_init(void) {
     sysreg_write(oslar_el1, 0);         /* unlock the OS lock: debug exceptions (ptrace step) */
     sysreg_write(mdscr_el1, 0);
     isb();
+    a64_debug_init();
 }
 
 void arch_init(void) {

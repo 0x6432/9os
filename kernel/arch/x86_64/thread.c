@@ -34,5 +34,22 @@ void arch_switch_to(struct thread *prev, struct thread *next) {
     arch_set_kernel_stack((uint64_t)next->kstack + KSTACK_SIZE);
     wrmsr(0xC0000100, next->arch.fs_base);
     __asm__ volatile("fxrstor64 (%0)" :: "r"(next->arch.fpu) : "memory");
+    if (prev->arch.dr7 || next->arch.dr7) {         /* debug registers follow the thread */
+        if (next->arch.dr7) {
+            __asm__ volatile("mov %0, %%dr7" :: "r"(0ULL));
+            __asm__ volatile("mov %0, %%dr0" :: "r"(next->arch.dr[0]));
+            __asm__ volatile("mov %0, %%dr1" :: "r"(next->arch.dr[1]));
+            __asm__ volatile("mov %0, %%dr2" :: "r"(next->arch.dr[2]));
+            __asm__ volatile("mov %0, %%dr3" :: "r"(next->arch.dr[3]));
+        }
+        __asm__ volatile("mov %0, %%dr7" :: "r"(next->arch.dr7));
+    }
     x86_switch_stack(&prev->arch.rsp, next->arch.rsp);
+}
+
+/* ptrace detach / exec: drop the thread's hardware breakpoints */
+void arch_hw_debug_reset(struct thread *t) {
+    memset(t->arch.dr, 0, sizeof t->arch.dr);
+    t->arch.dr6 = 0; t->arch.dr7 = 0;
+    if (t == current) __asm__ volatile("mov %0, %%dr7" :: "r"(0ULL));
 }

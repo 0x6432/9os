@@ -72,10 +72,12 @@ void trap_dispatch(struct trap_frame *f, int kind) {
             if (ec == 0x24 || ec == 0x20) { sig = SIGSEGV; code = SEGV_ACCERR; addr = f->far; }
             else if (ec == 0x22 || ec == 0x26) { sig = SIGBUS; code = BUS_ADRALN; addr = f->far; }
             else if (ec == 0x3c) { sig = SIGTRAP; code = TRAP_BRKPT; }
-            else if (ec == 0x30 || ec == 0x32) {           /* breakpoint / software step (ptrace) */
+            else if (ec == 0x32) {                          /* software step (ptrace) */
                 sig = SIGTRAP; code = TRAP_TRACE;
                 f->pstate &= ~(1ULL << 21);                 /* SPSR.SS */
             }
+            else if (ec == 0x30) { sig = SIGTRAP; code = TRAP_HWBKPT; }                  /* hw breakpoint */
+            else if (ec == 0x34) { sig = SIGTRAP; code = TRAP_HWBKPT; addr = f->far; }   /* watchpoint */
             else if (ec == 0x2c) { sig = SIGFPE; code = 0; }
             signal_force_info(current, sig, code, addr);
             goto out;

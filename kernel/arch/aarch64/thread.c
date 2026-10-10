@@ -59,16 +59,86 @@ void arch_switch_mm(struct thread *prev, struct thread *next) {
     else vmm_switch(kernel_pt);
 }
 
+
+/* hardware breakpoints / watchpoints (ptrace NT_ARM_HW_BREAK/WATCH): per-thread register images
+ * loaded on switch; MDSCR_EL1.MDE is set while a thread with armed slots runs */
+static void dbg_b(int i, uint64_t v, uint64_t c) {
+    switch (i) {
+    case 0: sysreg_write(dbgbvr0_el1, v); sysreg_write(dbgbcr0_el1, c); break;
+    case 1: sysreg_write(dbgbvr1_el1, v); sysreg_write(dbgbcr1_el1, c); break;
+    case 2: sysreg_write(dbgbvr2_el1, v); sysreg_write(dbgbcr2_el1, c); break;
+    case 3: sysreg_write(dbgbvr3_el1, v); sysreg_write(dbgbcr3_el1, c); break;
+    case 4: sysreg_write(dbgbvr4_el1, v); sysreg_write(dbgbcr4_el1, c); break;
+    case 5: sysreg_write(dbgbvr5_el1, v); sysreg_write(dbgbcr5_el1, c); break;
+    case 6: sysreg_write(dbgbvr6_el1, v); sysreg_write(dbgbcr6_el1, c); break;
+    case 7: sysreg_write(dbgbvr7_el1, v); sysreg_write(dbgbcr7_el1, c); break;
+    case 8: sysreg_write(dbgbvr8_el1, v); sysreg_write(dbgbcr8_el1, c); break;
+    case 9: sysreg_write(dbgbvr9_el1, v); sysreg_write(dbgbcr9_el1, c); break;
+    case 10: sysreg_write(dbgbvr10_el1, v); sysreg_write(dbgbcr10_el1, c); break;
+    case 11: sysreg_write(dbgbvr11_el1, v); sysreg_write(dbgbcr11_el1, c); break;
+    case 12: sysreg_write(dbgbvr12_el1, v); sysreg_write(dbgbcr12_el1, c); break;
+    case 13: sysreg_write(dbgbvr13_el1, v); sysreg_write(dbgbcr13_el1, c); break;
+    case 14: sysreg_write(dbgbvr14_el1, v); sysreg_write(dbgbcr14_el1, c); break;
+    case 15: sysreg_write(dbgbvr15_el1, v); sysreg_write(dbgbcr15_el1, c); break;
+    }
+}
+static void dbg_w(int i, uint64_t v, uint64_t c) {
+    switch (i) {
+    case 0: sysreg_write(dbgwvr0_el1, v); sysreg_write(dbgwcr0_el1, c); break;
+    case 1: sysreg_write(dbgwvr1_el1, v); sysreg_write(dbgwcr1_el1, c); break;
+    case 2: sysreg_write(dbgwvr2_el1, v); sysreg_write(dbgwcr2_el1, c); break;
+    case 3: sysreg_write(dbgwvr3_el1, v); sysreg_write(dbgwcr3_el1, c); break;
+    case 4: sysreg_write(dbgwvr4_el1, v); sysreg_write(dbgwcr4_el1, c); break;
+    case 5: sysreg_write(dbgwvr5_el1, v); sysreg_write(dbgwcr5_el1, c); break;
+    case 6: sysreg_write(dbgwvr6_el1, v); sysreg_write(dbgwcr6_el1, c); break;
+    case 7: sysreg_write(dbgwvr7_el1, v); sysreg_write(dbgwcr7_el1, c); break;
+    case 8: sysreg_write(dbgwvr8_el1, v); sysreg_write(dbgwcr8_el1, c); break;
+    case 9: sysreg_write(dbgwvr9_el1, v); sysreg_write(dbgwcr9_el1, c); break;
+    case 10: sysreg_write(dbgwvr10_el1, v); sysreg_write(dbgwcr10_el1, c); break;
+    case 11: sysreg_write(dbgwvr11_el1, v); sysreg_write(dbgwcr11_el1, c); break;
+    case 12: sysreg_write(dbgwvr12_el1, v); sysreg_write(dbgwcr12_el1, c); break;
+    case 13: sysreg_write(dbgwvr13_el1, v); sysreg_write(dbgwcr13_el1, c); break;
+    case 14: sysreg_write(dbgwvr14_el1, v); sysreg_write(dbgwcr14_el1, c); break;
+    case 15: sysreg_write(dbgwvr15_el1, v); sysreg_write(dbgwcr15_el1, c); break;
+    }
+}
+static int nbrps = -1, nwrps;
+static void dbg_count(void) {
+    if (nbrps >= 0) return;
+    uint64_t d = sysreg_read(id_aa64dfr0_el1);
+    nbrps = (int)((d >> 12) & 0xf) + 1; nwrps = (int)((d >> 20) & 0xf) + 1;
+    if (nbrps > 16) nbrps = 16;
+    if (nwrps > 16) nwrps = 16;
+}
+int a64_num_brps(void) { dbg_count(); return nbrps; }
+int a64_num_wrps(void) { dbg_count(); return nwrps; }
+static void dbg_load(struct thread *t) {
+    dbg_count();
+    for (int i = 0; i < nbrps; i++) dbg_b(i, t ? t->arch.bvr[i] : 0, t ? t->arch.bcr[i] : 0);
+    for (int i = 0; i < nwrps; i++) dbg_w(i, t ? t->arch.wvr[i] : 0, t ? t->arch.wcr[i] : 0);
+}
+/* every CPU at boot: the slots reset to UNKNOWN values */
+void a64_debug_init(void) { dbg_load(nullptr); __asm__ volatile("isb" ::: "memory"); }
+void arch_hw_debug_reset(struct thread *t) {
+    memset(t->arch.bvr, 0, sizeof t->arch.bvr); memset(t->arch.wvr, 0, sizeof t->arch.wvr);
+    memset(t->arch.bcr, 0, sizeof t->arch.bcr); memset(t->arch.wcr, 0, sizeof t->arch.wcr);
+    bool was = t->arch.hwdbg;
+    t->arch.hwdbg = false;
+    if (t == current && was) { dbg_load(nullptr); sysreg_write(mdscr_el1, sysreg_read(mdscr_el1) & ~(1ULL << 15)); __asm__ volatile("isb" ::: "memory"); }
+}
+
 void arch_switch_to(struct thread *prev, struct thread *next) {
     fp_save(prev->arch.fpu);
     prev->arch.tpidr = sysreg_read(tpidr_el0);
     arch_switch_mm(prev, next);
     sysreg_write(tpidr_el0, next->arch.tpidr);
     fp_restore(next->arch.fpu);
-    {   /* ptrace single step: MDSCR_EL1.SS follows the thread */
+    if (prev->arch.hwdbg || next->arch.hwdbg) dbg_load(next->arch.hwdbg ? next : nullptr);
+    {   /* ptrace single step (SS) and hardware breakpoints (MDE) follow the thread */
         uint64_t m = sysreg_read(mdscr_el1);
-        if ((m & 1) != (uint64_t)next->pt_step) {
-            sysreg_write(mdscr_el1, next->pt_step ? m | 1 : m & ~1ULL);
+        uint64_t want = (m & ~((1ULL << 15) | 1)) | (next->pt_step ? 1 : 0) | (next->arch.hwdbg ? 1ULL << 15 : 0);
+        if (want != m || prev->arch.hwdbg || next->arch.hwdbg) {
+            sysreg_write(mdscr_el1, want);
             __asm__ volatile("isb" ::: "memory");
         }
     }

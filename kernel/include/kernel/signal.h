@@ -79,6 +79,7 @@ struct k_sigaction {          /* layout used by the rt_sigaction syscall */
 #define SEGV_ACCERR 2
 #define TRAP_BRKPT 1
 #define TRAP_TRACE 2
+#define TRAP_HWBKPT 4
 #define ILL_ILLOPC 1
 #define FPE_INTDIV 1
 #define BUS_ADRALN 1
