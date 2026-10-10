@@ -5,6 +5,7 @@
 /* Compact kernel siginfo (M33); siginfo_to_user() expands it to the 128-byte Linux layout
  * according to signo/code. Fields: pid/uid of the sender, i1 = status / overrun / syscall /
  * fd, i2 = timer id / audit arch, v = sigval / fault addr / call addr / band / utime, v2 = stime. */
+#define KSI_POLL 1     /* _pad: SIGPOLL layout (band, fd) for any signal number (F_SETSIG) */
 struct ksiginfo {
     int32_t signo, code, err, pid;
     uint32_t uid;

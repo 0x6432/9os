@@ -130,7 +130,7 @@ void siginfo_to_user(const struct ksiginfo *ki, void *out) {
     else if (s == SIGCHLD && kern) { w[4] = ki->pid; w[5] = (int32_t)ki->uid; w[6] = ki->i1; memcpy(b + 32, &ki->v, 8); memcpy(b + 40, &ki->v2, 8); }
     else if (kern && (SIGBIT(s) & (SIGBIT(SIGSEGV) | SIGBIT(SIGBUS) | SIGBIT(SIGILL) | SIGBIT(SIGFPE) | SIGBIT(SIGTRAP)))) memcpy(b + 16, &ki->v, 8);
     else if (kern && s == SIGSYS) { memcpy(b + 16, &ki->v, 8); w[6] = ki->i1; w[7] = ki->i2; }
-    else if (kern && s == SIGIO) { memcpy(b + 16, &ki->v, 8); w[6] = ki->i1; }
+    else if ((kern && s == SIGIO) || ki->_pad == KSI_POLL) { memcpy(b + 16, &ki->v, 8); w[6] = ki->i1; }
     else { w[4] = ki->pid; w[5] = (int32_t)ki->uid; memcpy(b + 24, &ki->v, 8); }
 }
 void siginfo_from_user(struct ksiginfo *ki, const void *in) {

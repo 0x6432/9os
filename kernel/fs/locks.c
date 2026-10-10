@@ -313,7 +313,7 @@ static struct flock_k *lease_of(struct inode *ino, struct file *f) {
     return nullptr;
 }
 
-int64_t fcntl_lease(struct file *f, int cmd, int arg) {
+int64_t fcntl_lease(struct file *f, int fd, int cmd, int arg) {
     struct inode *ino = f->inode;
     if (cmd == F_GETLEASE) {
         uint64_t fl = spin_lock_irqsave(&locks_lock);
@@ -353,6 +353,7 @@ out:
     spin_unlock_irqrestore(&locks_lock, fl);
     kfree(n);
     if (!r) wake_lockers();
+    if (!r && arg != F_UNLCK) { fasync_setown(f, 1, curproc->pid); f->async_fd = fd; }   /* as Linux */
     return r;
 }
 
@@ -362,7 +363,7 @@ int lease_break(struct inode *ino, int flags) {
     bool wr = (flags & O_ACCMODE) != O_RDONLY || (flags & O_TRUNC);
     int target = wr ? F_UNLCK : F_RDLCK;
     for (;;) {
-        struct { int pid, sig; } sg[8];
+        struct file *sg[8];
         int ns = 0;
         bool any = false, changed = false;
         uint64_t now = time_ns(), dl = UINT64_MAX;
@@ -373,8 +374,7 @@ int lease_break(struct inode *ino, int flags) {
             if (l->brk < 0 || (target == F_UNLCK && l->brk == F_RDLCK)) {
                 if (l->brk < 0) l->deadline = now + (uint64_t)sysctl_lease_break_time * 1000000000ull;
                 l->brk = target;
-                int sig = ((struct file *)l->owner)->sig;
-                if (ns < 8) { sg[ns].pid = l->pid; sg[ns].sig = sig ? sig : SIGIO; ns++; }
+                if (ns < 8 && file_get_live(l->owner)) sg[ns++] = l->owner;
             }
             if (now >= l->deadline) {                    /* the holder ran out of time */
                 if (l->brk == F_UNLCK) lock_free(l); else { l->type = F_RDLCK; l->brk = -1; }
@@ -389,8 +389,9 @@ int lease_break(struct inode *ino, int flags) {
         if (ns) {
             bool took = !bkl_held();
             if (took) bkl_enter();
-            for (int k = 0; k < ns; k++) { struct process *p = process_find(sg[k].pid); if (p) signal_send(p, sg[k].sig); }
+            for (int k = 0; k < ns; k++) fasync_signal(sg[k], 3, 0x441);   /* POLL_MSG, POLLIN|RDNORM|MSG */
             if (took) bkl_exit();
+            for (int k = 0; k < ns; k++) vfs_close(sg[k]);
         }
         if (!any) return 0;
         if (flags & O_NONBLOCK) return -EWOULDBLOCK;

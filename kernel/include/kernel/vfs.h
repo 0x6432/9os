@@ -37,6 +37,7 @@
 #define O_TRUNC 01000
 #define O_APPEND 02000
 #define O_NONBLOCK 04000
+#define O_ASYNC 020000
 #define O_SYNC 04010000
 #if defined(__aarch64__)
 #define O_DIRECTORY 040000
@@ -215,8 +216,13 @@ struct file {
     int refcount;
     void *priv;
     char *path;               /* path used at open (for /proc/pid/fd) */
-    int sig;                  /* F_SETSIG: lease-break signal (0: SIGIO) */
+    int sig;                  /* F_SETSIG: SIGIO/lease-break signal (0: plain SIGIO) */
     bool counted;             /* in inode i_nopen/i_nwrite */
+    bool on_async;            /* O_ASYNC: on the kasyncd list (fasync.c) */
+    int own_type, own_pid;    /* F_SETOWN(_EX) owner */
+    int async_fd;             /* si_fd for F_SETSIG signals */
+    unsigned async_last;      /* poll mask kasyncd saw last */
+    struct list_node async_node;
 };
 
 struct kstat {
@@ -314,7 +320,17 @@ void acl_chmod(struct inode *i);
 uint32_t acl_create_mode(struct inode *dir, uint32_t mode);   /* umask unless default ACL */
 void acl_inherit(struct inode *dir, struct inode *child);
 void acl_forget(struct inode *i);
-int lease_break(struct inode *ino, int flags);    /* locks.c: open/truncate vs leases */
+int lease_break(struct inode *ino, int flags);
+/* signal-driven I/O (fasync.c) */
+void fasync_signal(struct file *f, int code, unsigned band);   /* caller holds the BKL */
+void fasync_set(struct file *f, int fd, bool on);
+void fasync_release(struct file *f);
+int fasync_setown(struct file *f, int type, int pid);
+int fasync_getown(struct file *f);
+bool file_get_live(struct file *f);                /* reference unless already dying */
+static inline void fasync_rearm(struct file *f, unsigned bits) {
+    if (f && f->on_async) __atomic_fetch_and(&f->async_last, ~bits, __ATOMIC_RELAXED);
+}    /* locks.c: open/truncate vs leases */
 #define VFS_MODE_UMASK 0x80000000u               /* vfs_mknod_at: apply umask/default ACL */
 
 /* filesystems */

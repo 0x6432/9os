@@ -16,8 +16,8 @@ for a in $LIST; do
     [ -e "$a" ] || ln -s /bin/busybox "$a"
 done
 if [ -x "$TOP/build/bash-$ARCH/bash" ]; then cp "$TOP/build/bash-$ARCH/bash" bin/bash && llvm-strip bin/bash; fi
-# test programs and demos: every userland/{tests,demos}/*.c becomes /bin/<name>
-for src in "$TOP"/tests/*.c "$TOP"/demos/*.c; do
+# test programs, demos and small tools: every userland/{tests,demos,tools}/*.c becomes /bin/<name>
+for src in "$TOP"/tests/*.c "$TOP"/demos/*.c "$TOP"/tools/*.c; do
     [ -f "$src" ] || continue
     n=$(basename "$src" .c)
     [ "$n" = hello ] && continue

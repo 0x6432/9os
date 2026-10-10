@@ -583,6 +583,7 @@ void vfs_close(struct file *f) {
     if (f->inode && (S_ISREG(f->inode->mode) || S_ISDIR(f->inode->mode)) && !(f->flags & O_PATH))
         fsnotify_file(f, (f->flags & O_ACCMODE) != O_RDONLY ? IN_CLOSE_WRITE_ : IN_CLOSE_NOWRITE);
     locks_release_file(f);
+    fasync_release(f);
     if (f->counted) {
         __atomic_sub_fetch(&f->inode->i_nopen, 1, __ATOMIC_RELAXED);
         if ((f->flags & O_ACCMODE) != O_RDONLY) __atomic_sub_fetch(&f->inode->i_nwrite, 1, __ATOMIC_RELAXED);
@@ -599,6 +600,7 @@ ssize_t vfs_read(struct file *f, void *buf, size_t n) {
     if (S_ISDIR(f->inode->mode)) return -EISDIR;
     if (!f->fops || !f->fops->read) return -EINVAL;
     ssize_t r = f->fops->read(f, buf, n, &f->pos);
+    fasync_rearm(f, 0x41);                       /* POLLIN | POLLRDNORM */
     if (r > 0 && S_ISREG(f->inode->mode)) fsnotify_file(f, IN_ACCESS);
     return r;
 }
@@ -609,6 +611,7 @@ ssize_t vfs_write(struct file *f, const void *buf, size_t n) {
     if (S_ISREG(f->inode->mode)) file_remove_privs(f);
     if ((f->flags & O_APPEND) && S_ISREG(f->inode->mode)) f->pos = f->inode->size;
     ssize_t r = f->fops->write(f, buf, n, &f->pos);
+    fasync_rearm(f, 0x104);                      /* POLLOUT | POLLWRNORM */
     if (r > 0 && S_ISREG(f->inode->mode)) fsnotify_file(f, IN_MODIFY_);
     return r;
 }

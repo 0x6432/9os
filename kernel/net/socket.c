@@ -57,7 +57,7 @@ static int sock_kind(int fd, struct file **out) {
 #define DISPATCH(fd, unix_call, inet_call) ({ \
     struct file *f_; int k_ = sock_kind(fd, &f_); int64_t r_; \
     if (k_ < 0) r_ = k_; \
-    else { r_ = k_ == K_UNIX ? (int64_t)(unix_call) : (int64_t)(inet_call); vfs_close(f_); } \
+    else { r_ = k_ == K_UNIX ? (int64_t)(unix_call) : (int64_t)(inet_call); fasync_rearm(f_, 0x145); vfs_close(f_); } \
     r_; })
 
 int64_t sys_socket(int domain, int type, int proto) {

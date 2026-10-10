@@ -444,6 +444,21 @@ int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
         else __atomic_fetch_and(&f->flags, ~O_NONBLOCK, __ATOMIC_RELAXED);
         return 0;
     }
+    if (cmd == 0x5452) {           /* FIOASYNC */
+        int v;
+        if (copy_from_user(&v, (void *)arg, sizeof v)) return -EFAULT;
+        fasync_set(f, fd, v != 0);
+        return 0;
+    }
+    if (cmd == 0x8901 || cmd == 0x8902) {   /* FIOSETOWN / SIOCSPGRP: pid, or -pgid */
+        int v;
+        if (copy_from_user(&v, (void *)arg, sizeof v)) return -EFAULT;
+        return fasync_setown(f, v < 0 ? 2 : 1, v < 0 ? -v : v);
+    }
+    if (cmd == 0x8903 || cmd == 0x8904) {   /* FIOGETOWN / SIOCGPGRP */
+        int v = fasync_getown(f);
+        return copy_to_user((void *)arg, &v, sizeof v) ? -EFAULT : 0;
+    }
     if (cmd == 0x5451) return fd_cloexec_set(fd, true);   /* FIOCLEX */
     if (cmd == 0x5450) return fd_cloexec_set(fd, false);  /* FIONCLEX */
     if (!f->fops || !f->fops->ioctl) return -ENOTTY;
@@ -456,7 +471,7 @@ int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
 }
 
 int64_t fcntl_lock(struct file *f, int cmd, void *uarg);   /* fs/locks.c */
-int64_t fcntl_lease(struct file *f, int cmd, int arg);
+int64_t fcntl_lease(struct file *f, int fd, int cmd, int arg);
 int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
@@ -474,13 +489,25 @@ int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
         uint32_t o = __atomic_load_n(&f->flags, __ATOMIC_RELAXED), n;
         do n = (o & ~(uint32_t)(O_APPEND | O_NONBLOCK)) | (uint32_t)(arg & (O_APPEND | O_NONBLOCK));
         while (!__atomic_compare_exchange_n(&f->flags, &o, n, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED));
+        if (!!(arg & O_ASYNC) != !!(o & O_ASYNC)) fasync_set(f, fd, arg & O_ASYNC);
         return 0;
+    }
+    case 8: return fasync_setown(f, (int)arg < 0 ? 2 : 1, (int)arg < 0 ? -(int)arg : (int)arg);   /* F_SETOWN */
+    case 9: return fasync_getown(f);      /* F_GETOWN */
+    case 15: case 16: {                   /* F_SETOWN_EX / F_GETOWN_EX */
+        struct { int type, pid; } ox;
+        if (cmd == 16) {
+            ox.type = f->own_type; ox.pid = f->own_pid;
+            return copy_to_user((void *)arg, &ox, sizeof ox) ? -EFAULT : 0;
+        }
+        if (copy_from_user(&ox, (void *)arg, sizeof ox)) return -EFAULT;
+        return fasync_setown(f, ox.type, ox.pid);
     }
     case F_GETLK: case F_SETLK: case F_SETLKW:
     case 36: case 37: case 38:            /* F_OFD_GETLK / F_OFD_SETLK / F_OFD_SETLKW */
         return fcntl_lock(f, cmd, (void *)arg);
     case 1024: case 1025:                 /* F_SETLEASE / F_GETLEASE */
-        return fcntl_lease(f, cmd, (int)arg);
+        return fcntl_lease(f, fd, cmd, (int)arg);
     case 10:                              /* F_SETSIG */
         if (arg >= NSIG) return -EINVAL;
         f->sig = (int)arg;
