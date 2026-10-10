@@ -1,6 +1,7 @@
 #!/bin/sh
 # Build a GPT disk image with one ext2 partition (M30).
 # usage: scripts/mkdisk.sh OUT SIZE_MB [ROOTDIR] [BLOCKSIZE]
+#   INODE_SIZE=256 in the environment: large inodes (in-inode xattrs, M33)
 #   ROOTDIR: directory copied into the filesystem (mke2fs -d), e.g. userland/root-x86_64
 # needs sfdisk (util-linux) and mke2fs (e2fsprogs)
 set -e
@@ -13,7 +14,7 @@ printf 'label: gpt\nstart=2048, size=%d, type=0FC63DAF-8483-4772-8E79-3D69D8477D
     sfdisk -q "$out" >/dev/null
 truncate -s "$(( mb - 2 ))M" "$out.part"
 # plain ext2 (no htree, no resize inode): the feature set 9os implements
-mke2fs -q -F -t ext2 -b "$bs" -O ^dir_index,^resize_inode -E root_owner=0:0 ${dir:+-d "$dir"} "$out.part"
+mke2fs -q -F -t ext2 -b "$bs" ${INODE_SIZE:+-I "$INODE_SIZE"} -O ^dir_index,^resize_inode -E root_owner=0:0 ${dir:+-d "$dir"} "$out.part"
 if [ -n "$dir" ] && [ "$(id -u)" != 0 ]; then
     # mke2fs -d keeps host ownership (the builder's uid); the image is a root filesystem: root:root
     command -v debugfs >/dev/null || PATH=$PATH:/usr/sbin:/sbin

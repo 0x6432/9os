@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 PATH=$PATH:/usr/sbin:/sbin
 WL=; [ -e userland/build/ports-root-$ARCH/usr/bin/wltest ] && WL=wltest
 B=build/ci-$ARCH; mkdir -p "$B"
-sh scripts/mkdisk.sh "$B/ext2.img" 128 || exit 1
+INODE_SIZE=256 sh scripts/mkdisk.sh "$B/ext2.img" 128 || exit 1
 sh scripts/mkdisk.sh "$B/root.img" 256 "userland/root-$ARCH" || exit 1
 rm -f "$B/scratch.img"; truncate -s 16M "$B/scratch.img"
 fsck_img() {   # e2fsck the partition at 1 MiB
