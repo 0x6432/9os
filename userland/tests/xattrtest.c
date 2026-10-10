@@ -75,17 +75,18 @@ static void test_basic(const char *dir) {
     CHECK(mkdir(d, 0755) == 0, "mkdir");
     CHECK(setxattr(d, "user.dir", "D", 1, 0) == 0, "dir attr");
     CHECK(getxattr(d, "user.dir", buf, sizeof buf) == 1, "get dir attr");
-    /* unprivileged user: DAC on user.*, trusted.* hidden and refused, security.* readable */
+    /* unprivileged user (via the inherited fd: DIR may not be searchable, e.g. /root): DAC on
+     * user.*, trusted.* hidden and refused, security.* readable */
     pid_t p = fork();
     if (!p) {
         if (setgid(1000) || setuid(1000)) _exit(90);
         int bad = 0;
-        if (getxattr(f, "user.color", buf, sizeof buf) != 3) bad |= 1;                       /* 0644: readable */
-        if (!(setxattr(f, "user.color", "z", 1, 0) < 0 && errno == EACCES)) bad |= 2;       /* not writable */
-        if (!(getxattr(f, "trusted.t", buf, sizeof buf) < 0 && errno == EPERM)) bad |= 4;
-        if (getxattr(f, "security.s", buf, sizeof buf) != 2) bad |= 8;
-        if (!(setxattr(f, "security.s", "q", 1, 0) < 0 && errno == EPERM)) bad |= 16;
-        ssize_t m = listxattr(f, buf, sizeof buf);
+        if (fgetxattr(fd, "user.color", buf, sizeof buf) != 3) bad |= 1;                       /* 0644: readable */
+        if (!(fsetxattr(fd, "user.color", "z", 1, 0) < 0 && errno == EACCES)) bad |= 2;       /* not writable */
+        if (!(fgetxattr(fd, "trusted.t", buf, sizeof buf) < 0 && errno == EPERM)) bad |= 4;
+        if (fgetxattr(fd, "security.s", buf, sizeof buf) != 2) bad |= 8;
+        if (!(fsetxattr(fd, "security.s", "q", 1, 0) < 0 && errno == EPERM)) bad |= 16;
+        ssize_t m = flistxattr(fd, buf, sizeof buf);
         if (m <= 0 || has_name(buf, m, "trusted.t") || !has_name(buf, m, "user.color")) bad |= 32;
         _exit(bad);
     }
