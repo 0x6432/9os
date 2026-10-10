@@ -1233,14 +1233,23 @@ Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
   opener waits up to `/proc/sys/fs/lease-break-time` (O_NONBLOCK: EWOULDBLOCK), then the break is
   forced; O_TRUNC now runs after the lease break, outside the namespace mutex. `/proc/locks`
   lists `LEASE ACTIVE/BREAKING`.
-- Tests: `acltest [dir] | -w | -r`, `leasetest`, ptracetest hw/step on all arches, futextest
+- **Signal-driven I/O** (`fs/fasync.c`): O_ASYNC via F_SETFL or FIOASYNC; owners via F_SETOWN
+  (pid or -pgid), F_SETOWN_EX/F_GETOWN_EX (TID/PID/PGRP), FIOSETOWN/SIOCSPGRP; F_SETSIG picks
+  the signal and adds siginfo (si_code POLL_IN/OUT/ERR/HUP/PRI, si_band, si_fd). The `kasyncd`
+  thread wakes on poll_notify(), re-polls the O_ASYNC files and signals readiness bits that
+  appeared; read/recv and write/send re-arm their bits, so every new arrival after a drain
+  signals. Lease breaks go through the same owner and carry si_fd + POLL_MSG.
+- **getfacl/setfacl** (`userland/tools/`): acl(5) text output (`-a -d -n -c`, `#effective`),
+  `-m/-x/--set/-b/-k/-d/-n` with mask recalculation and default-ACL seeding; checked in CI.
+- ACLs on symlinks are refused with EOPNOTSUPP, as Linux.
+- Tests: `acltest [dir] | -w | -r`, `leasetest`, `asynctest`, the getfacl/setfacl chain, ptracetest hw/step on all arches, futextest
   requeue-moves, sigqtest restart; all in ci-tests (acltest also on ext2 /mnt and the disk root
   with persistence).
 
 ### Known limits
-1. Mandatory locks are not supported (removed from Linux in 5.15); leases are not broken by
-   unlink/rename (no delegations), lease-break signals carry no si_fd; F_SETOWN/O_ASYNC I/O
-   signals are not implemented.
+1. Mandatory locks are not supported (removed from Linux in 5.15). As in Linux, unlink/rename
+   do not break F_SETLEASE leases (only NFS delegations would).
 2. riscv64 hardware triggers need an SBI implementation with DBTR (else EIO/ENOSPC); x86 I/O
    breakpoints (DR7 RW=10) are refused.
-3. ACLs are not applied to symlinks; no ACL-aware `getfacl`/`setfacl` in userland (raw xattrs).
+3. O_ASYNC readiness is edge-detected by polling from one kernel thread (64 files per pass), so
+   a burst of arrivals may coalesce into one signal before the reader drains (POSIX allows it).

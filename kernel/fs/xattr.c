@@ -119,7 +119,8 @@ static int xattr_perm(struct inode *i, const char *name, int mask) {
     switch (ns) {
     case NS_TRUSTED: return capable(CAP_SYS_ADMIN) ? 0 : -EPERM;
     case NS_SECURITY: return (mask & MAY_WRITE) && !capable(CAP_SYS_ADMIN) ? -EPERM : 0;
-    case NS_ACL: return (mask & MAY_WRITE) && !inode_owner_or_capable(i) ? -EPERM : 0;
+    case NS_ACL: if (S_ISLNK(i->mode)) return -EOPNOTSUPP;     /* as Linux: no ACLs on symlinks */
+        return (mask & MAY_WRITE) && !inode_owner_or_capable(i) ? -EPERM : 0;
     default:
         if (!S_ISREG(i->mode) && !S_ISDIR(i->mode)) return mask & MAY_WRITE ? -EPERM : -ENODATA;
         return inode_permission(i, mask);

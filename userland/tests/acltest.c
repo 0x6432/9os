@@ -124,7 +124,12 @@ static void test_access(const char *dir) {
     errno = 0;
     CHECK(getxattr(f, ACC, NULL, 0) < 0 && errno == ENODATA, "removed");
     CHECK(try_as(f, O_RDONLY, 1000, 1000, 0) == EACCES, "removed ACL: other bits again");
-    CHECK(unlink(f) == 0, "unlink");
+    char l[256]; snprintf(l, sizeof l, "%s/acl_l", dir);
+    unlink(l);
+    CHECK(symlink("acl_f", l) == 0, "symlink");
+    uint8_t lb2[64]; size_t lbl = blob(lb2, base, 3);
+    CHECK(lsetxattr(l, ACC, lb2, lbl, 0) < 0 && errno == EOPNOTSUPP, "no ACL on a symlink");
+    CHECK(unlink(l) == 0 && unlink(f) == 0, "unlink");
 }
 
 static void test_default(const char *dir) {
