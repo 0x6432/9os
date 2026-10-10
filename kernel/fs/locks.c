@@ -7,7 +7,14 @@
  * reference). POSIX and OFD record locks conflict with each other. Ranges are inclusive
  * [start, end], end = INT64_MAX means "to EOF and beyond". Blocking requests sleep on one wait
  * queue and re-check after every unlock (generation counter, lost-wakeup free); F_SETLKW
- * detects deadlocks between POSIX owners (EDEADLK). */
+ * detects deadlocks between POSIX owners (EDEADLK).
+ *
+ * Leases (F_SETLEASE/F_GETLEASE) belong to an open file of a regular file the caller owns (or
+ * CAP_LEASE). A read lease needs no other writers, a write lease no other open files. An open
+ * for writing or truncate(2) breaks every lease, a read-only open breaks write leases to read:
+ * the holder gets SIGIO (or its F_SETSIG signal) and has /proc/sys/fs/lease-break-time seconds
+ * to downgrade or release; the opener waits that long (O_NONBLOCK: EWOULDBLOCK at once), then
+ * the lease is broken by force. Mandatory locks are not supported (removed from Linux 5.15). */
 #include <kernel/vfs.h>
 #include <kernel/process.h>
 #include <kernel/kmalloc.h>
@@ -17,6 +24,11 @@
 #include <kernel/sched.h>
 #include <kernel/printk.h>
 #include <kernel/syscall.h>
+#include <kernel/time.h>
+#include <kernel/cpu.h>
+#include <kernel/signal.h>
+#include <kernel/cred.h>
+#define F_GETLEASE 1025
 
 #define F_GETLK 5
 #define F_SETLK 6
@@ -33,7 +45,7 @@
 #define LOCK_UN 8
 #define OFF_MAX INT64_MAX
 
-enum { FL_FLOCK = 1, FL_POSIX, FL_OFD };
+enum { FL_FLOCK = 1, FL_POSIX, FL_OFD, FL_LEASE };
 
 struct flock_k {
     struct list_node node;
@@ -42,6 +54,8 @@ struct flock_k {
     int64_t start, end;
     void *owner;                 /* FL_POSIX: struct process *, else struct file * */
     int pid;
+    int brk;                     /* FL_LEASE: type being broken to, -1 if not breaking */
+    uint64_t deadline;           /* FL_LEASE: forced break at this time_ns() */
 };
 struct uflock { int16_t type, whence; int64_t start, len; int32_t pid; };
 
@@ -52,7 +66,8 @@ static volatile uint64_t locks_gen;
 #define NBUCKETS 64
 static struct list_node buckets[NBUCKETS];
 static bool buckets_ready;
-static uint64_t nlocks;
+static uint64_t nlocks, nleases;
+int sysctl_lease_break_time = 45;
 
 static struct list_node *bucket(struct inode *i) {
     if (!buckets_ready) { for (int b = 0; b < NBUCKETS; b++) list_init(&buckets[b]); buckets_ready = true; }
@@ -62,7 +77,7 @@ static struct list_node *bucket(struct inode *i) {
     list_for_each_safe(__it, tmp, bucket(ino)) \
         for (struct flock_k *l = list_entry(__it, struct flock_k, node); l && l->inode == (ino); l = nullptr)
 
-static void lock_free(struct flock_k *l) { list_del(&l->node); nlocks--; kfree(l); }
+static void lock_free(struct flock_k *l) { if (l->kind == FL_LEASE) nleases--; list_del(&l->node); nlocks--; kfree(l); }
 
 static bool record(int kind) { return kind == FL_POSIX || kind == FL_OFD; }
 static bool overlap(const struct flock_k *a, int64_t s, int64_t e) { return a->start <= e && s <= a->end; }
@@ -280,8 +295,9 @@ int locks_report(char *buf, int cap) {
         list_for_each(it, &buckets[b]) {
             struct flock_k *l = list_entry(it, struct flock_k, node);
             if (n >= cap - 96) break;
-            n += snprintf(buf + n, cap - n, "%d: %s ADVISORY  %s %d %02x:%02x:%lu %ld %s\n", i++,
-                          l->kind == FL_FLOCK ? "FLOCK " : l->kind == FL_OFD ? "OFDLCK" : "POSIX ",
+            n += snprintf(buf + n, cap - n, "%d: %s %s  %s %d %02x:%02x:%lu %ld %s\n", i++,
+                          l->kind == FL_FLOCK ? "FLOCK " : l->kind == FL_OFD ? "OFDLCK" : l->kind == FL_LEASE ? "LEASE " : "POSIX ",
+                          l->kind != FL_LEASE ? "ADVISORY" : l->brk >= 0 ? "BREAKING" : "ACTIVE  ",
                           l->type == F_WRLCK ? "WRITE" : "READ ", l->kind == FL_OFD ? -1 : l->pid,
                           (unsigned)(l->inode->dev >> 8) & 0xff, (unsigned)l->inode->dev & 0xff,
                           (unsigned long)l->inode->ino, (long)l->start, l->end == OFF_MAX ? "EOF" : "");
@@ -289,4 +305,99 @@ int locks_report(char *buf, int cap) {
         }
     spin_unlock_irqrestore(&locks_lock, fl);
     return n;
+}
+
+/* ---- leases ---- */
+static struct flock_k *lease_of(struct inode *ino, struct file *f) {
+    for_each_lock(l, ino, tmp) if (l->kind == FL_LEASE && l->owner == f) return l;
+    return nullptr;
+}
+
+int64_t fcntl_lease(struct file *f, int cmd, int arg) {
+    struct inode *ino = f->inode;
+    if (cmd == F_GETLEASE) {
+        uint64_t fl = spin_lock_irqsave(&locks_lock);
+        struct flock_k *l = lease_of(ino, f);
+        int r = !l ? F_UNLCK : l->brk >= 0 ? l->brk : l->type;
+        spin_unlock_irqrestore(&locks_lock, fl);
+        return r;
+    }
+    if (!S_ISREG(ino->mode) || (f->flags & O_PATH)) return -EINVAL;
+    if (arg != F_RDLCK && arg != F_WRLCK && arg != F_UNLCK) return -EINVAL;
+    if (current_cred()->fsuid != ino->uid && !capable(CAP_LEASE)) return -EACCES;
+    struct flock_k *n = kzalloc(sizeof *n);
+    if (!n) return -ENOLCK;
+    int r = 0;
+    bool self_w = (f->flags & O_ACCMODE) != O_RDONLY;
+    uint64_t fl = spin_lock_irqsave(&locks_lock);
+    struct flock_k *mine = lease_of(ino, f);
+    if (arg == F_UNLCK) {
+        if (mine) lock_free(mine); else r = -EAGAIN;
+        goto out;
+    }
+    if (arg == F_RDLCK && __atomic_load_n(&ino->i_nwrite, __ATOMIC_RELAXED) > (self_w ? 1 : 0)) { r = -EAGAIN; goto out; }
+    if (arg == F_WRLCK && __atomic_load_n(&ino->i_nopen, __ATOMIC_RELAXED) > 1) { r = -EAGAIN; goto out; }
+    for_each_lock(l, ino, tmp)
+        if (l->kind == FL_LEASE && l != mine && (l->brk >= 0 || arg == F_WRLCK || l->type == F_WRLCK)) { r = -EAGAIN; goto out; }
+    if (mine) {
+        if (mine->brk >= 0 && (arg == F_WRLCK || mine->brk == F_UNLCK)) { r = -EAGAIN; goto out; }
+        mine->type = arg;
+        mine->brk = -1;
+        goto out;
+    }
+    n->inode = ino; n->kind = FL_LEASE; n->type = arg; n->start = 0; n->end = OFF_MAX;
+    n->owner = f; n->pid = curproc->pid; n->brk = -1;
+    list_add_tail(bucket(ino), &n->node); nlocks++; nleases++;
+    n = nullptr;
+out:
+    spin_unlock_irqrestore(&locks_lock, fl);
+    kfree(n);
+    if (!r) wake_lockers();
+    return r;
+}
+
+/* an open (flags) or truncate of ino: break conflicting leases, wait for their holders */
+int lease_break(struct inode *ino, int flags) {
+    if (!__atomic_load_n(&nleases, __ATOMIC_RELAXED)) return 0;
+    bool wr = (flags & O_ACCMODE) != O_RDONLY || (flags & O_TRUNC);
+    int target = wr ? F_UNLCK : F_RDLCK;
+    for (;;) {
+        struct { int pid, sig; } sg[8];
+        int ns = 0;
+        bool any = false, changed = false;
+        uint64_t now = time_ns(), dl = UINT64_MAX;
+        uint64_t fl = spin_lock_irqsave(&locks_lock);
+        uint64_t g = locks_gen;
+        for_each_lock(l, ino, tmp) {
+            if (l->kind != FL_LEASE || (!wr && l->type != F_WRLCK)) continue;
+            if (l->brk < 0 || (target == F_UNLCK && l->brk == F_RDLCK)) {
+                if (l->brk < 0) l->deadline = now + (uint64_t)sysctl_lease_break_time * 1000000000ull;
+                l->brk = target;
+                int sig = ((struct file *)l->owner)->sig;
+                if (ns < 8) { sg[ns].pid = l->pid; sg[ns].sig = sig ? sig : SIGIO; ns++; }
+            }
+            if (now >= l->deadline) {                    /* the holder ran out of time */
+                if (l->brk == F_UNLCK) lock_free(l); else { l->type = F_RDLCK; l->brk = -1; }
+                changed = true;
+                continue;
+            }
+            any = true;
+            if (l->deadline < dl) dl = l->deadline;
+        }
+        spin_unlock_irqrestore(&locks_lock, fl);
+        if (changed) wake_lockers();
+        if (ns) {
+            bool took = !bkl_held();
+            if (took) bkl_enter();
+            for (int k = 0; k < ns; k++) { struct process *p = process_find(sg[k].pid); if (p) signal_send(p, sg[k].sig); }
+            if (took) bkl_exit();
+        }
+        if (!any) return 0;
+        if (flags & O_NONBLOCK) return -EWOULDBLOCK;
+        uint64_t sf = sched_wait_lock();
+        if (__atomic_load_n(&locks_gen, __ATOMIC_ACQUIRE) != g) { sched_wait_unlock(sf); continue; }
+        now = time_ns();
+        int r = wait_event_timeout_locked(&locks_wq, dl > now ? dl - now : 0, sf);
+        if (r == -EINTR) return -EINTR;
+    }
 }

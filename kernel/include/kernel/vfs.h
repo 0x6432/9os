@@ -142,6 +142,7 @@ struct inode {
     struct list_node i_hash, i_lru;  /* filesystem inode cache (sb-owned inodes) */
     uint32_t i_state;
     struct list_node *xattrs;        /* in-memory extended attributes (tmpfs), see xattr.c */
+    int i_nopen, i_nwrite;           /* open files / writers of a regular file (leases) */
     struct posix_acl *i_acl[2];      /* cached access/default ACL (acl.c), null: not loaded */
 };
 
@@ -214,6 +215,8 @@ struct file {
     int refcount;
     void *priv;
     char *path;               /* path used at open (for /proc/pid/fd) */
+    int sig;                  /* F_SETSIG: lease-break signal (0: SIGIO) */
+    bool counted;             /* in inode i_nopen/i_nwrite */
 };
 
 struct kstat {
@@ -311,6 +314,7 @@ void acl_chmod(struct inode *i);
 uint32_t acl_create_mode(struct inode *dir, uint32_t mode);   /* umask unless default ACL */
 void acl_inherit(struct inode *dir, struct inode *child);
 void acl_forget(struct inode *i);
+int lease_break(struct inode *ino, int flags);    /* locks.c: open/truncate vs leases */
 #define VFS_MODE_UMASK 0x80000000u               /* vfs_mknod_at: apply umask/default ACL */
 
 /* filesystems */

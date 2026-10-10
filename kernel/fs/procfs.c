@@ -34,6 +34,7 @@ struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; int sysi, sysl
 extern int sysctl_ip_forward, sysctl_ip_default_ttl, sysctl_icmp_echo_ignore_all, sysctl_icmp_echo_ignore_broadcasts;
 extern int sysctl_somaxconn, sysctl_lo_drop_every, sysctl_tcp_window_scaling, sysctl_tcp_timestamps;
 extern int sysctl_tcp_sack, sysctl_tcp_tlp, sysctl_tcp_lost_rexmit, sysctl_tcp_fin_timeout, sysctl_ipv6_forwarding, sysctl_ipv6_disable;
+extern int sysctl_lease_break_time;
 extern int sysctl_ipv6_hop_limit, sysctl_ipv6_accept_ra, sysctl_ipv6_dad_transmits, sysctl_ipv6_autoconf, sysctl_icmpv6_echo_ignore_all;
 extern int randomize_va_space;
 const char *kernel_hostname(void);
@@ -46,6 +47,7 @@ static const struct sysctl {
     const char *(*sget)(void);
     int (*sset)(const char *, size_t);
 } sysctls[] = {
+    { "fs/lease-break-time", &sysctl_lease_break_time, 0, 3600, nullptr, nullptr },
     { "kernel/hostname", nullptr, 0, 0, kernel_hostname, kernel_set_hostname },
     { "kernel/ostype", nullptr, 0, 0, sys_ostype, nullptr },
     { "kernel/osrelease", nullptr, 0, 0, sys_osrelease, nullptr },

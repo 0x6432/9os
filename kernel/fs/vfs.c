@@ -483,6 +483,11 @@ struct file *file_open_inode(struct inode *ino, int flags) {
     f->flags = flags & ~(O_CREAT | O_EXCL | O_TRUNC | O_CLOEXEC);
     f->refcount = 1;
     f->fops = S_ISCHR(ino->mode) ? chrdev_get(ino->rdev) : S_ISBLK(ino->mode) ? blkdev_fops_get(ino->rdev) : ino->fops;
+    if (S_ISREG(ino->mode) && !(flags & O_PATH)) {
+        f->counted = true;
+        __atomic_add_fetch(&ino->i_nopen, 1, __ATOMIC_RELAXED);
+        if ((flags & O_ACCMODE) != O_RDONLY) __atomic_add_fetch(&ino->i_nwrite, 1, __ATOMIC_RELAXED);
+    }
     return f;
 }
 
@@ -521,8 +526,7 @@ static int open_prepare(struct inode *base, const char *path, int flags, uint32_
             if (!(r == -EROFS && !S_ISREG(ino->mode) && !S_ISDIR(ino->mode))) { iput(ino); return r; }
         }
     }
-    if ((flags & O_TRUNC) && S_ISREG(ino->mode) && (flags & O_ACCMODE) != O_RDONLY && ino->iops->truncate)
-        ino->iops->truncate(ino, 0);
+    /* O_TRUNC: vfs_open_at, after breaking leases */
     struct file *f = file_open_inode(ino, flags);
     iput(ino);
     if (!f) return -ENOMEM;
@@ -543,7 +547,7 @@ static int open_prepare(struct inode *base, const char *path, int flags, uint32_
     return 0;
 }
 
-/* The walk/create/truncate run under the namespace mutex; the driver's ->open runs after it
+/* The walk/create run under the namespace mutex; lease breaks, O_TRUNC and the driver's ->open runs after it
  * is dropped (it may block, e.g. a FIFO, or create nodes itself, e.g. ptmx), under the BKL. */
 int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, struct file **out) {
     struct file *f;
@@ -551,6 +555,9 @@ int vfs_open_at(struct inode *base, const char *path, int flags, uint32_t mode, 
     int r = open_prepare(base, path, flags, mode, &f);
     vfs_ns_unlock();
     if (r) return r;
+    if (f->counted && (r = lease_break(f->inode, flags))) { vfs_close(f); return r; }
+    if (f->counted && (flags & O_TRUNC) && (flags & O_ACCMODE) != O_RDONLY && f->inode->iops->truncate)
+        f->inode->iops->truncate(f->inode, 0);
     if (f->fops && f->fops->open && !(flags & O_PATH)) {
         bool took = !bkl_held();
         if (took) bkl_enter();
@@ -576,6 +583,10 @@ void vfs_close(struct file *f) {
     if (f->inode && (S_ISREG(f->inode->mode) || S_ISDIR(f->inode->mode)) && !(f->flags & O_PATH))
         fsnotify_file(f, (f->flags & O_ACCMODE) != O_RDONLY ? IN_CLOSE_WRITE_ : IN_CLOSE_NOWRITE);
     locks_release_file(f);
+    if (f->counted) {
+        __atomic_sub_fetch(&f->inode->i_nopen, 1, __ATOMIC_RELAXED);
+        if ((f->flags & O_ACCMODE) != O_RDONLY) __atomic_sub_fetch(&f->inode->i_nwrite, 1, __ATOMIC_RELAXED);
+    }
     if (f->fops && f->fops->release) f->fops->release(f);
     iput(f->inode);
     kfree(f->path);

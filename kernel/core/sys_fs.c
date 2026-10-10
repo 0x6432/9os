@@ -456,6 +456,7 @@ int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
 }
 
 int64_t fcntl_lock(struct file *f, int cmd, void *uarg);   /* fs/locks.c */
+int64_t fcntl_lease(struct file *f, int cmd, int arg);
 int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
@@ -478,6 +479,13 @@ int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
     case F_GETLK: case F_SETLK: case F_SETLKW:
     case 36: case 37: case 38:            /* F_OFD_GETLK / F_OFD_SETLK / F_OFD_SETLKW */
         return fcntl_lock(f, cmd, (void *)arg);
+    case 1024: case 1025:                 /* F_SETLEASE / F_GETLEASE */
+        return fcntl_lease(f, cmd, (int)arg);
+    case 10:                              /* F_SETSIG */
+        if (arg >= NSIG) return -EINVAL;
+        f->sig = (int)arg;
+        return 0;
+    case 11: return f->sig;               /* F_GETSIG */
     default: return -EINVAL;
     }
 }
@@ -792,6 +800,7 @@ int64_t sys_truncate(const char *upath, off_t len) {
     if (r) return r;
     if (S_ISDIR(i->mode)) { iput(i); return -EISDIR; }
     if ((r = inode_permission(i, MAY_WRITE))) { iput(i); return r; }
+    if (S_ISREG(i->mode) && (r = lease_break(i, O_WRONLY))) { iput(i); return r; }
     r = S_ISREG(i->mode) && i->iops->truncate ? i->iops->truncate(i, len) : -EINVAL;
     if (!r) fsnotify_inode(i, IN_MODIFY_);
     iput(i);
