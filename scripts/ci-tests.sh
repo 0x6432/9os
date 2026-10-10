@@ -44,11 +44,11 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot-$ARCH.log" --dis
     --cmdline "root=/dev/vda1" "$@" \
     "grep -q '^/dev/vda1 / ext2 rw' /proc/mounts" "blktest -v /dev/vdb 77" \
     libctest dyntest mapprivtest filetest vfstest vmtest "permtest /tmp" logintest "mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2" \
-    "xattrtest /root" "acltest /root" "locktest /root/lockf" "xattrtest -w /root" "acltest -w /root" "cp -a /usr /root/usr2 && echo persist > /root/keep && sync" \
+    "xattrtest /root" "mkdir -p -m 755 /aclt && acltest /aclt" "locktest /root/lockf" "xattrtest -w /root" "acltest -w /aclt" "cp -a /usr /root/usr2 && echo persist > /root/keep && sync" \
     "grep -q '^violations 0' /proc/lockdep" || rc=1
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot2-$ARCH.log" --disk "$B/root.img" \
     --cmdline "root=/dev/vda1" "$@" \
-    "grep -qx persist /root/keep" "xattrtest -r /root" "acltest -r /root" "diff -r /usr /root/usr2" "rm -rf /root/usr2 /root/keep" || rc=1
+    "grep -qx persist /root/keep" "xattrtest -r /root" "acltest -r /aclt && rmdir /aclt" "diff -r /usr /root/usr2" "rm -rf /root/usr2 /root/keep" || rc=1
 if grep -aq "not cleanly unmounted" "build/test-diskroot2-$ARCH.log"; then echo "FAIL   clean shutdown of the disk root"; rc=1
 else echo "PASS   clean shutdown of the disk root"; fi
 fsck_img "$B/root.img" || rc=1
