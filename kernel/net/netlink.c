@@ -19,6 +19,7 @@
 #include <kernel/cred.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
+#include <kernel/device.h>
 
 struct list_node netlink_socks = LIST_INIT(netlink_socks);
 
@@ -572,6 +573,44 @@ int netlink_rcv(struct sock *s, const uint8_t *buf, size_t len) {
         off += ALIGN4(h.len);
     }
     return 0;
+}
+
+/* ------------------------------------------------------------------ M34: NETLINK_KOBJECT_UEVENT
+ * Kernel uevents go to group 1 with source pid 0 (libudev checks both). User space may
+ * multicast to other groups (udevd's group 2) with CAP_NET_ADMIN, or unicast to a port id.
+ * The source port id/groups ride in pkt->nexthop/seq, the sender's pid in pkt->end and its
+ * uid/gid in pkt->stamp (SCM_CREDENTIALS). */
+static void uevent_queue(struct sock *s, const void *msg, size_t len, uint32_t spid, uint32_t groups,
+                         uint32_t pid, uint32_t uid, uint32_t gid) {
+    struct pkt *p = pkt_alloc(len);
+    if (!p) return;
+    memcpy(p->data, msg, len);
+    p->len = len;
+    p->nexthop = spid; p->seq = groups; p->end = pid;
+    p->stamp = (uint64_t)uid << 32 | gid;
+    sock_queue_rx(s, p);
+}
+void netlink_uevent_broadcast(const char *msg, size_t len) {
+    bool own = !mutex_owned(&net_mutex);
+    if (own) mutex_lock(&net_mutex);
+    list_for_each(it, &netlink_socks) {
+        struct sock *s = list_entry(it, struct sock, node);
+        if (s->protocol == NETLINK_KOBJECT_UEVENT && (s->nl_groups & 1)) uevent_queue(s, msg, len, 0, 1, 0, 0, 0);
+    }
+    if (own) mutex_unlock(&net_mutex);
+}
+int netlink_uevent_send(struct sock *s, const uint8_t *buf, size_t len, uint32_t dpid, uint32_t dgroups) {
+    netlink_autobind(s);
+    if (dgroups && !capable(CAP_NET_ADMIN)) return -EPERM;
+    const struct cred *c = current_cred();
+    uint32_t pid = curproc ? (uint32_t)curproc->pid : 0;
+    list_for_each(it, &netlink_socks) {
+        struct sock *o = list_entry(it, struct sock, node);
+        if (o == s || o->protocol != NETLINK_KOBJECT_UEVENT) continue;
+        if (dgroups ? (o->nl_groups & dgroups) != 0 : (dpid && o->nl_pid == dpid))
+            uevent_queue(o, buf, len, s->nl_pid, dgroups ? dgroups & o->nl_groups : 0, pid, c->uid, c->gid);
+    }
+    return 0;                                   /* to the kernel (pid 0, no groups): ignored */
 }
 
 /* ------------------------------------------------------------------ port ids */

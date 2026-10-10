@@ -381,7 +381,7 @@ int inet_socket(int domain, int type, int proto) {
         if (!capable(CAP_NET_RAW)) return -EPERM;
     } else if (domain == AF_NETLINK) {
         if (t != SOCK_RAW && t != SOCK_DGRAM) return -ESOCKTNOSUPPORT;
-        if (proto != 0 /* NETLINK_ROUTE */) return -EPROTONOSUPPORT;
+        if (proto != 0 /* NETLINK_ROUTE */ && proto != NETLINK_KOBJECT_UEVENT) return -EPROTONOSUPPORT;
     } else if (v6 && sysctl_ipv6_disable) {
         return -EAFNOSUPPORT;
     } else if (t == SOCK_STREAM) {
@@ -851,8 +851,9 @@ static void dgram_from(struct sock *s, struct pkt *p, struct msghdr_k *m, size_t
         if (m->name && m->namelen) copy_to_user(m->name, &ll, MIN((size_t)m->namelen, (size_t)18));
         return;
     }
-    if (s->family == AF_NETLINK) {                          /* from the kernel */
+    if (s->family == AF_NETLINK) {          /* from the kernel, or a uevent multicast (pid, groups) */
         struct sockaddr_nl_k nl = { AF_NETLINK, 0, 0, 0 };
+        if (s->protocol == NETLINK_KOBJECT_UEVENT) { nl.pid = p->nexthop; nl.groups = p->seq; }
         *alen = sizeof nl;
         if (m->name && m->namelen) copy_to_user(m->name, &nl, MIN((size_t)m->namelen, sizeof nl));
         return;
@@ -885,6 +886,11 @@ static void cmsg_put(struct cmsg_out *c, int level, int type, const void *data, 
     c->len += sp;
 }
 static void dgram_cmsgs(struct sock *s, struct pkt *p, struct cmsg_out *c) {
+    if (s->family == AF_NETLINK && s->passcred) {          /* SCM_CREDENTIALS of the sender */
+        uint32_t cr[3] = { p->end, (uint32_t)(p->stamp >> 32), (uint32_t)p->stamp };
+        cmsg_put(c, 1, 2, cr, 12);
+        return;
+    }
     if (!is_inet(s) || !p->nh) return;
     int ifi = p->dev ? p->dev->index : 0;
     if ((p->nh[0] >> 4) == 6) {
@@ -1038,6 +1044,9 @@ static int64_t dgram_sendmsg(struct file *f, struct sock *s, struct msghdr_k *m,
     struct inaddr to = { 0 };
     struct sockaddr_ll_k ll = { 0 };
     bool have_to = false;
+    struct sockaddr_nl_k nlto = { 0 };
+    if (m->name && m->namelen >= sizeof nlto && s->family == AF_NETLINK &&
+        copy_from_user(&nlto, m->name, sizeof nlto)) return -EFAULT;
     if (m->name && m->namelen && s->family != AF_NETLINK) {
         if (s->family == AF_PACKET) {
             if (m->namelen < 12) return -EINVAL;
@@ -1060,6 +1069,13 @@ static int64_t dgram_sendmsg(struct file *f, struct sock *s, struct msghdr_k *m,
     if (r) { kfree(kb); return r; }
     mutex_lock(&net_mutex);
     if (s->shut_wr) { r = -EPIPE; goto out; }
+    if (s->family == AF_NETLINK && s->protocol == NETLINK_KOBJECT_UEVENT) {
+        uint32_t dpid = s->nl_dst_pid, dgroups = s->nl_dst_groups;
+        if (nlto.family == AF_NETLINK) { dpid = nlto.pid; dgroups = nlto.groups; }
+        r = netlink_uevent_send(s, kb, len, dpid, dgroups);
+        if (!r) r = (int64_t)len;
+        goto out;
+    }
     if (s->family == AF_NETLINK) {
         r = netlink_rcv(s, kb, len);
         if (!r) r = (int64_t)len;
@@ -1330,7 +1346,8 @@ int inet_setsockopt(struct file *f, int level, int name, const void *uval, int l
         case 27: break;                                  /* SO_DETACH_FILTER */
         case 12: s->priority = v; break;
         case 36: s->mark = v; break;
-        case 1: case 5: case 10: case 11: case 16: case 18: case 19: case 29: case 35: break;   /* accepted, no effect */
+        case 16: s->passcred = v != 0; break;            /* SO_PASSCRED (netlink: SCM_CREDENTIALS) */
+        case 1: case 5: case 10: case 11: case 18: case 19: case 29: case 35: break;   /* accepted, no effect */
         default: r = -ENOPROTOOPT;
         }
     } else if (level == SOL_IP && is_inet(s)) {
@@ -1432,7 +1449,8 @@ int inet_getsockopt(struct file *f, int level, int name, void *uval, int *ulen) 
         case 39: v = s->family; break;
         case 12: v = s->priority; break;
         case 36: v = s->mark; break;
-        case 10: case 11: case 16: v = 0; break;
+        case 16: v = s->passcred; break;
+        case 10: case 11: v = 0; break;
         case 18: case 19: v = 1; break;
         case 13: olen = 8; memcpy(out + 4, &s->linger_s, 4); v = s->linger_on; break;
         case 20: case 21: {

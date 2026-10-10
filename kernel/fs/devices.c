@@ -1,5 +1,6 @@
 /* Character device registry and simple devices (null, zero, random). */
 #include <kernel/vfs.h>
+#include <kernel/device.h>
 #include <kernel/string.h>
 #include <kernel/errno.h>
 #include <kernel/time.h>
@@ -73,6 +74,16 @@ static const struct file_ops random_ops = { .nobkl = true, .read = random_read, 
 
 void tty_register_devices(void);
 
+/* M34: a class device for a character node (/sys/class/<cls>/<name>) */
+void chrdev_sysfs(struct device *k, const char *cls, const char *name, const char *devname, unsigned ma, unsigned mi,
+                  struct device *parent) {
+    k->subsys = cls; k->parent = parent; k->devt = MKDEV(ma, mi);
+    strncpy(k->name, name, sizeof k->name - 1);
+    strncpy(k->devname, devname, sizeof k->devname - 1);
+    device_add(k);
+}
+static struct device static_devs[11];
+
 void devices_init(void) {
     chrdev_register(1, 3, &null_ops);
     chrdev_register(1, 5, &zero_ops);
@@ -92,6 +103,15 @@ void devices_init(void) {
         vfs_mknod_at(nullptr, nodes[i].name, S_IFCHR | nodes[i].mode, MKDEV(nodes[i].ma, nodes[i].mi));
     vfs_mkdir_at(nullptr, "/dev/pts", 0755);
     vfs_mknod_at(nullptr, "/dev/shm", S_IFDIR | 01777, 0);
+    static const struct { const char *cls, *name, *devname; unsigned ma, mi; } sd[] = {
+        { "mem", "null", "null", 1, 3 }, { "mem", "zero", "zero", 1, 5 }, { "mem", "random", "random", 1, 8 },
+        { "mem", "urandom", "urandom", 1, 9 }, { "tty", "tty", "tty", 5, 0 }, { "tty", "console", "console", 5, 1 },
+        { "tty", "ptmx", "ptmx", 5, 2 }, { "tty", "tty0", "tty0", 4, 0 }, { "tty", "tty1", "tty1", 4, 1 },
+        { "tty", "ttyS0", "ttyS0", 4, 64 }, { "misc", "tun", "net/tun", 10, 200 },
+    };
+    _Static_assert(ARRAY_SIZE(sd) == ARRAY_SIZE(static_devs), "static_devs");
+    for (size_t i = 0; i < ARRAY_SIZE(sd); i++)
+        chrdev_sysfs(&static_devs[i], sd[i].cls, sd[i].name, sd[i].devname, sd[i].ma, sd[i].mi, nullptr);
     vfs_symlink_at(nullptr, "/proc/self/fd", "/dev/fd");
     vfs_symlink_at(nullptr, "/proc/self/fd/0", "/dev/stdin");
     vfs_symlink_at(nullptr, "/proc/self/fd/1", "/dev/stdout");

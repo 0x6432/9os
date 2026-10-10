@@ -151,7 +151,7 @@ static void probe(struct pci_dev *pd) {
     for (unsigned i = 0; i < d->rxq.size; i++) post_rx(d, (uint16_t)i);
     spin_unlock(&d->lock);
     arch_irq_restore(f);
-    d->dev = netdev_register(nm, ARPHRD_ETHER, mac, mtu, vnet_xmit, d);
+    d->dev = netdev_register(nm, ARPHRD_ETHER, mac, mtu, vnet_xmit, d, d->v.kdev);
     if (!d->dev) return;
     vnets[nvnets++] = d;
     pr_info("virtio-net: %s: %02x:%02x:%02x:%02x:%02x:%02x mtu %d, %s irq %d\n", nm, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],

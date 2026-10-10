@@ -6,6 +6,7 @@
 #include <kernel/printk.h>
 #include <kernel/arch.h>
 #include <kernel/irq.h>
+#include <kernel/kmalloc.h>
 
 _Static_assert(sizeof(struct virtio_common) == 56, "virtio common cfg layout");
 
@@ -37,9 +38,35 @@ bool virtio_pci_probe(struct virtio_dev *v, struct pci_dev *d, const char *who) 
     return virtio_pci_probe_features(v, d, who, 0, nullptr);
 }
 
+static int a_vdevice(struct device *k, char *b, size_t n) {
+    struct pci_dev *d = k->priv;
+    return dev_printf(b, n, "0x%04x\n", d->device >= 0x1040 ? d->device - 0x1040 : pci_read16(d, 0x2e));
+}
+static int a_vvendor(struct device *k, char *b, size_t n) { return dev_printf(b, n, "0x%04x\n", ((struct pci_dev *)k->priv)->vendor); }
+static const struct dev_attr virtio_attrs[] = {
+    { "device", 0444, a_vdevice, nullptr }, { "vendor", 0444, a_vvendor, nullptr }, { nullptr, 0, nullptr, nullptr },
+};
+static void virtio_uevent(struct device *k, struct uenv *e) {
+    char b[16];
+    int l = a_vdevice(k, b, sizeof b);
+    b[l > 0 ? l - 1 : 0] = 0;
+    unsigned id = 0;
+    for (const char *c = b + 2; *c; c++) id = id * 16 + (unsigned)(*c <= '9' ? *c - '0' : *c - 'a' + 10);
+    uenv_add(e, "MODALIAS=virtio:d%08Xv%08X", id, ((struct pci_dev *)k->priv)->vendor);
+}
+static int nvirtio;
+
 bool virtio_pci_probe_features(struct virtio_dev *v, struct pci_dev *d, const char *who,
                                uint32_t want, uint32_t *got) {
     v->pci = d;
+    v->kdev = kzalloc(sizeof *v->kdev);
+    if (v->kdev) {
+        struct device *k = v->kdev;
+        snprintf(k->name, sizeof k->name, "virtio%d", nvirtio++);
+        k->parent = &d->kdev; k->subsys = "virtio"; k->bus = true;
+        k->attrs = virtio_attrs; k->uevent = virtio_uevent; k->priv = d;
+        device_add(k);
+    }
     v->msix_vec = 0xffff;
     v->irq = -1;
     v->irq_mode = "polled";

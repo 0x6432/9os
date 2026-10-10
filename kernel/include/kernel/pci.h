@@ -1,5 +1,6 @@
 #pragma once
 /* PCI(e) configuration space access through ECAM (ACPI MCFG). */
+#include <kernel/device.h>
 #include <kernel/types.h>
 
 struct pci_dev {
@@ -7,6 +8,7 @@ struct pci_dev {
     uint16_t vendor, device;
     uint8_t class_code, subclass, prog_if;
     volatile uint8_t *cfg;          /* mapped 4 KiB config space */
+    struct device kdev;             /* M34: /sys/bus/pci/devices/0000:BB:DD.F */
 };
 
 void pci_init(void);

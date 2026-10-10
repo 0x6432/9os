@@ -141,6 +141,7 @@ static void probe(struct pci_dev *pd) {
     d->disk = blk_register_disk(nm, cap, bsz, &vblk_ops, d, d->depth);
     if (!d->disk) return;
     d->disk->max_vecs = d->seg_max;
+    d->disk->kdev.parent = d->v.kdev;
     d->disk->readonly = feat & F_RO;
     d->disk->has_flush = feat & F_FLUSH;
     pr_info("virtio-blk: %s: %lu sectors (%lu MiB)%s%s, queue depth %u, %s irq %d\n", nm, cap, cap >> 11,

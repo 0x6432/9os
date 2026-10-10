@@ -33,6 +33,7 @@ struct virtq {
 
 struct virtio_dev {
     struct pci_dev *pci;
+    struct device *kdev;        /* M34: /sys/bus/virtio/devices/virtioN below the PCI device (never freed) */
     volatile struct virtio_common *common;
     volatile uint8_t *notify_base;
     uint32_t notify_mult;

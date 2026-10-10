@@ -338,6 +338,8 @@ struct inode *tmpfs_create_root(void);
 void initramfs_load(void);
 struct inode *pipe_create(struct file **rd, struct file **wr);
 struct inode *procfs_create_root(void);
+struct inode *sysfs_create_root(void);
+bool sysfs_inode(struct inode *i);
 
 /* character devices */
 void chrdev_register(unsigned major, unsigned minor, const struct file_ops *ops);

@@ -443,6 +443,43 @@ struct blkdev *blk_register_disk(const char *name, uint64_t nsectors, uint32_t s
     return d;
 }
 
+/* ---- M34: sysfs */
+static struct blkdev *bdev_of(struct device *k) { return k->priv; }
+static int a_size(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%lu\n", bdev_of(k)->nsectors); }
+static int a_ro(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%d\n", bdev_of(k)->whole->readonly); }
+static int a_zero(struct device *k, char *b, size_t n) { return dev_printf(b, n, "0\n"); }
+static int a_range(struct device *k, char *b, size_t n) { return dev_printf(b, n, "16\n"); }
+static int a_start(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%lu\n", bdev_of(k)->start); }
+static int a_partno(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%d\n", bdev_of(k)->partno); }
+static int a_lbs(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%u\n", bdev_of(k)->whole->sector_size); }
+static int a_stat(struct device *k, char *b, size_t n) {
+    struct blkdev *d = bdev_of(k);
+    return dev_printf(b, n, "%8lu %8u %8lu %8u %8lu %8u %8lu %8u %8u %8lu %8lu\n", d->reads, 0, d->sectors_read, 0,
+                      d->writes, 0, d->sectors_written, 0, 0, d->io_ns / 1000000, d->io_ns / 1000000);
+}
+static const struct dev_attr disk_attrs[] = {
+    { "size", 0444, a_size, nullptr }, { "ro", 0444, a_ro, nullptr }, { "removable", 0444, a_zero, nullptr },
+    { "range", 0444, a_range, nullptr }, { "ext_range", 0444, a_range, nullptr }, { "stat", 0444, a_stat, nullptr },
+    { "queue/logical_block_size", 0444, a_lbs, nullptr }, { "queue/physical_block_size", 0444, a_lbs, nullptr },
+    { "queue/hw_sector_size", 0444, a_lbs, nullptr }, { "queue/rotational", 0444, a_zero, nullptr },
+    { nullptr, 0, nullptr, nullptr },
+};
+static const struct dev_attr part_attrs[] = {
+    { "size", 0444, a_size, nullptr }, { "ro", 0444, a_ro, nullptr }, { "start", 0444, a_start, nullptr },
+    { "partition", 0444, a_partno, nullptr }, { "stat", 0444, a_stat, nullptr }, { nullptr, 0, nullptr, nullptr },
+};
+static void part_uevent(struct device *k, struct uenv *e) { uenv_add(e, "PARTN=%d", bdev_of(k)->partno); }
+static void blk_sysfs_add(struct blkdev *d) {
+    struct device *k = &d->kdev;
+    strncpy(k->name, d->name, sizeof k->name - 1);
+    strncpy(k->devname, d->name, sizeof k->devname - 1);
+    k->subsys = "block"; k->devt = d->rdev; k->blk = true; k->priv = d;
+    if (d->whole != d) {
+        k->parent = &d->whole->kdev; k->devtype = "partition"; k->attrs = part_attrs; k->uevent = part_uevent;
+    } else { k->devtype = "disk"; k->attrs = disk_attrs; }
+    device_add(k);
+}
+
 /* after the driver set readonly/has_flush and can take requests */
 void blk_scan_partitions(struct blkdev *d) {
     int first = ndevs;
@@ -454,6 +491,8 @@ void blk_scan_partitions(struct blkdev *d) {
     if (!scan_gpt(d, disk_no, buf)) scan_mbr(d, disk_no, buf);
     pmm_free_pages(pa, 0);
     for (int i = first; i < ndevs; i++) mknode(devs[i]);
+    blk_sysfs_add(d);
+    for (int i = first; i < ndevs; i++) blk_sysfs_add(devs[i]);
 }
 
 int blk_proc_partitions(char *buf, size_t max) {

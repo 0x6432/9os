@@ -76,7 +76,7 @@ static int tun_attach(struct file *f, const char *want, unsigned flags) {
     uint64_t r = random_u64();
     memcpy(mac + 3, &r, 3);
     struct netdev *d = netdev_register(name, flags & IFF_TUN ? ARPHRD_NONE : ARPHRD_ETHER, flags & IFF_TUN ? nullptr : mac,
-                                       1500, tun_xmit, t);
+                                       1500, tun_xmit, t, nullptr);
     if (!d) { kfree(t); return -ENOMEM; }
     mutex_lock(&net_mutex);
     if (flags & IFF_TUN) d->flags = IFF_POINTOPOINT | IFF_NOARP | IFF_MULTICAST;

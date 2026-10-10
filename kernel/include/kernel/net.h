@@ -7,6 +7,7 @@
  * control blocks, timers) is guarded by the sleeping net_mutex; drivers hand received frames
  * to the "net" kernel thread through a spinlocked queue, and transmit under net_mutex.
  */
+#include <kernel/device.h>
 #include <kernel/types.h>
 #include <kernel/list.h>
 #include <kernel/mutex.h>
@@ -102,13 +103,14 @@ struct netdev {
     int rs_left, hlim6;              /* IPv6: router solicitations still to send; RA hop limit */
     uint64_t rs_at;
     uint64_t rx_packets, rx_bytes, rx_errors, rx_dropped, tx_packets, tx_bytes, tx_errors, tx_dropped, multicast;
+    struct device kdev;              /* M34: /sys/class/net/<name> */
 };
 
 extern struct mutex net_mutex;
 extern struct list_node netdevs;
 extern struct netdev *loopback_dev;
 struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, int mtu,
-                               void (*xmit)(struct netdev *, struct pkt *), void *priv);
+                               void (*xmit)(struct netdev *, struct pkt *), void *priv, struct device *parent);
 void netdev_unregister(struct netdev *d);        /* net_mutex held; the struct stays allocated */
 void tun_init(void);
 void netdev_set_flags(struct netdev *d, unsigned flags);   /* SIOCSIFFLAGS semantics */
@@ -290,6 +292,7 @@ struct sock {
     int nmc;
     /* AF_NETLINK */
     uint32_t nl_pid, nl_groups, nl_dst_pid, nl_dst_groups;
+    bool passcred;                     /* SO_PASSCRED */
     /* AF_INET6: v6 = the socket's addresses are IPv6 ones (else it is unbound/wildcard or speaks
      * IPv4 through v4-mapped addresses in laddr/raddr) */
     uint8_t laddr6[16], raddr6[16];
@@ -309,6 +312,9 @@ int net_proc_udp6(char *buf, size_t max, bool raw);
 int net_proc_netlink(char *buf, size_t max);
 extern struct list_node netlink_socks;
 int netlink_rcv(struct sock *s, const uint8_t *buf, size_t len);   /* a request was sent */
+#define NETLINK_KOBJECT_UEVENT 15
+/* M34: a message sent on a uevent socket (multicast to groups needs CAP_NET_ADMIN) */
+int netlink_uevent_send(struct sock *s, const uint8_t *buf, size_t len, uint32_t dpid, uint32_t dgroups);
 int netlink_bind(struct sock *s, uint32_t pid, uint32_t groups);
 void netlink_autobind(struct sock *s);
 

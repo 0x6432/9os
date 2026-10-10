@@ -105,6 +105,7 @@ static void probe(struct pci_dev *pd) {
     d->eq.avail[1] = d->eq.avail_idx;
     virtio_driver_ok(&d->v);
     *d->eq.notify = 0;
+    in->parent = d->v.kdev;
     input_register(in);
     pr_info("virtio-input: %s (%s irq %d)\n", in->name, d->v.irq_mode, d->v.irq);
     __atomic_store_n(&d->ready, 1, __ATOMIC_RELEASE);

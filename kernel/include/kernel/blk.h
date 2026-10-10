@@ -16,6 +16,7 @@
 #include <kernel/list.h>
 #include <kernel/spinlock.h>
 #include <kernel/sched.h>
+#include <kernel/device.h>
 
 #define SECTOR_SIZE 512
 #define BIO_MAX_VECS 32
@@ -64,6 +65,7 @@ struct blkdev {
     uint64_t reads, writes, sectors_read, sectors_written, flushes, io_ns, merges_ahead;
     struct inode *inode;         /* buffer cache */
     struct super_block *mounted; /* filesystem using it exclusively */
+    struct device kdev;          /* M34: /sys/class/block/<name>; drivers set kdev.parent */
 };
 
 void blk_init(void);

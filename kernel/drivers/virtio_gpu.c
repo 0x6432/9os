@@ -174,3 +174,5 @@ void virtio_gpu_init(void) {
     pr_info("virtio-gpu: %ux%u framebuffer at 0x%lx (%lu KiB), %s irq %d\n", width, height, fbpa,
             size / 1024, vdev.irq_mode, vdev.irq);
 }
+
+struct device *virtio_gpu_kdev(void) { return vdev.kdev; }

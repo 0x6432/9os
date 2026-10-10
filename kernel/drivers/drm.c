@@ -9,6 +9,7 @@
  * DIRTYFB), so it works with any backend; zero-copy virtio-gpu scanout can come later.
  */
 #include <kernel/vfs.h>
+#include <kernel/device.h>
 #include <kernel/boot.h>
 #include <kernel/fbcon.h>
 #include <kernel/pmm.h>
@@ -498,5 +499,8 @@ void drm_init(void) {
     chrdev_register(DRM_MAJOR, 0, &drm_ops);
     vfs_mkdir_at(nullptr, "/dev/dri", 0755);
     vfs_mknod_at(nullptr, "/dev/dri/card0", S_IFCHR | 0666, MKDEV(DRM_MAJOR, 0));
+    static struct device drmk;
+    drmk.devtype = "drm_minor";
+    chrdev_sysfs(&drmk, "drm", "card0", "dri/card0", DRM_MAJOR, 0, virtio_gpu_kdev());
     pr_info("drm: /dev/dri/card0 %s (dumb buffers, legacy KMS)\n", mode.name);
 }

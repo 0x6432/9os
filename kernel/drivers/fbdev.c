@@ -5,6 +5,7 @@
  * The text console pauses while the device is open.
  */
 #include <kernel/vfs.h>
+#include <kernel/device.h>
 #include <kernel/boot.h>
 #include <kernel/fbcon.h>
 #include <kernel/mm.h>
@@ -120,5 +121,7 @@ void fbdev_init(void) {
     fb_size = fb->pitch * fb->height;
     chrdev_register(29, 0, &fb_ops);
     vfs_mknod_at(nullptr, "/dev/fb0", S_IFCHR | 0660, MKDEV(29, 0));
+    static struct device fbk;
+    chrdev_sysfs(&fbk, "graphics", "fb0", "fb0", 29, 0, virtio_gpu_kdev());
     pr_info("fbdev: /dev/fb0 %lux%lu, %u bpp, pitch %lu\n", fb->width, fb->height, fb->bpp, fb->pitch);
 }

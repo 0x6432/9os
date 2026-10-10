@@ -129,6 +129,98 @@ void input_event(struct input_dev *d, unsigned type, unsigned code, int value) {
     if (type == EV_SYN) poll_notify();
 }
 
+/* ---------------------------------------------------------------- M34: sysfs */
+static struct input_dev *idev_of(struct device *k) { return k->priv; }
+/* Linux bitmap format: hex longs, most significant first, leading zero longs omitted */
+static int fmt_bits(char *b, size_t cap, const uint64_t *bm, unsigned nbits) {
+    int words = (int)BITS_TO_U64(nbits), top = words - 1, n = 0;
+    while (top > 0 && !bm[top]) top--;
+    for (int w = top; w >= 0; w--)
+        n += dev_printf(b + n, cap - (size_t)n, w == top ? "%lx" : " %lx", bm[w]);
+    return n;
+}
+static const uint64_t *cap_map(struct input_dev *d, int which, unsigned *nbits) {
+    static const uint64_t zero[1];
+    switch (which) {
+    case 0: *nbits = EV_MAX; return d->evbit;
+    case 1: *nbits = KEY_MAX; return d->keybit;
+    case 2: *nbits = REL_MAX; return d->relbit;
+    case 3: *nbits = ABS_MAX; return d->absbit;
+    case 4: *nbits = MSC_MAX; return d->mscbit;
+    case 5: *nbits = LED_MAX; return d->ledbit;
+    case 8: *nbits = INPUT_PROP_MAX; return d->propbit;
+    default: *nbits = 1; return zero;           /* sw, ff: none */
+    }
+}
+static int show_cap(struct device *k, char *b, size_t n, int which) {
+    unsigned nb;
+    const uint64_t *bm = cap_map(idev_of(k), which, &nb);
+    int l = fmt_bits(b, n, bm, nb);
+    return l + dev_printf(b + l, n - (size_t)l, "\n");
+}
+#define CAPF(nm, w) static int a_cap_##nm(struct device *k, char *b, size_t n) { return show_cap(k, b, n, w); }
+CAPF(ev, 0) CAPF(key, 1) CAPF(rel, 2) CAPF(abs, 3) CAPF(msc, 4) CAPF(led, 5) CAPF(sw, 6) CAPF(ff, 7) CAPF(prop, 8)
+static int a_name(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%s\n", idev_of(k)->name); }
+static int a_phys(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%s\n", idev_of(k)->phys); }
+static int a_uniq(struct device *k, char *b, size_t n) { return dev_printf(b, n, "\n"); }
+static int a_bustype(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%04x\n", idev_of(k)->id.bustype); }
+static int a_vendor(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%04x\n", idev_of(k)->id.vendor); }
+static int a_product(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%04x\n", idev_of(k)->id.product); }
+static int a_version(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%04x\n", idev_of(k)->id.version); }
+/* input:b0011v0001p0001eAB41-e0,1,4,11,14,k1,2,...,ramlsfw */
+static int modalias(struct input_dev *d, char *b, size_t cap) {
+    int n = dev_printf(b, cap, "input:b%04Xv%04Xp%04Xe%04X-", d->id.bustype, d->id.vendor, d->id.product, d->id.version);
+    static const char letters[] = "ekramlsfw";
+    static const int which[] = { 0, 1, 2, 3, 4, 5, 6, 7, 9 };
+    for (int s = 0; s < 9; s++) {
+        n += dev_printf(b + n, cap - (size_t)n, "%c", letters[s]);
+        if (which[s] > 7) continue;
+        unsigned nb;
+        const uint64_t *bm = cap_map(d, which[s], &nb);
+        for (unsigned i = 0; i <= nb && (size_t)n + 8 < cap; i++)
+            if (input_test_bit(bm, i)) n += dev_printf(b + n, cap - (size_t)n, "%X,", i);
+    }
+    return n;
+}
+static int a_modalias(struct device *k, char *b, size_t n) {
+    int l = modalias(idev_of(k), b, n - 1);
+    return l + dev_printf(b + l, n - (size_t)l, "\n");
+}
+static const struct dev_attr input_attrs[] = {
+    { "name", 0444, a_name, nullptr }, { "phys", 0444, a_phys, nullptr }, { "uniq", 0444, a_uniq, nullptr },
+    { "properties", 0444, a_cap_prop, nullptr }, { "modalias", 0444, a_modalias, nullptr },
+    { "id/bustype", 0444, a_bustype, nullptr }, { "id/vendor", 0444, a_vendor, nullptr },
+    { "id/product", 0444, a_product, nullptr }, { "id/version", 0444, a_version, nullptr },
+    { "capabilities/ev", 0444, a_cap_ev, nullptr }, { "capabilities/key", 0444, a_cap_key, nullptr },
+    { "capabilities/rel", 0444, a_cap_rel, nullptr }, { "capabilities/abs", 0444, a_cap_abs, nullptr },
+    { "capabilities/msc", 0444, a_cap_msc, nullptr }, { "capabilities/led", 0444, a_cap_led, nullptr },
+    { "capabilities/sw", 0444, a_cap_sw, nullptr }, { "capabilities/ff", 0444, a_cap_ff, nullptr },
+    { nullptr, 0, nullptr, nullptr },
+};
+static void input_uevent(struct device *k, struct uenv *e) {
+    struct input_dev *d = idev_of(k);
+    uenv_add(e, "PRODUCT=%x/%x/%x/%x", d->id.bustype, d->id.vendor, d->id.product, d->id.version);
+    uenv_add(e, "NAME=\"%s\"", d->name);
+    if (d->phys[0]) uenv_add(e, "PHYS=\"%s\"", d->phys);
+    static const char *const keys[] = { "EV", "KEY", "REL", "ABS", "MSC", "LED" };
+    char *b = kmalloc(1024);
+    if (!b) return;
+    unsigned nb;
+    fmt_bits(b, 1024, cap_map(d, 8, &nb), nb);
+    uenv_add(e, "PROP=%s", b);
+    for (int w = 0; w < 6; w++) {
+        const uint64_t *bm = cap_map(d, w, &nb);
+        bool any = false;
+        for (unsigned i = 0; i < BITS_TO_U64(nb); i++) if (bm[i]) any = true;
+        if (!any && w) continue;
+        fmt_bits(b, 1024, bm, nb);
+        uenv_add(e, "%s=%s", keys[w], b);
+    }
+    modalias(d, b, 1024);
+    uenv_add(e, "MODALIAS=%s", b);
+    kfree(b);
+}
+
 void input_register(struct input_dev *d) {
     if (ndevs >= MAX_INPUT) return;
     list_init(&d->clients);
@@ -142,6 +234,15 @@ void input_register(struct input_dev *d) {
     vfs_mkdir_at(nullptr, "/dev/input", 0755);
     vfs_mknod_at(nullptr, path, S_IFCHR | 0660, MKDEV(EVDEV_MAJOR, EVDEV_MINOR_BASE + d->index));
     pr_info("input: %s as %s\n", d->name, path);
+    struct device *k = &d->idev;
+    snprintf(k->name, sizeof k->name, "input%d", d->index);
+    k->parent = d->parent; k->subsys = "input"; k->attrs = input_attrs; k->uevent = input_uevent; k->priv = d;
+    device_add(k);
+    k = &d->edev;
+    snprintf(k->name, sizeof k->name, "event%d", d->index);
+    snprintf(k->devname, sizeof k->devname, "input/event%d", d->index);
+    k->parent = &d->idev; k->subsys = "input"; k->devt = MKDEV(EVDEV_MAJOR, EVDEV_MINOR_BASE + d->index); k->priv = d;
+    device_add(k);
 }
 
 /* ---------------------------------------------------------------- /dev/input/eventN */

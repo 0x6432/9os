@@ -108,6 +108,8 @@ void kmain(void) {
     initramfs_load();
     vfs_mkdir_at(nullptr, "/proc", 0555);
     vfs_mount("/proc", procfs_create_root());
+    vfs_mkdir_at(nullptr, "/sys", 0555);
+    vfs_mount("/sys", sysfs_create_root());
     input_init();
     const char *ra = strstr_simple(boot_cmdline(), "root=");
     if (ra) {               /* root=/dev/vdXN [rootfstype=ext2]: boot from a disk */

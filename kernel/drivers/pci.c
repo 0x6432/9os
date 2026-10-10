@@ -89,6 +89,42 @@ int pci_msix_enable(struct pci_dev *d, unsigned entry, uint64_t addr, uint32_t d
 void pci_enable(struct pci_dev *d) { pci_write16(d, 4, pci_read16(d, 4) | 0x6); }
 
 
+/* ---- M34: sysfs */
+static struct device pci_root = { .name = "pci0000:00" };
+static struct pci_dev *pdev(struct device *k) { return k->priv; }
+static int a_vendor(struct device *k, char *b, size_t n) { return dev_printf(b, n, "0x%04x\n", pdev(k)->vendor); }
+static int a_device(struct device *k, char *b, size_t n) { return dev_printf(b, n, "0x%04x\n", pdev(k)->device); }
+static int a_class(struct device *k, char *b, size_t n) {
+    struct pci_dev *d = pdev(k);
+    return dev_printf(b, n, "0x%02x%02x%02x\n", d->class_code, d->subclass, d->prog_if);
+}
+static int a_svendor(struct device *k, char *b, size_t n) { return dev_printf(b, n, "0x%04x\n", pci_read16(pdev(k), 0x2c)); }
+static int a_sdevice(struct device *k, char *b, size_t n) { return dev_printf(b, n, "0x%04x\n", pci_read16(pdev(k), 0x2e)); }
+static int a_revision(struct device *k, char *b, size_t n) { return dev_printf(b, n, "0x%02x\n", pci_read8(pdev(k), 8)); }
+static int a_irq(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%u\n", pci_read8(pdev(k), 0x3c)); }
+static int a_modalias(struct device *k, char *b, size_t n) {
+    struct pci_dev *d = pdev(k);
+    return dev_printf(b, n, "pci:v%08Xd%08Xsv%08Xsd%08Xbc%02Xsc%02Xi%02X\n", d->vendor, d->device, pci_read16(d, 0x2c),
+                      pci_read16(d, 0x2e), d->class_code, d->subclass, d->prog_if);
+}
+static const struct dev_attr pci_attrs[] = {
+    { "vendor", 0444, a_vendor, nullptr }, { "device", 0444, a_device, nullptr }, { "class", 0444, a_class, nullptr },
+    { "subsystem_vendor", 0444, a_svendor, nullptr }, { "subsystem_device", 0444, a_sdevice, nullptr },
+    { "revision", 0444, a_revision, nullptr }, { "irq", 0444, a_irq, nullptr }, { "modalias", 0444, a_modalias, nullptr },
+    { nullptr, 0, nullptr, nullptr },
+};
+static void pci_uevent(struct device *k, struct uenv *e) {
+    struct pci_dev *d = pdev(k);
+    uenv_add(e, "PCI_CLASS=%X", (unsigned)d->class_code << 16 | (unsigned)d->subclass << 8 | d->prog_if);
+    uenv_add(e, "PCI_ID=%04X:%04X", d->vendor, d->device);
+    uenv_add(e, "PCI_SUBSYS_ID=%04X:%04X", pci_read16(d, 0x2c), pci_read16(d, 0x2e));
+    uenv_add(e, "PCI_SLOT_NAME=%s", k->name);
+    char m[96];
+    int l = a_modalias(k, m, sizeof m);
+    if (l > 0 && m[l - 1] == '\n') m[l - 1] = 0;
+    uenv_add(e, "MODALIAS=%s", m);
+}
+
 void pci_init(void) {
     uint8_t *mcfg = acpi_find_table("MCFG");
     if (!mcfg) { pr_info("pci: no MCFG table\n"); return; }
@@ -120,5 +156,14 @@ void pci_init(void) {
                 }
             }
         }
+    }
+    if (ndevs) device_add(&pci_root);
+    for (int i = 0; i < ndevs; i++) {
+        struct pci_dev *d = &devs[i];
+        struct device *k = &d->kdev;
+        snprintf(k->name, sizeof k->name, "0000:%02x:%02x.%u", d->bus, d->dev, d->fn);
+        k->parent = &pci_root; k->subsys = "pci"; k->bus = true;
+        k->attrs = pci_attrs; k->uevent = pci_uevent; k->priv = d;
+        device_add(k);
     }
 }

@@ -248,8 +248,54 @@ static void net_thread_fn(void *arg) {
 }
 
 /* ------------------------------------------------------------------ devices */
+/* ---- M34: sysfs */
+static struct netdev *nd(struct device *k) { return k->priv; }
+#define NLOCK(expr) ({ bool __o = !mutex_owned(&net_mutex); if (__o) mutex_lock(&net_mutex); int __r = (expr); if (__o) mutex_unlock(&net_mutex); __r; })
+static int a_ifindex(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%d\n", nd(k)->index < 0 ? -nd(k)->index : nd(k)->index); }
+static int a_type(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%d\n", nd(k)->type); }
+static int a_mtu(struct device *k, char *b, size_t n) { return NLOCK(dev_printf(b, n, "%d\n", nd(k)->mtu)); }
+static int a_flags(struct device *k, char *b, size_t n) { return NLOCK(dev_printf(b, n, "0x%x\n", nd(k)->flags & 0xffff)); }
+static int a_txq(struct device *k, char *b, size_t n) { return NLOCK(dev_printf(b, n, "%d\n", nd(k)->txqlen)); }
+static int a_addrlen(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%d\n", nd(k)->type == ARPHRD_NONE ? 0 : ETH_ALEN); }
+static int mac_str(char *b, size_t n, const uint8_t *m) {
+    return dev_printf(b, n, "%02x:%02x:%02x:%02x:%02x:%02x\n", m[0], m[1], m[2], m[3], m[4], m[5]);
+}
+static int a_address(struct device *k, char *b, size_t n) { return nd(k)->type == ARPHRD_NONE ? dev_printf(b, n, "\n") : NLOCK(mac_str(b, n, nd(k)->hwaddr)); }
+static int a_broadcast(struct device *k, char *b, size_t n) {
+    static const uint8_t ff[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, zero[6];
+    return nd(k)->type == ARPHRD_NONE ? dev_printf(b, n, "\n") : mac_str(b, n, nd(k)->type == ARPHRD_LOOPBACK ? zero : ff);
+}
+static int a_operstate(struct device *k, char *b, size_t n) {
+    struct netdev *d = nd(k);
+    unsigned f = __atomic_load_n(&d->flags, __ATOMIC_RELAXED);
+    return dev_printf(b, n, "%s\n", d->type == ARPHRD_LOOPBACK ? "unknown" : (f & IFF_UP) && (f & IFF_RUNNING) ? "up" : "down");
+}
+static int a_carrier(struct device *k, char *b, size_t n) {
+    unsigned f = __atomic_load_n(&nd(k)->flags, __ATOMIC_RELAXED);
+    if (!(f & IFF_UP)) return -EINVAL;
+    return dev_printf(b, n, "%d\n", (f & IFF_RUNNING) != 0);
+}
+static int a_zero(struct device *k, char *b, size_t n) { return dev_printf(b, n, "0x0\n"); }
+#define STAT(f) static int a_##f(struct device *k, char *b, size_t n) { return NLOCK(dev_printf(b, n, "%lu\n", nd(k)->f)); }
+STAT(rx_packets) STAT(rx_bytes) STAT(rx_errors) STAT(rx_dropped) STAT(tx_packets) STAT(tx_bytes) STAT(tx_errors) STAT(tx_dropped) STAT(multicast)
+static const struct dev_attr net_attrs[] = {
+    { "ifindex", 0444, a_ifindex, nullptr }, { "iflink", 0444, a_ifindex, nullptr }, { "type", 0444, a_type, nullptr },
+    { "address", 0444, a_address, nullptr }, { "broadcast", 0444, a_broadcast, nullptr }, { "addr_len", 0444, a_addrlen, nullptr },
+    { "mtu", 0444, a_mtu, nullptr }, { "flags", 0444, a_flags, nullptr }, { "operstate", 0444, a_operstate, nullptr },
+    { "carrier", 0444, a_carrier, nullptr }, { "tx_queue_len", 0444, a_txq, nullptr }, { "dev_id", 0444, a_zero, nullptr },
+    { "statistics/rx_packets", 0444, a_rx_packets, nullptr }, { "statistics/rx_bytes", 0444, a_rx_bytes, nullptr },
+    { "statistics/rx_errors", 0444, a_rx_errors, nullptr }, { "statistics/rx_dropped", 0444, a_rx_dropped, nullptr },
+    { "statistics/tx_packets", 0444, a_tx_packets, nullptr }, { "statistics/tx_bytes", 0444, a_tx_bytes, nullptr },
+    { "statistics/tx_errors", 0444, a_tx_errors, nullptr }, { "statistics/tx_dropped", 0444, a_tx_dropped, nullptr },
+    { "statistics/multicast", 0444, a_multicast, nullptr }, { nullptr, 0, nullptr, nullptr },
+};
+static void net_uevent(struct device *k, struct uenv *e) {
+    uenv_add(e, "INTERFACE=%s", nd(k)->name);
+    uenv_add(e, "IFINDEX=%d", nd(k)->index < 0 ? -nd(k)->index : nd(k)->index);
+}
+
 struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, int mtu,
-                               void (*xmit)(struct netdev *, struct pkt *), void *priv) {
+                               void (*xmit)(struct netdev *, struct pkt *), void *priv, struct device *parent) {
     struct netdev *d = kzalloc(sizeof *d);
     if (!d) return nullptr;
     strncpy(d->name, name, sizeof d->name - 1);
@@ -265,6 +311,10 @@ struct netdev *netdev_register(const char *name, int type, const uint8_t *hw, in
     d->index = next_ifindex++;
     list_add_tail(&netdevs, &d->node);
     mutex_unlock(&net_mutex);
+    struct device *k = &d->kdev;
+    strncpy(k->name, d->name, sizeof k->name - 1);
+    k->parent = parent; k->subsys = "net"; k->attrs = net_attrs; k->uevent = net_uevent; k->priv = d;
+    device_add(k);
     return d;
 }
 /* a device going away (TUN/TAP close): forget its addresses, routes and neighbours. Frames for it
@@ -278,6 +328,7 @@ void netdev_unregister(struct netdev *d) {
     d->addr = d->netmask = d->bcast = 0;
     list_del(&d->node);
     list_init(&d->node);
+    device_del(&d->kdev);
     d->index = -d->index;
 }
 struct netdev *netdev_by_index(int idx) {
@@ -381,7 +432,7 @@ int net_proc_file(int which, char *buf, size_t max) {
 
 void net_init(void) {
     static const uint8_t zero[6];
-    loopback_dev = netdev_register("lo", ARPHRD_LOOPBACK, zero, 65536, lo_xmit, nullptr);
+    loopback_dev = netdev_register("lo", ARPHRD_LOOPBACK, zero, 65536, lo_xmit, nullptr, nullptr);
     loopback_dev->addr = INADDR_LOOPBACK;           /* up from the start, like Linux after "ip link set lo up" */
     loopback_dev->netmask = htonl(0xff000000u);
     loopback_dev->flags |= IFF_UP | IFF_RUNNING;

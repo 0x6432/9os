@@ -809,7 +809,8 @@ static int vfs_mount_l(const char *path, struct inode *root) {
     if (r) return r;
     r = attach(mp, root);
     if (r) { iput(mp); return r; }
-    mount_record(root, mp, nullptr, root->iops == nullptr ? "none" : "proc", path, "proc", 0);
+    const char *ty = root->iops == nullptr ? "none" : sysfs_inode(root) ? "sysfs" : "proc";
+    mount_record(root, mp, nullptr, ty, path, !strcmp(ty, "none") ? "proc" : ty, 0);
     return 0;
 }
 
@@ -817,7 +818,7 @@ static const struct fs_type *fs_types[8];
 static int nfs_types;
 void fs_register(const struct fs_type *t) { if (nfs_types < 8) fs_types[nfs_types++] = t; }
 int vfs_proc_filesystems(char *buf, size_t max) {
-    size_t n = snprintf(buf, max, "nodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n");
+    size_t n = snprintf(buf, max, "nodev\tsysfs\nnodev\ttmpfs\nnodev\tproc\nnodev\tdevtmpfs\n");
     for (int k = 0; k < nfs_types && n < max; k++)
         n += snprintf(buf + n, max - n, "%s\t%s\n", fs_types[k]->needs_dev ? "" : "nodev", fs_types[k]->name);
     return (int)MIN(n, max);
@@ -878,6 +879,7 @@ static int vfs_do_mount_l(const char *source, const char *target, const char *ty
     if (!type) r = -EINVAL;
     else if (!strcmp(type, "tmpfs")) { root = tmpfs_create_root(); root->parent = mp; }
     else if (!strcmp(type, "proc")) root = procfs_create_root();
+    else if (!strcmp(type, "sysfs")) root = sysfs_create_root();
     else if (!(r = fs_mount_dev(source, type, flags, data, &sb))) root = sb->root;
     if (!root) { iput(mp); return r ? r : -ENOMEM; }
     r = attach(mp, root);
@@ -887,7 +889,7 @@ static int vfs_do_mount_l(const char *source, const char *target, const char *ty
         return r;
     }
     mount_record(root, mp, sb, source && *source ? source : type, target,
-                 sb ? sb->type : !strcmp(type, "tmpfs") ? "tmpfs" : "proc", flags);
+                 sb ? sb->type : !strcmp(type, "tmpfs") ? "tmpfs" : !strcmp(type, "sysfs") ? "sysfs" : "proc", flags);
     return 0;
 }
 
@@ -972,7 +974,7 @@ int vfs_mount_root(const char *source, const char *type) {
     int r = fs_mount_dev(source, type, 0, nullptr, &sb);
     if (r) { vfs_ns_unlock(); return r; }
     struct inode *nr = sb->root, *old = vfs_root;
-    static const char *keep[] = { "dev", "proc", "tmp" };
+    static const char *keep[] = { "dev", "proc", "tmp", "sys" };
     for (size_t k = 0; k < ARRAY_SIZE(keep); k++) {
         struct inode *src, *dst;
         if (lookup_child(old, keep[k], &src)) continue;

@@ -3,6 +3,7 @@
 #include <kernel/types.h>
 #include <kernel/list.h>
 #include <kernel/spinlock.h>
+#include <kernel/device.h>
 
 #define EV_SYN 0x00
 #define EV_KEY 0x01
@@ -41,6 +42,8 @@ struct input_dev {
     uint64_t keystate[BITS_TO_U64(KEY_MAX)], ledstate[BITS_TO_U64(LED_MAX)];
     int rep[2];                     /* delay, period (ms) */
     bool console_keys;              /* feed key presses to the console tty */
+    struct device *parent;          /* M34: sysfs parent (virtio device), nullptr: virtual */
+    struct device idev, edev;       /* /sys/class/input/inputN and its eventN */
     /* private */
     int index;
     spinlock_t lock;
