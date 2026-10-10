@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M33 complete (ptrace, POSIX timers, robust/shared futexes, clone3/pidfd, waitid, file locks, xattrs); M26–M32b done; M24 locking work continues opportunistically
+## Current state: M33 complete (ptrace, POSIX timers, robust/shared futexes, clone3/pidfd, waitid, file locks + leases, xattrs + POSIX ACLs); M26–M32b done; M24 locking work continues opportunistically
 
 | Milestone | Status |
 |-----------|--------|
@@ -33,7 +33,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M25 Scheduling | ✅ independent per-CPU run-queue locks, affinity, nice + FIFO/RR, CPU accounting, periodic busy-CPU balancing, bounded per-CPU PMM/slab caches, deadline-driven tickless idle |
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 | M26–M32b | ✅ VMM v2, hardening, interrupt-driven I/O, block layer + virtio-blk, ext2 + unified page cache, users/permissions, networking v1/v2 (see the sections below) |
-| M33 ptrace + POSIX timers | ✅ `ptrace` (stops, events, regsets, syscall info, single step on x86_64/aarch64), queued siginfo + `rt_sigqueueinfo`, `timer_create` family, robust futexes, process-shared futexes, `clone3` + pidfds, `waitid` (P_PIDFD, WNOWAIT), `flock`/POSIX/OFD locks + `/proc/locks`, xattrs on tmpfs and ext2; `ptracetest`, `sigqtest`, `locktest`, `xattrtest` |
+| M33 ptrace + POSIX timers | ✅ `ptrace` (stops, events, regsets, syscall info, single step and hardware breakpoints/watchpoints on all three arches), queued siginfo + `rt_sigqueueinfo`, `timer_create` family, robust futexes, process-shared futexes, `clone3` + pidfds, `waitid` (P_PIDFD, WNOWAIT), `flock`/POSIX/OFD locks + leases + `/proc/locks`, xattrs (in-inode on ext2) and POSIX ACLs on tmpfs and ext2; `ptracetest`, `sigqtest`, `locktest`, `leasetest`, `xattrtest`, `acltest` |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -1195,7 +1195,7 @@ Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
   counter / wait queue for blockers; `/proc/locks`.
 - **xattrs** (`fs/xattr.c`): the 12 *xattr syscalls; user.* (regular files/dirs, DAC), trusted.*
   (CAP_SYS_ADMIN, hidden from list otherwise), security.* (CAP_SYS_ADMIN to write);
-  system.*/unknown → EOPNOTSUPP. tmpfs keeps them in memory (`inode->xattrs`); ext2 stores one
+  system.posix_acl_* → acl.c, other system.*/unknown → EOPNOTSUPP. tmpfs keeps them in memory (`inode->xattrs`); ext2 stores one
   EA block per inode in the on-disk format (entry + block hashes as e2fsprogs, sorted entries,
   copy-on-write of shared blocks, freed with the inode; sets the ext_attr feature) — e2fsck clean.
 
@@ -1206,11 +1206,41 @@ Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
 - ci-tests: all four in the main suite; xattrtest + locktest on the ext2 disk at /mnt and on the
   ext2 root; the second disk-root boot verifies attributes written by the first (`-r`).
 
-### Known limits
-1. No hardware watchpoints/breakpoints; riscv64 has no single step (PTRACE_SINGLESTEP → EIO).
-2. Attaching interrupts sleeping syscalls like nanosleep with EINTR instead of restarting them
-   transparently in every case.
-3. No in-inode ext2 xattrs (ext4 extra isize), no POSIX ACLs, no mandatory locks or leases;
-   shared futexes only in file/shmem MAP_SHARED mappings; FUTEX_REQUEUE still wakes instead of
-   moving waiters.
+### Gaps closed after M33 (branch notion/m33)
+- **Hardware breakpoints/watchpoints** (TRAP_HWBKPT): x86_64 debug registers through
+  PEEK/POKEUSER `u_debugreg` (DR7 validated, loaded on switch, RF for exec breakpoints);
+  aarch64 NT_ARM_HW_BREAK/NT_ARM_HW_WATCH regsets (BVR/BCR/WVR/WCR per thread, MDSCR.MDE);
+  riscv64 the same regsets as a 9os extension backed by the SBI debug-trigger extension (DBTR,
+  OpenSBI 1.8.1 in QEMU 10, mcontrol6 triggers, per-hart shared memory preallocated at boot). Reset on
+  detach and exec.
+- **riscv64 single step** in software: the successor PCs of the stepped instruction (branches,
+  jal/jalr, compressed forms) get a temporary `c.ebreak`; `ptrace_step_trap()` restores them.
+- **nanosleep/clock_nanosleep restart**: stop/continue and ptrace attach resume the sleep with
+  the remaining time through `restart_syscall` (absolute sleeps re-wait the same deadline);
+  pause/sigsuspend are restarted with their arguments; a caught signal still gives EINTR + rem.
+- **Futexes**: FUTEX_REQUEUE/CMP_REQUEUE move waiters between hash buckets (a waiter records
+  its bucket, `fw_lock()` relocks after a move); shared futexes in any VMA_SHARED mapping
+  (anonymous shared, device memory) are keyed by physical address.
+- **ext2 in-inode xattrs**: with 256-byte inodes, attributes go after `i_extra_isize` (32) first,
+  then the EA block; new inodes get a zeroed tail. CI's ext2 test disk now uses `-I 256`.
+- **POSIX ACLs** (`fs/acl.c`): `system.posix_acl_access/default` (xattr v2 format; ext2 stores
+  the on-disk v1 format), validation as Linux, the owner or CAP_FOWNER sets them, mode-equivalent
+  ACLs collapse to the mode, group bits mirror the mask, chmod rewrites the base entries, the
+  POSIX.1e permission algorithm in `cred_inode_permission`, default-ACL inheritance on create /
+  mkdir / mknod (the umask is not applied then). Parsed ACLs are cached per inode.
+- **Leases** (`fs/locks.c`): F_SETLEASE/F_GETLEASE (owner or CAP_LEASE, no conflicting opens),
+  F_SETSIG/F_GETSIG; opens and truncate(2) break leases (SIGIO or the F_SETSIG signal), the
+  opener waits up to `/proc/sys/fs/lease-break-time` (O_NONBLOCK: EWOULDBLOCK), then the break is
+  forced; O_TRUNC now runs after the lease break, outside the namespace mutex. `/proc/locks`
+  lists `LEASE ACTIVE/BREAKING`.
+- Tests: `acltest [dir] | -w | -r`, `leasetest`, ptracetest hw/step on all arches, futextest
+  requeue-moves, sigqtest restart; all in ci-tests (acltest also on ext2 /mnt and the disk root
+  with persistence).
 
+### Known limits
+1. Mandatory locks are not supported (removed from Linux in 5.15); leases are not broken by
+   unlink/rename (no delegations), lease-break signals carry no si_fd; F_SETOWN/O_ASYNC I/O
+   signals are not implemented.
+2. riscv64 hardware triggers need an SBI implementation with DBTR (else EIO/ENOSPC); x86 I/O
+   breakpoints (DR7 RW=10) are refused.
+3. ACLs are not applied to symlinks; no ACL-aware `getfacl`/`setfacl` in userland (raw xattrs).
