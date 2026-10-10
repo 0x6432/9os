@@ -79,17 +79,23 @@ static void dbtr_probe(void) {
         struct sbiret r = sbi_call(SBI_EXT_DBTR, 0, (long)(ty << 60), 0, 0);
         if (!r.error && r.value > 0) { dbtr_total = (int)MIN(r.value, 16L); dbtr_type = ty; break; }
     }
-    if (dbtr_total) pr_info("riscv: %d SBI debug triggers (type %lu) for ptrace\n", dbtr_total, dbtr_type);
+    if (!dbtr_total) return;
+    for (int c = 0; c < ncpus; c++) {           /* per-hart shared memory, registered on first use */
+        paddr_t pa = pmm_alloc_zeroed(0);
+        if (!pa) { dbtr_total = 0; return; }
+        dbtr_shmem[c] = PHYS_TO_VIRT(pa);
+    }
+    pr_info("riscv: %d SBI debug triggers (type %lu) for ptrace\n", dbtr_total, dbtr_type);
 }
 int arch_num_brps(void) { dbtr_probe(); return dbtr_total / 2; }
 int arch_num_wrps(void) { dbtr_probe(); return dbtr_total - dbtr_total / 2; }
-static uint64_t *dbtr_area(void) {
+static bool dbtr_registered[MAX_CPUS];
+static uint64_t *dbtr_area(void) {          /* runs in arch_switch_to: no allocation here */
     int c = this_cpu()->id;
-    if (!dbtr_shmem[c]) {
-        paddr_t pa = pmm_alloc_zeroed(0);
-        if (!pa) return nullptr;
-        if (sbi_call(SBI_EXT_DBTR, 1, (long)pa, 0, 0).error) { pmm_free_pages(pa, 0); return nullptr; }
-        dbtr_shmem[c] = PHYS_TO_VIRT(pa);
+    if (!dbtr_shmem[c]) return nullptr;
+    if (!dbtr_registered[c]) {
+        if (sbi_call(SBI_EXT_DBTR, 1, (long)VIRT_TO_PHYS(dbtr_shmem[c]), 0, 0).error) return nullptr;
+        dbtr_registered[c] = true;
     }
     return dbtr_shmem[c];
 }

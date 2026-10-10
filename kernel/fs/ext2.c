@@ -21,7 +21,7 @@
  * fs->icache -> fs->alloc.
  *
  * Not implemented: journaling (a crash may need e2fsck), orphan lists (an unlinked file still
- * open at a crash leaks its inode until fsck), POSIX ACLs, in-inode xattrs, htree lookups.
+ * open at a crash leaks its inode until fsck), htree lookups.
  */
 #include <kernel/vfs.h>
 #include <kernel/blk.h>
@@ -97,6 +97,7 @@ static const struct inode_ops e2_iops;
 static const struct file_ops e2_fops, e2_dir_fops, e2_lnk_fops;
 static const struct aspace_ops e2_aops;
 static int e2_write_inode(struct inode *i);
+static void ea_init_ibody(struct e2fs *fs, uint32_t ino);
 
 uint64_t ext2_balloc_count, ext2_bfree_count;
 
@@ -859,6 +860,7 @@ static int new_inode(struct inode *dir, uint32_t mode, uint64_t rdev, struct ino
     }
     e2_setup(fs, ei);
     icache_insert(&fs->sb, i);
+    ea_init_ibody(fs, ino);
     e2_write_inode(i);
     *out = i;
     return 0;
@@ -1036,15 +1038,21 @@ static int e2_rename(struct inode *od, const char *on, struct inode *nd, const c
 
 /* ------------------------------------------------------------------ extended attributes */
 /*
- * One EA block per inode (i_file_acl), the ext2 on-disk format: a 32-byte header (magic,
- * refcount, blocks = 1, hash), entries growing up from offset 32 (16 bytes + name, padded to
- * 4, sorted by index/length/name, ended by 4 zero bytes) and values packed down from the end
- * of the block (padded to 4). Entry and block hashes follow e2fsprogs so e2fsck stays clean.
- * Blocks shared with other inodes (refcount > 1, made by Linux' mbcache) are copied on write.
- * In-inode attributes (ext4 extra isize) are not supported. Serialised by ei->lock.
+ * The ext2/ext4 on-disk formats (M33):
+ *  - in-inode: inodes larger than 128 bytes keep attributes after i_extra_isize: a magic word,
+ *    entries, values packed down from the end of the inode (offsets relative to the first entry);
+ *  - one EA block per inode (i_file_acl): a 32-byte header (magic, refcount, blocks = 1, hash),
+ *    entries growing up from offset 32, values packed down from the end of the block.
+ * Entries are 16 bytes + name (padded to 4), sorted by index/length/name, ended by 4 zero bytes;
+ * entry and block hashes follow e2fsprogs so e2fsck stays clean. New attributes fill the inode
+ * first, the rest goes to the block. Blocks shared with other inodes (refcount > 1, made by
+ * Linux' mbcache) are copied on write. POSIX ACLs (system.posix_acl_access/default, name
+ * indexes 2/3) are converted between the xattr format (version 2) and ext2's compact on-disk
+ * format (version 1). Serialised by ei->lock.
  */
 #define EA_MAGIC 0xEA020000u
 #define COMPAT_EXT_ATTR 0x0008
+#define EXTRA_ISIZE 32
 struct ea_hdr { uint32_t magic, refcount, blocks, hash, checksum, reserved[3]; };
 struct ea_ent { uint8_t name_len, name_index; uint16_t value_offs; uint32_t value_inum, value_size, hash; char name[]; };
 _Static_assert(sizeof(struct ea_hdr) == 32, "ext2 EA header");
@@ -1053,18 +1061,60 @@ _Static_assert(sizeof(struct ea_ent) == 16, "ext2 EA entry");
 #define EA_VLEN(s) (((uint32_t)(s) + 3) & ~3u)
 struct ea_item { uint8_t idx, nlen; const char *name; uint32_t vlen; const uint8_t *val; };
 
-static const struct { const char *pfx; uint8_t idx; } ea_ns[] = { { "user.", 1 }, { "trusted.", 4 }, { "security.", 6 } };
+static const struct { const char *pfx; uint8_t idx; bool exact; } ea_ns[] = {
+    { "user.", 1, false }, { "trusted.", 4, false }, { "security.", 6, false },
+    { "system.posix_acl_access", 2, true }, { "system.posix_acl_default", 3, true },
+};
+#define EA_NNS (sizeof ea_ns / sizeof ea_ns[0])
 
 static int ea_split(const char *name, uint8_t *idx, const char **suffix) {
-    for (size_t k = 0; k < sizeof ea_ns / sizeof ea_ns[0]; k++) {
+    for (size_t k = 0; k < EA_NNS; k++) {
         size_t l = strlen(ea_ns[k].pfx);
-        if (!strncmp(name, ea_ns[k].pfx, l) && name[l] && strlen(name + l) <= 255) { *idx = ea_ns[k].idx; *suffix = name + l; return 0; }
+        if (ea_ns[k].exact) {
+            if (!strcmp(name, ea_ns[k].pfx)) { *idx = ea_ns[k].idx; *suffix = name + l; return 0; }
+        } else if (!strncmp(name, ea_ns[k].pfx, l) && name[l] && strlen(name + l) <= 255) {
+            *idx = ea_ns[k].idx; *suffix = name + l; return 0;
+        }
     }
     return -EOPNOTSUPP;
 }
 static const char *ea_prefix(uint8_t idx) {
-    for (size_t k = 0; k < sizeof ea_ns / sizeof ea_ns[0]; k++) if (ea_ns[k].idx == idx) return ea_ns[k].pfx;
+    for (size_t k = 0; k < EA_NNS; k++) if (ea_ns[k].idx == idx) return ea_ns[k].pfx;
     return nullptr;
+}
+
+/* POSIX ACL value conversion: xattr format v2 {u32 version; {u16 tag, u16 perm, u32 id}[]}
+ * <-> ext2 format v1 {u32 version; entries of 4 bytes (USER_OBJ, GROUP_OBJ, MASK, OTHER) or
+ * 8 bytes (USER, GROUP)} */
+#define ACL_USER 2
+#define ACL_GROUP 8
+static bool acl_idx(uint8_t idx) { return idx == 2 || idx == 3; }
+static int acl_to_disk(const uint8_t *x, uint32_t xl, uint8_t *d, uint32_t *dl) {
+    if (xl < 4 || (xl - 4) % 8 || *(const uint32_t *)x != 2) return -EINVAL;
+    uint32_t o = 4;
+    *(uint32_t *)d = 1;
+    for (uint32_t p = 4; p < xl; p += 8) {
+        uint16_t tag = *(const uint16_t *)(x + p), perm = *(const uint16_t *)(x + p + 2);
+        uint32_t id = *(const uint32_t *)(x + p + 4);
+        memcpy(d + o, &tag, 2); memcpy(d + o + 2, &perm, 2); o += 4;
+        if (tag == ACL_USER || tag == ACL_GROUP) { memcpy(d + o, &id, 4); o += 4; }
+    }
+    *dl = o;
+    return 0;
+}
+static int acl_from_disk(const uint8_t *d, uint32_t dl, uint8_t *x, uint32_t *xl) {
+    if (dl < 4 || *(const uint32_t *)d != 1) return -EIO;
+    uint32_t o = 4;
+    *(uint32_t *)x = 2;
+    for (uint32_t p = 4; p + 4 <= dl;) {
+        uint16_t tag = *(const uint16_t *)(d + p), perm = *(const uint16_t *)(d + p + 2);
+        uint32_t id = 0xffffffffu;
+        p += 4;
+        if (tag == ACL_USER || tag == ACL_GROUP) { if (p + 4 > dl) return -EIO; memcpy(&id, d + p, 4); p += 4; }
+        memcpy(x + o, &tag, 2); memcpy(x + o + 2, &perm, 2); memcpy(x + o + 4, &id, 4); o += 8;
+    }
+    *xl = o;
+    return 0;
 }
 
 static uint32_t ea_entry_hash(const struct ea_ent *e, const uint8_t *val) {
@@ -1077,21 +1127,18 @@ static uint32_t ea_entry_hash(const struct ea_ent *e, const uint8_t *val) {
     return h;
 }
 
-/* parse block data into items (pointing into data); -EIO on a malformed block */
-static int ea_parse(struct e2fs *fs, const uint8_t *d, struct ea_item *it, int max, int *n) {
-    const struct ea_hdr *h = (const void *)d;
-    *n = 0;
-    if (h->magic != EA_MAGIC || h->blocks != 1) return -EIO;
-    uint32_t off = sizeof *h;
-    while (off + 4 <= fs->bsize && *(const uint32_t *)(d + off)) {
+/* parse entries at d + off .. end, values relative to vbase */
+static int ea_parse_entries(const uint8_t *d, uint32_t off, uint32_t end, const uint8_t *vbase, uint32_t vlim,
+                            struct ea_item *it, int max, int *n) {
+    while (off + 4 <= end && *(const uint32_t *)(d + off)) {
         const struct ea_ent *e = (const void *)(d + off);
-        if (off + EA_LEN(e->name_len) > fs->bsize || e->value_inum || !e->name_len) return -EIO;
-        if (e->value_size && (uint32_t)e->value_offs + e->value_size > fs->bsize) return -EIO;
+        if (off + EA_LEN(e->name_len) > end || e->value_inum) return -EIO;
+        if (e->value_size && (uint32_t)e->value_offs + e->value_size > vlim) return -EIO;
         if (*n >= max) return -EIO;
-        it[(*n)++] = (struct ea_item){ e->name_index, e->name_len, e->name, e->value_size, d + e->value_offs };
+        it[(*n)++] = (struct ea_item){ e->name_index, e->name_len, e->name, e->value_size, vbase + e->value_offs };
         off += EA_LEN(e->name_len);
     }
-    return off + 4 <= fs->bsize ? 0 : -EIO;
+    return off + 4 <= end ? 0 : -EIO;
 }
 
 static int ea_cmp(const struct ea_item *a, const struct ea_item *b) {
@@ -1100,18 +1147,57 @@ static int ea_cmp(const struct ea_item *a, const struct ea_item *b) {
     return memcmp(a->name, b->name, a->nlen);
 }
 
-/* read the inode's EA block into a private copy and parse it */
-static int ea_load(struct e2fs *fs, struct e2inode *ei, uint8_t *copy, struct ea_item *it, int max, int *n) {
-    *n = 0;
+/* in-inode area of raw inode r (isize bytes): [*start, isize), 0 if none */
+static uint32_t ea_ibody(struct e2fs *fs, const uint8_t *r, uint32_t *start) {
+    if (fs->isize <= 128 + EXTRA_ISIZE) return 0;
+    uint16_t extra = *(const uint16_t *)(r + 128);
+    if (!extra) extra = EXTRA_ISIZE;
+    if (extra & 3 || 128u + extra + 8 > fs->isize) return 0;
+    *start = 128 + extra;
+    return fs->isize - *start;
+}
+
+struct ea_set {
+    uint8_t *icopy, *bcopy;       /* raw inode and EA block copies */
+    struct ea_item *it; bool *inl;
+    int n, max;
+};
+
+static int ea_load(struct e2fs *fs, struct e2inode *ei, struct ea_set *s) {
+    s->n = 0;
+    struct buf b;
+    struct e2_raw *raw;
+    int r = inode_buf(fs, (uint32_t)ei->v.ino, &b, &raw);
+    if (r) return r;
+    memcpy(s->icopy, raw, fs->isize);
+    brelse(&b);
+    uint32_t st, len = ea_ibody(fs, s->icopy, &st);
+    if (len && *(const uint16_t *)(s->icopy + 128) && *(const uint32_t *)(s->icopy + st) == EA_MAGIC) {
+        if ((r = ea_parse_entries(s->icopy, st + 4, fs->isize, s->icopy + st + 4, len - 4, s->it, s->max, &s->n))) return r;
+        for (int k = 0; k < s->n; k++) s->inl[k] = true;
+    }
     if (!ei->file_acl) return 0;
     if (ei->file_acl < fs->first_data || ei->file_acl >= RAWSB(fs)->blocks_count) return -EIO;
-    struct buf b;
-    int r = bread(fs->dev, ei->file_acl, fs->bsize, &b);
-    if (r) return r;
-    memcpy(copy, b.data, fs->bsize);
+    if ((r = bread(fs->dev, ei->file_acl, fs->bsize, &b))) return r;
+    memcpy(s->bcopy, b.data, fs->bsize);
     brelse(&b);
-    return ea_parse(fs, copy, it, max, n);
+    const struct ea_hdr *h = (const void *)s->bcopy;
+    if (h->magic != EA_MAGIC || h->blocks != 1) return -EIO;
+    int n0 = s->n;
+    r = ea_parse_entries(s->bcopy, sizeof *h, fs->bsize, s->bcopy, fs->bsize, s->it, s->max, &s->n);
+    for (int k = n0; k < s->n; k++) s->inl[k] = false;
+    return r;
 }
+
+static int ea_alloc(struct e2fs *fs, struct ea_set *s) {
+    s->max = (int)((fs->bsize + fs->isize) / 20) + 2;
+    s->icopy = kmalloc(fs->isize); s->bcopy = kmalloc(fs->bsize);
+    s->it = kmalloc(sizeof *s->it * (size_t)s->max); s->inl = kmalloc((size_t)s->max);
+    if (s->icopy && s->bcopy && s->it && s->inl) return 0;
+    kfree(s->icopy); kfree(s->bcopy); kfree(s->it); kfree(s->inl);
+    return -ENOMEM;
+}
+static void ea_release(struct ea_set *s) { kfree(s->icopy); kfree(s->bcopy); kfree(s->it); kfree(s->inl); }
 
 /* drop this inode's reference to EA block blk */
 static void ea_put_block(struct e2fs *fs, uint32_t blk) {
@@ -1127,7 +1213,30 @@ static void ea_put_block(struct e2fs *fs, uint32_t blk) {
     if (last) bfree(fs, blk);
 }
 
-static int ea_max(struct e2fs *fs) { return (int)(fs->bsize / 20) + 1; }
+/* write items [k] with inl[k] == want as entries at out + eoff, values down from out + vend,
+ * offsets relative to vbase; returns the xor-shift hash of the entry hashes */
+static uint32_t ea_serialize(struct ea_set *s, bool want, uint8_t *out, uint32_t eoff, uint32_t vend, uint32_t vbase) {
+    uint32_t bh = 0, voff = vend;
+    for (int k = 0; k < s->n; k++) {
+        if (s->inl[k] != want) continue;
+        struct ea_ent *e = (void *)(out + eoff);
+        memset(e, 0, EA_LEN(s->it[k].nlen));
+        e->name_len = s->it[k].nlen; e->name_index = s->it[k].idx; e->value_size = s->it[k].vlen;
+        memcpy(e->name, s->it[k].name, s->it[k].nlen);
+        const uint8_t *vp = out;
+        if (s->it[k].vlen) {
+            voff -= EA_VLEN(s->it[k].vlen);
+            memset(out + voff, 0, EA_VLEN(s->it[k].vlen));
+            memcpy(out + voff, s->it[k].val, s->it[k].vlen);
+            e->value_offs = (uint16_t)(voff - vbase);
+            vp = out + voff;
+        }
+        e->hash = ea_entry_hash(e, vp);
+        bh = (bh << 16) ^ (bh >> 16) ^ e->hash;
+        eoff += EA_LEN(s->it[k].nlen);
+    }
+    return bh;
+}
 
 static int e2_getxattr(struct inode *i, const char *name, void *buf, size_t size) {
     struct e2fs *fs = FS_OF(i);
@@ -1135,47 +1244,54 @@ static int e2_getxattr(struct inode *i, const char *name, void *buf, size_t size
     uint8_t idx; const char *sfx;
     int r = ea_split(name, &idx, &sfx);
     if (r) return r;
-    uint8_t *copy = kmalloc(fs->bsize);
-    struct ea_item *it = kmalloc(sizeof *it * (size_t)ea_max(fs));
-    if (!copy || !it) { kfree(copy); kfree(it); return -ENOMEM; }
-    int n;
+    struct ea_set s;
+    if ((r = ea_alloc(fs, &s))) return r;
     mutex_lock(&ei->lock);
-    r = ea_load(fs, ei, copy, it, ea_max(fs), &n);
+    r = ea_load(fs, ei, &s);
     mutex_unlock(&ei->lock);
     if (!r) {
         r = -ENODATA;
         struct ea_item key = { idx, (uint8_t)strlen(sfx), sfx, 0, nullptr };
-        for (int k = 0; k < n; k++) {
-            if (ea_cmp(&it[k], &key)) continue;
-            r = !size ? (int)it[k].vlen : size < it[k].vlen ? -ERANGE : (int)it[k].vlen;
-            if (size && r > 0) memcpy(buf, it[k].val, it[k].vlen);
+        for (int k = 0; k < s.n; k++) {
+            if (ea_cmp(&s.it[k], &key)) continue;
+            const uint8_t *v = s.it[k].val;
+            uint32_t vl = s.it[k].vlen;
+            uint8_t *conv = nullptr;
+            if (acl_idx(idx)) {
+                conv = kmalloc(vl * 2 + 8);
+                if (!conv) { r = -ENOMEM; break; }
+                if ((r = acl_from_disk(v, vl, conv, &vl))) { kfree(conv); break; }
+                v = conv;
+            }
+            r = !size ? (int)vl : size < vl ? -ERANGE : (int)vl;
+            if (size && r > 0) memcpy(buf, v, vl);
+            kfree(conv);
             break;
         }
     }
-    kfree(copy); kfree(it);
+    ea_release(&s);
     return r;
 }
 
 static int e2_listxattr(struct inode *i, char *buf, size_t size) {
     struct e2fs *fs = FS_OF(i);
     struct e2inode *ei = EI(i);
-    uint8_t *copy = kmalloc(fs->bsize);
-    struct ea_item *it = kmalloc(sizeof *it * (size_t)ea_max(fs));
-    if (!copy || !it) { kfree(copy); kfree(it); return -ENOMEM; }
-    int n;
+    struct ea_set s;
+    int r = ea_alloc(fs, &s);
+    if (r) return r;
     mutex_lock(&ei->lock);
-    int r = ea_load(fs, ei, copy, it, ea_max(fs), &n);
+    r = ea_load(fs, ei, &s);
     mutex_unlock(&ei->lock);
     size_t tot = 0;
-    for (int k = 0; !r && k < n; k++) {
-        const char *p = ea_prefix(it[k].idx);
-        if (!p) continue;                         /* system.* (ACLs) and unknown indexes */
-        size_t pl = strlen(p), l = pl + it[k].nlen + 1;
+    for (int k = 0; !r && k < s.n; k++) {
+        const char *p = ea_prefix(s.it[k].idx);
+        if (!p) continue;                         /* unknown indexes */
+        size_t pl = strlen(p), l = pl + s.it[k].nlen + 1;
         if (size && tot + l > size) { r = -ERANGE; break; }
-        if (size) { memcpy(buf + tot, p, pl); memcpy(buf + tot + pl, it[k].name, it[k].nlen); buf[tot + l - 1] = 0; }
+        if (size) { memcpy(buf + tot, p, pl); memcpy(buf + tot + pl, s.it[k].name, s.it[k].nlen); buf[tot + l - 1] = 0; }
         tot += l;
     }
-    kfree(copy); kfree(it);
+    ea_release(&s);
     return r ? r : (int)tot;
 }
 
@@ -1187,45 +1303,66 @@ static int e2_setxattr(struct inode *i, const char *name, const void *val, size_
     int r = ea_split(name, &idx, &sfx);
     if (r) return r;
     if (size > fs->bsize) return -ENOSPC;
-    int max = ea_max(fs) + 1, n = 0;
-    uint8_t *copy = kmalloc(fs->bsize), *out = kzalloc(fs->bsize);
-    struct ea_item *it = kmalloc(sizeof *it * (size_t)max);
-    if (!copy || !out || !it) { r = -ENOMEM; goto free; }
+    uint8_t *aclv = nullptr;
+    if (val && acl_idx(idx)) {                        /* store ACLs in the ext2 format */
+        uint32_t dl;
+        if (!(aclv = kmalloc(size + 8))) return -ENOMEM;
+        if ((r = acl_to_disk(val, (uint32_t)size, aclv, &dl))) { kfree(aclv); return r; }
+        val = aclv; size = dl;
+    }
+    struct ea_set s;
+    uint8_t *out = kzalloc(fs->bsize);
+    if (!out || ea_alloc(fs, &s)) { kfree(out); kfree(aclv); return -ENOMEM; }
     mutex_lock(&ei->lock);
-    if ((r = ea_load(fs, ei, copy, it, max - 1, &n))) goto unlock;
+    if ((r = ea_load(fs, ei, &s))) goto unlock;
     struct ea_item key = { idx, (uint8_t)strlen(sfx), sfx, (uint32_t)size, val };
     int found = -1;
-    for (int k = 0; k < n; k++) if (!ea_cmp(&it[k], &key)) { found = k; break; }
+    for (int k = 0; k < s.n; k++) if (!ea_cmp(&s.it[k], &key)) { found = k; break; }
     if (found >= 0 && (flags & XATTR_CREATE)) { r = -EEXIST; goto unlock; }
     if (found < 0 && ((flags & XATTR_REPLACE) || !val)) { r = -ENODATA; goto unlock; }
-    if (found >= 0) { if (val) it[found] = key; else it[found] = it[--n]; }
-    else it[n++] = key;
-    /* sort (insertion) and size check */
-    for (int a = 1; a < n; a++) for (int b = a; b > 0 && ea_cmp(&it[b - 1], &it[b]) > 0; b--) {
-        struct ea_item t = it[b]; it[b] = it[b - 1]; it[b - 1] = t;
+    if (found >= 0) { if (val) s.it[found] = key; else { s.it[found] = s.it[s.n - 1]; s.n--; } }
+    else if (s.n < s.max) s.it[s.n++] = key;
+    else { r = -ENOSPC; goto unlock; }
+    for (int a = 1; a < s.n; a++) for (int b = a; b > 0 && ea_cmp(&s.it[b - 1], &s.it[b]) > 0; b--) {
+        struct ea_item t = s.it[b]; s.it[b] = s.it[b - 1]; s.it[b - 1] = t;
     }
-    uint32_t need = sizeof(struct ea_hdr) + 4;
-    for (int k = 0; k < n; k++) need += EA_LEN(it[k].nlen) + EA_VLEN(it[k].vlen);
-    if (need > fs->bsize) { r = -ENOSPC; goto unlock; }
+    /* placement: the inode body first (in sorted order, first fit), then the block */
+    uint32_t ist = 0, ilen = ea_ibody(fs, s.icopy, &ist), iused = 8, bneed = sizeof(struct ea_hdr) + 4;
+    int nb = 0, ni = 0;
+    for (int k = 0; k < s.n; k++) {
+        uint32_t need = EA_LEN(s.it[k].nlen) + EA_VLEN(s.it[k].vlen);
+        s.inl[k] = ilen && iused + need <= ilen;
+        if (s.inl[k]) { iused += need; ni++; } else { bneed += need; nb++; }
+    }
+    if (bneed > fs->bsize) { r = -ENOSPC; goto unlock; }
+    /* inode body */
+    if (ilen) {
+        struct buf b;
+        struct e2_raw *raw;
+        if ((r = inode_buf(fs, (uint32_t)i->ino, &b, &raw))) goto unlock;
+        uint8_t *rp = (uint8_t *)raw;
+        if (ni || *(uint32_t *)(rp + ist) == EA_MAGIC) {
+            uint8_t *body = kzalloc(fs->isize);
+            if (!body) { brelse(&b); r = -ENOMEM; goto unlock; }
+            if (ni) {
+                *(uint32_t *)(body + ist) = EA_MAGIC;
+                ea_serialize(&s, true, body, ist + 4, fs->isize, ist + 4);
+            }
+            if (!*(uint16_t *)(rp + 128)) *(uint16_t *)(rp + 128) = EXTRA_ISIZE;
+            memcpy(rp + ist, body + ist, fs->isize - ist);
+            kfree(body);
+            bdirty(&b);
+        }
+        brelse(&b);
+    }
+    /* block */
     uint32_t old = ei->file_acl;
-    if (!n) {                                         /* last attribute removed: free the block */
-        ea_put_block(fs, old);
-        ei->file_acl = 0;
-        ei->nblocks -= fs->spb;
+    if (!nb) {
+        if (old) { ea_put_block(fs, old); ei->file_acl = 0; ei->nblocks -= fs->spb; }
     } else {
         struct ea_hdr *h = (void *)out;
         h->magic = EA_MAGIC; h->refcount = 1; h->blocks = 1;
-        uint32_t eoff = sizeof *h, voff = fs->bsize, bh = 0;
-        for (int k = 0; k < n; k++) {
-            struct ea_ent *e = (void *)(out + eoff);
-            e->name_len = it[k].nlen; e->name_index = it[k].idx; e->value_size = it[k].vlen;
-            memcpy(e->name, it[k].name, it[k].nlen);
-            if (it[k].vlen) { voff -= EA_VLEN(it[k].vlen); memcpy(out + voff, it[k].val, it[k].vlen); e->value_offs = (uint16_t)voff; }
-            e->hash = ea_entry_hash(e, out + e->value_offs);
-            bh = (bh << 16) ^ (bh >> 16) ^ e->hash;
-            eoff += EA_LEN(it[k].nlen);
-        }
-        h->hash = bh;
+        h->hash = ea_serialize(&s, false, out, sizeof *h, fs->bsize, 0);
         bool shared = false;
         if (old) {
             struct buf b;
@@ -1239,32 +1376,45 @@ static int e2_setxattr(struct inode *i, const char *name, const void *val, size_
             if (r) goto unlock;
         }
         if (!old || shared) {
-            uint32_t nb;
-            if ((r = balloc(fs, goal_of(fs, ei), &nb))) goto unlock;
+            uint32_t nbk;
+            if ((r = balloc(fs, goal_of(fs, ei), &nbk))) goto unlock;
             struct buf b;
-            if ((r = bget_new(fs->dev, nb, fs->bsize, &b))) { bfree(fs, nb); goto unlock; }
+            if ((r = bget_new(fs->dev, nbk, fs->bsize, &b))) { bfree(fs, nbk); goto unlock; }
             memcpy(b.data, out, fs->bsize);
             bdirty(&b);
             brelse(&b);
             if (shared) ea_put_block(fs, old);
             else ei->nblocks += fs->spb;
-            ei->file_acl = nb;
+            ei->file_acl = nbk;
         }
-        if (!(RAWSB(fs)->feature_compat & COMPAT_EXT_ATTR)) {
-            mutex_lock(&fs->alloc);
-            RAWSB(fs)->feature_compat |= COMPAT_EXT_ATTR;
-            if (RAWSB(fs)->rev_level == 0) RAWSB(fs)->rev_level = 1;
-            fs->sb_dirty = true;
-            mutex_unlock(&fs->alloc);
-        }
+    }
+    if (s.n && !(RAWSB(fs)->feature_compat & COMPAT_EXT_ATTR)) {
+        mutex_lock(&fs->alloc);
+        RAWSB(fs)->feature_compat |= COMPAT_EXT_ATTR;
+        if (RAWSB(fs)->rev_level == 0) RAWSB(fs)->rev_level = 1;
+        fs->sb_dirty = true;
+        mutex_unlock(&fs->alloc);
     }
     i->ctime = now_timespec();
     e2_write_inode(i);
 unlock:
     mutex_unlock(&ei->lock);
-free:
-    kfree(copy); kfree(out); kfree(it);
+    ea_release(&s);
+    kfree(out); kfree(aclv);
     return r;
+}
+
+/* a fresh inode: clear the body past the 128-byte core (a previous owner's in-inode
+ * attributes) and set i_extra_isize */
+static void ea_init_ibody(struct e2fs *fs, uint32_t ino) {
+    if (fs->isize <= 128) return;
+    struct buf b;
+    struct e2_raw *raw;
+    if (inode_buf(fs, ino, &b, &raw)) return;
+    memset((uint8_t *)raw + 128, 0, fs->isize - 128);
+    if (fs->isize > 128 + EXTRA_ISIZE) *(uint16_t *)((uint8_t *)raw + 128) = EXTRA_ISIZE;
+    bdirty(&b);
+    brelse(&b);
 }
 
 /* last reference: free on disk if unlinked, then the in-core inode */
