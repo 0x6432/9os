@@ -21,7 +21,7 @@ fsck_img() {   # e2fsck the partition at 1 MiB
 rc=0
 BIGMD5=$(python3 scripts/net-host-server.py --md5)
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext2.img" --disk "$B/scratch.img" --net-test "$@" \
-    libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest locktest xattrtest sigqtest \
+    libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest locktest xattrtest acltest sigqtest \
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     ${WL} drmdemo \
@@ -37,18 +37,18 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext
     "ip addr show lo | grep -q 'inet6 ::1/128'" "ip route | grep -q '^default via 10.0.2.2 dev eth0'" \
     "nettest -s 8080" \
     "host:python3 scripts/net-host-server.py --echo-check @FP@" \
-    "blktest /dev/vdb" "ext2test /dev/vda1 /mnt" "mkdir -p /mnt && mount -t ext2 /dev/vda1 /mnt && xattrtest /mnt && locktest /mnt/lockf && umount /mnt" "blktest -w /dev/vdb 77" \
+    "blktest /dev/vdb" "ext2test /dev/vda1 /mnt" "mkdir -p /mnt && mount -t ext2 /dev/vda1 /mnt && xattrtest /mnt && acltest /mnt && locktest /mnt/lockf && umount /mnt" "blktest -w /dev/vdb 77" \
     "grep -q '^violations 0' /proc/lockdep" || rc=1
 fsck_img "$B/ext2.img" || rc=1
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot-$ARCH.log" --disk "$B/root.img" --disk "$B/scratch.img" \
     --cmdline "root=/dev/vda1" "$@" \
     "grep -q '^/dev/vda1 / ext2 rw' /proc/mounts" "blktest -v /dev/vdb 77" \
     libctest dyntest mapprivtest filetest vfstest vmtest "permtest /tmp" logintest "mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2" \
-    "xattrtest /root" "locktest /root/lockf" "xattrtest -w /root" "cp -a /usr /root/usr2 && echo persist > /root/keep && sync" \
+    "xattrtest /root" "acltest /root" "locktest /root/lockf" "xattrtest -w /root" "acltest -w /root" "cp -a /usr /root/usr2 && echo persist > /root/keep && sync" \
     "grep -q '^violations 0' /proc/lockdep" || rc=1
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot2-$ARCH.log" --disk "$B/root.img" \
     --cmdline "root=/dev/vda1" "$@" \
-    "grep -qx persist /root/keep" "xattrtest -r /root" "diff -r /usr /root/usr2" "rm -rf /root/usr2 /root/keep" || rc=1
+    "grep -qx persist /root/keep" "xattrtest -r /root" "acltest -r /root" "diff -r /usr /root/usr2" "rm -rf /root/usr2 /root/keep" || rc=1
 if grep -aq "not cleanly unmounted" "build/test-diskroot2-$ARCH.log"; then echo "FAIL   clean shutdown of the disk root"; rc=1
 else echo "PASS   clean shutdown of the disk root"; fi
 fsck_img "$B/root.img" || rc=1
