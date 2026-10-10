@@ -1253,3 +1253,58 @@ Not done from the M32b plan: zero-copy virtio-net and TCP_FASTOPEN.
    breakpoints (DR7 RW=10) are refused.
 3. O_ASYNC readiness is edge-detected by polling from one kernel thread (64 files per pass), so
    a burst of arrivals may coalesce into one signal before the reader drains (POSIX allows it).
+
+## M34: sysfs + uevents (branch notion/m34)
+
+### What landed
+- **Driver model** (`kernel/core/device.c`, `kernel/include/kernel/device.h`): drivers embed a
+  `struct device` (name, subsystem class or bus, parent, devt/devname, attribute table with
+  show/store callbacks, uevent callback) and `device_add()` it. The /sys/devices path follows
+  the parent chain, with a `<class>/` glue directory for class devices below a device of another
+  subsystem (`.../virtio1/input/input3/event3`, `.../virtio2/net/eth0`, `.../vda/vda1`);
+  parentless class devices go to `/devices/virtual/<class>/`. Devices are never freed
+  (`device_del` only unlinks), so attribute reads race safely with removal. Registry mutex
+  rank `LR_MUTEX_DEV` (after net_mutex: `netdev_unregister` deletes under it).
+- **Registered**: PCI (`pci0000:00/0000:BB:DD.F`, bus `pci`: vendor/device/class/subsystem_*/
+  revision/irq/modalias, PCI_* + MODALIAS), virtio (`virtioN`, bus `virtio`), input (`inputN`
+  with name/phys/uniq/properties/id/*/capabilities/*/modalias and PRODUCT/NAME/PHYS/PROP/EV/
+  KEY/.../MODALIAS in the Linux bitmap format, plus `eventN` 13:64+N), block (disk + partitions:
+  size/ro/removable/range/start/partition/stat/queue/*, DEVTYPE, PARTN), net (ifindex/address/
+  mtu/flags/operstate/carrier/statistics/*, INTERFACE/IFINDEX; TUN/TAP add/remove), mem (null,
+  zero, random, urandom), tty (tty, console, ptmx, tty0, tty1, ttyS0), misc/tun, graphics/fb0,
+  drm/card0 (parent virtio-gpu when it drives the display).
+- **sysfs** (`kernel/fs/sysfs.c`, mounted on /sys at boot, `mount -t sysfs`, kept across the
+  disk-root switch): the tree is generated from the registry on each lookup/readdir (entries
+  are paths; intermediate directories are implied). Device dirs have uevent, dev, attributes,
+  `subsystem` and `device` links; plus /sys/class/<c>/<n>, /sys/bus/<b>/devices/<n>,
+  /sys/dev/{char,block}/M:m, /sys/block/<disk>, /sys/kernel/uevent_seqnum and
+  /sys/devices/system/cpu/{online,possible,present,kernel_max,cpuN}. Links are relative.
+  Writing an action (`add`, `change`, ...; trailing UUID/vars ignored) to `uevent` re-sends it.
+- **NETLINK_KOBJECT_UEVENT** (`netlink.c`): kernel events go to group 1 from pid 0 as
+  `action@devpath\0ACTION=..\0DEVPATH=..\0SUBSYSTEM=..\0...SEQNUM=n\0`; user multicast to other
+  groups needs CAP_NET_ADMIN, unicast to a port id is allowed; recvmsg reports the sender's
+  port id and group. `SO_PASSCRED` now works on netlink sockets (SCM_CREDENTIALS: pid/uid/gid
+  of the sender, zeros for the kernel) — systemd's libudev drops messages without it.
+- **udevshim** (`userland/tools/udevshim.c`): the "static udev db shim". `-c` coldplug writes
+  /run/udev/data/<id> (`c13:64`, `b253:1`, `n2`, `+pci:...`) with I:/E:/G:/Q:/V: lines and
+  /run/udev/tags/<tag>/<id>, using udev's input_id rules (ID_INPUT, _KEY, _KEYBOARD, _MOUSE,
+  _TOUCHPAD, _TOUCHSCREEN, _TABLET, _JOYSTICK, _SWITCH) and tags seat/uaccess
+  (+master-of-seat for drm); `-d` listens on group 1, updates the db, creates missing /dev
+  nodes and re-broadcasts to group 2 in libudev's monitor format (header, MurmurHash2
+  subsystem/devtype hashes, tag bloom) so libudev monitors and their BPF filters work; `-t`
+  triggers coldplug events; `-q PATH` prints properties. rcS runs `udevshim -c`.
+
+### Tests
+`sysfstest` (main suite and disk root): /sys/dev links vs stat()/EVIOCGNAME/EVIOCGBIT/
+if_nameindex/BLKGETSIZE64, class/bus/device links, full /sys walk (every file read, every link
+resolved, no duplicate names), uevent delivery/fields/SEQNUM/credentials, EINVAL/EACCES/EPERM,
+unprivileged listeners, TAP add/remove, group-2 multicast. `sysfstest -u`: udevshim daemon end
+to end (libudev header, hashes, ID_INPUT, TAGS, db file). CI also checks `udevshim -c`/`-q`.
+
+### Known limits
+1. No kobject refcounting: removed devices are leaked (only TUN/TAP churn), renames (`ip link
+   set name`) do not move sysfs entries.
+2. Attribute files are generated at open (no seq_file, 4 KiB max), no binary attributes
+   (`config`, `descriptors`), no `power/`, `driver` links or `/sys/module`.
+3. udevshim implements no rules language, hwdb, persistent names, symlinks (`/dev/input/by-id`)
+   or `udevadm settle`; it is a database writer, not udevd.

@@ -988,7 +988,7 @@ int vfs_mount_root(const char *source, const char *type) {
         src->covered = nullptr;
         if (!attach(dst, src)) {
             struct mount *m = mount_of_root(src);
-            if (m) { if (m->mp) iput(m->mp); m->mp = dst; kfree(m->path); m->path = strdup(k == 0 ? "/dev" : k == 1 ? "/proc" : "/tmp"); }
+            if (m) { if (m->mp) iput(m->mp); m->mp = dst; kfree(m->path); char kp[8]; snprintf(kp, sizeof kp, "/%s", keep[k]); m->path = strdup(kp); }
             else mount_record(src, dst, nullptr, k == 0 ? "devtmpfs" : "tmpfs", k == 0 ? "/dev" : "/tmp", k == 0 ? "devtmpfs" : "tmpfs", 0);
         } else iput(dst);
         iput(src);
