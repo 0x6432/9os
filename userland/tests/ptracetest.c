@@ -1,7 +1,8 @@
 /* ptrace(2) (M33): TRACEME/ATTACH/SEIZE, PEEK/POKE, register sets, syscall stops with
  * TRACESYSGOOD + PTRACE_GET_SYSCALL_INFO, changing the syscall number, signal suppression and
  * injection with GETSIGINFO, fork/exec/exit events, auto-attach of forked children, software
- * breakpoints poked into text, single step (x86_64/aarch64), INTERRUPT, LISTEN, DETACH, KILL,
+ * breakpoints poked into text, single step (riscv64: in software), hardware watchpoints and
+ * breakpoints, INTERRUPT, LISTEN, DETACH, KILL,
  * EXITKILL, waitid CLD_TRAPPED and /proc/<pid>/status TracerPid. */
 #define _GNU_SOURCE
 #include <elf.h>
@@ -181,13 +182,13 @@ static void test_breakpoint(void) {
     CHECK(r[REG_PC] == a, "pc at brk %lx want %lx", (long)r[REG_PC], (long)a);
 #endif
     CHECK(ptrace(PTRACE_POKETEXT, c, (void *)a, (void *)orig) == 0, "restore text");
-#if defined(__x86_64__) || defined(__aarch64__)
+    /* single step through target_fn, its return and on (riscv64: software step in the kernel) */
     uint64_t pc0 = r[REG_PC];
-    int steps = 0;
-    for (; steps < 3; steps++) {
+    int steps = 0, exited = 0;
+    for (; steps < 24; steps++) {
         CHECK(ptrace(PTRACE_SINGLESTEP, c, 0, 0) == 0, "SINGLESTEP");
         sig = wstop(c, &st);
-        if (sig != SIGTRAP) break;
+        if (sig != SIGTRAP) { exited = WIFEXITED(st); break; }
         siginfo_t si;
         ptrace(PTRACE_GETSIGINFO, c, 0, &si);
         CHECK(si.si_code == TRAP_TRACE, "step si_code %d", si.si_code);
@@ -195,12 +196,95 @@ static void test_breakpoint(void) {
         CHECK(r[REG_PC] != pc0, "step pc %lx", (long)r[REG_PC]);
         pc0 = r[REG_PC];
     }
-    CHECK(steps == 3, "single steps done=%d sig=%d", steps, sig);
-#else
-    CHECK(ptrace(PTRACE_SINGLESTEP, c, 0, 0) == -1 && errno == EIO, "riscv64 SINGLESTEP -> EIO");
-#endif
+    CHECK(steps >= 8 && (steps == 24 || exited), "single steps done=%d sig=%d st=%x", steps, sig, st);
+    if (exited) { CHECK(WEXITSTATUS(st) == 0, "stepped child exit %d", WEXITSTATUS(st)); return; }
     ptrace(PTRACE_CONT, c, 0, 0);
     CHECK(waitpid(c, &st, 0) == c && WIFEXITED(st) && WEXITSTATUS(st) == 0, "bp child exit st=%x", st);
+}
+
+/* 2b: hardware watchpoint + breakpoint (x86_64 debug registers, aarch64/riscv64 regsets) */
+volatile long watched;
+#ifndef NT_ARM_HW_BREAK
+#define NT_ARM_HW_BREAK 0x402
+#define NT_ARM_HW_WATCH 0x403
+#endif
+struct hwdbg { uint32_t info, pad; struct { uint64_t addr; uint32_t ctrl, pad; } r[16]; };
+static int hw_set(pid_t c, int type, uint64_t addr, uint32_t ctrl) {
+#if defined(__x86_64__)
+    (void)c; (void)type; (void)addr; (void)ctrl; return -1;
+#else
+    struct hwdbg h; memset(&h, 0, sizeof h);
+    h.r[0].addr = addr; h.r[0].ctrl = ctrl;
+    struct iovec iov = { &h, 8 + 16 };
+    return ptrace(PTRACE_SETREGSET, c, (void *)(long)type, &iov) ? -errno : 0;
+#endif
+}
+static void test_hw(void) {
+    pid_t c = fork();
+    if (!c) {
+        ptrace(PTRACE_TRACEME, 0, 0, 0);
+        raise(SIGSTOP);
+        watched = 5;                     /* watchpoint */
+        int v = target_fn(watched);      /* breakpoint */
+        _exit(v == 16 ? 0 : 1);
+    }
+    int st;
+    CHECK(wstop(c, &st) == SIGSTOP, "hw: first stop");
+    uintptr_t wa = (uintptr_t)&watched, ba = (uintptr_t)target_fn;
+    siginfo_t si;
+    uint64_t r[NREGS];
+#if defined(__x86_64__)
+    CHECK(ptrace(PTRACE_POKEUSER, c, (void *)(848 + 0 * 8), (void *)wa) == 0, "DR0");
+    CHECK(ptrace(PTRACE_POKEUSER, c, (void *)(848 + 7 * 8), (void *)(1L | 1L << 16 | 3L << 18)) == 0, "DR7 write watch");
+    CHECK(ptrace(PTRACE_POKEUSER, c, (void *)(848 + 7 * 8), (void *)(1L | 2L << 16)) == -1 && errno == EIO, "DR7 I/O rejected");
+    CHECK(ptrace(PTRACE_POKEUSER, c, (void *)(848 + 7 * 8), (void *)(1L | 1L << 16 | 3L << 18)) == 0, "DR7 again");
+    errno = 0;
+    CHECK(ptrace(PTRACE_PEEKUSER, c, (void *)(848 + 0 * 8), 0) == (long)wa && !errno, "PEEKUSER DR0");
+#else
+    struct hwdbg h; memset(&h, 0, sizeof h);
+    struct iovec iov = { &h, sizeof h };
+    CHECK(ptrace(PTRACE_GETREGSET, c, (void *)NT_ARM_HW_WATCH, &iov) == 0, "GETREGSET HW_WATCH");
+    int nw = h.info & 0xff;
+    iov.iov_len = sizeof h;
+    ptrace(PTRACE_GETREGSET, c, (void *)NT_ARM_HW_BREAK, &iov);
+    int nb = h.info & 0xff;
+    if (!nw || !nb) {
+        printf("ptracetest: no hardware breakpoints (%d/%d slots), skipped\n", nb, nw);
+        kill(c, SIGKILL); waitpid(c, &st, 0);
+        return;
+    }
+    CHECK(hw_set(c, NT_ARM_HW_WATCH, wa, 1 | 2 << 1 | 2 << 3 | 0xff << 5) == 0, "set watchpoint");
+    CHECK(hw_set(c, NT_ARM_HW_WATCH, wa, 1 | 1 << 1 | 2 << 3 | 0xff << 5) == -EINVAL, "EL1 watchpoint rejected");
+    CHECK(hw_set(c, NT_ARM_HW_WATCH, wa, 1 | 2 << 1 | 2 << 3 | 0xff << 5) == 0, "set watchpoint again");
+#endif
+    ptrace(PTRACE_CONT, c, 0, 0);
+    int sig = wstop(c, &st);
+    CHECK(sig == SIGTRAP, "watchpoint SIGTRAP got %d", sig);
+    memset(&si, 0, sizeof si);
+    ptrace(PTRACE_GETSIGINFO, c, 0, &si);
+    CHECK(si.si_code == TRAP_HWBKPT && (uintptr_t)si.si_addr == wa, "watch si_code %d addr %p want %lx", si.si_code, si.si_addr, (long)wa);
+#if defined(__x86_64__)
+    CHECK(ptrace(PTRACE_PEEKUSER, c, (void *)(848 + 6 * 8), 0) & 1, "DR6.B0");
+    CHECK(ptrace(PTRACE_POKEUSER, c, (void *)(848 + 1 * 8), (void *)ba) == 0, "DR1");
+    CHECK(ptrace(PTRACE_POKEUSER, c, (void *)(848 + 7 * 8), (void *)(1L << 2)) == 0, "DR7 exec bp");
+#else
+    hw_set(c, NT_ARM_HW_WATCH, 0, 0);                 /* the access re-executes: disarm first */
+    CHECK(hw_set(c, NT_ARM_HW_BREAK, ba, 1 | 2 << 1 | 0xf << 5) == 0, "set breakpoint");
+#endif
+    ptrace(PTRACE_CONT, c, 0, 0);
+    sig = wstop(c, &st);
+    CHECK(sig == SIGTRAP, "hw breakpoint SIGTRAP got %d", sig);
+    memset(&si, 0, sizeof si);
+    ptrace(PTRACE_GETSIGINFO, c, 0, &si);
+    getregs(c, r);
+    CHECK(si.si_code == TRAP_HWBKPT && r[REG_PC] == ba, "bp si_code %d pc %lx want %lx", si.si_code, (long)r[REG_PC], (long)ba);
+#if defined(__x86_64__)
+    ptrace(PTRACE_POKEUSER, c, (void *)(848 + 7 * 8), 0);
+#else
+    hw_set(c, NT_ARM_HW_BREAK, 0, 0);
+#endif
+    ptrace(PTRACE_CONT, c, 0, 0);
+    CHECK(waitpid(c, &st, 0) == c && WIFEXITED(st) && WEXITSTATUS(st) == 0, "hw child exit st=%x", st);
 }
 
 /* 3: fork/exec/exit events and auto-attached children */
@@ -314,6 +398,7 @@ int main(int argc, char **argv) {
     if (argc > 1 && !strcmp(argv[1], "-x")) { test_exitkill(); return fails != 0; }
     test_basic();      fprintf(stderr, "ptracetest: basic done\n");
     test_breakpoint(); fprintf(stderr, "ptracetest: breakpoint done\n");
+    test_hw();         fprintf(stderr, "ptracetest: hw done\n");
     test_events();     fprintf(stderr, "ptracetest: events done\n");
     test_seize();      fprintf(stderr, "ptracetest: seize done\n");
     test_exitkill();   fprintf(stderr, "ptracetest: exitkill done\n");
