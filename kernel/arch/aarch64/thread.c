@@ -65,5 +65,12 @@ void arch_switch_to(struct thread *prev, struct thread *next) {
     arch_switch_mm(prev, next);
     sysreg_write(tpidr_el0, next->arch.tpidr);
     fp_restore(next->arch.fpu);
+    {   /* ptrace single step: MDSCR_EL1.SS follows the thread */
+        uint64_t m = sysreg_read(mdscr_el1);
+        if ((m & 1) != (uint64_t)next->pt_step) {
+            sysreg_write(mdscr_el1, next->pt_step ? m | 1 : m & ~1ULL);
+            __asm__ volatile("isb" ::: "memory");
+        }
+    }
     a64_switch_stack(&prev->arch.sp, next->arch.sp);
 }

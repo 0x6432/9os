@@ -341,9 +341,15 @@ static void bprintf(struct buf *b, const char *fmt, ...) {
     b->len += n;
 }
 
+static int tracer_pid(struct process *p) {
+    if (list_empty(&p->threads)) return 0;
+    struct process *tr = list_entry(p->threads.next, struct thread, proc_node)->ptracer;
+    return tr ? tr->pid : 0;
+}
 static char pstate(struct process *p) {
     if (p->state == P_ZOMBIE) return 'Z';
     if (p->stopped) return 'T';
+    if (!list_empty(&p->threads) && list_entry(p->threads.next, struct thread, proc_node)->pt_stopped) return 't';
     list_for_each(it, &p->threads) {
         struct thread *t = list_entry(it, struct thread, proc_node);
         if (t->state == T_RUNNING || t->state == T_RUNNABLE) return 'R';
@@ -497,9 +503,9 @@ static void gen(struct pinfo *pi, struct buf *b) {
     case F_STATUS: {
         char credbuf[1024];
         cred_proc_status(p, credbuf, sizeof credbuf);
-        bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\n%sVmSize:\t%8lu kB\nVmLck:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
+        bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nTracerPid:\t%d\n%sVmSize:\t%8lu kB\nVmLck:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
                    "voluntary_ctxt_switches:\t%lu\nnonvoluntary_ctxt_switches:\t%lu\n",
-                p->name, pstate(p), p->pid, p->pid, p->parent ? p->parent->pid : 0,
+                p->name, pstate(p), p->pid, p->pid, p->parent ? p->parent->pid : 0, tracer_pid(p),
                 credbuf, vm_size(p) >> 10, p->mm ? p->mm->locked_vm >> 10 : 0, vm_rss(p) * (PAGE_SIZE / 1024),
                 nthreads(p), p->nvcsw, p->nivcsw);
         break;

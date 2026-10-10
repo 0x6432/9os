@@ -32,6 +32,7 @@
 void ptrace_fork_attach(struct thread *child, uint64_t flags, int exit_signal);
 void ptrace_fork_event(uint64_t flags, int exit_signal, int child_tid);
 void ptrace_exit_event(int status);
+void ptrace_vfork_done(int child_tid);
 void ptrace_thread_gone(struct thread *t, struct process *p, int status);
 void ptrace_tracer_exit(struct process *p);
 int ptrace_wait(struct process *self, int idtype, int id, int options, struct wait_result *res);
@@ -221,6 +222,7 @@ int process_fork_ex(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *p
     if (current->ptracer && !(flags & CLONE_UNTRACED)) ptrace_fork_event(flags, exit_signal, tid);
     if (flags & CLONE_VFORK) {
         while (!vd.done) wait_event(&vd.wq);
+        if (current->ptracer) ptrace_vfork_done(tid);
     }
     return tid;
 }

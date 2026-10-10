@@ -244,6 +244,8 @@ __noreturn void a64_ap_entry(struct limine_mp_info *info) {
     c->arch_data[1] = 1;
     arch_set_current(c->idle);
     sysreg_write(vbar_el1, (uint64_t)exception_vectors);
+    sysreg_write(oslar_el1, 0);         /* unlock the OS lock: debug exceptions (ptrace step) */
+    sysreg_write(mdscr_el1, 0);
     isb();
     c->arch_data[1] = 2;
     a64_ap_mmu_init();
@@ -346,6 +348,8 @@ static void acpi_discover(void) {
 void arch_early_init(void) {
     sysreg_write(vbar_el1, (uint64_t)exception_vectors);
     sysreg_write(cpacr_el1, sysreg_read(cpacr_el1) | (3UL << 20));   /* FP/SIMD at EL0/EL1 */
+    sysreg_write(oslar_el1, 0);         /* unlock the OS lock: debug exceptions (ptrace step) */
+    sysreg_write(mdscr_el1, 0);
     isb();
 }
 

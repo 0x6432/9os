@@ -34,6 +34,7 @@ void idt_load(void) {
 
 void idt_init(void) {
     for (int v = 0; v < 256; v++) set_gate(v, isr_table[v], 0, 0);
+    set_gate(3, isr_table[3], 0, 3);   /* int3 from user mode (breakpoints) */
     idt[8].ist = 1;   /* #DF */
     idt[2].ist = 2;   /* NMI */
     idt_load();

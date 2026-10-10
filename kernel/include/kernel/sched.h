@@ -50,6 +50,7 @@ struct thread {
     struct list_node ptrace_node;  /* ptracer->tracees */
     uint32_t pt_opts;              /* PTRACE_O_* */
     bool pt_seized, pt_stopped, pt_reported, pt_interrupt, pt_listen;
+    bool pt_step;                  /* hardware single step armed (aarch64: MDSCR_EL1.SS on switch) */
     bool pt_icache;                /* text was poked: flush the I-cache before returning to user */
     int pt_mode;                   /* resume request: PTRACE_CONT / SYSCALL / SINGLESTEP */
     int pt_why;                    /* kind of the current stop (PT_STOP_*) */

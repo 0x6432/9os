@@ -39,6 +39,8 @@ int ptrace_signal_stop(struct trap_frame *f, struct ksiginfo *ki);    /* ptrace.
 void posix_timer_dequeued(struct process *p, struct ksiginfo *ki);
 bool ptrace_group_stop(int sig);
 void ptrace_kill_wake(struct process *p);
+void ptrace_cont_notify(struct process *p);
+void ptrace_interrupt_stop(void);
 
 /* ---- siginfo queues (M33) ----
  * sig_pending stays the authoritative bitmask. Standard signals keep one record each (a
@@ -151,7 +153,7 @@ static uint64_t deliverable(struct thread *t) {
     return (t->sig_pending | t->proc->sig_pending) & (~t->sig_mask | UNBLOCKABLE);
 }
 
-bool signal_pending(struct thread *t) { return t->killed || deliverable(t) != 0; }
+bool signal_pending(struct thread *t) { return t->killed || t->pt_interrupt || deliverable(t) != 0; }
 
 static void kick_thread(struct thread *t) { thread_interrupt(t); }
 
@@ -177,6 +179,7 @@ void signal_send_info(struct process *p, const struct ksiginfo *ki) {
         sigq_discard(&p->sig_pending, &p->sigq, STOP_SIGS);
         continue_process(p);
         if (sig == SIGKILL) ptrace_kill_wake(p);
+        else ptrace_cont_notify(p);
     }
     if (bit & STOP_SIGS) p->sig_pending &= ~SIGBIT(SIGCONT);
     /* like Linux, a signal blocked by the (first) thread is queued even if its default action
@@ -250,6 +253,17 @@ void signal_force_info(struct thread *t, int sig, int code, uint64_t addr) {
     t->sig_pending |= SIGBIT(sig);
     arch_irq_restore(f);
 }
+/* queue sig on thread t regardless of its disposition (ptrace: attach SIGSTOP, post-exec SIGTRAP);
+ * kick = false for a thread that is not running yet (fork) or is current */
+void signal_thread_queue(struct thread *t, int sig, int code, bool kick) {
+    struct ksiginfo ki;
+    ksiginfo_user(&ki, sig, code);
+    uint64_t f = arch_irq_save();
+    struct sigq_node *n = nullptr;
+    sigq_add(&t->sig_pending, &t->sigq, &ki, &n);
+    if (kick) kick_thread(t);
+    arch_irq_restore(f);
+}
 void signal_force(struct thread *t, int sig) { signal_force_info(t, sig, SI_KERNEL, 0); }
 
 /* SIGCHLD (or the clone3 exit signal) to the parent, with the child's wait status */
@@ -293,6 +307,14 @@ void signal_deliver(struct trap_frame *f) {
     struct thread *t = current;
     struct process *p = t->proc;
     if (t->killed) thread_exit_only();
+    if (t->pt_interrupt) {                          /* PTRACE_INTERRUPT: PTRACE_EVENT_STOP */
+        arch_irq_enable();
+        ptrace_interrupt_stop();
+        arch_irq_disable();
+        if (t->killed) thread_exit_only();
+        maybe_restart(f, t);
+        return;
+    }
     if (!deliverable(t)) return;
     struct ksiginfo ki;
     int sig = signal_dequeue(t, ~t->sig_mask | UNBLOCKABLE, &ki);

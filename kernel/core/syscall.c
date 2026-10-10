@@ -26,6 +26,7 @@ int64_t sys_clock_gettime();
 int64_t sys_clock_nanosleep();
 int64_t sys_clock_settime();
 int64_t sys_clone();
+int64_t sys_clone3();
 int64_t sys_close();
 int64_t sys_close_range();
 int64_t sys_connect();
@@ -59,6 +60,7 @@ int64_t sys_fstatfs();
 int64_t sys_fsync();
 int64_t sys_ftruncate();
 int64_t sys_futex();
+int64_t sys_get_robust_list();
 int64_t sys_getcpu();
 int64_t sys_getcwd();
 int64_t sys_getdents();
@@ -122,6 +124,9 @@ int64_t sys_open();
 int64_t sys_openat();
 int64_t sys_pause();
 int64_t sys_personality();
+int64_t sys_pidfd_getfd();
+int64_t sys_pidfd_open();
+int64_t sys_pidfd_send_signal();
 int64_t sys_pipe();
 int64_t sys_pipe2();
 int64_t sys_poll();
@@ -130,6 +135,7 @@ int64_t sys_prctl();
 int64_t sys_pread64();
 int64_t sys_prlimit64();
 int64_t sys_pselect6();
+int64_t sys_ptrace();
 int64_t sys_pwrite64();
 int64_t sys_read();
 int64_t sys_readlink();
@@ -148,9 +154,11 @@ int64_t sys_rseq();
 int64_t sys_rt_sigaction();
 int64_t sys_rt_sigpending();
 int64_t sys_rt_sigprocmask();
+int64_t sys_rt_sigqueueinfo();
 int64_t sys_rt_sigreturn();
 int64_t sys_rt_sigsuspend();
 int64_t sys_rt_sigtimedwait();
+int64_t sys_rt_tgsigqueueinfo();
 int64_t sys_sched_get_priority_max();
 int64_t sys_sched_get_priority_min();
 int64_t sys_sched_getaffinity();
@@ -201,6 +209,11 @@ int64_t sys_sysinfo();
 int64_t sys_syslog();
 int64_t sys_tgkill();
 int64_t sys_time();
+int64_t sys_timer_create();
+int64_t sys_timer_delete();
+int64_t sys_timer_getoverrun();
+int64_t sys_timer_gettime();
+int64_t sys_timer_settime();
 int64_t sys_timerfd_create();
 int64_t sys_timerfd_gettime();
 int64_t sys_timerfd_settime();
@@ -256,9 +269,6 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_ioctl
     [__NR_ioctl] = (syscall_fn)sys_ioctl,
-#endif
-#ifdef __NR_flock
-    [__NR_flock] = (syscall_fn)sys_zero,
 #endif
 #ifdef __NR_mknodat
     [__NR_mknodat] = (syscall_fn)sys_mknodat,
@@ -426,7 +436,7 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_set_robust_list] = (syscall_fn)sys_set_robust_list,
 #endif
 #ifdef __NR_get_robust_list
-    [__NR_get_robust_list] = (syscall_fn)sys_zero,
+    [__NR_get_robust_list] = (syscall_fn)sys_get_robust_list,
 #endif
 #ifdef __NR_nanosleep
     [__NR_nanosleep] = (syscall_fn)sys_nanosleep,
@@ -436,6 +446,21 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_setitimer
     [__NR_setitimer] = (syscall_fn)sys_setitimer,
+#endif
+#ifdef __NR_timer_create
+    [__NR_timer_create] = (syscall_fn)sys_timer_create,
+#endif
+#ifdef __NR_timer_gettime
+    [__NR_timer_gettime] = (syscall_fn)sys_timer_gettime,
+#endif
+#ifdef __NR_timer_getoverrun
+    [__NR_timer_getoverrun] = (syscall_fn)sys_timer_getoverrun,
+#endif
+#ifdef __NR_timer_settime
+    [__NR_timer_settime] = (syscall_fn)sys_timer_settime,
+#endif
+#ifdef __NR_timer_delete
+    [__NR_timer_delete] = (syscall_fn)sys_timer_delete,
 #endif
 #ifdef __NR_clock_settime
     [__NR_clock_settime] = (syscall_fn)sys_clock_settime,
@@ -451,6 +476,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_syslog
     [__NR_syslog] = (syscall_fn)sys_syslog,
+#endif
+#ifdef __NR_ptrace
+    [__NR_ptrace] = (syscall_fn)sys_ptrace,
 #endif
 #ifdef __NR_sched_setparam
     [__NR_sched_setparam] = (syscall_fn)sys_sched_setparam,
@@ -508,6 +536,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #endif
 #ifdef __NR_rt_sigtimedwait
     [__NR_rt_sigtimedwait] = (syscall_fn)sys_rt_sigtimedwait,
+#endif
+#ifdef __NR_rt_sigqueueinfo
+    [__NR_rt_sigqueueinfo] = (syscall_fn)sys_rt_sigqueueinfo,
 #endif
 #ifdef __NR_rt_sigreturn
     [__NR_rt_sigreturn] = (syscall_fn)sys_rt_sigreturn,
@@ -713,6 +744,9 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #ifdef __NR_madvise
     [__NR_madvise] = (syscall_fn)sys_madvise,
 #endif
+#ifdef __NR_rt_tgsigqueueinfo
+    [__NR_rt_tgsigqueueinfo] = (syscall_fn)sys_rt_tgsigqueueinfo,
+#endif
 #ifdef __NR_accept4
     [__NR_accept4] = (syscall_fn)sys_accept4,
 #endif
@@ -752,8 +786,20 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
 #ifdef __NR_rseq
     [__NR_rseq] = (syscall_fn)sys_rseq,
 #endif
+#ifdef __NR_pidfd_send_signal
+    [__NR_pidfd_send_signal] = (syscall_fn)sys_pidfd_send_signal,
+#endif
+#ifdef __NR_pidfd_open
+    [__NR_pidfd_open] = (syscall_fn)sys_pidfd_open,
+#endif
+#ifdef __NR_clone3
+    [__NR_clone3] = (syscall_fn)sys_clone3,
+#endif
 #ifdef __NR_close_range
     [__NR_close_range] = (syscall_fn)sys_close_range,
+#endif
+#ifdef __NR_pidfd_getfd
+    [__NR_pidfd_getfd] = (syscall_fn)sys_pidfd_getfd,
 #endif
 #ifdef __NR_faccessat2
     [__NR_faccessat2] = (syscall_fn)sys_faccessat2,
@@ -2051,6 +2097,8 @@ bool syscall_trace;
 static uint8_t warned[NR_SYSCALLS];
 
 void signal_deliver(struct trap_frame *f);
+int64_t ptrace_syscall_entry(struct trap_frame *f);
+void ptrace_syscall_exit(struct trap_frame *f);
 
 /* Runs with interrupts off, with or without the BKL; signal work takes it (recursively). */
 void user_return_work(struct trap_frame *f) {
@@ -2104,7 +2152,7 @@ uint64_t syscalls_lockfree, syscalls_locked;   /* /proc/stat-style counters (app
 
 void syscall_dispatch(struct trap_frame *f) {
     uint64_t nr = SC_NR(f);
-    if (nr < NR_SYSCALLS && lockfree[nr] && !syscall_trace) {
+    if (nr < NR_SYSCALLS && lockfree[nr] && !syscall_trace && !current->ptracer) {
         syscalls_lockfree++;
         current->last_syscall = nr;
         SC_SET_RET(f, syscall_table[nr](SC_ARG0(f), SC_ARG1(f), SC_ARG2(f), SC_ARG3(f), SC_ARG4(f), SC_ARG5(f)));
@@ -2118,6 +2166,13 @@ void syscall_dispatch(struct trap_frame *f) {
     if (!lockfree_ready) lockfree_init();
     current->last_syscall = nr;
     int64_t ret;
+    bool traced = current->ptracer;
+    if (traced) {                                    /* ptrace syscall-entry stop (ptrace.c) */
+        int64_t n = ptrace_syscall_entry(f);
+        if (n < 0) goto skipped;
+        nr = (uint64_t)n;
+        current->last_syscall = nr;
+    }
     if (nr < NR_SYSCALLS && syscall_table[nr]) {
         ret = syscall_table[nr](SC_ARG0(f), SC_ARG1(f), SC_ARG2(f), SC_ARG3(f), SC_ARG4(f), SC_ARG5(f));
         if (syscall_trace)
@@ -2131,7 +2186,9 @@ void syscall_dispatch(struct trap_frame *f) {
         ret = -ENOSYS;
     }
     SC_SET_RET(f, ret);
+skipped:
     if (current->nborrow) fd_borrow_release();
+    if (traced) ptrace_syscall_exit(f);              /* syscall-exit stop / step report */
     arch_irq_disable();
     user_return_work(f);
     bkl_exit();
