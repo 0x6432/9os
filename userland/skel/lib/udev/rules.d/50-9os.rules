@@ -1,0 +1,5 @@
+# 9os default rules (udevshim). Syntax follows udev(7); see docs/HANDOFF.md M34.
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT}=="1", TAG+="seat", TAG+="uaccess"
+SUBSYSTEM=="drm", KERNEL=="card*", TAG+="seat", TAG+="master-of-seat"
+SUBSYSTEM=="graphics", KERNEL=="fb*", TAG+="seat"
+KERNEL=="null|zero|full|random|urandom|tty|ptmx", MODE="0666"

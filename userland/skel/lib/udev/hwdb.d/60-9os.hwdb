@@ -1,0 +1,7 @@
+# 9os sample hwdb: matched against "evdev:input:b<bus>v<vendor>p<product>e<version>-*"
+# and "pci:v<vendor>d<device>*" modaliases.
+evdev:input:b0006v0627p*
+ ID_INPUT_VIRTIO=1
+
+pci:v00001AF4d*
+ ID_VENDOR_FROM_DATABASE=Red Hat, Inc.

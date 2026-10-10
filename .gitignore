@@ -12,3 +12,5 @@ userland/root-*/
 !userland/skel/etc/init.d/
 third_party/uACPI
 third_party/limine-bin
+!userland/skel/**/*.d/
+!userland/skel/**/*.d/**
