@@ -628,11 +628,38 @@ static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
 }
 int futex_wake(uint32_t *uaddr, int n) { return futex_wake_mm(curproc->mm, uaddr, n); }
 
-static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns) {
+/* M33: shared futexes (no FUTEX_PRIVATE_FLAG) in MAP_SHARED file/shmem mappings are keyed by
+ * (inode, file offset) so that waiters in different processes meet; the (mm, addr) pair of a
+ * waiter is an opaque key here: mm = inode | 1, addr = offset. Everything else keys by mm + address. */
+struct futex_key { struct mm *mm; uint32_t *addr; };
+static struct futex_key futex_key_of(uint32_t *uaddr, bool shared) {
     struct mm *mm = curproc->mm;
+    struct futex_key k = { mm, uaddr };
+    if (!shared) return k;
+    mm_lock(mm);
+    struct vma *v = vma_find(mm, (vaddr_t)uaddr);
+    if (v && (vaddr_t)uaddr >= v->start && (v->flags & VMA_SHARED) && v->file && v->file->inode) {
+        uint64_t off = (v->pgoff << PAGE_SHIFT) + ((vaddr_t)uaddr - v->start);
+        k.mm = (struct mm *)((uintptr_t)v->file->inode | 1);
+        k.addr = (uint32_t *)(uintptr_t)off;
+    }
+    mm_unlock(mm);
+    return k;
+}
+/* robust futex owner death: wake under both keys (the waiter may use either flavour) */
+int futex_wake_any(uint32_t *uaddr, int n) {
+    struct futex_key k = futex_key_of(uaddr, true);
+    int r = futex_wake_mm(k.mm, k.addr, n);
+    if (k.mm != curproc->mm && r < n) r += futex_wake_mm(curproc->mm, uaddr, n - r);
+    return r;
+}
+
+static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns, bool shared) {
     if ((uintptr_t)uaddr & 3) return -EINVAL;
-    struct futex_bucket *b = futex_bucket(mm, uaddr);
-    struct futex_waiter w = { .mm = mm, .addr = uaddr };
+    struct futex_key key = futex_key_of(uaddr, shared);
+    struct mm *mm = key.mm;
+    struct futex_bucket *b = futex_bucket(mm, key.addr);
+    struct futex_waiter w = { .mm = mm, .addr = key.addr };
     wait_queue_init(&w.wq);
     uint64_t f = fb_lock(b);
     uint32_t cur;
@@ -665,6 +692,7 @@ static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns) {
 
 int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *uts, uint32_t *uaddr2, uint32_t val3) {
     int cmd = op & 0x7f;    /* FUTEX_PRIVATE_FLAG (128) / CLOCK_REALTIME (256) masked off */
+    bool shared = !(op & 128);
     switch (cmd) {
     case 0: case 9: {    /* FUTEX_WAIT, FUTEX_WAIT_BITSET */
         uint64_t ns = UINT64_MAX;
@@ -679,11 +707,11 @@ int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *
                 ns = ns > now ? ns - now : 0;
             }
         }
-        return futex_wait(uaddr, val, ns);
+        return futex_wait(uaddr, val, ns, shared);
     }
     case 1: case 10:     /* FUTEX_WAKE(_BITSET) */
         if (cmd == 10 && !val3) return -EINVAL;
-        return futex_wake(uaddr, (int)MIN(val, (uint32_t)INT32_MAX));
+        { struct futex_key k = futex_key_of(uaddr, shared); return futex_wake_mm(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX)); }
     case 3: case 4: {    /* FUTEX_REQUEUE / CMP_REQUEUE: wake val, then wake (instead of move) the rest */
         if (cmd == 4) {
             struct futex_bucket *b = futex_bucket(curproc->mm, uaddr);
@@ -693,9 +721,10 @@ int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *
             fb_unlock(b, f);
             if (e) return e;
         }
-        int n = futex_wake(uaddr, (int)MIN(val, (uint32_t)INT32_MAX));
+        struct futex_key k = futex_key_of(uaddr, shared);
+        int n = futex_wake_mm(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX));
         int lim = (int)MIN((uint64_t)(uintptr_t)uts, (uint64_t)INT32_MAX);    /* val2 travels in the timeout slot */
-        return n + futex_wake(uaddr, lim);     /* "requeued" waiters see a spurious wakeup */
+        return n + futex_wake_mm(k.mm, k.addr, lim);     /* "requeued" waiters see a spurious wakeup */
     }
     default: return -ENOSYS;
     }

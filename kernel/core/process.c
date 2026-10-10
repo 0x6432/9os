@@ -50,6 +50,7 @@ void arch_thread_init_user(struct thread *t);
 void arch_thread_copy_fpu(struct thread *dst, struct thread *src);
 void arch_set_tls(struct thread *t, uint64_t v);
 int futex_wake(uint32_t *uaddr, int n);
+int futex_wake_any(uint32_t *uaddr, int n);
 
 struct process *process_find(int pid) {
     list_for_each(it, &all_procs) {
@@ -252,7 +253,7 @@ static void robust_futex_death(struct thread *t, uint64_t uaddr) {
     if ((v & FUTEX_TID_MASK) != (uint32_t)t->tid) return;
     uint32_t nv = (v & FUTEX_WAITERS) | FUTEX_OWNER_DIED;
     if (copy_to_user((void *)uaddr, &nv, 4)) return;
-    futex_wake((uint32_t *)uaddr, 1);
+    futex_wake_any((uint32_t *)uaddr, 1);
 }
 void robust_list_exit(struct thread *t) {
     uint64_t head = t->robust_list;
