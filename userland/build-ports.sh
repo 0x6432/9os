@@ -3,7 +3,7 @@
 set -e
 D=$(cd "$(dirname "$0")" && pwd)
 # dependency order
-ALL="lua sqlite libffi expat wayland wltest wayland-protocols pixman libxkbcommon libdrm wlkms xkeyboard-config libudev-zero libevdev mtdev libinput seatd inputtest"
+ALL="lua sqlite libffi expat wayland wltest wayland-protocols pixman libxkbcommon libdrm wlkms xkeyboard-config libudev-zero libevdev mtdev check libinput seatd inputtest"
 for p in ${PORTS:-$ALL}; do
     echo "== port $p ($ARCH)"; sh "$D/ports/$p.sh"
 done
