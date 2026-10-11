@@ -766,3 +766,871 @@ void drm_console_reclaim(void) {
     if (shown.on) { show_console(); reclaimed = true; }
     mutex_unlock(&kms);
 }
+
+/* ------------------------------------------------------------------ events, vblank */
+static void queue_event(struct dfile *f, uint32_t type, uint64_t user_data) {
+    struct devent *e = kzalloc(sizeof *e);
+    if (!e) return;
+    uint64_t ns = time_ns();
+    struct { uint32_t type, length; uint64_t user_data; uint32_t sec, usec, seq, crtc; } ev =
+        { type, 32, user_data, (uint32_t)(ns / 1000000000ull), (uint32_t)(ns % 1000000000ull / 1000),
+          __atomic_load_n(&vblank_seq, __ATOMIC_RELAXED), ID_CRTC };
+    memcpy(e->data, &ev, 32); e->len = 32;
+    uint64_t fl = spin_lock_irqsave(&evlock);
+    list_add_tail(&f->events, &e->node); f->nevents++;
+    spin_unlock_irqrestore(&evlock, fl);
+    poll_notify();
+}
+
+static void vblank_thread(void *arg) {
+    (void)arg;
+    const uint64_t period = 16666667ull;
+    uint64_t next = time_ns() + period;
+    for (;;) {
+        uint64_t now = time_ns();
+        if (next > now) sleep_ns(next - now);
+        next += period;
+        if (next < time_ns()) next = time_ns() + period;    /* fell behind: resync, don't burst */
+        mutex_lock(&kms);
+        __atomic_add_fetch(&vblank_seq, 1, __ATOMIC_RELAXED);
+        list_for_each_safe(it, tmp, &vbl_waits) {
+            struct vbl_wait *w = list_entry(it, struct vbl_wait, node);
+            if ((int32_t)(vblank_seq - w->target) < 0) continue;
+            list_del(&w->node);
+            queue_event(w->f, 1 /* DRM_EVENT_VBLANK */, w->user_data);
+            kfree(w);
+        }
+        list_for_each_safe(it, tmp, &ev_waits) {
+            struct ev_wait *w = list_entry(it, struct ev_wait, node);
+            list_del(&w->node);
+            queue_event(w->f, w->type, w->user_data);
+            kfree(w);
+        }
+        complete_pending();
+        mutex_unlock(&kms);
+    }
+}
+
+/* ------------------------------------------------------------------ GEM, framebuffers */
+static int create_dumb(struct dfile *f, void *arg) {
+    struct { uint32_t height, width, bpp, flags, handle, pitch; uint64_t size; } c;
+    if (copy_from_user(&c, arg, sizeof c)) return -EFAULT;
+    if (c.flags || !c.width || !c.height || c.width > 8192 || c.height > 8192 || !c.bpp || c.bpp > 32) return -EINVAL;
+    uint32_t pitch = ALIGN_UP(c.width * ((c.bpp + 7) / 8), 64);
+    size_t size = ALIGN_UP((size_t)pitch * c.height, PAGE_SIZE);
+    struct gem *g = kzalloc(sizeof *g);
+    if (!g) return -ENOMEM;
+    g->npages = size / PAGE_SIZE; g->size = size; g->refs = 0;
+    g->pages = kzalloc(g->npages * sizeof(paddr_t));
+    if (!g->pages) { kfree(g); return -ENOMEM; }
+    list_add_tail(&gems, &g->node);
+    for (size_t i = 0; i < g->npages; i++) {
+        g->pages[i] = pmm_alloc_zeroed(0);
+        if (!g->pages[i]) { g->refs = 1; gem_put(g); return -ENOMEM; }
+        phys_to_page(g->pages[i])->refcount = 1;
+    }
+    uint32_t h;
+    int r = handle_new(f, g, &h);
+    if (r) { g->refs = 1; gem_put(g); return r; }
+    c.handle = h; c.pitch = pitch; c.size = size;
+    return copy_to_user(arg, &c, sizeof c);
+}
+static int handle_close(struct dfile *f, uint32_t h) {
+    struct gem *g = handle_gem(f, h);
+    if (!g) return -EINVAL;
+    f->handles[h - 1] = nullptr;
+    gem_put(g);
+    return 0;
+}
+static int add_fb(struct dfile *f, uint32_t w, uint32_t h, uint32_t pitch, uint32_t offset, uint32_t format, uint32_t handle,
+                  bool internal, uint32_t *id) {
+    struct gem *g = handle_gem(f, handle);
+    if (!g) return -ENOENT;
+    if (format != FMT_XRGB8888 && format != FMT_ARGB8888) return -EINVAL;
+    if (!w || !h || w > 8192 || h > 8192 || pitch < w * 4 || (pitch | offset) & 3 ||
+        (uint64_t)offset + (uint64_t)pitch * h > g->size) return -EINVAL;
+    for (int i = 0; i < MAX_FB; i++) if (!fbs[i]) {
+        struct dfb *fb = kzalloc(sizeof *fb);
+        if (!fb) return -ENOMEM;
+        *fb = (struct dfb){ .id = next_id++, .owner = internal ? nullptr : f, .bo = g, .w = w, .h = h, .pitch = pitch,
+                            .offset = offset, .format = format, .internal = internal };
+        gem_get(g);
+        fbs[i] = fb;
+        *id = fb->id;
+        return 0;
+    }
+    return -ENOSPC;
+}
+static struct dfb *own_fb(struct dfile *f, uint32_t id) {
+    struct dfb *fb = fb_lookup(id);
+    return fb && fb->owner == f ? fb : nullptr;
+}
+
+/* ------------------------------------------------------------------ PRIME (dma-buf fds) */
+static int dmabuf_mmap_page(struct file *file, uint64_t pgoff, paddr_t *pa) {
+    struct gem *g = file->priv;
+    if (pgoff >= g->npages) return -EINVAL;
+    *pa = g->pages[pgoff];
+    return 0;
+}
+static int dmabuf_ioctl(struct file *file, uint64_t cmd, uint64_t arg) {
+    (void)file;
+    switch (cmd) {
+    case 0x40086200: {                                     /* DMA_BUF_IOCTL_SYNC */
+        uint64_t fl;
+        if (copy_from_user(&fl, (void *)arg, 8)) return -EFAULT;
+        if ((fl & ~7ull) || !(fl & 3)) return -EINVAL;     /* READ|WRITE, END; caches are coherent */
+        return 0;
+    }
+    case 0x40086201: case 0x40046201: return 0;            /* DMA_BUF_SET_NAME */
+    }
+    return -ENOTTY;
+}
+static unsigned dmabuf_poll(struct file *file) { (void)file; return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM; }
+static void dmabuf_release(struct file *file) {
+    struct gem *g = file->priv;
+    bool lk = !mutex_owned(&kms);                          /* a failed export closes it under the lock */
+    if (lk) mutex_lock(&kms);
+    if (g->dmabuf == file) g->dmabuf = nullptr;
+    gem_put(g);
+    if (lk) mutex_unlock(&kms);
+}
+static const struct file_ops dmabuf_ops = {
+    .ioctl = dmabuf_ioctl, .poll = dmabuf_poll, .release = dmabuf_release, .mmap_page = dmabuf_mmap_page,
+};
+static int prime_export(struct dfile *f, uint32_t handle, uint32_t flags, int32_t *fd) {
+    struct gem *g = handle_gem(f, handle);
+    if (!g) return -ENOENT;
+    if (flags & ~(uint32_t)(O_CLOEXEC | O_ACCMODE)) return -EINVAL;
+    struct file *df;
+    if (g->dmabuf && file_get_live(g->dmabuf)) df = g->dmabuf;
+    else {
+        struct inode *i = inode_alloc(S_IFREG | 0600);
+        if (!i) return -ENOMEM;
+        i->nlink = 0; i->fops = &dmabuf_ops; i->priv = g; i->size = g->size;
+        df = file_open_inode(i, O_RDWR);
+        iput(i);
+        if (!df) return -ENOMEM;
+        df->priv = g; gem_get(g); g->dmabuf = df;
+    }
+    int r = fd_alloc(df, 0, flags & O_CLOEXEC);
+    if (r < 0) { vfs_close(df); return r; }
+    *fd = r;
+    return 0;
+}
+static int prime_import(struct dfile *f, int32_t fd, uint32_t *handle) {
+    struct file *df = fd_get(fd);
+    if (!df) return -EBADF;
+    if (df->fops != &dmabuf_ops) return -EINVAL;
+    return handle_new(f, df->priv, handle);
+}
+
+/* ------------------------------------------------------------------ ioctls */
+static int put_ids(uint64_t uptr, uint32_t ucount, const uint32_t *ids, uint32_t n) {
+    if (uptr && ucount >= n && n && copy_to_user((void *)uptr, ids, n * 4)) return -EFAULT;
+    return 0;
+}
+static int put_props(struct dfile *f, uint32_t id, uint64_t ids_ptr, uint64_t vals_ptr, uint32_t *count) {
+    uint32_t ids[P_COUNT];
+    uint64_t vals[P_COUNT];
+    uint32_t n = list_props(f, id, ids, vals);
+    if (*count >= n && n && ((ids_ptr && copy_to_user((void *)ids_ptr, ids, n * 4)) ||
+                             (vals_ptr && copy_to_user((void *)vals_ptr, vals, n * 8)))) return -EFAULT;
+    *count = n;
+    return 0;
+}
+static bool is_master(struct dfile *f) { return master == f; }
+
+#define MAX_ATOMIC_OBJS 64
+#define MAX_ATOMIC_PROPS 512
+static int atomic_ioctl(struct dfile *f, void *arg) {
+    struct { uint32_t flags, count_objs; uint64_t objs, count_props, props, values, reserved, user_data; } a;
+    if (copy_from_user(&a, arg, sizeof a)) return -EFAULT;
+    if (!f->atomic) return -EINVAL;
+    if (a.flags & ~(uint32_t)(ATOMIC_EVENT | ATOMIC_TEST_ONLY | ATOMIC_NONBLOCK | ATOMIC_ALLOW_MODESET)) return -EINVAL;
+    if (a.reserved || ((a.flags & ATOMIC_TEST_ONLY) && (a.flags & ATOMIC_EVENT))) return -EINVAL;
+    if (a.count_objs > MAX_ATOMIC_OBJS) return -EINVAL;
+    uint32_t objs[MAX_ATOMIC_OBJS], cnt[MAX_ATOMIC_OBJS], total = 0;
+    if (a.count_objs && (copy_from_user(objs, (void *)a.objs, a.count_objs * 4) ||
+                         copy_from_user(cnt, (void *)a.count_props, a.count_objs * 4))) return -EFAULT;
+    for (uint32_t i = 0; i < a.count_objs; i++) {
+        if (cnt[i] > MAX_ATOMIC_PROPS || total + cnt[i] > MAX_ATOMIC_PROPS) return -EINVAL;
+        total += cnt[i];
+    }
+    uint32_t *pids = kmalloc(total * 4 + 4);
+    uint64_t *vals = kmalloc(total * 8 + 8);
+    int r = 0;
+    if (!pids || !vals) { r = -ENOMEM; goto out; }
+    if (total && (copy_from_user(pids, (void *)a.props, total * 4) || copy_from_user(vals, (void *)a.values, total * 8))) {
+        r = -EFAULT; goto out;
+    }
+    if (!(a.flags & ATOMIC_TEST_ONLY) && (r = wait_idle(a.flags & ATOMIC_NONBLOCK))) goto out;
+    struct kms_st n = st_dup(pend.pending ? &pend.st : &st);
+    for (uint32_t i = 0, k = 0; i < a.count_objs && !r; i++) {
+        uint32_t t = obj_type(objs[i]);
+        if (t != OBJ_CONNECTOR && t != OBJ_CRTC && t != OBJ_PLANE) { r = -ENOENT; break; }
+        for (uint32_t j = 0; j < cnt[i] && !r; j++, k++) {
+            int p = (int)pids[k] - 1;
+            if (p < 0 || p >= P_COUNT || !obj_has_prop(objs[i], p)) r = -ENOENT;
+            else r = set_prop(&n, objs[i], p, vals[k], false);
+        }
+    }
+    if (r) st_put(&n);
+    else r = commit(f, &n, a.flags, a.user_data);
+out:
+    kfree(pids); kfree(vals);
+    return r;
+}
+
+/* legacy SETCRTC */
+static int setcrtc(struct dfile *f, void *arg) {
+    struct { uint64_t conn_ptr; uint32_t nconn, crtc_id, fb_id, x, y, gamma_size, mode_valid; struct drm_modeinfo mode; } c;
+    if (copy_from_user(&c, arg, sizeof c)) return -EFAULT;
+    if (c.crtc_id != ID_CRTC) return -ENOENT;
+    if (c.mode_valid) {
+        if (!c.nconn) return -EINVAL;
+        for (uint32_t i = 0; i < c.nconn; i++) {
+            uint32_t id;
+            if (copy_from_user(&id, (void *)(uintptr_t)(c.conn_ptr + 4ull * i), 4)) return -EFAULT;
+            if (id != ID_CONNECTOR) return -ENOENT;
+        }
+    } else if (c.fb_id) return -EINVAL;
+    int r = wait_idle(false);
+    if (r) return r;
+    uint32_t fbid = c.fb_id == 0xffffffffu ? st.pl[0].fb : c.fb_id;
+    if (c.mode_valid && !fb_lookup(fbid)) return -ENOENT;
+    struct kms_st n = st_dup(&st);
+    if (!c.mode_valid) {
+        n.active = n.enable = false; n.conn_crtc = 0;
+        blob_put(n.mode_blob); n.mode_blob = 0;
+        n.pl[0] = n.pl[1] = (struct plane_st){ 0 };
+    } else {
+        uint32_t b;
+        if ((r = blob_new(nullptr, &c.mode, sizeof c.mode, &b))) { st_put(&n); return r; }
+        blob_put(n.mode_blob);
+        n.mode_blob = b; n.mode = c.mode; n.enable = n.active = true; n.conn_crtc = ID_CRTC;
+        n.pl[0] = (struct plane_st){ .fb = fbid, .crtc = ID_CRTC, .src_x = c.x << 16, .src_y = c.y << 16,
+                                     .src_w = (uint32_t)c.mode.hdisplay << 16, .src_h = (uint32_t)c.mode.vdisplay << 16,
+                                     .crtc_w = c.mode.hdisplay, .crtc_h = c.mode.vdisplay, .touched = true };
+    }
+    return commit(f, &n, ATOMIC_ALLOW_MODESET, 0);
+}
+
+/* legacy cursor ioctls: the BO becomes an internal framebuffer on the cursor plane */
+static int cursor_ioctl(struct dfile *f, void *arg, bool v2) {
+    struct { uint32_t flags, crtc_id; int32_t x, y; uint32_t w, h, handle; int32_t hot_x, hot_y; } c = { 0 };
+    if (copy_from_user(&c, arg, v2 ? 36 : 28)) return -EFAULT;
+    if (c.crtc_id != ID_CRTC) return -ENOENT;
+    if (!c.flags || (c.flags & ~3u)) return -EINVAL;
+    int r = wait_idle(false);
+    if (r) return r;
+    struct kms_st n = st_dup(&st);
+    struct plane_st *p = &n.pl[1];
+    if (c.flags & 2) { lcur.x = c.x; lcur.y = c.y; }
+    if (c.flags & 1) {
+        if (!c.handle) *p = (struct plane_st){ 0 };
+        else {
+            if (!c.w || !c.h || c.w > CURSOR_SIZE || c.h > CURSOR_SIZE) { st_put(&n); return -EINVAL; }
+            struct gem *g = handle_gem(f, c.handle);
+            if (!g) { st_put(&n); return -ENOENT; }
+            uint32_t id;
+            if ((r = add_fb(f, c.w, c.h, c.w * 4, 0, FMT_ARGB8888, c.handle, true, &id))) { st_put(&n); return r; }
+            lcur.hot_x = v2 ? c.hot_x : 0; lcur.hot_y = v2 ? c.hot_y : 0;
+            *p = (struct plane_st){ .fb = id, .crtc = ID_CRTC, .src_w = c.w << 16, .src_h = c.h << 16,
+                                    .crtc_w = c.w, .crtc_h = c.h, .touched = true };
+        }
+    }
+    if (p->fb) { p->crtc_x = lcur.x - lcur.hot_x; p->crtc_y = lcur.y - lcur.hot_y; }
+    r = commit(f, &n, 0, 0);
+    if (r) fb_gc();                                         /* drop an unused internal fb */
+    return r;
+}
+
+/* SETPROPERTY / OBJ_SETPROPERTY: a one-property commit */
+static int obj_setprop(struct dfile *f, uint32_t obj, uint32_t otype, uint32_t prop, uint64_t val) {
+    uint32_t t = obj_type(obj);
+    if (!t || (otype && otype != t)) return -ENOENT;
+    int p = (int)prop - 1;
+    if (p < 0 || p >= P_COUNT || !obj_has_prop(obj, p)) return -EINVAL;
+    if ((props[p].flags & PROP_ATOMIC) && !f->atomic) return -EINVAL;
+    int r = wait_idle(false);
+    if (r) return r;
+    struct kms_st n = st_dup(&st);
+    if ((r = set_prop(&n, obj, p, val, true))) { st_put(&n); return r; }
+    return commit(f, &n, ATOMIC_ALLOW_MODESET, 0);
+}
+
+static int setplane(struct dfile *f, void *arg) {
+    struct { uint32_t plane_id, crtc_id, fb_id, flags; int32_t crtc_x, crtc_y; uint32_t crtc_w, crtc_h, src_x, src_y, src_h, src_w; } s;
+    if (copy_from_user(&s, arg, sizeof s)) return -EFAULT;
+    if (s.plane_id != ID_PRIMARY && s.plane_id != ID_CURSOR) return -ENOENT;
+    if (s.fb_id) {
+        if (s.crtc_id != ID_CRTC) return -ENOENT;
+        if (!fb_lookup(s.fb_id)) return -ENOENT;
+    }
+    int r = wait_idle(false);
+    if (r) return r;
+    struct kms_st n = st_dup(&st);
+    struct plane_st *p = &n.pl[s.plane_id == ID_CURSOR];
+    if (!s.fb_id) *p = (struct plane_st){ .touched = true };
+    else *p = (struct plane_st){ .fb = s.fb_id, .crtc = ID_CRTC, .src_x = s.src_x, .src_y = s.src_y, .src_w = s.src_w,
+                                 .src_h = s.src_h, .crtc_x = s.crtc_x, .crtc_y = s.crtc_y, .crtc_w = s.crtc_w,
+                                 .crtc_h = s.crtc_h, .touched = true };
+    return commit(f, &n, 0, 0);
+}
+
+static int page_flip(struct dfile *f, void *arg) {
+    struct { uint32_t crtc_id, fb_id, flags, reserved; uint64_t user_data; } p;
+    if (copy_from_user(&p, arg, sizeof p)) return -EFAULT;
+    if (p.crtc_id != ID_CRTC) return -ENOENT;
+    if (p.flags & ~1u) return -EINVAL;                       /* no async / target flips */
+    if (!fb_lookup(p.fb_id)) return -ENOENT;
+    if (pend.pending) return -EBUSY;
+    if (!st.active || !st.pl[0].fb) return -EINVAL;
+    struct kms_st n = st_dup(&st);
+    n.pl[0].fb = p.fb_id; n.pl[0].touched = true;
+    return commit(f, &n, ATOMIC_NONBLOCK | ((p.flags & 1) ? ATOMIC_EVENT : 0), p.user_data);
+}
+
+static int dirtyfb(void *arg) {
+    struct { uint32_t fb_id, flags, color, num_clips; uint64_t clips_ptr; } d;
+    if (copy_from_user(&d, arg, sizeof d)) return -EFAULT;
+    struct dfb *fb = fb_lookup(d.fb_id);
+    if (!fb) return -ENOENT;
+    if (d.num_clips > 256) return -EINVAL;
+    if (reclaimed || !shown.on || !st_uses_fb(&st, fb->id)) return 0;
+    struct dmg dm = { 0 };
+    if (st.pl[1].fb == fb->id) dm.cursor_update = true;
+    struct rect cr;
+    if (!d.num_clips || !d.clips_ptr || st.pl[0].fb != fb->id) {
+        if (st.pl[0].fb == fb->id) dm.full = true;
+        else if (cursor_rect(&st, &cr)) dmg_add(&dm, cr.x0, cr.y0, cr.x1, cr.y1);
+    } else {
+        /* DRM_MODE_FB_DIRTY_ANNOTATE_COPY (1): clips come in pairs (src, dst); use the dst rects */
+        unsigned step = (d.flags & 1) ? 2 : 1;
+        int32_t dx = -(int32_t)(st.pl[0].src_x >> 16), dy = -(int32_t)(st.pl[0].src_y >> 16);
+        for (uint32_t i = (d.flags & 1) ? 1 : 0; i < d.num_clips; i += step) {
+            struct { uint16_t x1, y1, x2, y2; } c;
+            if (copy_from_user(&c, (void *)(uintptr_t)(d.clips_ptr + i * 8ull), sizeof c)) return -EFAULT;
+            dmg_add(&dm, c.x1 + dx, c.y1 + dy, c.x2 + dx, c.y2 + dy);
+        }
+        if (cursor_rect(&st, &cr)) dmg_add(&dm, cr.x0, cr.y0, cr.x1, cr.y1);   /* recomposite over damage */
+    }
+    scanout(&dm);
+    return 0;
+}
+
+static int getfb(struct dfile *f, void *arg, bool v2) {
+    struct { uint32_t fb_id, w, h, fmt, flags, handles[4], pitches[4], offsets[4]; uint64_t mod[4]; } a;
+    size_t sz = v2 ? sizeof a : 28;
+    memset(&a, 0, sizeof a);
+    if (copy_from_user(&a, arg, sz)) return -EFAULT;
+    struct dfb *fb = fb_lookup(a.fb_id);
+    if (!fb) return -ENOENT;
+    uint32_t h = 0;
+    if (is_master(f) || capable(CAP_SYS_ADMIN)) { int r = handle_new(f, fb->bo, &h); if (r) return r; }
+    if (v2) {
+        memset(&a, 0, sizeof a);
+        a.fb_id = fb->id; a.w = fb->w; a.h = fb->h; a.fmt = fb->format; a.flags = 2 /* MODIFIERS */;
+        a.handles[0] = h; a.pitches[0] = fb->pitch; a.offsets[0] = fb->offset; a.mod[0] = 0;
+        return copy_to_user(arg, &a, sizeof a);
+    }
+    uint32_t o[7] = { fb->id, fb->w, fb->h, fb->pitch, 32, fb->format == FMT_ARGB8888 ? 32 : 24, h };
+    return copy_to_user(arg, o, sizeof o);
+}
+
+#define NEED_MASTER() do { if (!is_master(f)) return -EACCES; } while (0)
+static int drm_ioctl_locked(struct file *file, uint64_t cmd, void *arg) {
+    struct dfile *f = file->priv;
+    switch (cmd & 0xff) {
+    case 0x00: {                                                             /* VERSION */
+        struct { int32_t maj, min, patch, pad; uint64_t name_len, name; uint64_t date_len, date; uint64_t desc_len, desc; } v;
+        if (copy_from_user(&v, arg, sizeof v)) return -EFAULT;
+        static const char *strs[3] = { "9os", "20261011", "9os KMS (atomic, dumb buffers, PRIME)" };
+        uint64_t *lens[3] = { &v.name_len, &v.date_len, &v.desc_len }, ptrs[3] = { v.name, v.date, v.desc };
+        for (int i = 0; i < 3; i++) {
+            size_t l = strlen(strs[i]);
+            if (ptrs[i] && *lens[i] && copy_to_user((void *)ptrs[i], strs[i], MIN(l, *lens[i]))) return -EFAULT;
+            *lens[i] = l;
+        }
+        v.maj = 1; v.min = 1; v.patch = 0;
+        return copy_to_user(arg, &v, sizeof v);
+    }
+    case 0x01: { uint64_t u[2]; if (copy_from_user(u, arg, 16)) return -EFAULT; u[0] = 0; return copy_to_user(arg, u, 16); } /* GET_UNIQUE */
+    case 0x02: { uint32_t m = 1; return copy_to_user(arg, &m, 4); }       /* GET_MAGIC */
+    case 0x11: {                                                             /* AUTH_MAGIC */
+        uint32_t m;
+        if (copy_from_user(&m, arg, 4)) return -EFAULT;
+        NEED_MASTER();
+        return m ? 0 : -EINVAL;
+    }
+    case 0x07: {                                                             /* SET_VERSION */
+        int32_t sv[4];
+        if (copy_from_user(sv, arg, sizeof sv)) return -EFAULT;
+        if (sv[0] != -1 && sv[0] != 1) return -EINVAL;
+        sv[0] = 1; sv[1] = 4; sv[2] = 1; sv[3] = 1;                          /* interface 1.4, driver 1.1 */
+        return copy_to_user(arg, sv, sizeof sv);
+    }
+    case 0x09: { uint32_t h[2]; if (copy_from_user(h, arg, 8)) return -EFAULT; return handle_close(f, h[0]); }  /* GEM_CLOSE */
+    case 0x0a: {                                                             /* GEM_FLINK */
+        uint32_t a[2];
+        if (copy_from_user(a, arg, 8)) return -EFAULT;
+        struct gem *g = handle_gem(f, a[0]);
+        if (!g) return -ENOENT;
+        if (!g->name) g->name = next_name++;
+        a[1] = g->name;
+        return copy_to_user(arg, a, 8);
+    }
+    case 0x0b: {                                                             /* GEM_OPEN */
+        struct { uint32_t name, handle; uint64_t size; } o;
+        if (copy_from_user(&o, arg, sizeof o)) return -EFAULT;
+        struct gem *g = nullptr;
+        list_for_each(it, &gems) { struct gem *x = list_entry(it, struct gem, node); if (o.name && x->name == o.name) g = x; }
+        if (!g) return -ENOENT;
+        int r = handle_new(f, g, &o.handle);
+        if (r) return r;
+        o.size = g->size;
+        return copy_to_user(arg, &o, sizeof o);
+    }
+    case 0x0c: {                                                             /* GET_CAP */
+        uint64_t c[2];
+        if (copy_from_user(c, arg, 16)) return -EFAULT;
+        switch (c[0]) {
+        case 1: c[1] = 1; break;          /* DUMB_BUFFER */
+        case 3: c[1] = 24; break;         /* DUMB_PREFERRED_DEPTH */
+        case 5: c[1] = 3; break;          /* PRIME: IMPORT | EXPORT */
+        case 6: c[1] = 1; break;          /* TIMESTAMP_MONOTONIC */
+        case 8: case 9: c[1] = CURSOR_SIZE; break;
+        case 0x10: c[1] = 1; break;       /* ADDFB2_MODIFIERS */
+        case 0x12: c[1] = 1; break;       /* CRTC_IN_VBLANK_EVENT */
+        case 2: case 4: case 7: case 0x11: case 0x13: case 0x14: case 0x15: c[1] = 0; break;
+        default: return -EINVAL;
+        }
+        return copy_to_user(arg, c, 16);
+    }
+    case 0x0d: {                                                             /* SET_CLIENT_CAP */
+        uint64_t c[2];
+        if (copy_from_user(c, arg, 16)) return -EFAULT;
+        switch (c[0]) {
+        case 1: case 4: return c[1] > 1 ? -EINVAL : 0;                       /* STEREO_3D, ASPECT_RATIO */
+        case 2: if (c[1] > 1) return -EINVAL; f->universal = c[1]; return 0;  /* UNIVERSAL_PLANES */
+        case 3:                                                              /* ATOMIC (implies universal planes) */
+            if (c[1] > 2) return -EINVAL;
+            f->atomic = c[1]; if (c[1]) f->universal = true;
+            return 0;
+        case 5: return f->atomic && c[1] <= 1 ? 0 : -EINVAL;                 /* WRITEBACK_CONNECTORS (none) */
+        }
+        return -EINVAL;
+    }
+    case 0x1e:                                                               /* SET_MASTER */
+        if (master == f) return 0;
+        if (master) return -EBUSY;
+        if (!f->was_master && !capable(CAP_SYS_ADMIN)) return -EACCES;
+        master = f; f->was_master = true;
+        return 0;
+    case 0x1f:                                                               /* DROP_MASTER */
+        if (master != f) return -EINVAL;
+        master = nullptr;
+        return 0;
+    case 0x2d: {                                                             /* PRIME_HANDLE_TO_FD */
+        struct { uint32_t handle, flags; int32_t fd; } p;
+        if (copy_from_user(&p, arg, sizeof p)) return -EFAULT;
+        int r = prime_export(f, p.handle, p.flags, &p.fd);
+        return r ? r : copy_to_user(arg, &p, sizeof p);
+    }
+    case 0x2e: {                                                             /* PRIME_FD_TO_HANDLE */
+        struct { uint32_t handle, flags; int32_t fd; } p;
+        if (copy_from_user(&p, arg, sizeof p)) return -EFAULT;
+        int r = prime_import(f, p.fd, &p.handle);
+        return r ? r : copy_to_user(arg, &p, sizeof p);
+    }
+    case 0xA0: {                                                             /* MODE_GETRESOURCES */
+        struct { uint64_t fb_ptr, crtc_ptr, conn_ptr, enc_ptr; uint32_t nfb, ncrtc, nconn, nenc, minw, maxw, minh, maxh; } r;
+        if (copy_from_user(&r, arg, sizeof r)) return -EFAULT;
+        uint32_t ids[MAX_FB], n = 0;
+        for (int i = 0; i < MAX_FB; i++) if (fbs[i] && fbs[i]->owner == f) ids[n++] = fbs[i]->id;
+        uint32_t c = ID_CRTC, k = ID_CONNECTOR, e = ID_ENCODER;
+        if (put_ids(r.fb_ptr, r.nfb, ids, n) || put_ids(r.crtc_ptr, r.ncrtc, &c, 1) ||
+            put_ids(r.conn_ptr, r.nconn, &k, 1) || put_ids(r.enc_ptr, r.nenc, &e, 1)) return -EFAULT;
+        r.nfb = n; r.ncrtc = 1; r.nconn = 1; r.nenc = 1;
+        r.minw = 1; r.minh = 1; r.maxw = 8192; r.maxh = 8192;
+        return copy_to_user(arg, &r, sizeof r);
+    }
+    case 0xA1: {                                                             /* MODE_GETCRTC */
+        struct { uint64_t conn_ptr; uint32_t nconn, crtc_id, fb_id, x, y, gamma_size, mode_valid; struct drm_modeinfo mode; } c;
+        if (copy_from_user(&c, arg, sizeof c)) return -EFAULT;
+        if (c.crtc_id != ID_CRTC) return -ENOENT;
+        c.fb_id = st.pl[0].crtc ? st.pl[0].fb : 0; c.x = st.pl[0].src_x >> 16; c.y = st.pl[0].src_y >> 16;
+        c.gamma_size = 256; c.mode_valid = st.enable;
+        c.mode = st.enable ? st.mode : (struct drm_modeinfo){ 0 };
+        return copy_to_user(arg, &c, sizeof c);
+    }
+    case 0xA2: NEED_MASTER(); return setcrtc(f, arg);                        /* MODE_SETCRTC */
+    case 0xA3: NEED_MASTER(); return cursor_ioctl(f, arg, false);            /* MODE_CURSOR */
+    case 0xBB: NEED_MASTER(); return cursor_ioctl(f, arg, true);             /* MODE_CURSOR2 */
+    case 0xA4: case 0xA5: {                                                  /* GET/SETGAMMA (identity, fixed) */
+        struct { uint32_t crtc_id, size; uint64_t r, g, b; } l;
+        if (copy_from_user(&l, arg, sizeof l)) return -EFAULT;
+        if (l.crtc_id != ID_CRTC) return -ENOENT;
+        if (l.size != 256) return -EINVAL;
+        if ((cmd & 0xff) == 0xA5) { NEED_MASTER(); return 0; }
+        uint16_t ramp[256];
+        for (int i = 0; i < 256; i++) ramp[i] = (uint16_t)(i * 257);
+        uint64_t p[3] = { l.r, l.g, l.b };
+        for (int i = 0; i < 3; i++) if (p[i] && copy_to_user((void *)p[i], ramp, sizeof ramp)) return -EFAULT;
+        return 0;
+    }
+    case 0xA6: {                                                             /* MODE_GETENCODER */
+        uint32_t e[5];
+        if (copy_from_user(e, arg, sizeof e)) return -EFAULT;
+        if (e[0] != ID_ENCODER) return -ENOENT;
+        e[1] = 5 /* VIRTUAL */; e[2] = ID_CRTC; e[3] = 1; e[4] = 0;
+        return copy_to_user(arg, e, sizeof e);
+    }
+    case 0xA7: {                                                             /* MODE_GETCONNECTOR */
+        struct { uint64_t enc_ptr, modes_ptr, props_ptr, prop_values_ptr; uint32_t nmodes, nprops, nenc;
+                 uint32_t enc_id, conn_id, type, type_id, connection, mm_w, mm_h, subpixel, pad; } c;
+        if (copy_from_user(&c, arg, sizeof c)) return -EFAULT;
+        if (c.conn_id != ID_CONNECTOR) return -ENOENT;
+        uint32_t e = ID_ENCODER;
+        if (put_ids(c.enc_ptr, c.nenc, &e, 1)) return -EFAULT;
+        if (c.modes_ptr && c.nmodes >= 1 && copy_to_user((void *)c.modes_ptr, &mode0, sizeof mode0)) return -EFAULT;
+        if (put_props(f, ID_CONNECTOR, c.props_ptr, c.prop_values_ptr, &c.nprops)) return -EFAULT;
+        c.nmodes = 1; c.nenc = 1;
+        c.enc_id = ID_ENCODER; c.type = 15 /* VIRTUAL */; c.type_id = 1; c.connection = 1;
+        c.mm_w = mm_w(); c.mm_h = mm_h(); c.subpixel = 1;
+        return copy_to_user(arg, &c, sizeof c);
+    }
+    case 0xAA: {                                                             /* MODE_GETPROPERTY */
+        struct { uint64_t values, enums; uint32_t prop_id, flags; char name[32]; uint32_t nvalues, nenums; } g;
+        if (copy_from_user(&g, arg, sizeof g)) return -EFAULT;
+        int p = (int)g.prop_id - 1;
+        if (p < 0 || p >= P_COUNT || ((props[p].flags & PROP_ATOMIC) && !f->atomic)) return -ENOENT;
+        const struct propdef *d = &props[p];
+        uint64_t vals[8];
+        uint32_t nv = 0, ne = 0;
+        if (d->flags & PROP_ENUM) {
+            ne = d->nenums;
+            for (int i = 0; i < d->nenums; i++) vals[nv++] = d->enums[i].value;
+            if (g.enums && g.nenums >= ne)
+                for (uint32_t i = 0; i < ne; i++) {
+                    struct { uint64_t value; char name[32]; } en = { d->enums[i].value, { 0 } };
+                    strncpy(en.name, d->enums[i].name, 31);
+                    if (copy_to_user((void *)(uintptr_t)(g.enums + i * sizeof en), &en, sizeof en)) return -EFAULT;
+                }
+        } else if (d->flags & (PROP_RANGE | PROP_SIGNED_RANGE)) {
+            vals[0] = (uint64_t)d->min; vals[1] = (uint64_t)d->max; nv = 2;
+        } else if (d->flags & PROP_OBJECT) {
+            vals[0] = (uint64_t)d->min; nv = 1;
+        }
+        if (g.values && g.nvalues >= nv && nv && copy_to_user((void *)g.values, vals, nv * 8)) return -EFAULT;
+        g.flags = d->flags & ~PROP_ATOMIC;
+        if (d->flags & PROP_ATOMIC) g.flags |= PROP_ATOMIC;
+        memset(g.name, 0, sizeof g.name);
+        strncpy(g.name, d->name, 31);
+        g.nvalues = nv; g.nenums = ne;
+        return copy_to_user(arg, &g, sizeof g);
+    }
+    case 0xAB: {                                                             /* MODE_SETPROPERTY (connector) */
+        struct { uint64_t value; uint32_t prop_id, conn_id; } s;
+        if (copy_from_user(&s, arg, sizeof s)) return -EFAULT;
+        NEED_MASTER();
+        if (s.conn_id != ID_CONNECTOR) return -ENOENT;
+        return obj_setprop(f, s.conn_id, OBJ_CONNECTOR, s.prop_id, s.value);
+    }
+    case 0xBA: {                                                             /* MODE_OBJ_SETPROPERTY */
+        struct { uint64_t value; uint32_t prop_id, obj_id, obj_type; } s;
+        if (copy_from_user(&s, arg, sizeof s)) return -EFAULT;
+        NEED_MASTER();
+        return obj_setprop(f, s.obj_id, s.obj_type, s.prop_id, s.value);
+    }
+    case 0xB9: {                                                             /* MODE_OBJ_GETPROPERTIES */
+        struct { uint64_t props, values; uint32_t count, obj_id, obj_type; } o;
+        if (copy_from_user(&o, arg, 20)) return -EFAULT;
+        uint32_t t = obj_type(o.obj_id);
+        if (!t || (o.obj_type && o.obj_type != t)) return -ENOENT;
+        if (put_props(f, o.obj_id, o.props, o.values, &o.count)) return -EFAULT;
+        return copy_to_user(arg, &o, 20);
+    }
+    case 0xAC: {                                                             /* MODE_GETPROPBLOB */
+        struct { uint32_t id, len; uint64_t data; } b;
+        if (copy_from_user(&b, arg, sizeof b)) return -EFAULT;
+        struct blob *bl = blob_lookup(b.id);
+        if (!bl) return -ENOENT;
+        if (b.data && b.len >= bl->len && copy_to_user((void *)b.data, bl->data, bl->len)) return -EFAULT;
+        b.len = (uint32_t)bl->len;
+        return copy_to_user(arg, &b, sizeof b);
+    }
+    case 0xBD: {                                                             /* MODE_CREATEPROPBLOB */
+        struct { uint64_t data; uint32_t len, id; } b;
+        if (copy_from_user(&b, arg, sizeof b)) return -EFAULT;
+        if (!b.len || b.len > 65536) return -EINVAL;
+        void *tmp = kmalloc(b.len);
+        if (!tmp) return -ENOMEM;
+        int r = copy_from_user(tmp, (void *)b.data, b.len) ? -EFAULT : blob_new(f, tmp, b.len, &b.id);
+        kfree(tmp);
+        return r ? r : copy_to_user(arg, &b, sizeof b);
+    }
+    case 0xBE: {                                                             /* MODE_DESTROYPROPBLOB */
+        uint32_t id;
+        if (copy_from_user(&id, arg, 4)) return -EFAULT;
+        struct blob *b = blob_lookup(id);
+        if (!b) return -ENOENT;
+        if (b->owner != f) return -EPERM;
+        b->owner = nullptr;
+        blob_put(id);
+        return 0;
+    }
+    case 0xBC: NEED_MASTER(); return atomic_ioctl(f, arg);                   /* MODE_ATOMIC */
+    case 0xAD: return getfb(f, arg, false);                                  /* MODE_GETFB */
+    case 0xCE: return getfb(f, arg, true);                                   /* MODE_GETFB2 */
+    case 0xAE: {                                                             /* MODE_ADDFB */
+        uint32_t a[7];   /* fb_id, width, height, pitch, bpp, depth, handle */
+        if (copy_from_user(a, arg, sizeof a)) return -EFAULT;
+        if (a[4] != 32 || (a[5] != 24 && a[5] != 32)) return -EINVAL;
+        int r = add_fb(f, a[1], a[2], a[3], 0, a[5] == 32 ? FMT_ARGB8888 : FMT_XRGB8888, a[6], false, &a[0]);
+        return r ? r : copy_to_user(arg, a, sizeof a);
+    }
+    case 0xB8: {                                                             /* MODE_ADDFB2 */
+        struct { uint32_t fb_id, w, h, fmt, flags, handles[4], pitches[4], offsets[4]; uint64_t mod[4]; } a;
+        if (copy_from_user(&a, arg, sizeof a)) return -EFAULT;
+        if (a.flags & ~2u) return -EINVAL;
+        if ((a.flags & 2) && a.mod[0] != 0) return -EINVAL;                  /* only LINEAR */
+        int r = add_fb(f, a.w, a.h, a.pitches[0], a.offsets[0], a.fmt, a.handles[0], false, &a.fb_id);
+        return r ? r : copy_to_user(arg, &a, sizeof a);
+    }
+    case 0xAF: case 0xD0: {                                                  /* MODE_RMFB / MODE_CLOSEFB */
+        uint32_t id;
+        if (copy_from_user(&id, arg, 4)) return -EFAULT;
+        struct dfb *fb = own_fb(f, id);
+        if (!fb) return -ENOENT;
+        if ((cmd & 0xff) == 0xD0) { fb->owner = nullptr; fb_gc(); }
+        else fb_remove(id);
+        return 0;
+    }
+    case 0xB0: NEED_MASTER(); return page_flip(f, arg);                      /* MODE_PAGE_FLIP */
+    case 0xB7: NEED_MASTER(); return setplane(f, arg);                       /* MODE_SETPLANE */
+    case 0xB1: return dirtyfb(arg);                                          /* MODE_DIRTYFB */
+    case 0xB2: return create_dumb(f, arg);                                   /* MODE_CREATE_DUMB */
+    case 0xB3: {                                                             /* MODE_MAP_DUMB */
+        struct { uint32_t handle, pad; uint64_t offset; } m;
+        if (copy_from_user(&m, arg, sizeof m)) return -EFAULT;
+        if (!handle_gem(f, m.handle)) return -ENOENT;
+        m.offset = (uint64_t)m.handle << DUMB_OFF_SHIFT;
+        return copy_to_user(arg, &m, sizeof m);
+    }
+    case 0xB4: { uint32_t h; if (copy_from_user(&h, arg, 4)) return -EFAULT; return handle_close(f, h); }  /* DESTROY_DUMB */
+    case 0xB5: {                                                             /* MODE_GETPLANERESOURCES */
+        struct { uint64_t ptr; uint32_t count, pad; } r;
+        if (copy_from_user(&r, arg, sizeof r)) return -EFAULT;
+        uint32_t p[2] = { ID_PRIMARY, ID_CURSOR }, n = f->universal ? 2 : 0;   /* no overlay planes */
+        if (put_ids(r.ptr, r.count, p, n)) return -EFAULT;
+        r.count = n;
+        return copy_to_user(arg, &r, sizeof r);
+    }
+    case 0xB6: {                                                             /* MODE_GETPLANE */
+        struct { uint32_t plane_id, crtc_id, fb_id, possible_crtcs, gamma_size, nfmt; uint64_t fmt_ptr; } p;
+        if (copy_from_user(&p, arg, sizeof p)) return -EFAULT;
+        if (p.plane_id != ID_PRIMARY && p.plane_id != ID_CURSOR) return -ENOENT;
+        int i = p.plane_id == ID_CURSOR;
+        uint32_t fmts[2] = { FMT_XRGB8888, FMT_ARGB8888 }, n = i ? 1 : 2;
+        const uint32_t *fl = i ? &fmts[1] : fmts;
+        if (p.fmt_ptr && p.nfmt >= n && copy_to_user((void *)p.fmt_ptr, fl, n * 4)) return -EFAULT;
+        p.crtc_id = st.pl[i].crtc; p.fb_id = st.pl[i].crtc ? st.pl[i].fb : 0;
+        p.possible_crtcs = 1; p.gamma_size = 0; p.nfmt = n;
+        return copy_to_user(arg, &p, sizeof p);
+    }
+    }
+    return -EINVAL;
+}
+
+static int wait_vblank(struct dfile *f, void *arg) {
+    struct { uint32_t type, seq; int64_t sec, usec; } w;
+    if (copy_from_user(&w, arg, sizeof w)) return -EFAULT;
+    uint32_t now = __atomic_load_n(&vblank_seq, __ATOMIC_RELAXED);
+    uint32_t target = (w.type & 1) ? now + w.seq : w.seq;                    /* RELATIVE : ABSOLUTE */
+    if (w.type & 0x4000000) {                                                /* EVENT */
+        struct vbl_wait *vw = kzalloc(sizeof *vw);   /* request.signal (offset 8) = user data */
+        if (!vw) return -ENOMEM;
+        vw->f = f; vw->target = target; vw->user_data = (uint64_t)w.sec;
+        mutex_lock(&kms);
+        list_add_tail(&vbl_waits, &vw->node);
+        mutex_unlock(&kms);
+    } else {
+        while ((int32_t)(__atomic_load_n(&vblank_seq, __ATOMIC_RELAXED) - target) < 0) sleep_ns(2000000);
+    }
+    uint64_t ns = time_ns();
+    w.seq = __atomic_load_n(&vblank_seq, __ATOMIC_RELAXED); w.sec = ns / 1000000000ull; w.usec = ns % 1000000000ull / 1000;
+    return copy_to_user(arg, &w, sizeof w);
+}
+
+static int drm_ioctl(struct file *file, uint64_t cmd, uint64_t arg) {
+    if (((cmd >> 8) & 0xff) != 'd') return -ENOTTY;
+    if ((cmd & 0xff) == 0x3a) return wait_vblank(file->priv, (void *)arg);   /* WAIT_VBLANK sleeps unlocked */
+    mutex_lock(&kms);
+    int r = drm_ioctl_locked(file, cmd, (void *)arg);
+    mutex_unlock(&kms);
+    return r;
+}
+
+/* ------------------------------------------------------------------ file ops */
+static int drm_open(struct inode *ino, struct file *file) {
+    (void)ino;
+    if (!scan) return -ENODEV;
+    struct dfile *f = kzalloc(sizeof *f);
+    if (!f) return -ENOMEM;
+    list_init(&f->events);
+    file->priv = f;
+    mutex_lock(&kms);
+    if (!master) { master = f; f->was_master = true; }
+    nopen++;
+    if (!vblank_thread_started) { vblank_thread_started = true; thread_create("drm-vblank", vblank_thread, nullptr); }
+    mutex_unlock(&kms);
+    return 0;
+}
+
+static void drm_release(struct file *file) {
+    struct dfile *f = file->priv;
+    mutex_lock(&kms);
+    wait_idle(false);
+    if (pend.f == f) pend.f = nullptr;
+    list_for_each_safe(it, tmp, &vbl_waits) {
+        struct vbl_wait *w = list_entry(it, struct vbl_wait, node);
+        if (w->f == f) { list_del(&w->node); kfree(w); }
+    }
+    list_for_each_safe(it, tmp, &ev_waits) {
+        struct ev_wait *w = list_entry(it, struct ev_wait, node);
+        if (w->f == f) { list_del(&w->node); kfree(w); }
+    }
+    if (--nopen == 0) {                                      /* lastclose: back to the console */
+        struct kms_st n = { .dpms = 3 };
+        apply(&n);
+        show_console();
+        reclaimed = false;
+    }
+    for (int i = 0; i < MAX_FB; i++) if (fbs[i] && fbs[i]->owner == f) fb_remove(fbs[i]->id);
+    for (int i = 0; i < MAX_BLOB; i++) if (blobs[i] && blobs[i]->owner == f) { blobs[i]->owner = nullptr; blob_put(blobs[i]->id); }
+    for (int i = 0; i < MAX_HANDLES; i++) if (f->handles[i]) { gem_put(f->handles[i]); f->handles[i] = nullptr; }
+    if (master == f) master = nullptr;
+    mutex_unlock(&kms);
+    list_for_each_safe(it, tmp, &f->events) kfree(list_entry(it, struct devent, node));
+    kfree(f);
+}
+
+static ssize_t drm_read(struct file *file, void *buf, size_t n, off_t *off) {
+    (void)off;
+    struct dfile *f = file->priv;
+    for (;;) {
+        uint64_t fl = spin_lock_irqsave(&evlock);
+        if (f->nevents) {
+            size_t done = 0;
+            uint8_t tmp[256];
+            while (!list_empty(&f->events)) {
+                struct devent *e = list_entry(f->events.next, struct devent, node);
+                if (done + e->len > n || done + e->len > sizeof tmp) break;
+                memcpy(tmp + done, e->data, e->len); done += e->len;
+                list_del(&e->node); f->nevents--; kfree(e);
+            }
+            spin_unlock_irqrestore(&evlock, fl);
+            if (!done) return -EINVAL;
+            return copy_to_user(buf, tmp, done) ? -EFAULT : (ssize_t)done;
+        }
+        spin_unlock(&evlock);
+        if (file->flags & O_NONBLOCK) { arch_irq_restore(fl); return -EAGAIN; }
+        int r = wait_event_timeout(&poll_wq, 20000000ull);
+        arch_irq_restore(fl);
+        if (r == -EINTR) return r;
+    }
+}
+
+static unsigned drm_poll(struct file *file) {
+    struct dfile *f = file->priv;
+    return (__atomic_load_n(&f->nevents, __ATOMIC_RELAXED) ? POLLIN | POLLRDNORM : 0) | POLLOUT | POLLWRNORM;
+}
+
+static int drm_mmap_page(struct file *file, uint64_t pgoff, paddr_t *pa) {
+    struct dfile *f = file->priv;
+    uint32_t h = (uint32_t)(pgoff >> (DUMB_OFF_SHIFT - 12));
+    size_t idx = pgoff & ((1ull << (DUMB_OFF_SHIFT - 12)) - 1);
+    mutex_lock(&kms);
+    struct gem *g = handle_gem(f, h);
+    int r = -EINVAL;
+    if (g && idx < g->npages) { *pa = g->pages[idx]; r = 0; }
+    mutex_unlock(&kms);
+    return r;
+}
+
+static const struct file_ops drm_ops = {
+    .open = drm_open, .release = drm_release, .read = drm_read, .poll = drm_poll,
+    .ioctl = drm_ioctl, .mmap_page = drm_mmap_page,
+};
+
+/* ------------------------------------------------------------------ sysfs */
+static uint8_t edid[128];
+static int scanout_show(struct device *d, char *buf, size_t cap) {
+    (void)d;
+    const char *mode = !shown.on ? "console" : shown.zero_copy ? "zero-copy" : "copy";
+    const char *cur = shown.hw_cursor ? "hw" : (shown.on && st.pl[1].fb) ? "sw" : "off";
+    return dev_printf(buf, cap, "%s fb %u res %u cursor %s\ncommits %llu zero-copy %llu copy %llu\n", mode, shown.fb,
+                      shown.res, cur, (unsigned long long)stat_commits, (unsigned long long)stat_zero_copy,
+                      (unsigned long long)stat_copy);
+}
+static const struct dev_attr card_attrs[] = { { .name = "scanout", .mode = 0444, .show = scanout_show }, { 0 } };
+
+static int conn_status_show(struct device *d, char *buf, size_t cap) { (void)d; return dev_printf(buf, cap, "connected\n"); }
+static int conn_status_store(struct device *d, const char *buf, size_t n) {
+    (void)d;
+    static const char *ok[] = { "detect", "on", "on-digital", "off" };
+    for (size_t i = 0; i < sizeof ok / sizeof ok[0]; i++) {
+        size_t l = strlen(ok[i]);
+        if ((n == l || (n == l + 1 && buf[l] == '\n')) && !memcmp(buf, ok[i], l)) return 0;
+    }
+    return -EINVAL;
+}
+static int conn_enabled_show(struct device *d, char *buf, size_t cap) {
+    (void)d; return dev_printf(buf, cap, "%s\n", st.conn_crtc ? "enabled" : "disabled");
+}
+static int conn_dpms_show(struct device *d, char *buf, size_t cap) {
+    (void)d; return dev_printf(buf, cap, "%s\n", dpms_enums[st.dpms & 3].name);
+}
+static int conn_modes_show(struct device *d, char *buf, size_t cap) { (void)d; return dev_printf(buf, cap, "%s\n", mode0.name); }
+static ssize_t conn_edid_read(struct device *d, char *buf, size_t n, uint64_t off) {
+    (void)d;
+    if (off >= sizeof edid) return 0;
+    n = MIN(n, sizeof edid - off);
+    memcpy(buf, edid + off, n);
+    return (ssize_t)n;
+}
+static const struct dev_attr conn_attrs[] = {
+    { .name = "status", .mode = 0644, .show = conn_status_show, .store = conn_status_store },
+    { .name = "enabled", .mode = 0444, .show = conn_enabled_show },
+    { .name = "dpms", .mode = 0444, .show = conn_dpms_show },
+    { .name = "modes", .mode = 0444, .show = conn_modes_show },
+    { .name = "edid", .mode = 0444, .read = conn_edid_read, .size = sizeof edid },
+    { 0 },
+};
+
+void drm_init(void) {
+    struct limine_framebuffer *fb = boot_framebuffer();
+    if (!fb || fb->bpp != 32) return;
+    scan = fb;
+    make_mode();
+    make_edid(edid);
+    blob_new(nullptr, edid, sizeof edid, &edid_blob);
+    static const uint32_t pfmts[2] = { FMT_XRGB8888, FMT_ARGB8888 }, cfmts[1] = { FMT_ARGB8888 };
+    informats_blob[0] = make_informats(pfmts, 2);
+    informats_blob[1] = make_informats(cfmts, 1);
+    st.dpms = 3;
+    wait_queue_init(&pend_wq);
+    chrdev_register(DRM_MAJOR, 0, &drm_ops);
+    vfs_mkdir_at(nullptr, "/dev/dri", 0755);
+    vfs_mknod_at(nullptr, "/dev/dri/card0", S_IFCHR | 0666, MKDEV(DRM_MAJOR, 0));
+    static struct device drmk, conn;
+    drmk.devtype = "drm_minor";
+    drmk.attrs = card_attrs;
+    chrdev_sysfs(&drmk, "drm", "card0", "dri/card0", DRM_MAJOR, 0, virtio_gpu_kdev());
+    conn.parent = &drmk; conn.subsys = "drm"; conn.attrs = conn_attrs;
+    strncpy(conn.name, "card0-Virtual-1", sizeof conn.name - 1);
+    device_add(&conn);
+    pr_info("drm: /dev/dri/card0 %s (atomic KMS, PRIME%s)\n", mode0.name, vgpu_present() ? ", zero-copy virtio-gpu scanout" : "");
+}
