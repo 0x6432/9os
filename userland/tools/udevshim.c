@@ -11,11 +11,18 @@
  * then applies rules from /etc/udev/rules.d, /run/udev/rules.d, /lib/udev/rules.d and
  * /usr/lib/udev/rules.d (*.rules,
  * by file name; /etc overrides): matches ACTION KERNEL SUBSYSTEM DEVPATH DRIVER DEVTYPE NAME
- * TAG ENV{} ATTR{} KERNELS SUBSYSTEMS DRIVERS ATTRS{} (== !=, globs with |), assignments ENV{} SYMLINK TAG MODE OWNER GROUP RUN
- * (= += :=), GOTO/LABEL, IMPORT{program,file,builtin,parent,cmdline}, PROGRAM/RESULT,
+ * TAG ENV{} ATTR{} KERNELS SUBSYSTEMS DRIVERS ATTRS{} (== !=, globs with |; the parent keys of a
+ * rule must all match the same ancestor), assignments ENV{} SYMLINK TAG MODE OWNER GROUP RUN NAME
+ * (network interfaces are renamed with SIOCSIFNAME) OPTIONS (last_rule, link_priority=,
+ * string_escape=, db_persist) (= += :=), GOTO/LABEL, IMPORT{program,file,builtin,parent,cmdline,db},
+ * PROGRAM/RESULT,
  * substitutions %k %n %M %m %p %N %S %c %E{} %s{} $env{} $attr{} $kernel $devpath %%.
  * Device nodes get MODE/OWNER/GROUP, persistent links (/dev/input/by-path, /dev/disk/by-path,
- * by-uuid, by-label) and rule SYMLINKs; RUN programs get the properties as environment.
+ * by-uuid, by-label, by-id for virtio disks with a serial) and rule SYMLINKs; several devices
+ * claiming one link are arbitrated by link_priority (/run/udev/links/<link>/<id>); RUN programs
+ * get the properties as environment. "udevadm hwdb --update" compiles the hwdb sources into
+ * /etc/udev/hwdb.bin (9os text format, sorted and de-duplicated); once it exists only the
+ * compiled database is used, as with systemd.
  *
  *   udevshim -c             coldplug: process every device in /sys
  *   udevshim -d [-f]        daemon: process kernel uevents, then re-broadcast them to netlink
@@ -26,7 +33,7 @@
  *   udevshim -s [SECONDS]   settle: wait until the daemon handled every kernel event
  *   udevshim -q PATH        properties of a /sys or /dev path
  * Invoked as "udevadm": settle, trigger [--action=X], info [-q property] -n NODE | -p PATH,
- * info --export-db, monitor [--property], control (no-op).
+ * info --export-db, monitor [--property], control (no-op), hwdb --update [-o FILE] | --test=MODALIAS.
  */
 #define _GNU_SOURCE
 #include <dirent.h>
@@ -45,6 +52,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 #include <sys/wait.h>
@@ -66,6 +75,9 @@ struct dev {
     char result[1024];                        /* PROGRAM output, %c */
     int mode; uid_t uid; gid_t gid;           /* -1: unchanged */
     bool final_env[MAXP];
+    int link_prio;
+    bool last_rule, esc_replace, db_persist;
+    char name[64];                            /* NAME= (network interfaces) */
 };
 static void prog_cmd(const char *in, char *out, size_t cap);
 static void pset(struct dev *d, const char *k, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
@@ -223,40 +235,120 @@ static void builtin_net_id(struct dev *d) {
     }
 }
 
-/* hwdb: "match\n KEY=VALUE\n..." records separated by blank lines */
-static void hwdb_lookup(struct dev *d, const char *key) {
+/* hwdb: "match\n KEY=VALUE\n..." records separated by blank lines. Sources: *.hwdb in
+ * /etc/udev/hwdb.d (overrides same-named files), /lib/udev/hwdb.d, /usr/lib/udev/hwdb.d, in file
+ * name order; later records override earlier ones for the same key. */
+struct hwrec { char **m; int nm; char **kv; int nkv; };
+static struct hwrec *hw; static int nhw; static bool hw_loaded;
+#define HWDB_BIN "/etc/udev/hwdb.bin"
+#define HWDB_MAGIC "9os-hwdb 1"
+static void push(char ***v, int *n, const char *x) { *v = realloc(*v, sizeof **v * (size_t)(*n + 1)); (*v)[(*n)++] = strdup(x); }
+static struct hwrec *hw_new(void) { hw = realloc(hw, sizeof *hw * (size_t)(nhw + 1)); hw[nhw] = (struct hwrec){ 0 }; return &hw[nhw++]; }
+static int cmpstr(const void *a, const void *b);
+static int hw_sources(char **files, int max) {
     static const char *const dirs[] = { "/etc/udev/hwdb.d", "/lib/udev/hwdb.d", "/usr/lib/udev/hwdb.d" };
+    int nf = 0;
     for (int k = 0; k < 3; k++) {
         DIR *dr = opendir(dirs[k]);
         struct dirent *e;
-        while (dr && (e = readdir(dr))) {
+        while (dr && (e = readdir(dr)) && nf < max) {
             size_t l = strlen(e->d_name);
             if (l < 6 || strcmp(e->d_name + l - 5, ".hwdb")) continue;
-            char path[PATH_MAX];
-            snprintf(path, sizeof path, "%s/%s", dirs[k], e->d_name);
-            FILE *f = fopen(path, "re");
-            char line[1024];
-            bool matched = false, in_props = false;
-            while (f && fgets(line, sizeof line, f)) {
-                line[strcspn(line, "\n")] = 0;
-                if (line[0] == '#') continue;
-                if (!line[0]) { matched = in_props = false; continue; }
-                if (line[0] != ' ') {
-                    if (in_props) { matched = false; in_props = false; }
-                    if (!fnmatch(line, key, 0)) matched = true;
-                    continue;
-                }
-                in_props = true;
-                if (!matched) continue;
-                char *kv = line + strspn(line, " "), *eq = strchr(kv, '=');
-                if (!eq) continue;
-                *eq = 0;
-                pset(d, kv, "%s", eq + 1);
-            }
-            if (f) fclose(f);
+            bool dup = false;
+            for (int i = 0; i < nf; i++) if (!strcmp(strrchr(files[i], '/') + 1, e->d_name)) dup = true;
+            if (!dup && asprintf(&files[nf], "%s/%s", dirs[k], e->d_name) >= 0) nf++;
         }
         if (dr) closedir(dr);
     }
+    qsort(files, (size_t)nf, sizeof *files, cmpstr);
+    return nf;
+}
+/* hwdb source text or the compiled file ("M match" / "P KEY=VALUE" lines, blank between records) */
+static void hw_parse(FILE *f, bool compiled) {
+    char line[1024];
+    struct hwrec *r = NULL;
+    while (fgets(line, sizeof line, f)) {
+        line[strcspn(line, "\n")] = 0;
+        if (compiled) {
+            if (!line[0]) { r = NULL; continue; }
+            if (line[0] == 'M' && line[1] == ' ') { if (!r || r->nkv) r = hw_new(); push(&r->m, &r->nm, line + 2); }
+            else if (line[0] == 'P' && line[1] == ' ' && r) push(&r->kv, &r->nkv, line + 2);
+            continue;
+        }
+        if (line[0] == '#') continue;
+        if (!line[0]) { r = NULL; continue; }
+        if (line[0] != ' ') {
+            if (!r || r->nkv) r = hw_new();
+            push(&r->m, &r->nm, line);
+            continue;
+        }
+        char *kv = line + strspn(line, " ");
+        if (r && r->nm && strchr(kv, '=')) push(&r->kv, &r->nkv, kv);
+    }
+}
+static void hw_load(void) {
+    if (hw_loaded) return;
+    hw_loaded = true;
+    FILE *f = fopen(HWDB_BIN, "re");
+    char magic[32] = "";
+    if (f && fgets(magic, sizeof magic, f) && !strncmp(magic, HWDB_MAGIC, strlen(HWDB_MAGIC))) { hw_parse(f, true); fclose(f); return; }
+    if (f) fclose(f);
+    char *files[256];
+    int nf = hw_sources(files, 256);
+    for (int i = 0; i < nf; i++) {
+        FILE *g = fopen(files[i], "re");
+        if (g) { hw_parse(g, false); fclose(g); }
+        free(files[i]);
+    }
+}
+static void hwdb_lookup(struct dev *d, const char *key) {
+    hw_load();
+    for (int i = 0; i < nhw; i++) {
+        bool hit = false;
+        for (int k = 0; k < hw[i].nm && !hit; k++) if (!fnmatch(hw[i].m[k], key, 0)) hit = true;
+        if (!hit) continue;
+        for (int k = 0; k < hw[i].nkv; k++) {
+            char kv[1024];
+            snprintf(kv, sizeof kv, "%s", hw[i].kv[k]);
+            char *eq = strchr(kv, '=');
+            *eq = 0;
+            pset(d, kv, "%s", eq + 1);
+        }
+    }
+}
+/* udevadm hwdb --update [-o FILE]: compile the sources (records without properties dropped) */
+static int hwdb_update(const char *out) {
+    hw_loaded = true;
+    char *files[256];
+    int nf = hw_sources(files, 256);
+    for (int i = 0; i < nf; i++) {
+        FILE *g = fopen(files[i], "re");
+        if (g) { hw_parse(g, false); fclose(g); }
+        free(files[i]);
+    }
+    char tmp[PATH_MAX];
+    snprintf(tmp, sizeof tmp, "%s.tmp", out);
+    mkdir("/etc/udev", 0755);
+    FILE *f = fopen(tmp, "we");
+    if (!f) { perror(tmp); return 1; }
+    fprintf(f, "%s\n", HWDB_MAGIC);
+    int n = 0;
+    for (int i = 0; i < nhw; i++) {
+        if (!hw[i].nkv) continue;
+        for (int k = 0; k < hw[i].nm; k++) fprintf(f, "M %s\n", hw[i].m[k]);
+        for (int k = 0; k < hw[i].nkv; k++) fprintf(f, "P %s\n", hw[i].kv[k]);
+        fprintf(f, "\n");
+        n++;
+    }
+    if (fclose(f) || rename(tmp, out)) { perror(out); return 1; }
+    return 0;
+}
+static int hwdb_test(const char *key) {
+    struct dev *d = calloc(1, sizeof *d);
+    dev_init(d);
+    hwdb_lookup(d, key);
+    for (int i = 0; i < d->n; i++) printf("%s\n", d->kv[i]);
+    return 0;
 }
 
 static void builtins(struct dev *d) {
@@ -297,6 +389,16 @@ static void builtins(struct dev *d) {
         if (path) {
             if (pn) snprintf(p, sizeof p, "/dev/disk/by-path/%s-part%s", path, pn);
             else snprintf(p, sizeof p, "/dev/disk/by-path/%s", path);
+            add_link(d, p);
+        }
+        /* by-id: virtio disks with a serial (60-persistent-storage.rules: virtio-$attr{serial}) */
+        char sp[PATH_MAX + 16], ser[64];
+        snprintf(sp, sizeof sp, pn ? "%s/../serial" : "%s/serial", d->syspath);
+        if (strstr(d->syspath, "/virtio") && readfile(sp, ser, sizeof ser) > 0 && ser[0]) {
+            for (char *c = ser; *c; c++) if (*c == ' ' || *c == '/' || (unsigned char)*c < 0x20) *c = '_';
+            pset(d, "ID_SERIAL", "%s", ser);
+            if (pn) snprintf(p, sizeof p, "/dev/disk/by-id/virtio-%s-part%s", ser, pn);
+            else snprintf(p, sizeof p, "/dev/disk/by-id/virtio-%s", ser);
             add_link(d, p);
         }
         if ((v = pget(d, "ID_FS_UUID_ENC"))) { snprintf(p, sizeof p, "/dev/disk/by-uuid/%s", v); add_link(d, p); }
@@ -434,6 +536,36 @@ static void load_rules(struct rules *r) {
     }
 }
 
+static bool is_parent_key(const char *k) {
+    return !strcmp(k, "KERNELS") || !strcmp(k, "SUBSYSTEMS") || !strcmp(k, "DRIVERS") || !strcmp(k, "ATTRS");
+}
+/* one parent key against one device directory */
+static bool parent_tok_at(const struct dev *d, const char *cur, const struct rtok *t) {
+    char pat[1024], buf[1024], p[PATH_MAX + 256], l[PATH_MAX];
+    subst(d, t->val, pat, sizeof pat);
+    const char *val = NULL;
+    if (t->key[0] == 'K') val = strrchr(cur, '/') + 1;
+    else if (t->key[0] == 'A') { snprintf(p, sizeof p, "%s/%s", cur, t->attr); if (readfile(p, buf, sizeof buf) >= 0) val = buf; }
+    else {
+        snprintf(p, sizeof p, "%s/%s", cur, t->key[0] == 'S' ? "subsystem" : "driver");
+        ssize_t n = readlink(p, l, sizeof l - 1);
+        if (n > 0) { l[n] = 0; val = strrchr(l, '/') ? strrchr(l, '/') + 1 : l; }
+    }
+    if (t->key[0] == 'A' && !val) return false;           /* a missing attribute matches neither way */
+    return glob_any(pat, val) == (t->op[0] == '=');
+}
+/* as udev: walk up from the device itself; one device must satisfy every parent key of the rule */
+static bool match_parents(const struct dev *d, const struct rtok *t, int n) {
+    char cur[PATH_MAX];
+    snprintf(cur, sizeof cur, "%s", d->syspath);
+    while (!strncmp(cur, "/sys/devices/", 13)) {
+        bool all = true;
+        for (int i = 0; i < n && all; i++) if (!parent_tok_at(d, cur, &t[i])) all = false;
+        if (all) return true;
+        *strrchr(cur, '/') = 0;
+    }
+    return false;
+}
 static bool match_tok(struct dev *d, const struct rtok *t, const char *action) {
     const char *v = NULL;
     char buf[1024];
@@ -459,36 +591,39 @@ static bool match_tok(struct dev *d, const struct rtok *t, const char *action) {
         subst(d, t->val, p, sizeof p);
         if (p[0] == '/') snprintf(q, sizeof q, "%s", p); else snprintf(q, sizeof q, "%s/%s", d->syspath, p);
         return (access(q, F_OK) == 0) == (t->op[0] == '=');
-    } else if (!strcmp(t->key, "KERNELS") || !strcmp(t->key, "SUBSYSTEMS") || !strcmp(t->key, "DRIVERS") ||
-               !strcmp(t->key, "ATTRS")) {
-        /* walk up from the device itself to /sys/devices (simplification: each key may match a
-         * different ancestor; udev wants one device to satisfy all of them) */
-        char pat[1024], cur[PATH_MAX], p[PATH_MAX + 256], l[PATH_MAX];
-        subst(d, t->val, pat, sizeof pat);
-        snprintf(cur, sizeof cur, "%s", d->syspath);
-        bool any = false;
-        while (!any && !strncmp(cur, "/sys/devices/", 13)) {
-            const char *val = NULL;
-            if (t->key[0] == 'K') val = strrchr(cur, '/') + 1;
-            else if (t->key[0] == 'A') { snprintf(p, sizeof p, "%s/%s", cur, t->attr); if (readfile(p, buf, sizeof buf) >= 0) val = buf; }
-            else {
-                snprintf(p, sizeof p, "%s/%s", cur, t->key[0] == 'S' ? "subsystem" : "driver");
-                ssize_t n = readlink(p, l, sizeof l - 1);
-                if (n > 0) { l[n] = 0; val = strrchr(l, '/') ? strrchr(l, '/') + 1 : l; }
-            }
-            if (val && glob_any(pat, val)) any = true;
-            *strrchr(cur, '/') = 0;
-        }
-        return any == (t->op[0] == '=');
     } else return t->op[0] != '=';                 /* unknown match key: never matches with == */
     char pat[1024];
     subst(d, t->val, pat, sizeof pat);
     return glob_any(pat, v) == (t->op[0] == '=');
 }
 
+static void escape_replace(char *v, bool keep_space) {   /* string_escape=replace / udev's default for links */
+    for (char *c = v; *c; c++)
+        if (!((*c >= '0' && *c <= '9') || (*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') || strchr("#+-.:=@_/", *c) ||
+              (keep_space && *c == ' ') || (unsigned char)*c >= 0x80)) *c = '_';
+}
 static void apply_tok(struct dev *d, const struct rtok *t) {
     char v[1024];
     subst(d, t->val, v, sizeof v);
+    if (!strcmp(t->key, "OPTIONS")) {
+        char *save;
+        for (char *o = strtok_r(v, ",", &save); o; o = strtok_r(NULL, ",", &save)) {
+            while (*o == ' ') o++;
+            if (!strcmp(o, "last_rule")) d->last_rule = true;
+            else if (!strncmp(o, "link_priority=", 14)) d->link_prio = atoi(o + 14);
+            else if (!strcmp(o, "string_escape=replace")) d->esc_replace = true;
+            else if (!strcmp(o, "string_escape=none")) d->esc_replace = false;
+            else if (!strcmp(o, "db_persist")) d->db_persist = true;
+            /* watch, nowatch, static_node=, log_level=: no inotify watches / static nodes here */
+        }
+        return;
+    }
+    if (!strcmp(t->key, "NAME")) {
+        if (d->esc_replace) escape_replace(v, false);
+        snprintf(d->name, sizeof d->name, "%s", v);
+        return;
+    }
+    if (!strcmp(t->key, "SYMLINK")) escape_replace(v, true);   /* udev replaces unsafe characters */
     bool add = t->op[0] == '+', final = t->op[0] == ':';
     if (!strcmp(t->key, "ENV")) pset(d, t->attr, "%s", v);
     else if (!strcmp(t->key, "SYMLINK")) {
@@ -581,6 +716,7 @@ static void import_lines(struct dev *d, char *text, const char *glob) {
 }
 static void hwdb_lookup(struct dev *d, const char *key);
 /* IMPORT{program|file|builtin|parent|cmdline}: true on success */
+static struct dev *cur_old;                          /* db entry of the event being processed */
 static bool do_import(struct dev *d, const struct rtok *t) {
     char v[1024];
     subst(d, t->val, v, sizeof v);
@@ -652,7 +788,13 @@ static bool do_import(struct dev *d, const struct rtok *t) {
         }
         return false;
     }
-    return false;                                    /* db: no previous-event properties here */
+    if (!strcmp(t->attr, "db")) {                    /* a property of the device's previous event */
+        const char *o = cur_old ? pget(cur_old, v) : NULL;
+        if (!o) return false;
+        pset(d, v, "%s", o);
+        return true;
+    }
+    return false;
 }
 
 static void run_rules(const struct rules *r, struct dev *d, const char *action) {
@@ -661,6 +803,8 @@ static void run_rules(const struct rules *r, struct dev *d, const char *action) 
         struct rtok t;
         bool ok = true;
         const char *p = s;
+        struct rtok pk[8];
+        int npk = 0;
         /* first pass: every match key must hold */
         while (ok && (p = next_tok(p, &t))) {
             bool assign = !strcmp(t.op, "=") || !strcmp(t.op, "+=") || !strcmp(t.op, ":=") || !strcmp(t.op, "-=");
@@ -678,8 +822,10 @@ static void run_rules(const struct rules *r, struct dev *d, const char *action) 
                 if (glob_any(pat, d->result) != (t.op[0] == '=')) ok = false;
                 continue;
             }
+            if (!assign && is_parent_key(t.key)) { if (npk < 8) pk[npk++] = t; continue; }
             if (!assign && !match_tok(d, &t, action)) ok = false;
         }
+        if (ok && npk && !match_parents(d, pk, npk)) ok = false;
         if (!ok) continue;
         const char *go = NULL;
         p = s;
@@ -687,9 +833,10 @@ static void run_rules(const struct rules *r, struct dev *d, const char *action) 
             bool assign = !strcmp(t.op, "=") || !strcmp(t.op, "+=") || !strcmp(t.op, ":=") || !strcmp(t.op, "-=");
             if (!assign) continue;
             if (!strcmp(t.key, "GOTO")) { go = strdup(t.val); continue; }
-            if (!strcmp(t.key, "LABEL") || !strcmp(t.key, "OPTIONS") || !strcmp(t.key, "IMPORT") || !strcmp(t.key, "PROGRAM")) continue;
+            if (!strcmp(t.key, "LABEL") || !strcmp(t.key, "IMPORT") || !strcmp(t.key, "PROGRAM")) continue;
             apply_tok(d, &t);
         }
+        if (d->last_rule) { if (go) free((void *)go); break; }   /* OPTIONS+="last_rule" */
         if (go) {                                   /* jump to the LABEL="go" line */
             for (int j = i + 1; j < r->n; j++) {
                 struct rtok u;
@@ -733,6 +880,57 @@ static void link_create(const char *link, const char *devname) {
     if (n >= 0) { cur[n] = 0; if (!strcmp(cur, t)) return; unlink(link); }
     if (symlink(t, link) < 0 && errno != EEXIST) fprintf(stderr, "udevshim: %s: %s\n", link, strerror(errno));
 }
+/* /run/udev/links/<link with '/' as \x2f>/<id> = "priority devname": the claimant with the
+ * highest link_priority owns the link; on a tie the current owner keeps it, else the newest */
+static void link_dir(const char *link, char *out, size_t cap) {
+    size_t o = snprintf(out, cap, "/run/udev/links/");
+    for (const char *c = link + 5; *c && o + 5 < cap; c++) {
+        if (*c == '/') { memcpy(out + o, "\\x2f", 4); o += 4; } else out[o++] = *c;
+    }
+    out[o] = 0;
+}
+static void link_update(const char *link, const char *prefer) {
+    char dir[PATH_MAX], path[PATH_MAX + 200], best[PATH_MAX] = "", cur[PATH_MAX] = "";
+    link_dir(link, dir, sizeof dir);
+    ssize_t cn = readlink(link, cur, sizeof cur - 1);
+    if (cn > 0) cur[cn] = 0; else cur[0] = 0;
+    const char *curbase = strrchr(cur, '/') ? strrchr(cur, '/') + 1 : cur;
+    int bestp = 0; bool have = false, best_cur = false, best_pref = false;
+    DIR *dr = opendir(dir);
+    struct dirent *e;
+    while (dr && (e = readdir(dr))) {
+        if (e->d_name[0] == '.') continue;
+        snprintf(path, sizeof path, "%s/%s", dir, e->d_name);
+        char buf[PATH_MAX + 32];
+        if (readfile(path, buf, sizeof buf) <= 0) continue;
+        int prio = 0; char dn[PATH_MAX];
+        if (sscanf(buf, "%d %4095s", &prio, dn) != 2) continue;
+        const char *dnb = strrchr(dn, '/') ? strrchr(dn, '/') + 1 : dn;
+        bool is_cur = cur[0] && !strcmp(dnb, curbase), is_pref = prefer && !strcmp(e->d_name, prefer);
+        bool better = !have || prio > bestp || (prio == bestp && !best_cur && (is_cur || (is_pref && !best_pref)));
+        if (better) { have = true; bestp = prio; snprintf(best, sizeof best, "%s", dn); best_cur = is_cur; best_pref = is_pref; }
+    }
+    if (dr) closedir(dr);
+    if (have) link_create(link, best);
+    else { unlink(link); rmdir(dir); }
+}
+static void link_claim(const char *link, const char *id, int prio, const char *devname) {
+    char dir[PATH_MAX], path[PATH_MAX + 200];
+    link_dir(link, dir, sizeof dir);
+    mkdir("/run/udev/links", 0755);
+    mkdir(dir, 0755);
+    snprintf(path, sizeof path, "%s/%s", dir, id);
+    FILE *f = fopen(path, "we");
+    if (f) { fprintf(f, "%d %s\n", prio, devname); fclose(f); }
+    link_update(link, id);
+}
+static void link_drop(const char *link, const char *id) {
+    char dir[PATH_MAX], path[PATH_MAX + 200];
+    link_dir(link, dir, sizeof dir);
+    snprintf(path, sizeof path, "%s/%s", dir, id);
+    if (unlink(path) && errno == ENOENT && access(dir, F_OK)) { unlink(link); return; }   /* pre-registry link */
+    link_update(link, NULL);
+}
 static void db_old(const char *id, struct dev *old) {
     char path[PATH_MAX], line[1200];
     snprintf(path, sizeof path, "/run/udev/data/%s", id);
@@ -742,6 +940,12 @@ static void db_old(const char *id, struct dev *old) {
         if (!strncmp(line, "S:", 2)) { char p[PATH_MAX]; snprintf(p, sizeof p, "/dev/%s", line + 2); add_link(old, p); }
         else if (!strncmp(line, "I:", 2)) pset(old, "USEC_INITIALIZED", "%s", line + 2);
         else if (!strncmp(line, "G:", 2)) add_tag(old, line + 2);
+        else if (!strncmp(line, "E:", 2) && strchr(line + 2, '=')) {
+            char *eq = strchr(line + 2, '=');
+            *eq = 0;
+            pset(old, line + 2, "%s", eq + 1);
+        }
+        else if (!strncmp(line, "L:", 2)) old->link_prio = atoi(line + 2);
     }
     if (f) fclose(f);
 }
@@ -752,6 +956,7 @@ static void db_write(const char *id, struct dev *d) {
     FILE *f = fopen(tmp, "we");
     if (!f) return;
     fprintf(f, "I:%s\n", pget(d, "USEC_INITIALIZED") ? pget(d, "USEC_INITIALIZED") : "1");
+    if (d->link_prio) fprintf(f, "L:%d\n", d->link_prio);
     for (int i = 0; i < d->nlinks; i++) fprintf(f, "S:%s\n", d->links[i] + 5);
     static const char *const skip[] = { "ACTION", "DEVPATH", "SUBSYSTEM", "SEQNUM", "MAJOR", "MINOR", "DEVNAME", "DEVTYPE",
                                         "IFINDEX", "INTERFACE", "TAGS", "CURRENT_TAGS", "USEC_INITIALIZED", "PRODUCT", "NAME",
@@ -831,7 +1036,7 @@ static void process(struct dev *d, const char *action) {
     dbid(d, id, sizeof id);
     db_old(id, old);
     if (!strcmp(action, "remove")) {
-        for (int i = 0; i < old->nlinks; i++) unlink(old->links[i]);
+        for (int i = 0; i < old->nlinks; i++) link_drop(old->links[i], id);
         db_remove(id);
         run_rules(&rules, d, action);
         run_programs(d, action);
@@ -839,7 +1044,24 @@ static void process(struct dev *d, const char *action) {
         return;
     }
     builtins(d);
+    cur_old = old;
     run_rules(&rules, d, action);
+    cur_old = NULL;
+    if (is(pget(d, "SUBSYSTEM"), "net") && d->name[0] && pget(d, "INTERFACE") && strcmp(d->name, pget(d, "INTERFACE")) &&
+        !strcmp(action, "add")) {                     /* NAME=: rename the interface */
+        struct ifreq ifr = { 0 };
+        snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", pget(d, "INTERFACE"));
+        snprintf(ifr.ifr_newname, sizeof ifr.ifr_newname, "%s", d->name);
+        int sk = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+        if (sk >= 0 && ioctl(sk, SIOCSIFNAME, &ifr) == 0) {
+            pset(d, "INTERFACE", "%s", d->name);
+            char *slash = strrchr(d->syspath, '/');
+            if (slash) snprintf(slash + 1, sizeof d->syspath - (size_t)(slash + 1 - d->syspath), "%s", d->name);
+            const char *dp = pget(d, "DEVPATH");
+            if (dp && strrchr(dp, '/')) { char np[PATH_MAX]; snprintf(np, sizeof np, "%.*s/%s", (int)(strrchr(dp, '/') - dp), dp, d->name); pset(d, "DEVPATH", "%s", np); }
+        } else fprintf(stderr, "udevshim: rename %s to %s: %s\n", ifr.ifr_name, d->name, strerror(errno));
+        if (sk >= 0) close(sk);
+    }
     pset(d, "USEC_INITIALIZED", "%s", pget(old, "USEC_INITIALIZED") ? pget(old, "USEC_INITIALIZED") : "");
     if (!pget(d, "USEC_INITIALIZED")) pset(d, "USEC_INITIALIZED", "%llu", (unsigned long long)usec_now());
     if (d->ntags) {
@@ -856,10 +1078,10 @@ static void process(struct dev *d, const char *action) {
     for (int i = 0; i < old->nlinks; i++) {          /* links no longer wanted */
         bool keep = false;
         for (int k = 0; k < d->nlinks; k++) if (!strcmp(old->links[i], d->links[k])) keep = true;
-        if (!keep) unlink(old->links[i]);
+        if (!keep) link_drop(old->links[i], id);
     }
     node_update(d, !strcmp(action, "add") || !strcmp(action, "change"));
-    if (pget(d, "DEVNAME")) for (int i = 0; i < d->nlinks; i++) link_create(d->links[i], pget(d, "DEVNAME"));
+    if (pget(d, "DEVNAME")) for (int i = 0; i < d->nlinks; i++) link_claim(d->links[i], id, d->link_prio, pget(d, "DEVNAME"));
     db_write(id, d);
     run_programs(d, action);
     dev_free(old); free(old);
@@ -1209,6 +1431,18 @@ static int udevadm(int argc, char **argv) {
         return monitor(p);
     }
     if (!strcmp(cmd, "control")) return 0;
+    if (!strcmp(cmd, "hwdb")) {
+        const char *out = HWDB_BIN;
+        bool upd = false;
+        for (int i = 2; i < argc; i++) {
+            if (!strcmp(argv[i], "--update") || !strcmp(argv[i], "-u")) upd = true;
+            else if (!strncmp(argv[i], "--output=", 9)) out = argv[i] + 9;
+            else if (!strcmp(argv[i], "-o") && i + 1 < argc) out = argv[++i];
+            else if (!strncmp(argv[i], "--test=", 7)) return hwdb_test(argv[i] + 7);
+            else if (!strcmp(argv[i], "-t") && i + 1 < argc) return hwdb_test(argv[++i]);
+        }
+        return upd ? hwdb_update(out) : usage();
+    }
     return usage();
 }
 

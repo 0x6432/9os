@@ -66,6 +66,7 @@ struct blkdev {
     struct inode *inode;         /* buffer cache */
     struct super_block *mounted; /* filesystem using it exclusively */
     struct device kdev;          /* M34: /sys/class/block/<name>; drivers set kdev.parent */
+    char serial[21];             /* device serial (virtio-blk GET_ID), sysfs "serial" */
 };
 
 void blk_init(void);

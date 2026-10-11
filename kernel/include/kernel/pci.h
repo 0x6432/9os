@@ -9,6 +9,7 @@ struct pci_dev {
     uint8_t class_code, subclass, prog_if;
     volatile uint8_t *cfg;          /* mapped 4 KiB config space */
     struct device kdev;             /* M34: /sys/bus/pci/devices/0000:BB:DD.F */
+    struct { uint64_t start, end, flags; } res[7];   /* BARs 0-5 + ROM, sized at boot (sysfs resource) */
 };
 
 void pci_init(void);

@@ -457,7 +457,9 @@ static int a_stat(struct device *k, char *b, size_t n) {
     return dev_printf(b, n, "%8lu %8u %8lu %8u %8lu %8u %8lu %8u %8u %8lu %8lu\n", d->reads, 0, d->sectors_read, 0,
                       d->writes, 0, d->sectors_written, 0, 0, d->io_ns / 1000000, d->io_ns / 1000000);
 }
+static int a_serial(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%s\n", bdev_of(k)->serial); }
 static const struct dev_attr disk_attrs[] = {
+    { "serial", 0444, a_serial, nullptr },
     { "size", 0444, a_size, nullptr }, { "ro", 0444, a_ro, nullptr }, { "removable", 0444, a_zero, nullptr },
     { "range", 0444, a_range, nullptr }, { "ext_range", 0444, a_range, nullptr }, { "stat", 0444, a_stat, nullptr },
     { "queue/logical_block_size", 0444, a_lbs, nullptr }, { "queue/physical_block_size", 0444, a_lbs, nullptr },

@@ -267,7 +267,12 @@ static int gen_file(struct snode *s, char *b, size_t cap) {
     case K_ATTR: return d->attrs[s->idx].show ? d->attrs[s->idx].show(d, b, cap) : 0;
     case K_DEV: return dev_printf(b, cap, "%u:%u\n", (unsigned)MAJOR(d->devt), (unsigned)MINOR(d->devt));
     case K_POWER: {
+        /* as Linux without runtime PM in the driver: PCI devices start "on" (pci_pm_init forbids
+         * runtime PM), others "auto"; runtime_enabled reflects the forbidden state */
+        bool on = d->pm_set ? d->pm_on : (d->bus && d->subsys && !strcmp(d->subsys, "pci"));
         static const char *const v[] = { "on", "unsupported", "disabled", "disabled", "0", "0" };
+        if (s->idx == 0) return dev_printf(b, cap, "%s\n", on ? "on" : "auto");
+        if (s->idx == 3) return dev_printf(b, cap, "%s\n", on ? "disabled & forbidden" : "disabled");
         return dev_printf(b, cap, "%s\n", v[s->idx]);
     }
     case K_UEVENT: {
@@ -333,6 +338,8 @@ static ssize_t sf_write(struct file *f, const void *buf, size_t n, off_t *off) {
         if (r) return r;
     } else if (s->kind == K_POWER && s->idx == 0) {
         if (strncmp(t, "on", 2) && strncmp(t, "auto", 4)) return -EINVAL;
+        s->dev->pm_on = t[0] == 'o';
+        s->dev->pm_set = true;
     } else if (s->kind == K_ATTR && s->dev->attrs[s->idx].store) {
         int r = s->dev->attrs[s->idx].store(s->dev, t, n);
         if (r) return r;

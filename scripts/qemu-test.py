@@ -39,7 +39,7 @@ def main():
         net = f'-netdev user,id=n0,hostfwd=tcp:127.0.0.1:{fp}-:8080,hostfwd=udp:127.0.0.1:{fp}-:8081 -device virtio-net-pci,netdev=n0'
         a.cmds = [c.replace('@HP@', str(hp)).replace('@FP@', str(fp)) for c in a.cmds]
     make = ['make', '-s', 'ARCH=' + a.arch, 'SMP=' + a.smp, 'run', 'QEMUFLAGS=-display none ' + os.environ.get('QEMU_EXTRA', '') +
-            ''.join(f' -drive file={d},if=none,id=vd{k},format=raw -device virtio-blk-pci,drive=vd{k}' for k, d in enumerate(a.disk))]
+            ''.join(f' -drive file={d},if=none,id=vd{k},format=raw -device virtio-blk-pci,drive=vd{k},serial=9os-disk{k}' for k, d in enumerate(a.disk))]
     make.insert(3, 'QEMU_NET=' + net)
     if a.sched: make.insert(3, 'SCHED=' + a.sched)
     if a.cmdline: make.insert(3, 'CMDLINE=' + a.cmdline)

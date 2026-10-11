@@ -27,7 +27,8 @@
 #define F_BLK_SIZE (1u << 6)
 #define F_FLUSH    (1u << 9)
 #define F_INDIRECT (1u << 28)
-enum { T_IN = 0, T_OUT = 1, T_FLUSH = 4 };
+enum { T_IN = 0, T_OUT = 1, T_FLUSH = 4, T_GET_ID = 8 };
+#define GETID_REQ ((struct bio *)1)      /* d->req[] marker of the probe-time GET_ID request */
 
 #define SLOT_SIZE 1024        /* indirect table (<= 40 descriptors) + header + status */
 #define SLOT_HDR  896
@@ -45,6 +46,8 @@ struct vblk {
     uint16_t *free;           /* stack of free slots */
     unsigned nfree, depth, seg_max;
     uint64_t completions;
+    volatile int getid_status;    /* 1 pending, 0 ok, <0 failed */
+    char serial[21];
 };
 static const struct lock_class drv_class = { "virtio_blk", LR_BLKDRV, false };
 static struct vblk *vdevs[8];
@@ -89,6 +92,12 @@ static void reap(void *arg) {
         spin_lock_ipi(&d->lock);
         while (n < 32 && virtq_pop(&d->q, &id, nullptr)) {
             if (id >= d->depth || !d->req[id]) continue;
+            if (d->req[id] == GETID_REQ) {
+                d->getid_status = d->slots[(size_t)id * SLOT_SIZE + SLOT_STAT] == 0 ? 0 : -EIO;
+                d->req[id] = nullptr;
+                d->free[d->nfree++] = (uint16_t)id;
+                continue;
+            }
             done[n] = d->req[id];
             st[n++] = d->slots[(size_t)id * SLOT_SIZE + SLOT_STAT] == 0 ? 0 : -EIO;
             d->req[id] = nullptr;
@@ -100,6 +109,33 @@ static void reap(void *arg) {
         if (!n) break;
         for (int i = 0; i < n; i++) bio_complete(done[i], st[i]);
     }
+}
+
+/* VIRTIO_BLK_T_GET_ID: up to 20 bytes of serial (NUL-padded), like Linux's "serial" attribute */
+static void get_id(struct vblk *d) {
+    uint64_t f = arch_irq_save();
+    spin_lock_ipi(&d->lock);
+    unsigned s = d->free[--d->nfree];
+    uint8_t *slot = d->slots + (size_t)s * SLOT_SIZE;
+    paddr_t spa = d->slots_pa + (size_t)s * SLOT_SIZE;
+    struct vq_desc *t = (struct vq_desc *)slot;
+    struct { uint32_t type, reserved; uint64_t sector; } *hdr = (void *)(slot + SLOT_HDR);
+    hdr->type = T_GET_ID; hdr->reserved = 0; hdr->sector = 0;
+    memset(slot + SLOT_STAT + 16, 0, 20);                /* id buffer after the status byte */
+    slot[SLOT_STAT] = 0xff;
+    t[0] = (struct vq_desc){ spa + SLOT_HDR, 16, VQ_NEXT, 1 };
+    t[1] = (struct vq_desc){ spa + SLOT_STAT + 16, 20, VQ_NEXT | VQ_WRITE, 2 };
+    t[2] = (struct vq_desc){ spa + SLOT_STAT, 1, VQ_WRITE, 0 };
+    d->q.desc[s] = (struct vq_desc){ spa, 3 * 16, VQ_INDIRECT, 0 };
+    d->getid_status = 1;
+    d->req[s] = GETID_REQ;
+    virtq_push(&d->q, (uint16_t)s);
+    spin_unlock(&d->lock);
+    arch_irq_restore(f);
+    for (int i = 0; i < 1000 && d->getid_status == 1; i++) { reap(d); sleep_ns(1000000ull); }
+    if (d->getid_status) return;
+    memcpy(d->serial, slot + SLOT_STAT + 16, 20);
+    d->serial[20] = 0;
 }
 
 static void poll_thread(void *arg) {
@@ -137,10 +173,12 @@ static void probe(struct pci_dev *pd) {
     d->slots = PHYS_TO_VIRT(d->slots_pa);
     for (unsigned i = 0; i < d->depth; i++) d->free[d->nfree++] = (uint16_t)(d->depth - 1 - i);
     virtio_driver_ok(&d->v);
+    get_id(d);
     vdevs[nvdevs++] = d;
     d->disk = blk_register_disk(nm, cap, bsz, &vblk_ops, d, d->depth);
     if (!d->disk) return;
     d->disk->max_vecs = d->seg_max;
+    memcpy(d->disk->serial, d->serial, sizeof d->serial);
     d->disk->kdev.parent = d->v.kdev;
     d->disk->readonly = feat & F_RO;
     d->disk->has_flush = feat & F_FLUSH;

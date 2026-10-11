@@ -42,6 +42,7 @@ struct device {
     int refs;                    /* references beyond the owner's (sysfs inodes, packets) */
     char path[192];              /* /devices/... (set by device_add) */
     bool added;
+    bool pm_set, pm_on;          /* power/control written: "on" (runtime PM forbidden) or "auto" */
 };
 static inline void device_get(struct device *d) { __atomic_add_fetch(&d->refs, 1, __ATOMIC_RELAXED); }
 /* drop a reference; the owner drops its implicit one after device_del() */

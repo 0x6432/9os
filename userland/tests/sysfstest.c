@@ -137,6 +137,41 @@ static void test_driver(void) {
     snprintf(p, sizeof p, "%s/power/control", rp);
     CHECK(rd(p, b, sizeof b) > 0 && !strcmp(b, "on"), "power/control %s", b);
     CHECK(wr(p, "auto") == 0 && wr(p, "sleep") == -EINVAL, "power/control writes");
+    CHECK(rd(p, b, sizeof b) > 0 && !strcmp(b, "auto"), "power/control stored %s", b);
+    snprintf(p, sizeof p, "%s/power/runtime_enabled", rp);
+    CHECK(rd(p, b, sizeof b) > 0 && !strcmp(b, "disabled"), "runtime_enabled auto %s", b);
+    snprintf(p, sizeof p, "%s/power/control", rp);
+    CHECK(wr(p, "on") == 0 && rd(p, b, sizeof b) > 0 && !strcmp(b, "on"), "power/control on %s", b);
+    snprintf(p, sizeof p, "%s/power/runtime_enabled", rp);
+    CHECK(rd(p, b, sizeof b) > 0 && !strcmp(b, "disabled & forbidden"), "runtime_enabled on %s", b);
+    CHECK(rd("/sys/class/net/eth0/power/control", b, sizeof b) > 0 && !strcmp(b, "auto"), "class device control %s", b);
+    /* resource: start end flags for BARs 0-5 + ROM; memory BARs agree with config space */
+    snprintf(p, sizeof p, "%s/resource", rp);
+    {
+        char rb[1024];
+        int fd0 = open(p, O_RDONLY), rn = fd0 >= 0 ? (int)read(fd0, rb, sizeof rb - 1) : -1;
+        if (fd0 >= 0) close(fd0);
+        int lines = 0, mem = 0;
+        if (rn > 0) {
+            rb[rn] = 0;
+            char *q = rb;
+            for (int i = 0; i < 7 && *q; i++) {
+                unsigned long long st0, en, fl;
+                if (sscanf(q, "0x%llx 0x%llx 0x%llx", &st0, &en, &fl) == 3) lines++;
+                if ((fl & 0x200) && st0 && en > st0) {
+                    unsigned char cfg[4];
+                    char cp[PATH_MAX];
+                    snprintf(cp, sizeof cp, "%s/config", rp);
+                    int cf = open(cp, O_RDONLY);
+                    if (i < 6 && cf >= 0 && pread(cf, cfg, 4, 0x10 + 4 * i) == 4 &&
+                        (st0 & 0xfffffff0ull) == ((cfg[0] | cfg[1] << 8 | cfg[2] << 16 | (unsigned)cfg[3] << 24) & 0xfffffff0u)) mem++;
+                    if (cf >= 0) close(cf);
+                }
+                q = strchr(q, '\n'); if (!q) break; q++;
+            }
+        }
+        CHECK(lines == 7 && mem >= 1, "resource: %d lines, %d memory BARs match config", lines, mem);
+    }
     snprintf(p, sizeof p, "%s/power/runtime_status", rp);
     CHECK(rd(p, b, sizeof b) > 0 && !strcmp(b, "unsupported"), "runtime_status %s", b);
     snprintf(p, sizeof p, "%s/config", rp);
@@ -166,6 +201,8 @@ static void test_block(void) {
     CHECK(fd >= 0 && ioctl(fd, BLKGETSIZE64, &bytes) == 0, "BLKGETSIZE64");
     close(fd);
     char b[64], rp[PATH_MAX], rp2[PATH_MAX];
+    char ser[64];
+    CHECK(rd("/sys/block/vda/serial", ser, sizeof ser) >= 0 && !strcmp(ser, "9os-disk0"), "serial %s", ser);
     CHECK(rd("/sys/class/block/vda/size", b, sizeof b) > 0 && strtoull(b, NULL, 10) * 512 == bytes, "size %s vs %llu", b, (unsigned long long)bytes);
     CHECK(realpath("/sys/block/vda", rp) && realpath("/sys/class/block/vda", rp2) && !strcmp(rp, rp2), "/sys/block/vda %s", rp);
     if (!stat("/dev/vda1", &sp)) {
@@ -404,6 +441,55 @@ static uint32_t murmur2(const char *s) {
     h ^= h >> 13; h *= mm; h ^= h >> 15;
     return h;
 }
+static bool db_has(const char *id, const char *s) {
+    char p[128], b[8192];
+    snprintf(p, sizeof p, "/run/udev/data/%s", id);
+    return rd(p, b, sizeof b) > 0 && strstr(b, s);
+}
+/* M36: same-ancestor parent keys, OPTIONS, IMPORT{db}, link_priority, NAME=, hwdb cache, by-id */
+static void test_udevshim2(void) {
+    char b[4096], rp[PATH_MAX];
+    CHECK(db_has("c13:64", "E:SAME_OK=1\n") && !db_has("c13:64", "SAME_BAD"), "parent keys on one ancestor");
+    CHECK(db_has("c13:64", "E:LAST=1\n") && !db_has("c13:64", "AFTER_LAST"), "last_rule");
+    CHECK(db_has("c13:64", "E:SYSFT_HWDB=1\n") && !db_has("c13:64", "SYSFT_NO"), "hwdb from sources");
+    CHECK(!db_has("c13:64", "PREV_SEEN"), "IMPORT{db} without an earlier event");
+    CHECK(wr("/sys/class/input/event0/uevent", "change") == 0 && system("udevadm settle --timeout=10") == 0, "second change");
+    CHECK(db_has("c13:64", "E:PREV_SEEN=yes\n"), "IMPORT{db}");
+    if (!access("/sys/class/input/event1", F_OK)) {
+        CHECK(wr("/sys/class/input/event1/uevent", "change") == 0 && system("udevadm settle --timeout=10") == 0, "trigger event1");
+        CHECK(realpath("/dev/input/prio-test", rp) && !strcmp(rp, "/dev/input/event1"), "link_priority winner %s", rp);
+        CHECK(wr("/sys/class/input/event0/uevent", "change") == 0 && system("udevadm settle --timeout=10") == 0, "third change");
+        CHECK(realpath("/dev/input/prio-test", rp) && !strcmp(rp, "/dev/input/event1"), "lower priority does not steal %s", rp);
+        CHECK(db_has("c13:65", "L:10\n"), "L: in db");
+    }
+    /* NAME= on a new tap device */
+    int tfd = open("/dev/net/tun", O_RDWR);
+    struct ifreq q = { 0 };
+    snprintf(q.ifr_name, sizeof q.ifr_name, "sysftap%%d");
+    q.ifr_flags = IFF_TAP | IFF_NO_PI;
+    CHECK(tfd >= 0 && ioctl(tfd, TUNSETIFF, &q) == 0, "tap");
+    CHECK(system("udevadm settle --timeout=10") == 0, "settle after tap");
+    CHECK(access("/sys/class/net/sysft0", F_OK) == 0 && access("/sys/class/net/sysftap0", F_OK) != 0, "renamed to sysft0");
+    if (tfd >= 0) close(tfd);
+    system("udevadm settle --timeout=10");
+    /* compiled hwdb: once built, only it is used */
+    CHECK(system("udevadm hwdb --update") == 0 && rd("/etc/udev/hwdb.bin", b, sizeof b) > 0 && !strncmp(b, "9os-hwdb 1\n", 11), "hwdb --update");
+    FILE *hf = fopen("/etc/udev/hwdb.d/90-sysftest.hwdb", "w");
+    if (hf) { fputs("sysftest:k*\n SYSFT_HWDB=2\n", hf); fclose(hf); }
+    FILE *pf = popen("udevadm hwdb --test=sysftest:key", "r");
+    size_t n = pf ? fread(b, 1, sizeof b - 1, pf) : 0;
+    b[n] = 0;
+    if (pf) pclose(pf);
+    CHECK(strstr(b, "SYSFT_HWDB=1\n") != NULL, "compiled hwdb in use: %s", b);
+    unlink("/etc/udev/hwdb.bin");
+    unlink("/etc/udev/hwdb.d/90-sysftest.hwdb");
+    /* by-id for virtio disks with a serial */
+    if (!access("/sys/block/vda", F_OK)) {
+        CHECK(wr("/sys/block/vda/uevent", "change") == 0 && system("udevadm settle --timeout=10") == 0, "trigger vda");
+        CHECK(realpath("/dev/disk/by-id/virtio-9os-disk0", rp) && !strcmp(rp, "/dev/vda"), "by-id %s", rp);
+        CHECK(db_has("b254:0", "E:ID_SERIAL=9os-disk0\n"), "ID_SERIAL");
+    }
+}
 static void test_udevshim(void) {
     unlink("/run/udev/control");
     unlink("/tmp/sysftest.run");
@@ -417,9 +503,29 @@ static void test_udevshim(void) {
               "SUBSYSTEM==\"input\", KERNEL==\"event0\", ATTRS{name}==\"?*\", SYMLINK+=\"input/sysftest\", \\\n"
               "  ENV{SYSFTEST}=\"yes-%k-$major\", TAG+=\"sysft\", RUN+=\"/bin/touch /tmp/sysftest.run\"\n"
               "SUBSYSTEM==\"input\", ENV{SYSFTEST}==\"no\", ENV{SYSFTEST_BAD}=\"1\"\n"
-              "LABEL=\"sysft_end\"\n", rf);
+              /* M36: parent keys must match one ancestor */
+              "KERNEL==\"event0\", KERNELS==\"input*\", ATTRS{name}==\"?*\", ENV{SAME_OK}=\"1\"\n"
+              "KERNEL==\"event0\", KERNELS==\"event0\", ATTRS{name}==\"?*\", ENV{SAME_BAD}=\"1\"\n"
+              /* IMPORT{db}: a property of the previous event */
+              "KERNEL==\"event0\", IMPORT{db}=\"SEEN\", ENV{PREV_SEEN}=\"$env{SEEN}\"\n"
+              "KERNEL==\"event0\", ENV{SEEN}=\"yes\"\n"
+              /* link_priority arbitration */
+              "SUBSYSTEM==\"input\", KERNEL==\"event[01]\", SYMLINK+=\"input/prio-test\"\n"
+              "KERNEL==\"event1\", OPTIONS+=\"link_priority=10\"\n"
+              /* NAME= renames network interfaces */
+              "SUBSYSTEM==\"net\", KERNEL==\"sysftap*\", NAME=\"sysft0\"\n"
+              /* hwdb lookup from a rule */
+              "KERNEL==\"event0\", IMPORT{builtin}=\"hwdb 'sysftest:key'\"\n"
+              "LABEL=\"sysft_end\"\n"
+              "KERNEL==\"event0\", ENV{LAST}=\"1\", OPTIONS+=\"last_rule\"\n"
+              "KERNEL==\"event0\", ENV{AFTER_LAST}=\"1\"\n", rf);
         fclose(rf);
     }
+    mkdir("/etc/udev", 0755);
+    mkdir("/etc/udev/hwdb.d", 0755);
+    unlink("/etc/udev/hwdb.bin");
+    FILE *hf = fopen("/etc/udev/hwdb.d/90-sysftest.hwdb", "w");
+    if (hf) { fputs("# sysfstest\nsysftest:other\nsysftest:k*\n SYSFT_HWDB=1\n\nsysftest:nomatch\n SYSFT_NO=1\n", hf); fclose(hf); }
     pid_t d = fork();
     if (!d) { execlp("udevshim", "udevshim", "-d", "-f", (char *)NULL); _exit(127); }
     for (int i = 0; i < 50 && access("/run/udev/control", F_OK); i++) usleep(20000);
@@ -473,6 +579,7 @@ static void test_udevshim(void) {
     db[got_n] = 0;
     if (pf) pclose(pf);
     CHECK(strstr(db, "P: /devices/") && strstr(db, "\nN: input/event0\n") && strstr(db, "\nS: input/sysftest\n"), "export-db: %.300s", db);
+    test_udevshim2();
     kill(d, SIGTERM);
     waitpid(d, NULL, 0);
     unlink("/run/udev/rules.d/90-sysftest.rules");

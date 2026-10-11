@@ -117,8 +117,68 @@ static ssize_t a_config(struct device *k, char *b, size_t n, uint64_t off) {
     for (size_t i = 0; i < n; i++) b[i] = (char)pci_read8(pdev(k), (unsigned)(off + i));
     return (ssize_t)n;
 }
+/* Linux "resource": start end flags per BAR (+ ROM), IORESOURCE_* flags with the BAR's low bits */
+#define IORES_IO 0x100
+#define IORES_MEM 0x200
+#define IORES_PREFETCH 0x2000
+#define IORES_READONLY 0x4000
+#define IORES_SIZEALIGN 0x40000
+#define IORES_MEM_64 0x100000
+static void size_bars(struct pci_dev *d) {
+    unsigned ht = pci_read8(d, 0xe) & 0x7f, nbars = ht == 0 ? 6 : ht == 1 ? 2 : 0;
+    uint16_t cmd = pci_read16(d, 4);
+    pci_write16(d, 4, cmd & ~3);                        /* no decode while sizing */
+    for (unsigned b = 0; b < nbars; b++) {
+        unsigned off = 0x10 + b * 4;
+        uint32_t lo = pci_read32(d, off);
+        pci_write32(d, off, 0xffffffff);
+        uint32_t m = pci_read32(d, off);
+        pci_write32(d, off, lo);
+        if (!m) continue;
+        if (lo & 1) {                                   /* I/O */
+            uint64_t sz = (uint64_t)(~(m & ~3u) & 0xffff) + 1, start = lo & ~3u;
+            if (start) { d->res[b].start = start; d->res[b].end = start + sz - 1; }
+            d->res[b].flags = IORES_IO | IORES_SIZEALIGN | (lo & 3);
+            continue;
+        }
+        bool is64 = ((lo >> 1) & 3) == 2;
+        uint64_t mask = (m & ~0xfull) | 0xffffffff00000000ull, start = lo & ~0xfull;
+        if (is64 && b + 1 < nbars) {
+            uint32_t hi = pci_read32(d, off + 4);
+            pci_write32(d, off + 4, 0xffffffff);
+            mask = (mask & 0xffffffffull) | (uint64_t)pci_read32(d, off + 4) << 32;
+            pci_write32(d, off + 4, hi);
+            start |= (uint64_t)hi << 32;
+        }
+        uint64_t sz = ~mask + 1;
+        if (start) { d->res[b].start = start; d->res[b].end = start + sz - 1; }
+        d->res[b].flags = IORES_MEM | IORES_SIZEALIGN | (lo & 0xf) | (lo & 8 ? IORES_PREFETCH : 0) | (is64 ? IORES_MEM_64 : 0);
+        if (is64) b++;                                  /* the upper half reads as an empty line */
+    }
+    if (nbars == 6) {                                   /* expansion ROM */
+        uint32_t rom = pci_read32(d, 0x30);
+        pci_write32(d, 0x30, 0xfffff800);
+        uint32_t m = pci_read32(d, 0x30) & 0xfffff800;
+        pci_write32(d, 0x30, rom);
+        if (m && (rom & 0xfffff800)) {
+            uint64_t start = rom & 0xfffff800, sz = (uint64_t)(~m) + 1;
+            d->res[6].start = start; d->res[6].end = start + sz - 1;
+            d->res[6].flags = IORES_MEM | IORES_PREFETCH | IORES_READONLY | IORES_SIZEALIGN;
+        }
+    }
+    pci_write16(d, 4, cmd);
+}
+static int a_resource(struct device *k, char *b, size_t n) {
+    struct pci_dev *d = pdev(k);
+    int len = 0;
+    for (int i = 0; i < 7; i++)
+        len += dev_printf(b + len, n - len, "0x%016lx 0x%016lx 0x%016lx\n", (unsigned long)d->res[i].start,
+                          (unsigned long)d->res[i].end, (unsigned long)(d->res[i].end ? d->res[i].flags : 0));
+    return len;
+}
 static const struct dev_attr pci_attrs[] = {
     { "config", 0644, nullptr, nullptr, a_config, 4096 },
+    { "resource", 0444, a_resource, nullptr },
     { "vendor", 0444, a_vendor, nullptr }, { "device", 0444, a_device, nullptr }, { "class", 0444, a_class, nullptr },
     { "subsystem_vendor", 0444, a_svendor, nullptr }, { "subsystem_device", 0444, a_sdevice, nullptr },
     { "revision", 0444, a_revision, nullptr }, { "irq", 0444, a_irq, nullptr }, { "modalias", 0444, a_modalias, nullptr },
@@ -175,6 +235,7 @@ void pci_init(void) {
         snprintf(k->name, sizeof k->name, "0000:%02x:%02x.%u", d->bus, d->dev, d->fn);
         k->parent = &pci_root; k->subsys = "pci"; k->bus = true;
         k->attrs = pci_attrs; k->uevent = pci_uevent; k->priv = d;
+        size_bars(d);
         device_add(k);
     }
 }
