@@ -10,6 +10,7 @@
  * /dev/vcs, /dev/vcsN read a console's characters (rows*cols bytes, no newlines).
  */
 #include <kernel/vt.h>
+#include <kernel/gpu.h>
 #include <kernel/tty.h>
 #include <kernel/fbcon.h>
 #include <kernel/printk.h>
@@ -80,8 +81,10 @@ static void complete_switch(int n) {
     fg = n; want = -1;
     bool proc = vts[n].mode.mode == VT_PROCESS;
     int pid = vts[n].owner, sig = vts[n].mode.acqsig;
+    bool text = vts[n].kd_mode == KD_TEXT;
     spin_unlock_irqrestore(&vt_lock, f);
     fbcon_vt_switch(n);
+    if (text) drm_console_reclaim();        /* like fbcon on Linux: a text VT takes the display back */
     if (proc && !send_sig(pid, sig)) reset_vc(n);
     wake_up(&vt_wq);
     poll_notify();
