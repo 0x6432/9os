@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 PATH=$PATH:/usr/sbin:/sbin
 WL=; [ -e userland/build/ports-root-$ARCH/usr/bin/wltest ] && WL=wltest
 IN=; [ -e userland/build/ports-root-$ARCH/usr/bin/inputtest ] && IN=inputtest
+[ -e userland/build/ports-root-$ARCH/usr/libexec/libinput/libinput-test-utils ] && IN="$IN /usr/libexec/libinput/libinput-test-utils"
 B=build/ci-$ARCH; mkdir -p "$B"
 INODE_SIZE=256 sh scripts/mkdisk.sh "$B/ext2.img" 128 || exit 1
 sh scripts/mkdisk.sh "$B/root.img" 256 "userland/root-$ARCH" || exit 1

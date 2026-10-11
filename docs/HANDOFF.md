@@ -1326,11 +1326,11 @@ attribute of a removed device, group-2 multicast, driver/module links, power/, P
 /--export-db`. CI also checks `udevshim -c`/`-q`.
 
 ### Known limits
-1. Only netdevs (TUN/TAP) and input devices (uinput, M35) are ever removed. Attribute files
-   are generated at open (4 KiB max, no seq_file); no `descriptors`/`resource` files.
-2. udevshim: `*S` match keys may be satisfied by different ancestors; no OPTIONS, NAME= for
-   netdevs, by-id links (no serials), IMPORT{db}, or compiled hwdb.bin (text files are parsed
-   at startup). `power/` is static (no runtime PM). (IMPORT/PROGRAM: added in M35.)
+1. Only netdevs (TUN/TAP), input devices (uinput, M35) and loop devices (M35+) are ever
+   removed. Attribute files are generated at open (4 KiB max, no seq_file: Linux's PAGE_SIZE
+   limit for sysfs attributes too). `resource` landed in M35+; `descriptors` is USB-only (no USB).
+2. udevshim gaps listed here originally (same-ancestor `*S` keys, OPTIONS, NAME=, by-id,
+   IMPORT{db}, compiled hwdb, runtime PM `power/control`) were closed in M35+, see below.
 
 ## M35: Input/seat stack (branch notion/m35)
 
@@ -1375,7 +1375,49 @@ attribute of a removed device, group-2 multicast, driver/module links, power/, P
   seatd and the builtin backend opening /dev/input/event0 (and /dev/dri/card0 when present).
 
 ### Known limits
-1. No force feedback, no EV_UINPUT requests, no switch/sound bits in input devices.
-2. seatd's VT handling uses the single-VT stubs in tty.c (VT_GETSTATE says VT 1 is active;
-   VT_ACTIVATE/RELDISP are no-ops), so seat switching between VTs does not happen.
-3. libwacom, libinput's debug-gui and test suite are not built.
+All three were lifted in the follow-up below: force feedback/EV_UINPUT/switch+sound bits,
+real VT switching for seatd, libwacom and the libinput test suite. debug-gui is out of scope.
+
+## M35+: follow-up (branch notion/m35)
+
+### What landed
+- **Input**: EV_SW/EV_SND/EV_FF in evdev and uinput; EV_UINPUT FF upload/erase protocol
+  (UI_BEGIN/END_FF_UPLOAD/ERASE), uinput read queue, writes to an evdev node inject events,
+  no empty SYN_REPORT frames.
+- **VTs** (`kernel/drivers/vt.c`): 6 VTs (`vt_ttys[]`, tty0 = foreground, /dev/tty1..6),
+  VT_ACTIVATE/WAITACTIVE/OPENQRY/GETSTATE/DISALLOCATE/LOCKSWITCH, VT_SETMODE VT_PROCESS with
+  relsig/acqsig and VT_RELDISP (refuse/accept/VT_ACKACQ), owner death resets the mode, per-VT
+  KD_GRAPHICS/KDSKBMODE (K_RAW/K_MEDIUMRAW keycodes, K_OFF), Alt+Fn/Ctrl+Alt+Fn through a
+  `vtswitch` kernel thread. fbcon keeps a cell buffer per VT and redraws on switch;
+  /dev/vcs, /dev/vcs1..6 (7:N); /sys/class/tty/tty0/active. uinput keyboards type into the
+  foreground VT like on Linux.
+- **Loop devices** (`kernel/drivers/loop.c`): /dev/loop-control (GET_FREE/ADD/REMOVE),
+  /dev/loopN (7:N) with SET_FD, CONFIGURE, CLR_FD (deferred autoclear while open),
+  GET/SET_STATUS64, SET_CAPACITY (change uevent), I/O by a `kloopd` thread, sysfs `loop/`
+  (backing_file, offset, sizelimit, autoclear, ...). blk.c gained a dynamic registry.
+- **sysfs**: PCI `resource` (BARs sized at enumeration), per-device `power/control` (PCI "on",
+  others "auto"), virtio-blk `serial` (VIRTIO_BLK_T_GET_ID; qemu-test.py sets `serial=9os-diskN`).
+- **udevshim**: `*S` keys must match one ancestor; OPTIONS (last_rule, link_priority,
+  string_escape, db_persist); NAME= renames netdevs; IMPORT{db}; symlink ownership with
+  priorities (/run/udev/links); /dev/disk/by-id/virtio-<serial>[-partN] + ID_SERIAL; hwdb
+  records with /etc overrides and a compiled `/etc/udev/hwdb.bin` (`udevadm hwdb --update`,
+  a 9os text format, not systemd's binary trie); `udevadm control --reload` (SIGHUP).
+- **Ports**: check 0.15.2, GLib 2.82.4 (minimal), libgudev 238, libwacom 2.14.0 (data in
+  /usr/share/libwacom); libinput now built with libwacom and `-Dtests=true -Dinstall-tests=true`
+  (/usr/libexec/libinput/libinput-test-suite, libinput-test-utils).
+
+### Tests
+- `vttest`: VT switching, VT_PROCESS handshake (refuse/accept/acquire), signals, OPENQRY,
+  DISALLOCATE, LOCKSWITCH, per-VT KD modes, vcs contents. `looptest`: control ioctls, status,
+  capacity change, autoclear, mke2fs + mount on a loop device, busybox losetup.
+- `uinputtest`/`inputtest`: FF upload/erase, switch/sound bits, evdev write injection; libseat
+  switch_session(2) moves to VT2 and back; libwacom by USB id and by node of a uinput tablet,
+  libinput tablet-tool device. `sysfstest`: resource/power/serial, udevshim rules for
+  OPTIONS/NAME/IMPORT{db}/link priority/by-id/hwdb.bin/reload.
+- `libinput-test-utils` (45 tests) runs in the main suite. The device test suite needs
+  `udevshim -d` and must run on another VT (`chvt 2`), since litest keyboards type into the
+  foreground console; the keyboard group alone takes > 4 min under TCG.
+
+### Known limits
+1. libinput debug-gui needs GTK and a Wayland/X11 desktop stack; out of scope.
+2. hwdb.bin is not systemd's format (only 9os udevshim reads it).
