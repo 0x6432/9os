@@ -40,7 +40,7 @@ These features are what most ported software needs, in rough order of value:
 ```
 
 Kernel steps:
-1. fbdev (M15), then ✅ (M18: legacy KMS + dumb buffers + page flip; atomic/PRIME still open) **DRM/KMS-lite**: `/dev/dri/card0` with the ioctls libdrm and wlroots use (`DRM_IOCTL_VERSION`, `GET_CAP`, `MODE_GETRESOURCES/GETCONNECTOR/GETENCODER/GETCRTC/SETCRTC`, `MODE_CREATE_DUMB/MAP_DUMB/DESTROY_DUMB`, `MODE_ADDFB2/RMFB`, `MODE_PAGE_FLIP` + vblank events, `PRIME` fd export as memfd-like objects, atomic modesetting later). The backend is the Limine/ramfb framebuffer first, then **virtio-gpu** (2D resources plus a scanout; virgl 3D much later).
+1. fbdev (M15), then ✅ (M18: legacy KMS + dumb buffers + page flip; M36: atomic modesetting, properties, PRIME/dma-buf, zero-copy virtio-gpu scanout) **DRM/KMS-lite**: `/dev/dri/card0` with the ioctls libdrm and wlroots use (`DRM_IOCTL_VERSION`, `GET_CAP`, `MODE_GETRESOURCES/GETCONNECTOR/GETENCODER/GETCRTC/SETCRTC`, `MODE_CREATE_DUMB/MAP_DUMB/DESTROY_DUMB`, `MODE_ADDFB2/RMFB`, `MODE_PAGE_FLIP` + vblank events, `PRIME` fd export as memfd-like objects, atomic modesetting later). The backend is the Limine/ramfb framebuffer first, then **virtio-gpu** (2D resources plus a scanout; virgl 3D much later).
 2. ✅ (M17, minus udev metadata) **evdev**: `/dev/input/event*` with `EVIOCG*` ioctls and `struct input_event` streams from PS/2, virtio-input and the riscv/aarch64 UART. libinput also needs udev-ish metadata, so provide a static `/run/udev/data` shim or patch libinput's udev dependency (eudev-lite).
 3. **Seat/session**: `seatd` (builtin backend) needs `VT_*`/`KD*` ioctls on `/dev/tty0` (basic single-VT versions done in M17).
 4. **Userland build**: cross-compile with the musl toolchain: libffi, expat, libxml2, wayland, wayland-protocols, libxkbcommon, pixman, libdrm, mesa (`-Dgallium-drivers=softpipe,llvmpipe -Dplatforms=wayland`; llvmpipe needs LLVM, so softpipe first), libinput + mtdev + libevdev, seatd, wlroots, sway (+ json-c, pcre2, pango/cairo, which can be stubbed with `-Dtray=disabled` etc.), foot (fcft, freetype, fontconfig).
@@ -70,7 +70,7 @@ NUMA, cgroups v2 controllers, eBPF, live patching, hundreds of real-hardware dri
 | M33 ✅ | **ptrace + POSIX timers** | `ptrace` (gdb, strace), `timer_create`, robust futexes, `clone3` extras, `waitid`, file locks (`flock`, `fcntl` locks, leases), xattrs + POSIX ACLs on tmpfs/ext2, hw breakpoints | debugging, toolkits |
 | M34 ✅ | **sysfs + uevents** | `/sys/class`, `/sys/devices`, `/sys/dev/char`, netlink `NETLINK_KOBJECT_UEVENT`, a static udev db shim | libinput, wlroots, KDE |
 | M35 ✅ | **Input/seat stack** | xkeyboard-config, libevdev, mtdev, libinput, seatd ports (+ /dev/uinput, libudev-zero) | wlroots |
-| M36 | **DRM atomic + PRIME** | properties, atomic commits, dma-buf/PRIME fds, zero-copy virtio-gpu scanout (resource per dumb buffer) | wlroots/Sway |
+| M36 ✅ | **DRM atomic + PRIME** | properties, atomic commits, dma-buf/PRIME fds, zero-copy virtio-gpu scanout (resource per dumb buffer) | wlroots/Sway |
 | M37 | **Sway + foot** | wlroots, tinywl, Sway, freetype/fontconfig/fcft, foot | a real desktop |
 | M38 | **Mesa softpipe → llvmpipe** | EGL/GLES2/GBM in software | GL apps, Qt Quick |
 | M39 | **Audio** | virtio-snd or Intel HDA, minimal ALSA PCM ABI | sound |

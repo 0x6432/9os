@@ -1425,3 +1425,59 @@ real VT switching for seatd, libwacom and the libinput test suite. debug-gui is 
 3. libinput-test-suite with `-j4` fails 7 of 17 `udev` group tests that pass with `-j1`
    (parallel litest processes race on udevshim/uinput); the full device suite takes hours
    under TCG, so CI runs only the `udev` group.
+
+## M36: DRM atomic + PRIME (branch notion/m36)
+
+### What landed
+- **Atomic KMS** (`kernel/drivers/drm.c`, rewritten): connector 31 → encoder 32 → CRTC 33 with
+  a primary (34) and a cursor (35) plane. Properties: connector EDID (generated 128-byte EDID
+  1.4 of the one mode), DPMS, link-status, non-desktop, CRTC_ID, vrr_capable; CRTC ACTIVE,
+  MODE_ID, VRR_ENABLED; planes type, FB_ID, CRTC_ID, SRC_*, CRTC_*, IN_FORMATS (primary
+  XR24/AR24, cursor AR24, LINEAR), FB_DAMAGE_CLIPS. GETPROPERTY, OBJ_GET/SETPROPERTIES,
+  CREATE/DESTROY/GETPROPBLOB, client caps UNIVERSAL_PLANES and ATOMIC (atomic-only properties
+  are hidden without it). DRM_IOCTL_MODE_ATOMIC with TEST_ONLY, NONBLOCK (EBUSY while one is
+  pending), ALLOW_MODESET and PAGE_FLIP_EVENT. Checks follow Linux: fb and CRTC together,
+  ENOSPC for sources outside the fb, ERANGE for scaling, the primary covers the CRTC, CRTC
+  enabled ⇔ connector routed, cursor ARGB ≤ 64×64, DPMS not settable through atomic.
+- Legacy SETCRTC, PAGE_FLIP, SETPLANE, CURSOR/CURSOR2 (hot spot), connector DPMS and DIRTYFB
+  build an atomic state and share the check/commit path. One `drm` mutex (lock rank 24, below
+  the virtio-gpu mutex 25) covers all state; the 60 Hz vblank thread completes nonblocking
+  commits and delivers events.
+- **GEM/PRIME**: refcounted buffers with per-file handles, PRIME_HANDLE_TO_FD/FD_TO_HANDLE
+  (dma-buf fds: mmap, lseek size, DMA_BUF_IOCTL_SYNC, SET_NAME; one dma-buf per buffer),
+  GEM_FLINK/OPEN/CLOSE, GETFB/GETFB2 (handles for master or CAP_SYS_ADMIN), CLOSEFB, RMFB
+  disables planes using the fb (the primary takes the CRTC down). DRM master: first opener,
+  SET/DROP_MASTER, AUTH_MAGIC (so `drmIsMaster` works); modesetting ioctls need master.
+- **Scanout**: on virtio-gpu, a full-screen primary with pitch = width×4 and offset 0 gets its
+  own host resource backed by the dumb buffer pages (zero-copy: TRANSFER of the damaged rects
+  + SET_SCANOUT), and a 64×64 cursor goes to the host cursor queue (`virtio_gpu.c`:
+  `vgpu_res_create/destroy`, `vgpu_show`, `vgpu_cursor`). Otherwise the primary and cursor
+  planes are composited into the system framebuffer (copy path, premultiplied alpha), which
+  also serves the firmware framebuffer on x86. Damage comes from FB_DAMAGE_CLIPS (> 16 clips:
+  bounding box), plane moves and fb changes. A VT switch to a text VT takes the display back
+  (`drm_console_reclaim`, like fbcon); the next commit shows the planes again; lastclose
+  restores the console.
+- **sysfs**: `/sys/class/drm/card0/scanout` (9os-specific: `console|copy|zero-copy fb N res N
+  cursor hw|sw|off` + commit counters), connector `card0-Virtual-1` with status, enabled,
+  dpms, modes and edid.
+
+### Tests
+- `kmstest` (port, needs libdrm; main suite): master rules, caps, plane resources with and
+  without universal planes, EDID blob vs sysfs, IN_FORMATS through
+  `drmModeFormatModifierBlobIterNext`, TEST_ONLY and invalid states (errnos above), modeset,
+  nonblocking commit + EBUSY + event, blocking commit event, legacy page flip, damage clips,
+  cursor plane blending and moves, legacy cursor with hot spot, GETFB2, DPMS, SETCRTC, PRIME
+  export/import/mmap/SYNC/self-import, flink, VT reclaim, RMFB, a black CRTC without primary,
+  CLOSEFB, lastclose and reopen. Pixels are checked through /dev/fb0 on the copy path; on
+  virtio-gpu the test requires zero-copy and a hardware cursor.
+- Checked by hand: `modetest -M 9os -a -s 31@33:1280x800 -P 34@33:1280x800` on virtio-gpu
+  shows the SMPTE pattern in a host `screendump`.
+
+### Known limits
+1. One fixed mode (the boot framebuffer size); no scaling, no overlay planes, no gamma (the
+   LUT is a fixed identity ramp).
+2. No fences or sync objects: no IN_FENCE_FD/OUT_FENCE_PTR, no async page flips.
+3. Blocking commits apply immediately; their event comes at the next vblank.
+4. Zero-copy needs a full-screen, tightly packed primary (else the copy path); the hardware
+   cursor only for 64×64 cursor fbs.
+5. DMA_BUF_IOCTL_SYNC is a no-op (coherent memory); no implicit-fence export/import.
