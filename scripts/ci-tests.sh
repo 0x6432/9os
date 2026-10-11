@@ -28,7 +28,9 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     "touch /tmp/fa && setfacl -m u:1000:r,g:2000:rw /tmp/fa && getfacl -n /tmp/fa | grep -q '^user:1000:r--' && getfacl -c /tmp/fa | grep -q '^mask::rw-' && setfacl -x u:1000 /tmp/fa && setfacl -b /tmp/fa && ! getfacl -c /tmp/fa | grep -q mask && mkdir /tmp/fd && setfacl -d -m u:1000:rwx /tmp/fd && getfacl -cdn /tmp/fd | grep -q '^user:1000:rwx' && touch /tmp/fd/x && getfacl -cn /tmp/fd/x | grep -q '^user:1000:rwx' && rm -rf /tmp/fa /tmp/fd" \
-    ${WL} ${IN} drmdemo \
+    ${WL} ${IN} \
+    "T=/usr/libexec/libinput/libinput-test-suite; [ ! -x \$T ] || { udevshim -d; chvt 2; \$T -j1 --filter-group=udev > /tmp/li.log 2>&1; r=\$?; chvt 1; kill \$(cat /run/udev/udevshim.pid); [ \$r = 0 ] || grep -A12 'failed:' /tmp/li.log; [ \$r = 0 ]; }" \
+    drmdemo \
     nettest net2test "ping -c 2 -W 2 127.0.0.1" \
     "for i in 1 2 3 4 5 6 7 8 9 10; do ifconfig eth0 | grep -q 'inet addr:10.0.2.15' && break; sleep 1; done; ifconfig eth0 | grep -q 'inet addr:10.0.2.15'" \
     "route -n | grep -q '^0.0.0.0 *10.0.2.2'" "grep -q nameserver /etc/resolv.conf" \

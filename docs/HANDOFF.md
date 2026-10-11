@@ -1414,10 +1414,14 @@ real VT switching for seatd, libwacom and the libinput test suite. debug-gui is 
   switch_session(2) moves to VT2 and back; libwacom by USB id and by node of a uinput tablet,
   libinput tablet-tool device. `sysfstest`: resource/power/serial, udevshim rules for
   OPTIONS/NAME/IMPORT{db}/link priority/by-id/hwdb.bin/reload.
-- `libinput-test-utils` (45 tests) runs in the main suite. The device test suite needs
+- `libinput-test-utils` (45 tests) and the libinput suite's `udev` group (`-j1`, ~1 min) run
+  in the main suite. The device test suite needs
   `udevshim -d` and must run on another VT (`chvt 2`), since litest keyboards type into the
   foreground console; the keyboard group alone takes > 4 min under TCG.
 
 ### Known limits
 1. libinput debug-gui needs GTK and a Wayland/X11 desktop stack; out of scope.
 2. hwdb.bin is not systemd's format (only 9os udevshim reads it).
+3. libinput-test-suite with `-j4` fails 7 of 17 `udev` group tests that pass with `-j1`
+   (parallel litest processes race on udevshim/uinput); the full device suite takes hours
+   under TCG, so CI runs only the `udev` group.
