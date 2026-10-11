@@ -1326,8 +1326,56 @@ attribute of a removed device, group-2 multicast, driver/module links, power/, P
 /--export-db`. CI also checks `udevshim -c`/`-q`.
 
 ### Known limits
-1. Only netdevs are ever removed (TUN/TAP); other buses have no hot-unplug. Attribute files
+1. Only netdevs (TUN/TAP) and input devices (uinput, M35) are ever removed. Attribute files
    are generated at open (4 KiB max, no seq_file); no `descriptors`/`resource` files.
-2. udevshim: `*S` match keys may be satisfied by different ancestors; no IMPORT/PROGRAM,
-   OPTIONS, NAME= for netdevs, by-id links (no serials), or compiled hwdb.bin (text files are
-   parsed at startup). `power/` is static (no runtime PM).
+2. udevshim: `*S` match keys may be satisfied by different ancestors; no OPTIONS, NAME= for
+   netdevs, by-id links (no serials), IMPORT{db}, or compiled hwdb.bin (text files are parsed
+   at startup). `power/` is static (no runtime PM). (IMPORT/PROGRAM: added in M35.)
+
+## M35: Input/seat stack (branch notion/m35)
+
+### What landed
+- **/dev/uinput** (`kernel/drivers/uinput.c`, misc 10:223, 0660): UI_SET_{EV,KEY,REL,ABS,MSC,
+  LED,PROP}BIT, UI_SET_PHYS, UI_DEV_SETUP, UI_ABS_SETUP, the legacy `uinput_user_dev` write,
+  UI_DEV_CREATE/DESTROY, UI_GET_SYSNAME, UI_GET_VERSION (5); written `input_event`s are
+  reported through `input_event()`. SND/FF/SW bits are accepted and ignored, reads give EAGAIN
+  (no force feedback / EV_UINPUT protocol).
+- **Input hot-unplug** (`evdev.c`): `input_register` returns -ENOSPC when the 16 event slots
+  are used, takes the lowest free eventN and a never-reused inputN; `input_unregister` marks
+  the device gone (reads/ioctls ENODEV, poll POLLERR|POLLHUP), unlinks /dev/input/eventN,
+  removes both sysfs devices ("remove" uevents) and frees the struct through `->free` after
+  the last reference (open evdev files hold `idev`, `edev` holds `idev`, sysfs inodes hold
+  theirs).
+- **AF_UNIX poll** on a stream whose peer closed: POLLIN|POLLHUP|POLLRDHUP|POLLOUT and no
+  POLLERR, as Linux (seatd logged every client exit as a connection error).
+- **Ports** (`userland/ports/*.sh`, in `build-ports.sh` order): xkeyboard-config 2.43 (data,
+  /usr/share/X11/xkb), libudev-zero 1.0.3 (+`patches/libudev-zero-udevdb.patch`: reads
+  udevshim's /run/udev/data — E: properties override its own ID_INPUT_* guesses, S: devlinks,
+  G: tags, `is_initialized` = has a db entry), libevdev 1.13.3, mtdev 1.1.7 (in-tree autotools
+  build, extracted per arch), libinput 1.27.1 (udev + path backends, tools in
+  /usr/libexec/libinput, quirks in /usr/share/libinput, its udev rules and helpers in
+  /usr/lib/udev), seatd 0.9.1 (seatd, seatd-launch, libseat with seatd + builtin backends).
+  mkroot.sh now also copies usr/libexec, usr/share/X11 and usr/share/libinput.
+- **udevshim**: IMPORT{program,file,builtin,parent,cmdline}, PROGRAM/RESULT/%c, %S, RUN{program}
+  (RUN{builtin} ignored), bare program names resolved in /usr/lib/udev and /lib/udev, rules and
+  hwdb also from /usr/lib/udev; libinput's 80-libinput-device-groups.rules now sets
+  LIBINPUT_DEVICE_GROUP. The daemon re-sends every processed event to netlink group 4 in the
+  kernel's format plus udev properties: libudev-zero's "udev" monitor. Absolute pointers with
+  mouse buttons (QEMU tablet) are ID_INPUT_MOUSE, as udev's input_id.
+
+### Tests
+- `uinputtest` (main suite): both setup paths, EVIOCG* and sysfs agree, injected events read
+  back, add/remove uevents, ENODEV/POLLHUP for open readers after destroy, node and sysfs
+  gone, slot reuse with a new inputN, close = destroy, 40 create/destroy cycles.
+- `inputtest` (port, main suite when built): xkb keymap "evdev/pc105/us,de" (shift, group 2:
+  de y/z and odiaeresis); libevdev-uinput keyboard + mouse (devnode, syspath, libevdev read
+  back, mtdev_open); libinput udev backend with a private `udevshim -d`: boot devices, hotplug
+  of both uinput devices with keyboard/pointer capabilities on seat0, injected KEY_A (xkb
+  "a"), BTN_LEFT and relative motion, DEVICE_REMOVED for both; path backend; libseat through
+  seatd and the builtin backend opening /dev/input/event0 (and /dev/dri/card0 when present).
+
+### Known limits
+1. No force feedback, no EV_UINPUT requests, no switch/sound bits in input devices.
+2. seatd's VT handling uses the single-VT stubs in tty.c (VT_GETSTATE says VT 1 is active;
+   VT_ACTIVATE/RELDISP are no-ops), so seat switching between VTs does not happen.
+3. libwacom, libinput's debug-gui and test suite are not built.

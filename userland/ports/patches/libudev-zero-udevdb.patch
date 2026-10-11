@@ -1,5 +1,5 @@
 --- a/udev_device.c	2023-07-10 11:15:04.000000000 +0000
-+++ b/udev_device.c	2026-10-11 07:12:59.282112742 +0000
++++ b/udev_device.c	2026-10-11 07:30:16.485690965 +0000
 @@ -55,6 +55,9 @@
  struct udev_device {
      struct udev_list_entry properties;
@@ -71,7 +71,7 @@
  }
  
  struct udev_list_entry *udev_device_get_sysattr_list_entry(struct udev_device *udev_device)
-@@ -538,6 +553,72 @@
+@@ -538,6 +553,83 @@
      udev_list_entry_add(&udev_device->properties, "ID_PATH", id, 0);
  }
  
@@ -111,6 +111,17 @@
 +
 +    udev_device->initialized = 1;
 +
++    /* the database is authoritative for input classification: drop the guessed ID_INPUT_* */
++    for (struct udev_list_entry *prev = &udev_device->properties, *e = prev->next; e; e = prev->next) {
++        if (e->name && strncmp(e->name, "ID_INPUT", 8) == 0) {
++            prev->next = e->next;
++            udev_list_entry_free(e);
++        }
++        else {
++            prev = e;
++        }
++    }
++
 +    while (fgets(line, sizeof(line), file)) {
 +        line[strcspn(line, "\n")] = '\0';
 +
@@ -144,7 +155,7 @@
  struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
  {
      char *subsystem, *driver, *sysname;
-@@ -565,6 +646,8 @@
+@@ -565,6 +657,8 @@
  
      udev_list_entry_init(&udev_device->properties);
      udev_list_entry_init(&udev_device->sysattrs);
@@ -153,7 +164,7 @@
  
      if (set_properties_from_uevent(udev_device, path) == -1) {
          free(udev_device);
-@@ -591,6 +674,7 @@
+@@ -591,6 +685,7 @@
  
      set_properties_from_evdev(udev_device);
      set_properties_from_props(udev_device);
@@ -161,7 +172,7 @@
  
      free(driver);
      free(subsystem);
-@@ -660,6 +744,8 @@
+@@ -660,6 +755,8 @@
  
      udev_list_entry_init(&udev_device->properties);
      udev_list_entry_init(&udev_device->sysattrs);
@@ -170,7 +181,7 @@
  
      for (end = buf + len; buf < end; buf += strlen(buf) + 1) {
         if (strncmp(buf, "DEVPATH=", 8) == 0) {
-@@ -710,6 +796,7 @@
+@@ -710,6 +807,7 @@
  
      set_properties_from_props(udev_device);
      set_properties_from_evdev(udev_device);
@@ -178,7 +189,7 @@
      return udev_device;
  }
  
-@@ -749,6 +836,8 @@
+@@ -749,6 +847,8 @@
  
      udev_list_entry_free_all(&udev_device->properties);
      udev_list_entry_free_all(&udev_device->sysattrs);

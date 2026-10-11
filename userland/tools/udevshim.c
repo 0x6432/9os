@@ -147,8 +147,8 @@ static void builtin_input_id(const char *inputdir, struct dev *d) {
     if (abs_xy) {
         if (pen) pset(d, "ID_INPUT_TABLET", "1");
         else if (finger && !direct) pset(d, "ID_INPUT_TOUCHPAD", "1");
+        else if (mouse_btn) pset(d, "ID_INPUT_MOUSE", "1");     /* udev: absolute mice (VMware, QEMU tablet) */
         else if (touch || direct) pset(d, "ID_INPUT_TOUCHSCREEN", "1");
-        else if (mouse_btn) pset(d, "ID_INPUT_MOUSE", "1");
         else if (joy) pset(d, "ID_INPUT_JOYSTICK", "1");
     }
     if (rel_xy && mouse_btn) pset(d, "ID_INPUT_MOUSE", "1");

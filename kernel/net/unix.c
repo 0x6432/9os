@@ -842,7 +842,8 @@ static unsigned u_poll(struct file *f) {
     if (s->type != SOCK_DGRAM && (s->peer_gone || s->peer_shut_wr)) r |= 0x2000;   /* POLLRDHUP */
     if (s->type == SOCK_DGRAM) r |= POLLOUT | POLLWRNORM;
     else if (s->state == SS_CONNECTED && s->peer && s->peer->rxbytes < SOCK_BUF) r |= POLLOUT | POLLWRNORM;
-    else if (s->state == SS_CONNECTED && !s->peer) r |= POLLERR;
+    else if (s->state == SS_CONNECTED && !s->peer) r |= POLLOUT | POLLWRNORM;   /* as Linux: HUP, no ERR; writes get EPIPE */
+    if (s->type != SOCK_DGRAM && s->peer_gone) r |= POLLIN | POLLRDNORM;
     uunlock(fl);
     return r;
 }
