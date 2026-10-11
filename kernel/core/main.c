@@ -21,6 +21,7 @@ void fbdev_init(void);
 void drm_init(void);
 void virtio_gpu_init(void);
 void evdev_register_chrdev(void);
+void uinput_init(void);
 void virtio_input_init(void);
 void virtio_blk_init(void);
 void net_init(void);
@@ -96,6 +97,7 @@ void kmain(void) {
     pci_init();
     virtio_gpu_init();
     evdev_register_chrdev();
+    uinput_init();
     virtio_input_init();
     writeback_init();
     ext2_init();

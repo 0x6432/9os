@@ -27,6 +27,12 @@
 #define BTN_TOUCH 0x14a
 #define BUS_I8042 0x11
 #define BUS_VIRTUAL 0x06
+#define BUS_USB 0x03
+#define EV_SW 0x05
+#define EV_SND 0x12
+#define EV_FF 0x15
+#define SW_MAX 0x10
+#define REL_CNT (REL_MAX + 1)
 
 #define BITS_TO_U64(n) (((n) + 64) / 64)
 struct input_absinfo { int32_t value, minimum, maximum, fuzz, flat, resolution; };
@@ -44,8 +50,10 @@ struct input_dev {
     bool console_keys;              /* feed key presses to the console tty */
     struct device *parent;          /* M34: sysfs parent (virtio device), nullptr: virtual */
     struct device idev, edev;       /* /sys/class/input/inputN and its eventN */
+    void (*free)(struct input_dev *dev);   /* dynamic devices (uinput): called after the last reference */
     /* private */
-    int index;
+    int index, num;                 /* eventN slot (lowest free), inputN (never reused) */
+    bool gone;                      /* unregistered: readers get ENODEV, poll HUP */
     spinlock_t lock;
     struct list_node clients;
     void *grab;
@@ -55,8 +63,10 @@ struct input_dev {
 static inline void input_set_bit(uint64_t *bm, unsigned bit) { bm[bit / 64] |= 1ull << (bit % 64); }
 static inline bool input_test_bit(const uint64_t *bm, unsigned bit) { return bm[bit / 64] >> (bit % 64) & 1; }
 
-/* registers and creates /dev/input/eventN; dev must stay allocated */
-void input_register(struct input_dev *dev);
+/* registers and creates /dev/input/eventN (0, or -ENOSPC). Static devices stay allocated;
+ * dynamic ones set ->free, which runs once the device is unregistered and unreferenced. */
+int input_register(struct input_dev *dev);
+void input_unregister(struct input_dev *dev);
 /* report one event; may be called from interrupt context. EV_SYN/SYN_REPORT wakes readers. */
 void input_event(struct input_dev *dev, unsigned type, unsigned code, int value);
 static inline void input_sync(struct input_dev *dev) { input_event(dev, EV_SYN, SYN_REPORT, 0); }

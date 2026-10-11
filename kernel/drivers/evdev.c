@@ -34,7 +34,8 @@ struct evdev_client {
 };
 
 static struct input_dev *devs[MAX_INPUT];
-static int ndevs;
+static int ndevs, next_num;
+static spinlock_t devs_lock;        /* devs[] slots; evdev_open vs. (un)register */
 int console_kbmode = 1;             /* K_XLATE */
 
 int input_device_count(void) { return ndevs; }
@@ -221,37 +222,76 @@ static void input_uevent(struct device *k, struct uenv *e) {
     kfree(b);
 }
 
-void input_register(struct input_dev *d) {
-    if (ndevs >= MAX_INPUT) return;
+static void idev_release(struct device *k) {
+    struct input_dev *d = idev_of(k);
+    if (d->free) d->free(d);
+}
+static void edev_release(struct device *k) { device_put(&idev_of(k)->idev); }
+
+int input_register(struct input_dev *d) {
     list_init(&d->clients);
     d->lock = (spinlock_t){ 0 };
     input_set_bit(d->evbit, EV_SYN);
     if (!d->rep[0]) { d->rep[0] = 250; d->rep[1] = 33; }
-    d->index = ndevs;
-    devs[ndevs++] = d;
+    uint64_t fl = spin_lock_irqsave(&devs_lock);
+    int idx = -1;
+    for (int i = 0; i < MAX_INPUT && idx < 0; i++) if (!devs[i]) idx = i;
+    if (idx >= 0) { devs[idx] = d; ndevs++; d->index = idx; d->num = next_num++; d->gone = false; }
+    spin_unlock_irqrestore(&devs_lock, fl);
+    if (idx < 0) return -ENOSPC;
     char path[32];
     snprintf(path, sizeof path, "/dev/input/event%d", d->index);
     vfs_mkdir_at(nullptr, "/dev/input", 0755);
+    vfs_unlink_at(nullptr, path, false);                   /* a stale node from an old owner */
     vfs_mknod_at(nullptr, path, S_IFCHR | 0660, MKDEV(EVDEV_MAJOR, EVDEV_MINOR_BASE + d->index));
     pr_info("input: %s as %s\n", d->name, path);
     struct device *k = &d->idev;
-    snprintf(k->name, sizeof k->name, "input%d", d->index);
+    snprintf(k->name, sizeof k->name, "input%d", d->num);
     k->parent = d->parent; k->subsys = "input"; k->attrs = input_attrs; k->uevent = input_uevent; k->priv = d;
+    k->release = idev_release;
     device_add(k);
     k = &d->edev;
     snprintf(k->name, sizeof k->name, "event%d", d->index);
     snprintf(k->devname, sizeof k->devname, "input/event%d", d->index);
     k->parent = &d->idev; k->subsys = "input"; k->devt = MKDEV(EVDEV_MAJOR, EVDEV_MINOR_BASE + d->index); k->priv = d;
+    k->release = edev_release;
+    device_get(&d->idev);                                  /* eventN pins inputN */
     device_add(k);
+    return 0;
+}
+
+/* hot-unplug (uinput): readers see ENODEV/POLLHUP, the node and sysfs entries go away, the
+ * struct is freed (->free) when the last open file and sysfs inode let go */
+void input_unregister(struct input_dev *d) {
+    uint64_t fl = spin_lock_irqsave(&devs_lock);
+    if (devs[d->index] == d) { devs[d->index] = nullptr; ndevs--; }
+    spin_unlock_irqrestore(&devs_lock, fl);
+    fl = spin_lock_irqsave(&d->lock);
+    d->gone = true;
+    d->grab = nullptr;
+    spin_unlock_irqrestore(&d->lock, fl);
+    poll_notify();
+    char path[32];
+    snprintf(path, sizeof path, "/dev/input/event%d", d->index);
+    vfs_unlink_at(nullptr, path, false);
+    pr_info("input: %s removed\n", d->name);
+    device_del(&d->edev);
+    device_del(&d->idev);
+    device_put(&d->edev);
+    device_put(&d->idev);
 }
 
 /* ---------------------------------------------------------------- /dev/input/eventN */
 static int evdev_open(struct inode *ino, struct file *f) {
     int idx = (int)MINOR(ino->rdev) - EVDEV_MINOR_BASE;
-    if (idx < 0 || idx >= ndevs) return -ENODEV;
+    if (idx < 0 || idx >= MAX_INPUT) return -ENODEV;
     struct evdev_client *c = kzalloc(sizeof *c);
     if (!c) return -ENOMEM;
+    uint64_t dl = spin_lock_irqsave(&devs_lock);
     c->dev = devs[idx];
+    if (c->dev) device_get(&c->dev->idev);
+    spin_unlock_irqrestore(&devs_lock, dl);
+    if (!c->dev) { kfree(c); return -ENODEV; }
     uint64_t fl = spin_lock_irqsave(&c->dev->lock);
     list_add_tail(&c->dev->clients, &c->node);
     spin_unlock_irqrestore(&c->dev->lock, fl);
@@ -266,6 +306,7 @@ static void evdev_release(struct file *f) {
     list_del(&c->node);
     if (c->dev->grab == c) c->dev->grab = nullptr;
     spin_unlock_irqrestore(&c->dev->lock, fl);
+    device_put(&c->dev->idev);
     kfree(c);
 }
 
@@ -273,7 +314,7 @@ static ssize_t evdev_read(struct file *f, void *buf, size_t n, off_t *off) {
     struct evdev_client *c = f->priv;
     if (n < sizeof(struct input_event_abi)) return -EINVAL;
     for (;;) {
-        if (c->revoked) return -ENODEV;
+        if (c->revoked || c->dev->gone) return -ENODEV;
         uint64_t fl = spin_lock_irqsave(&c->dev->lock);
         if (c->tail != c->head) {
             size_t cnt = 0, max = n / sizeof(struct input_event_abi);
@@ -309,7 +350,7 @@ static ssize_t evdev_write(struct file *f, const void *buf, size_t n, off_t *off
 
 static unsigned evdev_poll(struct file *f) {
     struct evdev_client *c = f->priv;
-    if (c->revoked) return POLLERR | POLLHUP;
+    if (c->revoked || c->dev->gone) return POLLERR | POLLHUP;
     return (c->tail != c->head ? POLLIN | POLLRDNORM : 0) | POLLOUT | POLLWRNORM;
 }
 
@@ -329,7 +370,7 @@ static int evdev_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
     struct input_dev *d = c->dev;
     if (IOC_TYPE(cmd) != 'E') return -ENOTTY;
     unsigned nr = IOC_NR(cmd), len = IOC_SIZE(cmd), dir = IOC_DIR(cmd);
-    if (c->revoked) return -ENODEV;
+    if (c->revoked || d->gone) return -ENODEV;
     switch (nr) {
     case 0x01: { int v = 0x010001; return copy_to_user((void *)arg, &v, sizeof v); }     /* GVERSION */
     case 0x02: return copy_to_user((void *)arg, &d->id, sizeof d->id);                   /* GID */

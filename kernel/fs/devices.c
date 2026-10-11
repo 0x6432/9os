@@ -82,7 +82,7 @@ void chrdev_sysfs(struct device *k, const char *cls, const char *name, const cha
     strncpy(k->devname, devname, sizeof k->devname - 1);
     device_add(k);
 }
-static struct device static_devs[11];
+static struct device static_devs[12];
 
 void devices_init(void) {
     chrdev_register(1, 3, &null_ops);
@@ -96,7 +96,7 @@ void devices_init(void) {
         { "/dev/null", 1, 3, 0666 }, { "/dev/zero", 1, 5, 0666 }, { "/dev/random", 1, 8, 0666 },
         { "/dev/urandom", 1, 9, 0666 }, { "/dev/tty", 5, 0, 0666 }, { "/dev/console", 5, 1, 0620 },
         { "/dev/tty0", 4, 0, 0620 }, { "/dev/ptmx", 5, 2, 0666 }, { "/dev/tty1", 4, 1, 0620 }, { "/dev/ttyS0", 4, 64, 0660 },
-        { "/dev/net/tun", 10, 200, 0666 },
+        { "/dev/net/tun", 10, 200, 0666 }, { "/dev/uinput", 10, 223, 0660 },
     };
     vfs_mkdir_at(nullptr, "/dev/net", 0755);
     for (size_t i = 0; i < ARRAY_SIZE(nodes); i++)
@@ -108,6 +108,7 @@ void devices_init(void) {
         { "mem", "urandom", "urandom", 1, 9 }, { "tty", "tty", "tty", 5, 0 }, { "tty", "console", "console", 5, 1 },
         { "tty", "ptmx", "ptmx", 5, 2 }, { "tty", "tty0", "tty0", 4, 0 }, { "tty", "tty1", "tty1", 4, 1 },
         { "tty", "ttyS0", "ttyS0", 4, 64 }, { "misc", "tun", "net/tun", 10, 200 },
+        { "misc", "uinput", "uinput", 10, 223 },
     };
     _Static_assert(ARRAY_SIZE(sd) == ARRAY_SIZE(static_devs), "static_devs");
     for (size_t i = 0; i < ARRAY_SIZE(sd); i++)
