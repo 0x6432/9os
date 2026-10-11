@@ -25,14 +25,21 @@ static struct wait_queue bio_wq = WAIT_QUEUE_INIT(bio_wq);
 
 int blk_count(void) { return ndevs; }
 struct blkdev *blk_get_index(int i) { return i >= 0 && i < ndevs ? devs[i] : nullptr; }
+static spinlock_t devs_lock = SPINLOCK_INIT;   /* devs[]/ndevs (dynamic loop devices) */
 struct blkdev *blk_get(uint64_t rdev) {
-    for (int i = 0; i < ndevs; i++) if (devs[i]->rdev == rdev) return devs[i];
-    return nullptr;
+    struct blkdev *r = nullptr;
+    uint64_t f = spin_lock_irqsave(&devs_lock);
+    for (int i = 0; i < ndevs && !r; i++) if (devs[i]->rdev == rdev) r = devs[i];
+    spin_unlock_irqrestore(&devs_lock, f);
+    return r;
 }
 struct blkdev *blk_find(const char *name) {
     if (!strncmp(name, "/dev/", 5)) name += 5;
-    for (int i = 0; i < ndevs; i++) if (!strcmp(devs[i]->name, name)) return devs[i];
-    return nullptr;
+    struct blkdev *r = nullptr;
+    uint64_t f = spin_lock_irqsave(&devs_lock);
+    for (int i = 0; i < ndevs && !r; i++) if (!strcmp(devs[i]->name, name)) r = devs[i];
+    spin_unlock_irqrestore(&devs_lock, f);
+    return r;
 }
 
 /* ------------------------------------------------------------------ bios and the queue */
@@ -97,7 +104,7 @@ void blk_kick(struct blkdev *disk) { dispatch(disk); }
 void submit_bio(struct bio *b) {
     struct blkdev *p = b->dev, *d = p->whole;
     uint64_t ns = b->op == BIO_FLUSH ? 0 : b->size / SECTOR_SIZE;
-    if ((b->op == BIO_WRITE && p->readonly) || b->sector + ns > p->nsectors || (b->size % SECTOR_SIZE)) {
+    if (d->gone || (b->op == BIO_WRITE && p->readonly) || b->sector + ns > p->nsectors || (b->size % SECTOR_SIZE)) {
         bio_complete(b, -EIO);
         return;
     }
@@ -342,7 +349,27 @@ static int bdev_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
 }
 
 static unsigned bdev_poll(struct file *f) { return POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM; }
-static const struct file_ops bdev_fops = { .nobkl = true, .read = bdev_read, .write = bdev_write, .ioctl = bdev_ioctl, .poll = bdev_poll };
+static int bdev_open(struct inode *ino, struct file *f) {
+    struct blkdev *d = blk_get(ino->rdev);
+    if (!d || d->gone) return -ENXIO;
+    __atomic_add_fetch(&d->opens, 1, __ATOMIC_ACQ_REL);
+    f->priv = d;
+    return 0;
+}
+static void bdev_release(struct file *f) {
+    struct blkdev *d = f->priv;
+    if (!d) return;
+    if (__atomic_sub_fetch(&d->opens, 1, __ATOMIC_ACQ_REL) == 0 && d->ops && d->ops->last_close) d->ops->last_close(d);
+}
+/* loop devices: driver ioctls (LOOP_*) go to the driver */
+int (*blk_loop_ioctl)(struct blkdev *d, struct file *f, uint64_t cmd, uint64_t arg);
+static int bdev_ioctl_any(struct file *f, uint64_t cmd, uint64_t arg) {
+    struct blkdev *d = file_blk(f);
+    if (d && MAJOR(d->rdev) == 7 && blk_loop_ioctl && ((uint32_t)cmd & 0xff00) == 0x4c00) return blk_loop_ioctl(d, f, cmd, arg);
+    return bdev_ioctl(f, cmd, arg);
+}
+static const struct file_ops bdev_fops = { .nobkl = true, .open = bdev_open, .release = bdev_release, .read = bdev_read,
+                                           .write = bdev_write, .ioctl = bdev_ioctl_any, .poll = bdev_poll };
 
 const struct file_ops *blkdev_fops_get(uint64_t rdev) { return blk_get(rdev) ? &bdev_fops : nullptr; }
 uint64_t blkdev_size(uint64_t rdev) { struct blkdev *d = blk_get(rdev); return d ? d->nsectors * SECTOR_SIZE : 0; }
@@ -369,7 +396,9 @@ static struct blkdev *add_dev(const char *name, uint64_t nsect, struct blkdev *w
     mapping_init(m, i, &bdev_aops);
     i->mapping = m;
     d->inode = i;
+    uint64_t f = spin_lock_irqsave(&devs_lock);
     devs[ndevs++] = d;
+    spin_unlock_irqrestore(&devs_lock, f);
     return d;
 }
 
@@ -478,8 +507,43 @@ static void blk_sysfs_add(struct blkdev *d) {
     k->subsys = "block"; k->devt = d->rdev; k->blk = true; k->priv = d;
     if (d->whole != d) {
         k->parent = &d->whole->kdev; k->devtype = "partition"; k->attrs = part_attrs; k->uevent = part_uevent;
-    } else { k->devtype = "disk"; k->attrs = disk_attrs; }
+    } else { k->devtype = "disk"; if (!k->attrs) k->attrs = disk_attrs; }
     device_add(k);
+}
+
+static void blk_sysfs_add(struct blkdev *d);
+struct blkdev *blk_register_dynamic(const char *name, uint64_t rdev, const struct blk_driver_ops *ops, void *driver,
+                                    const struct dev_attr *attrs, struct device *parent) {
+    struct blkdev *d = add_dev(name, 0, nullptr, 0, 0, 0);
+    if (!d) return nullptr;
+    d->rdev = d->inode->rdev = rdev;
+    d->sector_size = SECTOR_SIZE;
+    d->ops = ops; d->driver = driver; d->depth = 16;
+    d->kdev.parent = parent;
+    d->kdev.attrs = attrs;
+    mknode(d);
+    blk_sysfs_add(d);
+    return d;
+}
+void blk_set_capacity(struct blkdev *d, uint64_t nsectors) {
+    blk_sync(d);
+    mapping_truncate(d->inode->mapping, 0);
+    d->nsectors = nsectors;
+    d->inode->size = nsectors * SECTOR_SIZE;
+    device_uevent(&d->kdev, "change");
+}
+int blk_unregister(struct blkdev *d) {
+    if (d->opens || d->mounted) return -EBUSY;
+    uint64_t f = spin_lock_irqsave(&devs_lock);
+    for (int i = 0; i < ndevs; i++)
+        if (devs[i] == d) { devs[i] = devs[--ndevs]; break; }
+    d->gone = true;
+    spin_unlock_irqrestore(&devs_lock, f);
+    char path[32];
+    snprintf(path, sizeof path, "/dev/%s", d->name);
+    vfs_unlink_at(nullptr, path, false);
+    device_del(&d->kdev);
+    return 0;               /* the blkdev itself stays allocated: stale inodes may still point at it */
 }
 
 /* after the driver set readonly/has_flush and can take requests */

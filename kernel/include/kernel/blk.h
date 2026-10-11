@@ -42,6 +42,7 @@ struct bio {
 struct blk_driver_ops {
     /* start bio (absolute sectors); false if the device is full right now (requeued) */
     bool (*submit)(struct blkdev *d, struct bio *b);
+    void (*last_close)(struct blkdev *d);     /* optional: the last open file went away (loop autoclear) */
 };
 
 struct blkdev {
@@ -67,7 +68,15 @@ struct blkdev {
     struct super_block *mounted; /* filesystem using it exclusively */
     struct device kdev;          /* M34: /sys/class/block/<name>; drivers set kdev.parent */
     char serial[21];             /* device serial (virtio-blk GET_ID), sysfs "serial" */
+    int opens;                   /* open block-special files */
+    bool gone;                   /* unregistered (loop device removed): I/O fails with ENXIO */
 };
+/* M36: dynamic disks (loop): registered with node + sysfs at once, resized, removed */
+struct dev_attr;
+struct blkdev *blk_register_dynamic(const char *name, uint64_t rdev, const struct blk_driver_ops *ops, void *driver,
+                                    const struct dev_attr *attrs, struct device *parent);
+void blk_set_capacity(struct blkdev *d, uint64_t nsectors);   /* drops the cache, "change" uevent */
+int blk_unregister(struct blkdev *d);                          /* -EBUSY if open or mounted */
 
 void blk_init(void);
 /* register a disk: scans partitions, creates /dev nodes; returns the disk */

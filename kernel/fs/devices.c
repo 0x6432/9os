@@ -82,7 +82,7 @@ void chrdev_sysfs(struct device *k, const char *cls, const char *name, const cha
     strncpy(k->devname, devname, sizeof k->devname - 1);
     device_add(k);
 }
-static struct device static_devs[24];
+static struct device static_devs[25];
 extern const struct dev_attr vt_tty0_attrs[];
 
 void devices_init(void) {
@@ -100,7 +100,7 @@ void devices_init(void) {
         { "/dev/tty2", 4, 2, 0620 }, { "/dev/tty3", 4, 3, 0620 }, { "/dev/tty4", 4, 4, 0620 }, { "/dev/tty5", 4, 5, 0620 },
         { "/dev/tty6", 4, 6, 0620 }, { "/dev/vcs", 7, 0, 0620 }, { "/dev/vcs1", 7, 1, 0620 }, { "/dev/vcs2", 7, 2, 0620 },
         { "/dev/vcs3", 7, 3, 0620 }, { "/dev/vcs4", 7, 4, 0620 }, { "/dev/vcs5", 7, 5, 0620 }, { "/dev/vcs6", 7, 6, 0620 },
-        { "/dev/net/tun", 10, 200, 0666 }, { "/dev/uinput", 10, 223, 0660 },
+        { "/dev/net/tun", 10, 200, 0666 }, { "/dev/uinput", 10, 223, 0660 }, { "/dev/loop-control", 10, 237, 0660 },
     };
     vfs_mkdir_at(nullptr, "/dev/net", 0755);
     for (size_t i = 0; i < ARRAY_SIZE(nodes); i++)
@@ -112,7 +112,7 @@ void devices_init(void) {
         { "mem", "urandom", "urandom", 1, 9 }, { "tty", "tty", "tty", 5, 0 }, { "tty", "console", "console", 5, 1 },
         { "tty", "ptmx", "ptmx", 5, 2 }, { "tty", "tty0", "tty0", 4, 0 }, { "tty", "tty1", "tty1", 4, 1 },
         { "tty", "ttyS0", "ttyS0", 4, 64 }, { "misc", "tun", "net/tun", 10, 200 },
-        { "misc", "uinput", "uinput", 10, 223 },
+        { "misc", "uinput", "uinput", 10, 223 }, { "misc", "loop-control", "loop-control", 10, 237 },
         { "tty", "tty2", "tty2", 4, 2 }, { "tty", "tty3", "tty3", 4, 3 }, { "tty", "tty4", "tty4", 4, 4 },
         { "tty", "tty5", "tty5", 4, 5 }, { "tty", "tty6", "tty6", 4, 6 }, { "vc", "vcs", "vcs", 7, 0 },
         { "vc", "vcs1", "vcs1", 7, 1 }, { "vc", "vcs2", "vcs2", 7, 2 }, { "vc", "vcs3", "vcs3", 7, 3 },
