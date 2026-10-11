@@ -8,10 +8,12 @@
  *   net_id    ID_NET_NAME_PATH (enp0s3), ID_NET_NAME_MAC (enx525400123456)
  *   hwdb      records from /etc/udev/hwdb.d and /lib/udev/hwdb.d (*.hwdb) matched against the
  *             modalias (and evdev:name:<name>:phys:<phys>:ev:<ev> for input)
- * then applies rules from /etc/udev/rules.d, /run/udev/rules.d and /lib/udev/rules.d (*.rules,
+ * then applies rules from /etc/udev/rules.d, /run/udev/rules.d, /lib/udev/rules.d and
+ * /usr/lib/udev/rules.d (*.rules,
  * by file name; /etc overrides): matches ACTION KERNEL SUBSYSTEM DEVPATH DRIVER DEVTYPE NAME
- * TAG ENV{} ATTR{} (== !=, globs with |), assignments ENV{} SYMLINK TAG MODE OWNER GROUP RUN
- * (= += :=), GOTO/LABEL, substitutions %k %n %M %m %p %E{} $env{} $attr{} $kernel $devpath %%.
+ * TAG ENV{} ATTR{} KERNELS SUBSYSTEMS DRIVERS ATTRS{} (== !=, globs with |), assignments ENV{} SYMLINK TAG MODE OWNER GROUP RUN
+ * (= += :=), GOTO/LABEL, IMPORT{program,file,builtin,parent,cmdline}, PROGRAM/RESULT,
+ * substitutions %k %n %M %m %p %N %S %c %E{} %s{} $env{} $attr{} $kernel $devpath %%.
  * Device nodes get MODE/OWNER/GROUP, persistent links (/dev/input/by-path, /dev/disk/by-path,
  * by-uuid, by-label) and rule SYMLINKs; RUN programs get the properties as environment.
  *
@@ -19,6 +21,7 @@
  *   udevshim -d [-f]        daemon: process kernel uevents, then re-broadcast them to netlink
  *                           group 2 in libudev's monitor format (prefix "libudev", magic
  *                           0xfeedcafe, MurmurHash2 subsystem/devtype hashes, tag bloom)
+ *                           and to group 4 in the kernel's format (libudev-zero's monitor)
  *   udevshim -t [ACTION]    trigger: write ACTION (add) to every /sys/.../uevent
  *   udevshim -s [SECONDS]   settle: wait until the daemon handled every kernel event
  *   udevshim -q PATH        properties of a /sys or /dev path
@@ -60,9 +63,11 @@ struct dev {
     char *tags[16]; int ntags;
     char *links[MAXL]; int nlinks;
     char *run[8]; int nrun;
+    char result[1024];                        /* PROGRAM output, %c */
     int mode; uid_t uid; gid_t gid;           /* -1: unchanged */
     bool final_env[MAXP];
 };
+static void prog_cmd(const char *in, char *out, size_t cap);
 static void pset(struct dev *d, const char *k, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 static void pset(struct dev *d, const char *k, const char *fmt, ...) {
     char v[1024];
@@ -220,8 +225,8 @@ static void builtin_net_id(struct dev *d) {
 
 /* hwdb: "match\n KEY=VALUE\n..." records separated by blank lines */
 static void hwdb_lookup(struct dev *d, const char *key) {
-    static const char *const dirs[] = { "/etc/udev/hwdb.d", "/lib/udev/hwdb.d" };
-    for (int k = 0; k < 2; k++) {
+    static const char *const dirs[] = { "/etc/udev/hwdb.d", "/lib/udev/hwdb.d", "/usr/lib/udev/hwdb.d" };
+    for (int k = 0; k < 3; k++) {
         DIR *dr = opendir(dirs[k]);
         struct dirent *e;
         while (dr && (e = readdir(dr))) {
@@ -322,6 +327,8 @@ static void subst(const struct dev *d, const char *in, char *out, size_t cap) {
             case 'p': rep = pget(d, "DEVPATH"); break;
             case 'N': snprintf(tmp, sizeof tmp, "/dev/%s", pget(d, "DEVNAME") ? pget(d, "DEVNAME") : ""); rep = tmp; break;
             case '%': rep = "%"; break;
+            case 'S': rep = "/sys"; break;
+            case 'c': rep = d->result; break;
             case 'E': if (c[1] == '{') { const char *e = strchr(c, '}'); if (e) { snprintf(tmp, sizeof tmp, "%.*s", (int)(e - c - 2), c + 2); rep = pget(d, tmp); c = e; } } break;
             case 's': if (c[1] == '{') { const char *e = strchr(c, '}'); if (e) { char a[256], p[PATH_MAX + 256];
                 snprintf(a, sizeof a, "%.*s", (int)(e - c - 2), c + 2); snprintf(p, sizeof p, "%s/%s", d->syspath, a);
@@ -391,9 +398,9 @@ static const char *next_tok(const char *s, struct rtok *t) {
 struct rules { char **lines; int n; };
 static int cmpstr(const void *a, const void *b) { return strcmp(strrchr(*(char *const *)a, '/') + 1, strrchr(*(char *const *)b, '/') + 1); }
 static void load_rules(struct rules *r) {
-    static const char *const dirs[] = { "/etc/udev/rules.d", "/run/udev/rules.d", "/lib/udev/rules.d" };
+    static const char *const dirs[] = { "/etc/udev/rules.d", "/run/udev/rules.d", "/lib/udev/rules.d", "/usr/lib/udev/rules.d" };
     char *files[128]; int nf = 0;
-    for (int k = 0; k < 3; k++) {
+    for (int k = 0; k < 4; k++) {
         DIR *dr = opendir(dirs[k]);
         struct dirent *e;
         while (dr && (e = readdir(dr)) && nf < 128) {
@@ -500,9 +507,152 @@ static void apply_tok(struct dev *d, const struct rtok *t) {
     else if (!strcmp(t->key, "GROUP")) { struct group *g = getgrnam(v); d->gid = g ? g->gr_gid : (gid_t)strtoul(v, NULL, 10); }
     else if (!strcmp(t->key, "RUN")) {
         if (!add) { for (int i = 0; i < d->nrun; i++) free(d->run[i]); d->nrun = 0; }
-        if (d->nrun < 8) d->run[d->nrun++] = strdup(v);
+        if (!strcmp(t->attr, "builtin")) return;      /* kmod etc.: nothing to load here */
+        char c[1024];
+        prog_cmd(v, c, sizeof c);
+        if (d->nrun < 8) d->run[d->nrun++] = strdup(c);
     }
     (void)final;
+}
+
+/* PROGRAM / IMPORT{program} / RUN: a bare name is looked up in /usr/lib/udev and /lib/udev,
+ * the program gets the device properties as its environment */
+static bool collect(const char *syspath, struct dev *d);
+static void dbid(const struct dev *d, char *out, size_t cap);
+static void prog_cmd(const char *in, char *out, size_t cap) {
+    char w[256];
+    size_t n = strcspn(in, " \t");
+    snprintf(w, sizeof w, "%.*s", (int)n, in);
+    if (!strchr(w, '/')) {
+        static const char *const dirs[] = { "/usr/lib/udev", "/lib/udev" };
+        for (int k = 0; k < 2; k++) {
+            char p[PATH_MAX];
+            snprintf(p, sizeof p, "%s/%s", dirs[k], w);
+            if (!access(p, X_OK)) { snprintf(out, cap, "%s/%s", dirs[k], in); return; }
+        }
+    }
+    snprintf(out, cap, "%s", in);
+}
+static void child_env(const struct dev *d, const char *action) {
+    clearenv();
+    for (int k = 0; k < d->n; k++) putenv(d->kv[k]);
+    if (action) setenv("ACTION", action, 1);
+    setenv("PATH", "/usr/sbin:/usr/bin:/sbin:/bin", 1);
+}
+/* run and capture stdout; true if it exited 0 */
+static bool run_capture(const struct dev *d, const char *cmd, char *out, size_t cap) {
+    char c[2048];
+    prog_cmd(cmd, c, sizeof c);
+    int pp[2];
+    if (pipe(pp)) return false;
+    pid_t p = fork();
+    if (p == 0) {
+        dup2(pp[1], 1);
+        close(pp[0]); close(pp[1]);
+        child_env(d, pget(d, "ACTION"));
+        execl("/bin/sh", "sh", "-c", c, (char *)NULL);
+        _exit(127);
+    }
+    close(pp[1]);
+    size_t o = 0;
+    ssize_t r;
+    while ((r = read(pp[0], out + o, cap - 1 - o)) > 0) { o += (size_t)r; if (o + 1 >= cap) break; }
+    out[o] = 0;
+    close(pp[0]);
+    int st = 0;
+    if (p < 0 || waitpid(p, &st, 0) < 0) return false;
+    return WIFEXITED(st) && WEXITSTATUS(st) == 0;
+}
+/* KEY=VALUE lines (optional quotes) into properties */
+static void import_lines(struct dev *d, char *text, const char *glob) {
+    char *save;
+    for (char *l = strtok_r(text, "\n", &save); l; l = strtok_r(NULL, "\n", &save)) {
+        while (*l == ' ' || *l == '\t') l++;
+        if (*l == '#' || !*l) continue;
+        char *eq = strchr(l, '=');
+        if (!eq) continue;
+        *eq = 0;
+        char *v = eq + 1;
+        size_t vl = strlen(v);
+        if (vl >= 2 && (v[0] == '"' || v[0] == '\'') && v[vl - 1] == v[0]) { v[vl - 1] = 0; v++; }
+        if (glob && fnmatch(glob, l, 0)) continue;
+        pset(d, l, "%s", v);
+    }
+}
+static void hwdb_lookup(struct dev *d, const char *key);
+/* IMPORT{program|file|builtin|parent|cmdline}: true on success */
+static bool do_import(struct dev *d, const struct rtok *t) {
+    char v[1024];
+    subst(d, t->val, v, sizeof v);
+    static char buf[16384];
+    if (!strcmp(t->attr, "program")) {
+        if (!run_capture(d, v, buf, sizeof buf)) return false;
+        import_lines(d, buf, NULL);
+        return true;
+    }
+    if (!strcmp(t->attr, "file")) {
+        int n = readfile(v, buf, sizeof buf);
+        if (n < 0) return false;
+        import_lines(d, buf, NULL);
+        return true;
+    }
+    if (!strcmp(t->attr, "builtin")) {               /* input_id, path_id, blkid, net_id run anyway */
+        if (!strncmp(v, "hwdb", 4)) {
+            const char *a = v + 4;
+            while (*a == ' ') a++;
+            char k[512];
+            snprintf(k, sizeof k, "%s", *a == '\'' || *a == '"' ? a + 1 : a);
+            size_t kl = strlen(k);
+            if (kl && (k[kl - 1] == '\'' || k[kl - 1] == '"')) k[kl - 1] = 0;
+            int before = d->n;
+            if (*k && strncmp(k, "--", 2)) hwdb_lookup(d, k);
+            return d->n > before || !*k || !strncmp(k, "--", 2);
+        }
+        return true;
+    }
+    if (!strcmp(t->attr, "parent")) {                /* properties of the nearest parent's db entry */
+        char pp[PATH_MAX], id[160], path[PATH_MAX], line[1200];
+        snprintf(pp, sizeof pp, "%s", d->syspath);
+        bool ok = false;
+        while (!ok && strrchr(pp, '/') && strlen(pp) > 13) {
+            *strrchr(pp, '/') = 0;
+            char ue[PATH_MAX + 8];
+            snprintf(ue, sizeof ue, "%s/uevent", pp);
+            if (access(ue, F_OK)) continue;
+            struct dev *pd = malloc(sizeof *pd);
+            dev_init(pd);
+            if (collect(pp, pd)) {
+                char l[PATH_MAX + 16], tg[PATH_MAX];
+                snprintf(l, sizeof l, "%s/subsystem", pp);
+                ssize_t n = readlink(l, tg, sizeof tg - 1);
+                if (n > 0) { tg[n] = 0; pset(pd, "SUBSYSTEM", "%s", strrchr(tg, '/') ? strrchr(tg, '/') + 1 : tg); }
+                dbid(pd, id, sizeof id);
+                snprintf(path, sizeof path, "/run/udev/data/%s", id);
+                FILE *f = fopen(path, "re");
+                if (f) {
+                    ok = true;
+                    while (fgets(line, sizeof line, f)) {
+                        if (strncmp(line, "E:", 2)) continue;
+                        line[strcspn(line, "\n")] = 0;
+                        import_lines(d, line + 2, v);
+                    }
+                    fclose(f);
+                }
+            }
+            dev_free(pd); free(pd);
+        }
+        return ok;
+    }
+    if (!strcmp(t->attr, "cmdline")) {
+        int n = readfile("/proc/cmdline", buf, sizeof buf);
+        if (n <= 0) return false;
+        for (char *w = strtok(buf, " \n"); w; w = strtok(NULL, " \n")) {
+            size_t l = strlen(v);
+            if (!strncmp(w, v, l) && (w[l] == '=' || !w[l])) { pset(d, v, "%s", w[l] ? w + l + 1 : "1"); return true; }
+        }
+        return false;
+    }
+    return false;                                    /* db: no previous-event properties here */
 }
 
 static void run_rules(const struct rules *r, struct dev *d, const char *action) {
@@ -514,6 +664,20 @@ static void run_rules(const struct rules *r, struct dev *d, const char *action) 
         /* first pass: every match key must hold */
         while (ok && (p = next_tok(p, &t))) {
             bool assign = !strcmp(t.op, "=") || !strcmp(t.op, "+=") || !strcmp(t.op, ":=") || !strcmp(t.op, "-=");
+            if (!strcmp(t.key, "IMPORT")) { if (do_import(d, &t) != (t.op[0] != '!')) ok = false; continue; }
+            if (!strcmp(t.key, "PROGRAM")) {               /* runs in order; fails the rule on non-zero exit */
+                char c[1024];
+                subst(d, t.val, c, sizeof c);
+                if (!run_capture(d, c, d->result, sizeof d->result)) ok = false;
+                d->result[strcspn(d->result, "\n")] = 0;
+                continue;
+            }
+            if (!strcmp(t.key, "RESULT")) {
+                char pat[1024];
+                subst(d, t.val, pat, sizeof pat);
+                if (glob_any(pat, d->result) != (t.op[0] == '=')) ok = false;
+                continue;
+            }
             if (!assign && !match_tok(d, &t, action)) ok = false;
         }
         if (!ok) continue;
@@ -643,10 +807,7 @@ static void run_programs(const struct dev *d, const char *action) {
     for (int i = 0; i < d->nrun; i++) {
         pid_t p = fork();
         if (p == 0) {
-            clearenv();
-            for (int k = 0; k < d->n; k++) putenv(d->kv[k]);
-            setenv("ACTION", action, 1);
-            setenv("PATH", "/usr/sbin:/usr/bin:/sbin:/bin", 1);
+            child_env(d, action);
             execl("/bin/sh", "sh", "-c", d->run[i], (char *)NULL);
             _exit(127);
         }
@@ -799,6 +960,18 @@ static void broadcast(int sk, struct dev *d) {
     h.bloom_hi = htobe32((uint32_t)(bloom >> 32)); h.bloom_lo = htobe32((uint32_t)bloom);
     memcpy(msg, &h, sizeof h);
     struct sockaddr_nl_u to = { AF_NETLINK, 0, 0, 2 };
+    sendto(sk, msg, n, 0, (struct sockaddr *)&to, sizeof to);
+    /* group 4: the kernel's format plus udev properties, for libudev-zero's "udev" monitor */
+    const char *a = pget(d, "ACTION"), *dp = pget(d, "DEVPATH");
+    if (!a || !dp) return;
+    n = (size_t)snprintf(msg, sizeof msg, "%s@%s", a, dp) + 1;
+    for (int i = 0; i < d->n && n < sizeof msg; i++) {
+        size_t l = strlen(d->kv[i]) + 1;
+        if (n + l > sizeof msg) break;
+        memcpy(msg + n, d->kv[i], l);
+        n += l;
+    }
+    to.groups = 4;
     sendto(sk, msg, n, 0, (struct sockaddr *)&to, sizeof to);
 }
 

@@ -1,0 +1,189 @@
+--- a/udev_device.c	2023-07-10 11:15:04.000000000 +0000
++++ b/udev_device.c	2026-10-11 07:12:59.282112742 +0000
+@@ -55,6 +55,9 @@
+ struct udev_device {
+     struct udev_list_entry properties;
+     struct udev_list_entry sysattrs;
++    struct udev_list_entry devlinks;    /* 9os: from the udevshim database */
++    struct udev_list_entry tags;
++    int initialized;
+     struct udev_device *parent;
+     struct udev *udev;
+     int refcount;
+@@ -198,9 +201,9 @@
+     return NULL;
+ }
+ 
+-/* XXX NOT IMPLEMENTED */ int udev_device_get_is_initialized(struct udev_device *udev_device)
++int udev_device_get_is_initialized(struct udev_device *udev_device)
+ {
+-    return 1;
++    return udev_device ? udev_device->initialized : 0;
+ }
+ 
+ const char *udev_device_get_action(struct udev_device *udev_device)
+@@ -208,14 +211,26 @@
+     return udev_device_get_property_value(udev_device, "ACTION");
+ }
+ 
+-/* XXX NOT IMPLEMENTED */ int udev_device_has_tag(struct udev_device *udev_device, const char *tag)
++int udev_device_has_tag(struct udev_device *udev_device, const char *tag)
+ {
++    struct udev_list_entry *e;
++
++    if (!udev_device || !tag) {
++        return 0;
++    }
++
++    for (e = udev_list_entry_get_next(&udev_device->tags); e; e = udev_list_entry_get_next(e)) {
++        if (strcmp(udev_list_entry_get_name(e), tag) == 0) {
++            return 1;
++        }
++    }
++
+     return 0;
+ }
+ 
+-/* XXX NOT IMPLEMENTED */ struct udev_list_entry *udev_device_get_devlinks_list_entry(struct udev_device *udev_device)
++struct udev_list_entry *udev_device_get_devlinks_list_entry(struct udev_device *udev_device)
+ {
+-    return NULL;
++    return udev_device ? udev_list_entry_get_next(&udev_device->devlinks) : NULL;
+ }
+ 
+ struct udev_list_entry *udev_device_get_properties_list_entry(struct udev_device *udev_device)
+@@ -223,14 +238,14 @@
+     return udev_device ? udev_list_entry_get_next(&udev_device->properties) : NULL;
+ }
+ 
+-/* XXX NOT IMPLEMENTED */ struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_device *udev_device)
++struct udev_list_entry *udev_device_get_tags_list_entry(struct udev_device *udev_device)
+ {
+-    return NULL;
++    return udev_device ? udev_list_entry_get_next(&udev_device->tags) : NULL;
+ }
+ 
+-/* XXX NOT IMPLEMENTED */ struct udev_list_entry *udev_device_get_current_tags_list_entry(struct udev_device *udev_device)
++struct udev_list_entry *udev_device_get_current_tags_list_entry(struct udev_device *udev_device)
+ {
+-    return NULL;
++    return udev_device_get_tags_list_entry(udev_device);
+ }
+ 
+ struct udev_list_entry *udev_device_get_sysattr_list_entry(struct udev_device *udev_device)
+@@ -538,6 +553,72 @@
+     udev_list_entry_add(&udev_device->properties, "ID_PATH", id, 0);
+ }
+ 
++/* 9os: merge /run/udev/data/<id> (written by udevshim, systemd's format) into the device:
++ * E: properties, S: devlinks, G: tags; a device with a database entry is "initialized" */
++static void set_properties_from_db(struct udev_device *udev_device)
++{
++    const char *major, *minor, *subsystem, *ifindex, *sysname;
++    char id[512], path[PATH_MAX], line[LINE_MAX], *pos;
++    FILE *file;
++
++    major = udev_device_get_property_value(udev_device, "MAJOR");
++    minor = udev_device_get_property_value(udev_device, "MINOR");
++    subsystem = udev_device_get_subsystem(udev_device);
++    ifindex = udev_device_get_property_value(udev_device, "IFINDEX");
++    sysname = udev_device_get_sysname(udev_device);
++
++    if (major && minor) {
++        snprintf(id, sizeof(id), "%c%s:%s", subsystem && strcmp(subsystem, "block") == 0 ? 'b' : 'c', major, minor);
++    }
++    else if (ifindex && subsystem && strcmp(subsystem, "net") == 0) {
++        snprintf(id, sizeof(id), "n%s", ifindex);
++    }
++    else if (subsystem && sysname) {
++        snprintf(id, sizeof(id), "+%s:%s", subsystem, sysname);
++    }
++    else {
++        return;
++    }
++
++    snprintf(path, sizeof(path), "/run/udev/data/%s", id);
++    file = fopen(path, "r");
++
++    if (!file) {
++        return;
++    }
++
++    udev_device->initialized = 1;
++
++    while (fgets(line, sizeof(line), file)) {
++        line[strcspn(line, "\n")] = '\0';
++
++        if (line[0] == '\0' || line[1] != ':') {
++            continue;
++        }
++
++        switch (line[0]) {
++        case 'E':
++            pos = strchr(line + 2, '=');
++
++            if (pos) {
++                *pos = '\0';
++                udev_list_entry_add(&udev_device->properties, line + 2, pos + 1, 1);
++            }
++
++            break;
++        case 'S':
++            snprintf(path, sizeof(path), "/dev/%s", line + 2);
++            udev_list_entry_add(&udev_device->devlinks, path, NULL, 0);
++            break;
++        case 'G':
++            udev_list_entry_add(&udev_device->tags, line + 2, NULL, 0);
++            break;
++        }
++    }
++
++    fclose(file);
++}
++
+ struct udev_device *udev_device_new_from_syspath(struct udev *udev, const char *syspath)
+ {
+     char *subsystem, *driver, *sysname;
+@@ -565,6 +646,8 @@
+ 
+     udev_list_entry_init(&udev_device->properties);
+     udev_list_entry_init(&udev_device->sysattrs);
++    udev_list_entry_init(&udev_device->devlinks);
++    udev_list_entry_init(&udev_device->tags);
+ 
+     if (set_properties_from_uevent(udev_device, path) == -1) {
+         free(udev_device);
+@@ -591,6 +674,7 @@
+ 
+     set_properties_from_evdev(udev_device);
+     set_properties_from_props(udev_device);
++    set_properties_from_db(udev_device);
+ 
+     free(driver);
+     free(subsystem);
+@@ -660,6 +744,8 @@
+ 
+     udev_list_entry_init(&udev_device->properties);
+     udev_list_entry_init(&udev_device->sysattrs);
++    udev_list_entry_init(&udev_device->devlinks);
++    udev_list_entry_init(&udev_device->tags);
+ 
+     for (end = buf + len; buf < end; buf += strlen(buf) + 1) {
+        if (strncmp(buf, "DEVPATH=", 8) == 0) {
+@@ -710,6 +796,7 @@
+ 
+     set_properties_from_props(udev_device);
+     set_properties_from_evdev(udev_device);
++    set_properties_from_db(udev_device);
+     return udev_device;
+ }
+ 
+@@ -749,6 +836,8 @@
+ 
+     udev_list_entry_free_all(&udev_device->properties);
+     udev_list_entry_free_all(&udev_device->sysattrs);
++    udev_list_entry_free_all(&udev_device->devlinks);
++    udev_list_entry_free_all(&udev_device->tags);
+ 
+     free(udev_device);
+     return NULL;
