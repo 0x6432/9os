@@ -116,9 +116,24 @@ void input_event(struct input_dev *d, unsigned type, unsigned code, int value) {
         else d->keystate[code / 64] &= ~(1ull << (code % 64));
     } else if (type == EV_ABS && code <= ABS_MAX) {
         d->abs[code].value = value;
+    } else if (type == EV_SW) {                            /* only changes are reported */
+        if (code > SW_MAX || !input_test_bit(d->swbit, code)) return;
+        bool was = input_test_bit(d->swstate, code);
+        if (!!value == was) return;
+        if (value) d->swstate[code / 64] |= 1ull << (code % 64);
+        else d->swstate[code / 64] &= ~(1ull << (code % 64));
+    } else if (type == EV_SND) {
+        if (code > SND_MAX || !input_test_bit(d->sndbit, code)) return;
+        if (value) d->sndstate[0] |= 1ull << code; else d->sndstate[0] &= ~(1ull << code);
+    } else if (type == EV_FF) {
+        return;                                            /* force feedback goes to the device only */
     }
     uint64_t mono = time_ns();
     uint64_t fl = spin_lock_irqsave(&d->lock);
+    if (type == EV_SYN && code == SYN_REPORT) {            /* like Linux: no empty frames */
+        if (!d->npending) { spin_unlock_irqrestore(&d->lock, fl); return; }
+        d->npending = 0;
+    } else d->npending++;
     bool grabbed = d->grab != nullptr;
     list_for_each(it, &d->clients) {
         struct evdev_client *c = list_entry(it, struct evdev_client, node);
@@ -149,8 +164,11 @@ static const uint64_t *cap_map(struct input_dev *d, int which, unsigned *nbits) 
     case 3: *nbits = ABS_MAX; return d->absbit;
     case 4: *nbits = MSC_MAX; return d->mscbit;
     case 5: *nbits = LED_MAX; return d->ledbit;
+    case 6: *nbits = SW_MAX; return d->swbit;
+    case 7: *nbits = FF_MAX; return d->ffbit;
     case 8: *nbits = INPUT_PROP_MAX; return d->propbit;
-    default: *nbits = 1; return zero;           /* sw, ff: none */
+    case 9: *nbits = SND_MAX; return d->sndbit;
+    default: *nbits = 1; return zero;
     }
 }
 static int show_cap(struct device *k, char *b, size_t n, int which) {
@@ -160,7 +178,7 @@ static int show_cap(struct device *k, char *b, size_t n, int which) {
     return l + dev_printf(b + l, n - (size_t)l, "\n");
 }
 #define CAPF(nm, w) static int a_cap_##nm(struct device *k, char *b, size_t n) { return show_cap(k, b, n, w); }
-CAPF(ev, 0) CAPF(key, 1) CAPF(rel, 2) CAPF(abs, 3) CAPF(msc, 4) CAPF(led, 5) CAPF(sw, 6) CAPF(ff, 7) CAPF(prop, 8)
+CAPF(ev, 0) CAPF(key, 1) CAPF(rel, 2) CAPF(abs, 3) CAPF(msc, 4) CAPF(led, 5) CAPF(sw, 6) CAPF(ff, 7) CAPF(prop, 8) CAPF(snd, 9)
 static int a_name(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%s\n", idev_of(k)->name); }
 static int a_phys(struct device *k, char *b, size_t n) { return dev_printf(b, n, "%s\n", idev_of(k)->phys); }
 static int a_uniq(struct device *k, char *b, size_t n) { return dev_printf(b, n, "\n"); }
@@ -172,10 +190,9 @@ static int a_version(struct device *k, char *b, size_t n) { return dev_printf(b,
 static int modalias(struct input_dev *d, char *b, size_t cap) {
     int n = dev_printf(b, cap, "input:b%04Xv%04Xp%04Xe%04X-", d->id.bustype, d->id.vendor, d->id.product, d->id.version);
     static const char letters[] = "ekramlsfw";
-    static const int which[] = { 0, 1, 2, 3, 4, 5, 6, 7, 9 };
+    static const int which[] = { 0, 1, 2, 3, 4, 5, 9, 7, 6 };     /* ...l(ed) s(nd) f(f) w(sw) */
     for (int s = 0; s < 9; s++) {
         n += dev_printf(b + n, cap - (size_t)n, "%c", letters[s]);
-        if (which[s] > 7) continue;
         unsigned nb;
         const uint64_t *bm = cap_map(d, which[s], &nb);
         for (unsigned i = 0; i <= nb && (size_t)n + 8 < cap; i++)
@@ -196,6 +213,7 @@ static const struct dev_attr input_attrs[] = {
     { "capabilities/rel", 0444, a_cap_rel, nullptr }, { "capabilities/abs", 0444, a_cap_abs, nullptr },
     { "capabilities/msc", 0444, a_cap_msc, nullptr }, { "capabilities/led", 0444, a_cap_led, nullptr },
     { "capabilities/sw", 0444, a_cap_sw, nullptr }, { "capabilities/ff", 0444, a_cap_ff, nullptr },
+    { "capabilities/snd", 0444, a_cap_snd, nullptr },
     { nullptr, 0, nullptr, nullptr },
 };
 static void input_uevent(struct device *k, struct uenv *e) {
@@ -203,14 +221,15 @@ static void input_uevent(struct device *k, struct uenv *e) {
     uenv_add(e, "PRODUCT=%x/%x/%x/%x", d->id.bustype, d->id.vendor, d->id.product, d->id.version);
     uenv_add(e, "NAME=\"%s\"", d->name);
     if (d->phys[0]) uenv_add(e, "PHYS=\"%s\"", d->phys);
-    static const char *const keys[] = { "EV", "KEY", "REL", "ABS", "MSC", "LED" };
+    static const char *const keys[] = { "EV", "KEY", "REL", "ABS", "MSC", "LED", "SND", "FF", "SW" };
+    static const int map[] = { 0, 1, 2, 3, 4, 5, 9, 7, 6 };
     char *b = kmalloc(1024);
     if (!b) return;
     unsigned nb;
     fmt_bits(b, 1024, cap_map(d, 8, &nb), nb);
     uenv_add(e, "PROP=%s", b);
-    for (int w = 0; w < 6; w++) {
-        const uint64_t *bm = cap_map(d, w, &nb);
+    for (int w = 0; w < 9; w++) {
+        const uint64_t *bm = cap_map(d, map[w], &nb);
         bool any = false;
         for (unsigned i = 0; i < BITS_TO_U64(nb); i++) if (bm[i]) any = true;
         if (!any && w) continue;
@@ -282,6 +301,7 @@ void input_unregister(struct input_dev *d) {
 }
 
 /* ---------------------------------------------------------------- /dev/input/eventN */
+static void ff_erase_slot(struct input_dev *d, int id);
 static int evdev_open(struct inode *ino, struct file *f) {
     int idx = (int)MINOR(ino->rdev) - EVDEV_MINOR_BASE;
     if (idx < 0 || idx >= MAX_INPUT) return -ENODEV;
@@ -306,6 +326,7 @@ static void evdev_release(struct file *f) {
     list_del(&c->node);
     if (c->dev->grab == c) c->dev->grab = nullptr;
     spin_unlock_irqrestore(&c->dev->lock, fl);
+    for (int i = 0; i < FF_SLOTS; i++) if (c->dev->ff_owner[i] == c) ff_erase_slot(c->dev, i);
     device_put(&c->dev->idev);
     kfree(c);
 }
@@ -333,19 +354,33 @@ static ssize_t evdev_read(struct file *f, void *buf, size_t n, off_t *off) {
     }
 }
 
+/* as Linux's evdev_write: events are injected into the device (readers see them), LED/SND/FF
+ * also go to the hardware (uinput's owner); EV_FF plays an uploaded effect or sets the gain */
 static ssize_t evdev_write(struct file *f, const void *buf, size_t n, off_t *off) {
     struct evdev_client *c = f->priv;
+    struct input_dev *d = c->dev;
+    if (c->revoked || d->gone) return -ENODEV;
+    if (n < sizeof(struct input_event_abi)) return -EINVAL;
     size_t done = 0;
     for (; done + sizeof(struct input_event_abi) <= n; done += sizeof(struct input_event_abi)) {
         struct input_event_abi e;
         if (copy_from_user(&e, (const char *)buf + done, sizeof e)) return done ? (ssize_t)done : -EFAULT;
+        if (e.type > EV_MAX || !input_test_bit(d->evbit, e.type)) continue;
         if (e.type == EV_LED && e.code <= LED_MAX) {
             /* atomic: evdev runs without the BKL (LED_MAX < 64, so word 0 only) */
-            if (e.value) __atomic_fetch_or(&c->dev->ledstate[0], 1ull << e.code, __ATOMIC_RELAXED);
-            else __atomic_fetch_and(&c->dev->ledstate[0], ~(1ull << e.code), __ATOMIC_RELAXED);
+            if (e.value) __atomic_fetch_or(&d->ledstate[0], 1ull << e.code, __ATOMIC_RELAXED);
+            else __atomic_fetch_and(&d->ledstate[0], ~(1ull << e.code), __ATOMIC_RELAXED);
         }
+        if (e.type == EV_FF) {
+            bool ok = e.code == FF_GAIN || e.code == FF_AUTOCENTER ? input_test_bit(d->ffbit, e.code)
+                    : e.code < (unsigned)d->ff_max && e.code < FF_SLOTS && d->ff_owner[e.code];
+            if (ok && d->to_device) d->to_device(d, e.type, e.code, e.value);
+            continue;
+        }
+        if ((e.type == EV_LED || e.type == EV_SND) && d->to_device) d->to_device(d, e.type, e.code, e.value);
+        input_event(d, e.type, e.code, e.value);
     }
-    return done;
+    return (ssize_t)done;
 }
 
 static unsigned evdev_poll(struct file *f) {
@@ -383,8 +418,43 @@ static int evdev_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
     case 0x09: return put_bits(arg, len, d->propbit, sizeof d->propbit);                 /* GPROP */
     case 0x18: return put_bits(arg, len, d->keystate, sizeof d->keystate);               /* GKEY */
     case 0x19: return put_bits(arg, len, d->ledstate, sizeof d->ledstate);               /* GLED */
-    case 0x1a: case 0x1b: { uint64_t z[2] = { 0, 0 }; return put_bits(arg, len, z, 8); } /* GSND, GSW */
-    case 0x84: { int v = 0; return copy_to_user((void *)arg, &v, sizeof v); }            /* GEFFECTS */
+    case 0x1a: return put_bits(arg, len, d->sndstate, sizeof d->sndstate);               /* GSND */
+    case 0x1b: return put_bits(arg, len, d->swstate, sizeof d->swstate);                 /* GSW */
+    case 0x84: { int v = input_test_bit(d->evbit, EV_FF) ? d->ff_max : 0;                /* GEFFECTS */
+        return copy_to_user((void *)arg, &v, sizeof v); }
+    case 0x80: {                                                                          /* SFF */
+        if (!input_test_bit(d->evbit, EV_FF) || !d->ff_upload) return -EINVAL;
+        if (len != FF_EFFECT_SIZE) return -EINVAL;
+        uint8_t e[FF_EFFECT_SIZE], old[FF_EFFECT_SIZE];
+        if (copy_from_user(e, (void *)arg, sizeof e)) return -EFAULT;
+        uint16_t type; int16_t id;
+        memcpy(&type, e, 2); memcpy(&id, e + 2, 2);
+        if (type > FF_MAX || !input_test_bit(d->ffbit, type) || type >= FF_GAIN) return -EINVAL;
+        int lim = MIN(d->ff_max, FF_SLOTS);
+        bool had = false;
+        if (id == -1) {
+            for (int i = 0; i < lim && id < 0; i++) if (!d->ff_owner[i]) id = (int16_t)i;
+            if (id < 0) return -ENOSPC;
+            memcpy(e + 2, &id, 2);
+        } else {
+            if (id < 0 || id >= lim || !d->ff_owner[id]) return -EINVAL;
+            if (d->ff_owner[id] != c) return -EACCES;
+            memcpy(old, d->ff_effect[id], sizeof old);
+            had = true;
+        }
+        d->ff_owner[id] = c;                       /* reserve while the driver works */
+        int r = d->ff_upload(d, e, had ? old : nullptr);
+        if (r) { if (!had) d->ff_owner[id] = nullptr; return r; }
+        memcpy(d->ff_effect[id], e, sizeof e);
+        return copy_to_user((uint8_t *)arg + 2, &id, 2) ? -EFAULT : 0;
+    }
+    case 0x81: {                                                                          /* RMFF */
+        int id = (int)arg;
+        if (id < 0 || id >= MIN(d->ff_max, FF_SLOTS) || !d->ff_owner[id]) return -EINVAL;
+        if (d->ff_owner[id] != c) return -EACCES;
+        ff_erase_slot(d, id);
+        return 0;
+    }
     case 0x90: {                                                                          /* GRAB */
         uint64_t fl = spin_lock_irqsave(&d->lock);
         int r = 0;
@@ -417,6 +487,9 @@ static int evdev_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
         case EV_ABS: return put_bits(arg, len, d->absbit, sizeof d->absbit);
         case EV_MSC: return put_bits(arg, len, d->mscbit, sizeof d->mscbit);
         case EV_LED: return put_bits(arg, len, d->ledbit, sizeof d->ledbit);
+        case EV_SW: return put_bits(arg, len, d->swbit, sizeof d->swbit);
+        case EV_SND: return put_bits(arg, len, d->sndbit, sizeof d->sndbit);
+        case EV_FF: return put_bits(arg, len, d->ffbit, sizeof d->ffbit);
         default: { uint64_t z[2] = { 0, 0 }; return put_bits(arg, len, z, MIN(len, sizeof z)); }
         }
     }
@@ -432,6 +505,11 @@ static int evdev_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
         return 0;
     }
     return -EINVAL;
+}
+
+static void ff_erase_slot(struct input_dev *d, int id) {
+    if (d->ff_erase && !d->gone) d->ff_erase(d, id);
+    d->ff_owner[id] = nullptr;
 }
 
 /* read/write/poll are lock-free (queue under dev->lock); ioctls take the BKL in sys_ioctl */
