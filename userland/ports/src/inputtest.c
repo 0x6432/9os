@@ -2,6 +2,7 @@
  *  xkbcommon + xkeyboard-config: compile "evdev/pc105/us,de", keysyms with shift and group 2
  *  uinput (via libevdev-uinput): create a keyboard and a mouse; devnode, sysfs, libevdev read back
  *  mtdev: open the new keyboard
+ *  libwacom: database lookup by usb id, lookup of a uinput tablet by node; libinput tablet-tool device
  *  libinput (udev backend over libudev-zero, fed by a private udevshim daemon): the uinput
  *  devices are hot-plugged with the right capabilities, injected key/motion/button events
  *  arrive (KEY_A -> xkb "a"), destroying the devices sends DEVICE_REMOVED; path backend too
@@ -13,6 +14,7 @@
 #include <libevdev/libevdev.h>
 #include <libevdev/libevdev-uinput.h>
 #include <libinput.h>
+#include <libwacom/libwacom.h>
 #include <libseat.h>
 #include <libudev.h>
 #include <linux/input.h>
@@ -21,6 +23,7 @@
 #include <mtdev.h>
 #include <poll.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,6 +229,58 @@ static void test_libinput(void) {
     stop(ud);
 }
 
+/* ---------------------------------------------------------------- libwacom */
+static void wlog(struct libinput *li, enum libinput_log_priority p, const char *fmt, va_list ap) { printf("inputtest: libinput: "); vprintf(fmt, ap); }
+static void test_wacom(void) {
+    WacomError *err = libwacom_error_new();
+    WacomDeviceDatabase *db = libwacom_database_new();
+    CHECK(db != NULL, "libwacom database (/usr/share/libwacom)");
+    if (!db) { libwacom_error_free(&err); return; }
+    WacomDevice *w = libwacom_new_from_usbid(db, 0x056a, 0x0357, err);
+    CHECK(w && !strcmp(libwacom_get_name(w), "Wacom Intuos Pro M"), "usbid 056a:0357 -> %s", w ? libwacom_get_name(w) : libwacom_error_get_message(err));
+    if (w) {
+        CHECK(libwacom_get_num_buttons(w) > 0 && libwacom_has_stylus(w), "intuos pro buttons %d", libwacom_get_num_buttons(w));
+        libwacom_destroy(w);
+    }
+    /* uinput tablet with the same ids: lookup by device node goes through gudev -> libudev -> sysfs;
+     * libinput only takes udev-initialized devices, so a udevshim daemon has to write the db entry */
+    unlink("/run/udev/control");
+    pid_t ud = start((const char *const[]){ "udevshim", "-d", "-f", NULL }, "/run/udev/control");
+    struct libevdev *d = libevdev_new();
+    libevdev_set_name(d, "Wacom Intuos Pro M Pen");
+    libevdev_set_id_bustype(d, BUS_USB);
+    libevdev_set_id_vendor(d, 0x056a);
+    libevdev_set_id_product(d, 0x0357);
+    struct input_absinfo ax = { .maximum = 44800, .resolution = 200 }, ay = { .maximum = 29600, .resolution = 200 }, ap = { .maximum = 8191 };
+    libevdev_enable_event_code(d, EV_ABS, ABS_X, &ax);
+    libevdev_enable_event_code(d, EV_ABS, ABS_Y, &ay);
+    libevdev_enable_event_code(d, EV_ABS, ABS_PRESSURE, &ap);
+    libevdev_enable_event_code(d, EV_KEY, BTN_TOOL_PEN, NULL);
+    libevdev_enable_event_code(d, EV_KEY, BTN_TOUCH, NULL);
+    libevdev_enable_event_code(d, EV_KEY, BTN_STYLUS, NULL);
+    libevdev_enable_property(d, INPUT_PROP_POINTER);
+    struct libevdev_uinput *u = NULL;
+    int r = libevdev_uinput_create_from_device(d, LIBEVDEV_UINPUT_OPEN_MANAGED, &u);
+    libevdev_free(d);
+    CHECK(r == 0, "uinput tablet (%d)", r);
+    if (!r) {
+        const char *node = libevdev_uinput_get_devnode(u);
+        w = node ? libwacom_new_from_path(db, node, WFALLBACK_NONE, err) : NULL;
+        CHECK(w && libwacom_get_vendor_id(w) == 0x056a && libwacom_get_product_id(w) == 0x0357,
+              "new_from_path %s: %s", node ? node : "-", w ? libwacom_get_name(w) : libwacom_error_get_message(err));
+        if (w) libwacom_destroy(w);
+        struct libinput *li = libinput_path_create_context(&iface, NULL);
+        if (li) { libinput_log_set_handler(li, wlog); libinput_log_set_priority(li, LIBINPUT_LOG_PRIORITY_ERROR); }
+        struct libinput_device *ld = li && node ? libinput_path_add_device(li, node) : NULL;
+        CHECK(ld && libinput_device_has_capability(ld, LIBINPUT_DEVICE_CAP_TABLET_TOOL), "libinput tablet-tool capability (%s)", ld ? "added" : "not added");
+        if (li) libinput_unref(li);
+        libevdev_uinput_destroy(u);
+    }
+    stop(ud);
+    libwacom_database_destroy(db);
+    libwacom_error_free(&err);
+}
+
 /* ---------------------------------------------------------------- libseat */
 static bool enabled;
 static void on_enable(struct libseat *s, void *d) { enabled = true; }
@@ -297,6 +352,7 @@ int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
     test_xkb();
     test_libinput();
+    test_wacom();
     test_seat();
     if (fails) { printf("inputtest: %d failures\n", fails); return 1; }
     printf("inputtest: all passed\n");
