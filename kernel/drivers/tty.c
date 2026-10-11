@@ -13,6 +13,7 @@
 #include <kernel/time.h>
 #include <kernel/kmalloc.h>
 #include <kernel/syscall.h>
+#include <kernel/vt.h>
 
 #define ISIG 0000001
 #define ICANON 0000002
@@ -39,7 +40,6 @@
 #define VSUSP 10
 #define VWERASE 14
 
-struct tty console_tty;
 static const struct lock_class tty_class = { "tty", LR_TTY, false };
 static uint64_t tlock(struct tty *t) { uint64_t f = arch_irq_save(); spin_lock_ipi(&t->lock); return f; }
 static void tunlock(struct tty *t, uint64_t f) { spin_unlock(&t->lock); arch_irq_restore(f); }
@@ -255,7 +255,7 @@ static int tty_ioctl_t(struct tty *t, struct file *f, uint64_t cmd, uint64_t arg
         return 0;
     }
     case 0x5413: { /* TIOCGWINSZ */
-        if (t == &console_tty) {
+        if (vt_index(t) >= 0) {
             int cols = 80, rows = 25;
             fbcon_get_size(&cols, &rows);
             t->ws.ws_col = cols; t->ws.ws_row = rows;
@@ -295,29 +295,7 @@ static int tty_ioctl_t(struct tty *t, struct file *f, uint64_t cmd, uint64_t arg
         return 0;
     case 0x5409: case 0x540A: case 0x5421: return 0;   /* TCSBRK, TCXONC, FIONBIO */
     }
-    if (t != &console_tty) return -ENOTTY;
-    /* virtual-terminal / keyboard ioctls used by display servers (seatd, weston, X) */
-    static int kd_mode;
-    static struct { char mode, waitv; short relsig, acqsig, frsig; } vt_mode;
-    switch (cmd) {
-    case 0x4B33: { char kb = 2; return copy_to_user((void *)arg, &kb, 1); }      /* KDGKBTYPE: KB_101 */
-    case 0x4B3A:                                                                   /* KDSETMODE */
-        if (arg > 1) return -EINVAL;
-        kd_mode = (int)arg; fbcon_set_graphics(arg == 1);
-        return 0;
-    case 0x4B3B: return copy_to_user((void *)arg, &kd_mode, sizeof kd_mode);      /* KDGETMODE */
-    case 0x4B44: return copy_to_user((void *)arg, &console_kbmode, sizeof(int)); /* KDGKBMODE */
-    case 0x4B45:                                                                   /* KDSKBMODE */
-        if (arg > 4) return -EINVAL;
-        console_kbmode = (int)arg;
-        return 0;
-    case 0x5600: { int n = 1; return copy_to_user((void *)arg, &n, sizeof n); }  /* VT_OPENQRY */
-    case 0x5601: return copy_to_user((void *)arg, &vt_mode, sizeof vt_mode);     /* VT_GETMODE */
-    case 0x5602: return copy_from_user(&vt_mode, (void *)arg, sizeof vt_mode);   /* VT_SETMODE */
-    case 0x5603: { uint16_t st[3] = { 1, 0, 2 }; return copy_to_user((void *)arg, st, sizeof st); } /* VT_GETSTATE */
-    case 0x5605: case 0x5606: case 0x5607: return 0;                             /* VT_RELDISP/ACTIVATE/WAITACTIVE */
-    default: return -ENOTTY;
-    }
+    return vt_ioctl(t, cmd, arg);              /* virtual-terminal / keyboard ioctls (vt.c) */
 }
 
 /* a session leader without a controlling terminal acquires the tty it opens */
@@ -332,13 +310,19 @@ static void maybe_acquire_ctty(struct tty *t, struct file *f) {
 
 static int tty_open(struct inode *ino, struct file *f) {
     struct process *p = curproc;
-    if (ino->rdev == MKDEV(5, 0) && p && p->ctty) { f->priv = p->ctty; return 0; }   /* /dev/tty */
-    maybe_acquire_ctty(&console_tty, f);
+    if (ino->rdev == MKDEV(5, 0) && p && p->ctty) { f->priv = p->ctty; vt_open(p->ctty); return 0; }   /* /dev/tty */
+    struct tty *t = &console_tty;                                    /* console, ttyS0, tty1 */
+    if (MAJOR(ino->rdev) == 4 && MINOR(ino->rdev) == 0) t = vt_fg_tty();
+    else if (MAJOR(ino->rdev) == 4 && MINOR(ino->rdev) >= 1 && MINOR(ino->rdev) <= NR_VT) t = &vt_ttys[MINOR(ino->rdev) - 1];
+    f->priv = t;
+    vt_open(t);
+    maybe_acquire_ctty(t, f);
     return 0;
 }
+static void tty_release(struct file *f) { vt_close(tty_of(f)); }
 
 static const struct file_ops tty_ops = {
-    .nobkl = true, .open = tty_open, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll,
+    .nobkl = true, .open = tty_open, .release = tty_release, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll,
 };
 
 #include "pty.inc"
@@ -348,7 +332,7 @@ void tty_register_devices(void) {
     pty_register();
     chrdev_register(5, 0, &tty_ops);
     chrdev_register(5, 1, &tty_ops);
-    chrdev_register(4, 0, &tty_ops);
-    chrdev_register(4, 1, &tty_ops);
+    for (int i = 0; i <= NR_VT; i++) chrdev_register(4, i, &tty_ops);
+    vt_register_devices();
     chrdev_register(4, 64, &tty_ops);
 }

@@ -6,6 +6,7 @@ void printk(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void vprintk(const char *fmt, va_list ap);
 void console_write(const char *s, size_t n);
 void console_register(void (*write)(const char *, size_t));
+void console_run_locked(void (*fn)(void *), void *arg);
 __noreturn void panic(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 #define pr_info(fmt, ...)  printk("[\x1b[32m info\x1b[0m] " fmt, ##__VA_ARGS__)

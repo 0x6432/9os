@@ -242,6 +242,7 @@ static int uinput_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
         d->drv = u; d->to_device = to_device;
         if (input_test_bit(d->evbit, EV_FF)) { d->ff_upload = ff_upload; d->ff_erase = ff_erase; }
         d->free = uinput_free;
+        d->console_keys = input_test_bit(d->keybit, 30 /* KEY_A */);   /* like Linux's kbd handler */
         int r = input_register(d);
         if (r) return r;
         u->created = true;

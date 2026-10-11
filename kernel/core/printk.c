@@ -56,6 +56,17 @@ void console_write(const char *s, size_t n) {
     arch_irq_restore(f);
 }
 
+/* run fn with the console drivers serialised (fbcon VT state) */
+void console_run_locked(void (*fn)(void *), void *arg) {
+    uint64_t f = arch_irq_save();
+    int me = this_cpu()->id;
+    bool nested = console_owner == me || panicking;
+    if (!nested) { spin_lock(&console_lock); console_owner = me; }
+    fn(arg);
+    if (!nested) { console_owner = -1; spin_unlock(&console_lock); }
+    arch_irq_restore(f);
+}
+
 void vprintk(const char *fmt, va_list ap) {
     char buf[512];
     int n = vsnprintf(buf, sizeof buf, fmt, ap);

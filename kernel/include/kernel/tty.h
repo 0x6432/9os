@@ -29,7 +29,8 @@ struct tty {
     spinlock_t lock;
 };
 
-extern struct tty console_tty;
+extern struct tty vt_ttys[];
+#define console_tty (vt_ttys[0])      /* tty1: the kernel console */
 void tty_input(struct tty *t, char c);        /* from interrupt context */
 void tty_input_str(struct tty *t, const char *s);
 void tty_init(void);

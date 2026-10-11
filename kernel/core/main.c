@@ -4,6 +4,7 @@
 #include <kernel/boot.h>
 #include <kernel/printk.h>
 #include <kernel/fbcon.h>
+#include <kernel/vt.h>
 #include <kernel/pmm.h>
 #include <kernel/vmm.h>
 #include <kernel/slab.h>
@@ -104,6 +105,8 @@ void kmain(void) {
     virtio_blk_init();
     net_init();
     virtio_net_init();
+    fbcon_vt_init();       /* per-VT shadow buffers (heap is up) */
+    vt_late_init();
     fbcon_init();          /* (re)attach the console if a GPU driver provided a framebuffer */
     fbdev_init();
     drm_init();

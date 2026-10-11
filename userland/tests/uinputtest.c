@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/input.h>
+#include <linux/kd.h>
 #include <linux/netlink.h>
 #include <linux/uinput.h>
 #include <poll.h>
@@ -234,7 +235,18 @@ static void test_ff_sw(void) {
     close(u);
 }
 
+/* keys typed on our uinput keyboards reach the foreground VT (like Linux): keep them off the
+ * console that runs the test */
+static int kb_saved = -1, kb_fd = -1;
+static void console_keys_off(void) {
+    kb_fd = open("/dev/tty0", O_RDWR | O_NOCTTY);
+    if (kb_fd >= 0 && ioctl(kb_fd, KDGKBMODE, &kb_saved) == 0) ioctl(kb_fd, KDSKBMODE, K_OFF);
+}
+static void console_keys_restore(void) { if (kb_fd >= 0 && kb_saved >= 0) ioctl(kb_fd, KDSKBMODE, kb_saved); }
+
 int main(void) {
+    console_keys_off();
+    atexit(console_keys_restore);
     uev = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
     struct sockaddr_nl a = { .nl_family = AF_NETLINK, .nl_groups = 1 };
     CHECK(uev >= 0 && bind(uev, (struct sockaddr *)&a, sizeof a) == 0, "uevent socket");

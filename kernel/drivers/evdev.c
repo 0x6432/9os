@@ -5,6 +5,7 @@
  * client grabbed the device (EVIOCGRAB) or the console keyboard is in K_OFF mode.
  */
 #include <kernel/input.h>
+#include <kernel/vt.h>
 #include <kernel/vfs.h>
 #include <kernel/tty.h>
 #include <kernel/kmalloc.h>
@@ -36,7 +37,6 @@ struct evdev_client {
 static struct input_dev *devs[MAX_INPUT];
 static int ndevs, next_num;
 static spinlock_t devs_lock;        /* devs[] slots; evdev_open vs. (un)register */
-int console_kbmode = 1;             /* K_XLATE */
 
 int input_device_count(void) { return ndevs; }
 
@@ -58,13 +58,22 @@ static const char shifted[128] = {
 
 static void console_key(struct input_dev *d, unsigned code, int value) {
     bool down = value != 0;
+    int kbmode = vt_kbmode();
+    struct tty *tty = vt_fg_tty();
+    if ((kbmode == 0 || kbmode == 2) && code < 128 && value != 2) {   /* K_RAW, K_MEDIUMRAW: keycodes */
+        tty_input(tty, (char)(code | (down ? 0 : 0x80)));
+    }
     switch (code) {
     case 42: case 54: d->shift = down; return;            /* KEY_LEFTSHIFT, KEY_RIGHTSHIFT */
     case 29: case 97: d->ctrl = down; return;             /* KEY_LEFTCTRL, KEY_RIGHTCTRL */
     case 56: case 100: d->alt = down; return;             /* KEY_LEFTALT, KEY_RIGHTALT */
     case 58: if (value == 1) d->caps = !d->caps; return;  /* KEY_CAPSLOCK */
     }
-    if (!down || console_kbmode == 4 /* K_OFF */) return;
+    if (!down || kbmode == 4 /* K_OFF */ || kbmode == 0 || kbmode == 2) return;
+    if (d->alt && ((code >= 59 && code <= 68) || code == 87 || code == 88)) {   /* (Ctrl+)Alt+Fn */
+        vt_kbd_switch(code >= 87 ? code - 87 + 10 : code - 59);
+        return;
+    }
     const char *seq = nullptr;
     switch (code) {
     case 103: seq = "\x1b[A"; break;  case 108: seq = "\x1b[B"; break;
@@ -76,7 +85,7 @@ static void console_key(struct input_dev *d, unsigned code, int value) {
     case 59: seq = "\x1bOP"; break;   case 60: seq = "\x1bOQ"; break;
     case 61: seq = "\x1bOR"; break;   case 62: seq = "\x1bOS"; break;
     }
-    if (seq) { tty_input_str(&console_tty, seq); return; }
+    if (seq) { tty_input_str(tty, seq); return; }
     if (code >= 128) return;
     char c = d->shift ? shifted[code] : normal[code];
     if (!c) return;
@@ -90,8 +99,8 @@ static void console_key(struct input_dev *d, unsigned code, int value) {
         else if (c == '\\') c = 28;
         else if (c == ' ' || c == '@') c = 0;
     }
-    if (d->alt) tty_input(&console_tty, 27);
-    tty_input(&console_tty, c);
+    if (d->alt) tty_input(tty, 27);
+    tty_input(tty, c);
 }
 
 /* ---------------------------------------------------------------- event delivery */

@@ -16,6 +16,8 @@
 #include <libseat.h>
 #include <libudev.h>
 #include <linux/input.h>
+#include <linux/kd.h>
+#include <linux/vt.h>
 #include <mtdev.h>
 #include <poll.h>
 #include <signal.h>
@@ -227,7 +229,28 @@ static void test_libinput(void) {
 /* ---------------------------------------------------------------- libseat */
 static bool enabled;
 static void on_enable(struct libseat *s, void *d) { enabled = true; }
-static void on_disable(struct libseat *s, void *d) { libseat_disable_seat(s); }
+static void on_disable(struct libseat *s, void *d) { enabled = false; libseat_disable_seat(s); }
+static int active_vt(void) {
+    char b[16] = "";
+    int fd = open("/sys/class/tty/tty0/active", O_RDONLY);
+    if (fd < 0) return -1;
+    read(fd, b, sizeof b - 1);
+    close(fd);
+    return strncmp(b, "tty", 3) ? -1 : atoi(b + 3);
+}
+/* libseat_switch_session -> VT_ACTIVATE; seatd answers relsig (disable, VT_RELDISP) and, when
+ * VT1 comes back (VT_ACTIVATE from outside), acqsig re-enables the session */
+static void seat_vt_switch(struct libseat *seat, const char *backend) {
+    if (active_vt() != 1) return;
+    CHECK(libseat_switch_session(seat, 2) == 0, "%s: switch_session(2)", backend);
+    for (int i = 0; i < 100 && (active_vt() != 2 || enabled); i++) libseat_dispatch(seat, 50);
+    CHECK(active_vt() == 2 && !enabled, "%s: on VT2 (%d), session disabled (%d)", backend, active_vt(), enabled);
+    int t0 = open("/dev/tty0", O_RDWR | O_NOCTTY);
+    CHECK(t0 >= 0 && ioctl(t0, VT_ACTIVATE, 1) == 0, "%s: VT_ACTIVATE 1", backend);
+    if (t0 >= 0) close(t0);
+    for (int i = 0; i < 100 && !enabled; i++) libseat_dispatch(seat, 50);
+    CHECK(active_vt() == 1 && enabled, "%s: back on VT1 (%d), session enabled (%d)", backend, active_vt(), enabled);
+}
 static void seat_round(const char *backend) {
     setenv("LIBSEAT_BACKEND", backend, 1);
     enabled = false;
@@ -248,6 +271,7 @@ static void seat_round(const char *backend) {
         CHECK(id >= 0 && fd >= 0, "%s: open card0", backend);
         if (id >= 0) { libseat_close_device(seat, id); close(fd); }
     }
+    seat_vt_switch(seat, backend);
     libseat_close_seat(seat);
 }
 static void test_seat(void) {
@@ -258,7 +282,18 @@ static void test_seat(void) {
     seat_round("builtin");
 }
 
+/* keys typed on our uinput keyboards reach the foreground VT (like Linux): keep them off the
+ * console that runs the test */
+static int kb_saved = -1, kb_fd = -1;
+static void console_keys_off(void) {
+    kb_fd = open("/dev/tty0", O_RDWR | O_NOCTTY);
+    if (kb_fd >= 0 && ioctl(kb_fd, KDGKBMODE, &kb_saved) == 0) ioctl(kb_fd, KDSKBMODE, K_OFF);
+}
+static void console_keys_restore(void) { if (kb_fd >= 0 && kb_saved >= 0) ioctl(kb_fd, KDSKBMODE, kb_saved); }
+
 int main(int argc, char **argv) {
+    console_keys_off();
+    atexit(console_keys_restore);
     setvbuf(stdout, NULL, _IONBF, 0);
     test_xkb();
     test_libinput();

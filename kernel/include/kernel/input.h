@@ -91,4 +91,3 @@ void input_event(struct input_dev *dev, unsigned type, unsigned code, int value)
 static inline void input_sync(struct input_dev *dev) { input_event(dev, EV_SYN, SYN_REPORT, 0); }
 int input_device_count(void);
 /* console keyboard mode (KDSKBMODE): K_OFF stops key → tty translation */
-extern int console_kbmode;
