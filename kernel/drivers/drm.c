@@ -1346,11 +1346,11 @@ static int drm_ioctl_locked(struct file *file, uint64_t cmd, void *arg) {
     }
     case 0xB9: {                                                             /* MODE_OBJ_GETPROPERTIES */
         struct { uint64_t props, values; uint32_t count, obj_id, obj_type; } o;
-        if (copy_from_user(&o, arg, 20)) return -EFAULT;
+        if (copy_from_user(&o, arg, sizeof o)) return -EFAULT;
         uint32_t t = obj_type(o.obj_id);
         if (!t || (o.obj_type && o.obj_type != t)) return -ENOENT;
         if (put_props(f, o.obj_id, o.props, o.values, &o.count)) return -EFAULT;
-        return copy_to_user(arg, &o, 20);
+        return copy_to_user(arg, &o, sizeof o);
     }
     case 0xAC: {                                                             /* MODE_GETPROPBLOB */
         struct { uint32_t id, len; uint64_t data; } b;

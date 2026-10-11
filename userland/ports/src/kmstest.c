@@ -144,7 +144,10 @@ int main(void) {
     drmModePlaneRes *pr = drmModeGetPlaneResources(fd);
     CHECK(pr && pr->count_planes == 0, "no planes without UNIVERSAL_PLANES");
     drmModeFreePlaneResources(pr);
-    CHECK_ERR(drmModeAtomicCommit(fd, drmModeAtomicAlloc(), DRM_MODE_ATOMIC_TEST_ONLY, NULL), EINVAL, "atomic without the cap");
+    drmModeAtomicReq *r = drmModeAtomicAlloc();
+    drmModeAtomicAddProperty(r, crtc_id ? crtc_id : 33, 7, 0);
+    CHECK_ERR(drmModeAtomicCommit(fd, r, DRM_MODE_ATOMIC_TEST_ONLY, NULL), EINVAL, "atomic without the cap");
+    drmModeAtomicFree(r);
     CHECK(!drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1), "ATOMIC client cap");
     CHECK(!drmSetClientCap(fd2, DRM_CLIENT_CAP_ATOMIC, 1), "ATOMIC client cap (fd2)");
     pr = drmModeGetPlaneResources(fd);
@@ -207,7 +210,7 @@ int main(void) {
         CHECK(ar == 1 && xr == !pl && !other, "IN_FORMATS plane %d: xr %d ar %d other %d", pl, xr, ar, other);
         drmModeFreePropertyBlob(b);
     }
-    CHECK(!P(conn_id, DRM_MODE_OBJECT_CONNECTOR, "CRTC_ID") == 0, "atomic CRTC_ID visible");
+    CHECK(P(conn_id, DRM_MODE_OBJECT_CONNECTOR, "CRTC_ID") != 0, "atomic CRTC_ID visible");
 
     /* framebuffers */
     struct buf A, B, C, X;
@@ -224,7 +227,7 @@ int main(void) {
     }
 
     /* atomic checks */
-    drmModeAtomicReq *r = drmModeAtomicAlloc();
+    r = drmModeAtomicAlloc();
     modeset_props(r, fd, 1); plane_full(r, fd, primary_id, A.fb, W, H, 0, 0);
     CHECK(!drmModeAtomicCommit(fd, r, DRM_MODE_ATOMIC_TEST_ONLY | DRM_MODE_ATOMIC_ALLOW_MODESET, NULL), "TEST_ONLY modeset");
     CHECK_ERR(drmModeAtomicCommit(fd, r, DRM_MODE_ATOMIC_TEST_ONLY, NULL), EINVAL, "modeset without ALLOW_MODESET");
@@ -269,6 +272,7 @@ int main(void) {
     char dev[256] = "";
     ssize_t dl = readlink("/sys/class/drm/card0/device", dev, sizeof dev - 1);
     if (dl > 0) dev[dl] = 0;
+    printf("kmstest: device %s, scanout %s", dev, so);
     if (strstr(dev, "virtio")) CHECK(zero_copy, "virtio-gpu: zero-copy scanout (%s)", so);
     CHECK_PX(10, 10, 0x0000ff);
     uint64_t act = 0;
@@ -426,7 +430,6 @@ int main(void) {
     CHECK_PX(10, 10, 0x000000);
 
     /* CLOSEFB keeps the fb on screen until it is replaced */
-    CHECK(!flip_to(fd, B.fb, 0, 0, NULL) || 1, "");
     r = drmModeAtomicAlloc();
     plane_full(r, fd, primary_id, B.fb, W, H, 0, 0);
     CHECK(!drmModeAtomicCommit(fd, r, 0, NULL), "primary B");
