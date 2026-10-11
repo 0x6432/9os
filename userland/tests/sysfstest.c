@@ -446,7 +446,7 @@ static bool db_has(const char *id, const char *s) {
     snprintf(p, sizeof p, "/run/udev/data/%s", id);
     return rd(p, b, sizeof b) > 0 && strstr(b, s);
 }
-/* M36: same-ancestor parent keys, OPTIONS, IMPORT{db}, link_priority, NAME=, hwdb cache, by-id */
+/* M35+: same-ancestor parent keys, OPTIONS, IMPORT{db}, link_priority, NAME=, hwdb cache, by-id */
 static void test_udevshim2(void) {
     char b[4096], rp[PATH_MAX];
     CHECK(db_has("c13:64", "E:SAME_OK=1\n") && !db_has("c13:64", "SAME_BAD"), "parent keys on one ancestor");
@@ -511,7 +511,7 @@ static void test_udevshim(void) {
               "SUBSYSTEM==\"input\", KERNEL==\"event0\", ATTRS{name}==\"?*\", SYMLINK+=\"input/sysftest\", \\\n"
               "  ENV{SYSFTEST}=\"yes-%k-$major\", TAG+=\"sysft\", RUN+=\"/bin/touch /tmp/sysftest.run\"\n"
               "SUBSYSTEM==\"input\", ENV{SYSFTEST}==\"no\", ENV{SYSFTEST_BAD}=\"1\"\n"
-              /* M36: parent keys must match one ancestor */
+              /* M35+: parent keys must match one ancestor */
               "KERNEL==\"event0\", KERNELS==\"input*\", ATTRS{name}==\"?*\", ENV{SAME_OK}=\"1\"\n"
               "KERNEL==\"event0\", KERNELS==\"event0\", ATTRS{name}==\"?*\", ENV{SAME_BAD}=\"1\"\n"
               /* IMPORT{db}: a property of the previous event */

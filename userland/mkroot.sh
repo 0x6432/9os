@@ -49,7 +49,7 @@ fi
 P=$TOP/build/ports-root-$ARCH/usr
 [ -d "$P/libexec" ] && cp -a "$P/libexec" usr/
 mkdir -p usr/share
-for d in X11 libinput; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
+for d in X11 libinput libwacom; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
 rm -rf usr/lib/pkgconfig usr/lib/cmake
 cp -r "$TOP/skel/." "$R/"
 # M31: busybox is setuid root (it drops privileges except for su/passwd/login/ping...)

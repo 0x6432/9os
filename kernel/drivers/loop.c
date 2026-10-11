@@ -1,5 +1,5 @@
 /*
- * M36: loop block devices (Linux ABI): /dev/loop-control (misc 10:237) LOOP_CTL_GET_FREE /
+ * M35+: loop block devices (Linux ABI): /dev/loop-control (misc 10:237) LOOP_CTL_GET_FREE /
  * ADD / REMOVE create and remove /dev/loopN (block 7:N) at run time - add/remove uevents, the
  * node and /sys/devices/virtual/block/loopN come and go, so block devices are hot-pluggable.
  * LOOP_SET_FD / LOOP_CONFIGURE bind a regular file (offset, sizelimit, read-only, autoclear),

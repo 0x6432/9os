@@ -55,7 +55,7 @@ struct input_dev {
     struct input_absinfo abs[ABS_MAX + 1];
     uint64_t keystate[BITS_TO_U64(KEY_MAX)], ledstate[BITS_TO_U64(LED_MAX)], swstate[BITS_TO_U64(SW_MAX)],
              sndstate[BITS_TO_U64(SND_MAX)];
-    /* M36 force feedback: ff_max effect slots (EVIOCGEFFECTS); upload/erase may sleep (uinput
+    /* M35+ force feedback: ff_max effect slots (EVIOCGEFFECTS); upload/erase may sleep (uinput
      * asks its owner), to_device gets LED/SND/FF events written by evdev clients */
     int ff_max;
     int (*ff_upload)(struct input_dev *dev, const uint8_t *effect, const uint8_t *old);

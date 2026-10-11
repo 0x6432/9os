@@ -1,4 +1,4 @@
-/* M36: loop devices and block hot-plug. /dev/loop-control GET_FREE/ADD/REMOVE create and
+/* M35+: loop devices and block hot-plug. /dev/loop-control GET_FREE/ADD/REMOVE create and
  * remove /dev/loopN with add/remove uevents and /sys/block/loopN; LOOP_SET_FD/CONFIGURE bind a
  * file (size, sysfs loop/backing_file, "change" uevent, read-only, offset); data written
  * through the loop reaches the file and vice versa; LOOP_GET/SET_STATUS64; removing a bound

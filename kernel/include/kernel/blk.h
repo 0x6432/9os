@@ -71,7 +71,7 @@ struct blkdev {
     int opens;                   /* open block-special files */
     bool gone;                   /* unregistered (loop device removed): I/O fails with ENXIO */
 };
-/* M36: dynamic disks (loop): registered with node + sysfs at once, resized, removed */
+/* M35+: dynamic disks (loop): registered with node + sysfs at once, resized, removed */
 struct dev_attr;
 struct blkdev *blk_register_dynamic(const char *name, uint64_t rdev, const struct blk_driver_ops *ops, void *driver,
                                     const struct dev_attr *attrs, struct device *parent);

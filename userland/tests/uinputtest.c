@@ -4,7 +4,7 @@
  * /sys/devices/virtual/input/inputN); "add"/"remove" uevents; destroying the device gives
  * open readers ENODEV and POLLHUP, removes the node and the sysfs entries, frees the event
  * slot for the next device (inputN keeps counting); bad requests fail cleanly.
- * M36: switches (EVIOCGSW, change-only reporting), LED/SND events written by evdev clients
+ * M35+: switches (EVIOCGSW, change-only reporting), LED/SND events written by evdev clients
  * reach the uinput owner, evdev writes inject events for other readers, and force feedback:
  * EVIOCSFF/EVIOCRMFF become UI_FF_UPLOAD/UI_FF_ERASE requests answered by the owner,
  * EVIOCGEFFECTS, effect ids, updates carry the old effect, playback and gain reach the owner,

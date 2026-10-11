@@ -1,4 +1,4 @@
-/* M36: virtual terminals. tty1..tty6 with their own line discipline and text console
+/* M35+: virtual terminals. tty1..tty6 with their own line discipline and text console
  * (/dev/vcsN reads the shadow buffer), /dev/tty0 = the foreground VT, VT_GETSTATE/OPENQRY,
  * VT_ACTIVATE/WAITACTIVE, per-VT KD and keyboard modes, /sys/class/tty/tty0/active,
  * VT_PROCESS switching (relsig/acqsig, VT_RELDISP refuse/accept/ACKACQ), an owner that died

@@ -4,7 +4,7 @@
  * UI_DEV_CREATE (a new /dev/input/eventN, /sys/devices/virtual/input/inputN and "add"
  * uevents) and then writes struct input_event records that are reported as if the hardware
  * produced them. UI_DEV_DESTROY or closing the file hot-unplugs the device.
- * M36: LED/SND/FF events that evdev clients write reach the owner through read(); force
+ * M35+: LED/SND/FF events that evdev clients write reach the owner through read(); force
  * feedback uploads/erases (EVIOCSFF/EVIOCRMFF) become EV_UINPUT UI_FF_UPLOAD/UI_FF_ERASE
  * requests that the owner answers with UI_BEGIN_/UI_END_FF_UPLOAD/ERASE (the uploader sleeps
  * up to 30 s). Ioctls run under the BKL (dropped while sleeping); the read queue has a lock.
