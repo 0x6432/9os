@@ -33,7 +33,7 @@
  *   udevshim -s [SECONDS]   settle: wait until the daemon handled every kernel event
  *   udevshim -q PATH        properties of a /sys or /dev path
  * Invoked as "udevadm": settle, trigger [--action=X], info [-q property] -n NODE | -p PATH,
- * info --export-db, monitor [--property], control (no-op), hwdb --update [-o FILE] | --test=MODALIAS.
+ * info --export-db, monitor [--property], control --reload (SIGHUP to the daemon), hwdb --update [-o FILE] | --test=MODALIAS.
  */
 #define _GNU_SOURCE
 #include <dirent.h>
@@ -300,6 +300,14 @@ static void hw_load(void) {
         if (g) { hw_parse(g, false); fclose(g); }
         free(files[i]);
     }
+}
+static void hw_free(void) {
+    for (int i = 0; i < nhw; i++) {
+        for (int k = 0; k < hw[i].nm; k++) free(hw[i].m[k]);
+        for (int k = 0; k < hw[i].nkv; k++) free(hw[i].kv[k]);
+        free(hw[i].m); free(hw[i].kv);
+    }
+    free(hw); hw = NULL; nhw = 0; hw_loaded = false;
 }
 static void hwdb_lookup(struct dev *d, const char *key) {
     hw_load();
@@ -1215,6 +1223,9 @@ static void write_seqnum(const char *s) {
 }
 static volatile sig_atomic_t stop;
 static void on_term(int s) { (void)s; stop = 1; }
+static volatile sig_atomic_t reload;
+static void on_hup(int s) { (void)s; reload = 1; }
+static void hw_free(void);
 static int daemon_loop(void) {
     int sk = uevent_socket(1);
     if (sk < 0) return 1;
@@ -1226,8 +1237,17 @@ static int daemon_loop(void) {
     struct sigaction sa = { .sa_handler = on_term };
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGINT, &sa, NULL);
+    struct sigaction sh = { .sa_handler = on_hup };
+    sigaction(SIGHUP, &sh, NULL);
     static char buf[16384];
     while (!stop) {
+        if (reload) {                                /* udevadm control --reload: rules and hwdb */
+            reload = 0;
+            for (int i = 0; i < rules.n; i++) free(rules.lines[i]);
+            free(rules.lines);
+            load_rules(&rules);
+            hw_free();
+        }
         struct sockaddr_nl_u from;
         socklen_t fl = sizeof from;
         ssize_t n = recvfrom(sk, buf, sizeof buf - 1, 0, (struct sockaddr *)&from, &fl);
@@ -1430,7 +1450,14 @@ static int udevadm(int argc, char **argv) {
         for (int i = 2; i < argc; i++) if (!strcmp(argv[i], "--property") || !strcmp(argv[i], "-p")) p = true;
         return monitor(p);
     }
-    if (!strcmp(cmd, "control")) return 0;
+    if (!strcmp(cmd, "control")) {                  /* --reload / -R: the daemon re-reads rules and hwdb */
+        for (int i = 2; i < argc; i++)
+            if (!strcmp(argv[i], "--reload") || !strcmp(argv[i], "-R") || !strcmp(argv[i], "--reload-rules")) {
+                char b[32];
+                if (readfile("/run/udev/udevshim.pid", b, sizeof b) > 0) kill(atoi(b), SIGHUP);
+            }
+        return 0;
+    }
     if (!strcmp(cmd, "hwdb")) {
         const char *out = HWDB_BIN;
         bool upd = false;

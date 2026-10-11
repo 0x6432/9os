@@ -462,6 +462,14 @@ static void test_udevshim2(void) {
         CHECK(realpath("/dev/input/prio-test", rp) && !strcmp(rp, "/dev/input/event1"), "lower priority does not steal %s", rp);
         CHECK(db_has("c13:65", "L:10\n"), "L: in db");
     }
+    /* udevadm control --reload picks up new rules */
+    FILE *rf = fopen("/run/udev/rules.d/89-sysftest-reload.rules", "w");
+    if (rf) { fputs("KERNEL==\"event0\", ENV{RELOADED}=\"1\"\n", rf); fclose(rf); }
+    CHECK(system("udevadm control --reload") == 0, "control --reload");
+    usleep(200000);
+    CHECK(wr("/sys/class/input/event0/uevent", "change") == 0 && system("udevadm settle --timeout=10") == 0, "change after reload");
+    CHECK(db_has("c13:64", "E:RELOADED=1\n"), "reloaded rules applied");
+    unlink("/run/udev/rules.d/89-sysftest-reload.rules");
     /* NAME= on a new tap device */
     int tfd = open("/dev/net/tun", O_RDWR);
     struct ifreq q = { 0 };
