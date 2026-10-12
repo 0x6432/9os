@@ -12,31 +12,30 @@
 #include <unistd.h>
 
 #if defined(__x86_64__)
+typedef struct user_regs_struct regs_t;
 #define NR(r) (r).orig_rax
 #define RET(r) (long)(r).rax
 #define A0(r) (r).rdi
 #define A1(r) (r).rsi
 #define A2(r) (r).rdx
-#elif defined(__aarch64__)
-#define NR(r) (r).regs[8]
-#define RET(r) (long)(r).regs[0]
-#define A0(r) (r).regs[0]
-#define A1(r) (r).regs[1]
-#define A2(r) (r).regs[2]
-#else
-#define NR(r) (r).a7
-#define RET(r) (long)(r).a0
-#define A0(r) (r).a0
-#define A1(r) (r).a1
-#define A2(r) (r).a2
-#endif
-
-#ifndef __aarch64__
-static int getregs(pid_t t, struct user_regs_struct *r) { return ptrace(PTRACE_GETREGS, t, 0, r); }
+static int getregs(pid_t t, regs_t *r) { return ptrace(PTRACE_GETREGS, t, 0, r); }
 #else
 #include <elf.h>
 #include <sys/uio.h>
-static int getregs(pid_t t, struct user_regs_struct *r) {
+/* NT_PRSTATUS layout: aarch64 x0..x30,sp,pc,pstate; riscv64 pc,ra,sp,gp,tp,t0-t2,s0,s1,a0..a7,... */
+typedef struct { unsigned long r[64]; } regs_t;
+#if defined(__aarch64__)
+#define NR(x) (x).r[8]
+#define AR(x, i) (x).r[i]
+#else
+#define NR(x) (x).r[17]
+#define AR(x, i) (x).r[10 + (i)]
+#endif
+#define RET(x) (long)AR(x, 0)
+#define A0(x) AR(x, 0)
+#define A1(x) AR(x, 1)
+#define A2(x) AR(x, 2)
+static int getregs(pid_t t, regs_t *r) {
     struct iovec io = { r, sizeof *r };
     return ptrace(PTRACE_GETREGSET, t, (void *)NT_PRSTATUS, &io);
 }
@@ -61,7 +60,7 @@ int main(int argc, char **argv) {
         if (WIFEXITED(st) || WIFSIGNALED(st)) continue;
         int sig = 0;
         if (WIFSTOPPED(st) && WSTOPSIG(st) == (SIGTRAP | 0x80)) {
-            struct user_regs_struct r;
+            regs_t r;
             if (!getregs(t, &r)) {
                 int in = insys[t / 8] >> (t % 8) & 1;
                 if (!in) printf("[%d] %3lu(%lx, %lx, %lx)", t, (unsigned long)NR(r), (unsigned long)A0(r), (unsigned long)A1(r), (unsigned long)A2(r));
