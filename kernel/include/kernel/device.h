@@ -68,3 +68,4 @@ struct inode *sysfs_create_root(void);
 void chrdev_sysfs(struct device *k, const char *cls, const char *name, const char *devname, unsigned ma, unsigned mi,
                   struct device *parent);
 struct device *virtio_gpu_kdev(void);    /* the virtio-gpu device, nullptr if not driven */
+struct device *display_kdev(void);       /* parent of fb0/card0: virtio-gpu or simple-framebuffer.0 */

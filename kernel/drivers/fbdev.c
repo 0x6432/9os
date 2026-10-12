@@ -115,6 +115,23 @@ static const struct file_ops fb_ops = {
 
 void chrdev_register(unsigned major, unsigned minor, const struct file_ops *ops);
 
+/* parent of fb0 and card0: the virtio-gpu device when driven, else a platform device for the
+ * firmware framebuffer (as Linux simple-framebuffer.0) so that /sys/dev/char/226:0/device/drm
+ * exists (libdrm's drmGetDeviceNameFromFd2, wlroots) */
+struct device *display_kdev(void) {
+    struct device *v = virtio_gpu_kdev();
+    if (v) return v;
+    static struct device platform, sfb;
+    if (!sfb.added) {
+        strncpy(platform.name, "platform", sizeof platform.name - 1);
+        device_add(&platform);
+        sfb.parent = &platform; sfb.subsys = "platform"; sfb.bus = true; sfb.driver = "simple-framebuffer";
+        strncpy(sfb.name, "simple-framebuffer.0", sizeof sfb.name - 1);
+        device_add(&sfb);
+    }
+    return &sfb;
+}
+
 void fbdev_init(void) {
     fb = boot_framebuffer();
     if (!fb || fb->bpp != 32) { pr_info("fbdev: no 32bpp framebuffer\n"); return; }
@@ -122,6 +139,6 @@ void fbdev_init(void) {
     chrdev_register(29, 0, &fb_ops);
     vfs_mknod_at(nullptr, "/dev/fb0", S_IFCHR | 0660, MKDEV(29, 0));
     static struct device fbk;
-    chrdev_sysfs(&fbk, "graphics", "fb0", "fb0", 29, 0, virtio_gpu_kdev());
+    chrdev_sysfs(&fbk, "graphics", "fb0", "fb0", 29, 0, display_kdev());
     pr_info("fbdev: /dev/fb0 %lux%lu, %u bpp, pitch %lu\n", fb->width, fb->height, fb->bpp, fb->pitch);
 }
