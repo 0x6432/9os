@@ -52,7 +52,7 @@ mkdir -p usr/share
 for d in X11 libinput libwacom; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
 # M37: fonts and fontconfig, foot's config
 for d in fonts fontconfig; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
-for d in fonts xdg; do [ -d "$P/../etc/$d" ] && mkdir -p etc && cp -a "$P/../etc/$d" etc/; done
+for d in fonts xdg sway; do [ -d "$P/../etc/$d" ] && mkdir -p etc && cp -a "$P/../etc/$d" etc/; done
 [ -d "$P/share/fonts" ] && mkdir -p var/cache/fontconfig
 rm -rf usr/lib/pkgconfig usr/lib/cmake
 cp -r "$TOP/skel/." "$R/"

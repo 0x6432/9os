@@ -299,6 +299,17 @@ __noreturn void process_exit(int status) {
         struct thread *t = list_entry(it, struct thread, proc_node);
         if (t != current) { t->killed = true; thread_wake(t); }
     }
+    /* ...and must be gone before the mm and files go away: a sibling sleeping in the kernel
+     * still uses p->mm (copy_to_user, and the scheduler switches to its page tables) */
+    for (;;) {
+        bool others = false;
+        list_for_each(it, &p->threads) {
+            struct thread *t = list_entry(it, struct thread, proc_node);
+            if (t != current) { others = true; thread_wake(t); }
+        }
+        if (!others) break;
+        sleep_ns(1000000);
+    }
     release_thread_tid(current);
     posix_timers_exit(p);
     ptrace_tracer_exit(p);

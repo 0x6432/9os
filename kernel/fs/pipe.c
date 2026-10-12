@@ -128,8 +128,14 @@ static void pipe_evict(struct inode *i) {
     kfree(p);
 }
 
+static int pipe_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
+    if (cmd != 0x541B) return -ENOTTY;    /* FIONREAD: bytes buffered (either end) */
+    int n = (int)pcount(f->inode->priv);
+    return copy_to_user((void *)arg, &n, sizeof n) ? -EFAULT : 0;
+}
+
 static const struct lock_class pipe_class = { "pipe", LR_PIPE, false };
-static const struct file_ops pipe_fops = { .nobkl = true, .read = pipe_read, .write = pipe_write, .poll = pipe_poll, .release = pipe_release };
+static const struct file_ops pipe_fops = { .nobkl = true, .read = pipe_read, .write = pipe_write, .poll = pipe_poll, .ioctl = pipe_ioctl, .release = pipe_release };
 static const struct inode_ops pipe_iops = { .evict = pipe_evict };
 
 struct inode *pipe_create(struct file **rd, struct file **wr) {

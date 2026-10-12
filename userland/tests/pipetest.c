@@ -1,10 +1,12 @@
 /* Pipe stress for the lock-free pipe path: atomic small writes with several producers and
- * consumers, poll() wakeups from another thread (lost-wakeup check), cross-process bulk copy. */
+ * consumers, poll() wakeups from another thread (lost-wakeup check), cross-process bulk copy, FIONREAD. */
 #include <poll.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -48,7 +50,18 @@ static void *poker(void *arg) {
     return 0;
 }
 
+static void *blocked_reader(void *arg) { char b; (void)arg; read(qfd[0], &b, 1); return 0; }
+static void *sleeper(void *arg) { (void)arg; for (;;) usleep(100000); return 0; }
+
 int main(void) {
+    /* 0: FIONREAD reports the buffered byte count (swaybar's status line reader) */
+    {
+        int f[2], n = -1;
+        pipe(f);
+        write(f[1], "hello", 5);
+        if (ioctl(f[0], FIONREAD, &n) || n != 5) { printf("pipetest: FIONREAD FAIL n=%d\n", n); return 1; }
+        close(f[0]); close(f[1]);
+    }
     /* 1: multi-producer / multi-consumer */
     pipe(pfd);
     pthread_t p[NP], c[NC];
@@ -92,6 +105,22 @@ int main(void) {
     uint64_t want = 0; for (int i = 0; i < 256; i++) want += (uint64_t)i * 8192;
     if (total != 256 * 8192 || sum != want || !WIFEXITED(st) || WEXITSTATUS(st)) {
         printf("pipetest: bulk FAIL total=%lu sum=%lu\n", (unsigned long)total, (unsigned long)sum); return 1;
+    }
+    /* 4: exit() while sibling threads sleep in the kernel (pipe read, nanosleep): the process
+     * must not tear down its mm under them (sway/foot at shutdown) */
+    for (int it = 0; it < 40; it++) {
+        pid_t c = fork();
+        if (c == 0) {
+            pipe(qfd);
+            pthread_t s1, s2, s3;
+            pthread_create(&s1, 0, blocked_reader, 0);
+            pthread_create(&s2, 0, blocked_reader, 0);
+            pthread_create(&s3, 0, sleeper, 0);
+            usleep(2000 + (it % 4) * 1000);
+            exit(7);
+        }
+        int cst; waitpid(c, &cst, 0);
+        if (!WIFEXITED(cst) || WEXITSTATUS(cst) != 7) { printf("pipetest: exit FAIL st=%x\n", cst); return 1; }
     }
     puts("pipetest: OK");
     return 0;
