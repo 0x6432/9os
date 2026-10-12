@@ -628,6 +628,9 @@ static int64_t mm_map_locked(struct mm *mm, vaddr_t addr, size_t len, unsigned p
 static int mm_protect_locked(struct mm *mm, vaddr_t addr, size_t len, unsigned prot) {
     vaddr_t end = ALIGN_UP(addr + len, PAGE_SIZE);
     if (!range_mapped_locked(mm, addr, end)) return -ENOMEM;
+    if (prot & VM_WRITE)
+        for (struct vma *v = vma_lower_bound(mm, addr); v && v->start < end; v = vma_next(mm, v))
+            if (v->end > addr && (v->flags & VMA_NOMAYWRITE)) return -EACCES;
     if (vma_split(mm, addr) || vma_split(mm, end)) return -ENOMEM;
     for (struct vma *v = vma_lower_bound(mm, addr), *n; v && v->start < end; v = n) {
         n = vma_next(mm, v);

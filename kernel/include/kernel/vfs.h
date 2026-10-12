@@ -145,7 +145,16 @@ struct inode {
     struct list_node *xattrs;        /* in-memory extended attributes (tmpfs), see xattr.c */
     int i_nopen, i_nwrite;           /* open files / writers of a regular file (leases) */
     struct posix_acl *i_acl[2];      /* cached access/default ACL (acl.c), null: not loaded */
+    uint32_t i_seals;                /* memfd seals (F_SEAL_*), SEAL_MEMFD: sealable at all */
 };
+#define F_SEAL_SEAL 0x1
+#define F_SEAL_SHRINK 0x2
+#define F_SEAL_GROW 0x4
+#define F_SEAL_WRITE 0x8
+#define F_SEAL_FUTURE_WRITE 0x10
+#define F_SEAL_EXEC 0x20
+#define SEAL_MEMFD (1u << 31)
+static inline uint32_t inode_seals(struct inode *i) { return __atomic_load_n(&i->i_seals, __ATOMIC_ACQUIRE); }
 
 /*
  * Disk filesystems (M30): a struct super_block per mounted instance. Its inodes live in an

@@ -117,6 +117,8 @@ int64_t sys_mmap(uint64_t addr, size_t len, int prot, int flags, int fd, off_t o
         unsigned acc = f->flags & O_ACCMODE;
         if (acc == O_WRONLY) return -EACCES;
         if (shared && (prot & PROT_WRITE) && acc != O_RDWR) return -EACCES;
+        if (shared && (prot & PROT_WRITE) && (inode_seals(f->inode) & (F_SEAL_WRITE | F_SEAL_FUTURE_WRITE))) return -EPERM;
+        if (shared && (acc != O_RDWR || (inode_seals(f->inode) & (F_SEAL_WRITE | F_SEAL_FUTURE_WRITE)))) vflags |= VMA_NOMAYWRITE;
         if (f->fops && f->fops->mmap) return map_device(f, addr, len, prot, flags, off);
         if (shared && f->fops && f->fops->mmap_page && !f->fops->fault_page) return map_driver_pages(f, addr, len, prot, flags, off);
         if (!f->fops || !f->fops->fault_page) {
