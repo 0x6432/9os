@@ -7,26 +7,28 @@ RT=$(${LIBGCC_CC:-gcc} -print-libgcc-file-name 2>/dev/null)
 [ "$ARCH" = x86_64 ] || RT=$TOP/sysroot/$ARCH/lib/libclang_rt.builtins.a
 link=1
 shared=0
+# C++ (musl-dcxx): libc++ headers (header-only use, nothing links libc++) come before libc's
+CXXI=; [ -n "$CXXINC" ] && CXXI="-isystem $CXXINC"
 for a in "$@"; do case "$a" in -c|-S|-E|-M|-MM) link=0;; -r|-Wl,-r|-nostdlib) link=2;; -shared) shared=1;; esac; done
 [ $link = 1 ] && [ $shared = 1 ] && link=3
 if [ $link = 2 ]; then
     exec clang --target=$ARCH-linux-musl -fuse-ld=lld "$@"
 elif [ $link = 3 ]; then
     # shared library against the musl sysroot (crti/crtn, -lc, builtins)
-    exec clang --target=$ARCH-linux-musl -nostdinc -isystem "$SYSROOT/include" \
+    exec clang --target=$ARCH-linux-musl -nostdinc $CXXI -isystem "$SYSROOT/include" \
         -isystem "$(clang -print-resource-dir)/include" -fuse-ld=lld -nostdlib \
         "$SYSROOT/lib/crti.o" "$@" -L"$SYSROOT/lib" -lc "$RT" "$SYSROOT/lib/crtn.o"
 elif [ $link = 1 ] && [ -n "$DYNAMIC" ]; then
     # dynamically linked PIE using /lib/ld-musl-$ARCH.so.1 (musl's libc.so)
-    exec clang --target=$ARCH-linux-musl -nostdinc -isystem "$SYSROOT/include" \
+    exec clang --target=$ARCH-linux-musl -nostdinc $CXXI -isystem "$SYSROOT/include" \
         -isystem "$(clang -print-resource-dir)/include" -fuse-ld=lld -fPIE -pie -nostdlib \
         -Wl,-dynamic-linker,/lib/ld-musl-$ARCH.so.1 \
         "$SYSROOT/lib/Scrt1.o" "$SYSROOT/lib/crti.o" "$@" -L"$SYSROOT/lib" -lc "$RT" "$SYSROOT/lib/crtn.o"
 elif [ $link = 1 ]; then
-    exec clang --target=$ARCH-linux-musl -nostdinc -isystem "$SYSROOT/include" \
+    exec clang --target=$ARCH-linux-musl -nostdinc $CXXI -isystem "$SYSROOT/include" \
         -isystem "$(clang -print-resource-dir)/include" -fuse-ld=lld -static -nostdlib \
         "$SYSROOT/lib/crt1.o" "$SYSROOT/lib/crti.o" "$@" -L"$SYSROOT/lib" -lc "$RT" "$SYSROOT/lib/crtn.o"
 else
-    exec clang --target=$ARCH-linux-musl -nostdinc -isystem "$SYSROOT/include" \
+    exec clang --target=$ARCH-linux-musl -nostdinc $CXXI -isystem "$SYSROOT/include" \
         -isystem "$(clang -print-resource-dir)/include" "$@"
 fi

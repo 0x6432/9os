@@ -27,7 +27,7 @@ CROSS=$PORTS_BUILD/meson-cross.txt
 cat > "$CROSS" <<EOC
 [binaries]
 c = '$DCCBIN'
-cpp = '$DCCBIN'
+cpp = '$UL/musl-dcxx'
 ar = 'llvm-ar'
 strip = 'llvm-strip'
 pkg-config = 'pkg-config'
@@ -35,6 +35,8 @@ cmake = 'false'
 [built-in options]
 c_args = ['-I$PREFIX_ROOT/usr/include']
 c_link_args = ['-L$PREFIX_ROOT/usr/lib', '-Wl,-rpath-link,$PREFIX_ROOT/usr/lib']
+cpp_args = ['-I$PREFIX_ROOT/usr/include']
+cpp_link_args = ['-L$PREFIX_ROOT/usr/lib', '-Wl,-rpath-link,$PREFIX_ROOT/usr/lib']
 [properties]
 needs_exe_wrapper = true
 pkg_config_libdir = ['$PREFIX_ROOT/usr/lib/pkgconfig', '$PREFIX_ROOT/usr/share/pkgconfig']

@@ -1,0 +1,5 @@
+#!/bin/sh
+# musl-dcc for C++ sources: adds the libc++ headers of the ports root (installed by
+# ports/libcxx-headers.sh). Only header-only parts of the C++ library are usable (HarfBuzz).
+T=$(cd "$(dirname "$0")" && pwd)
+CXXINC=$T/build/ports-root-${ARCH:-x86_64}/usr/include/c++/v1 DYNAMIC=1 exec "$T/musl-cc" "$@"
