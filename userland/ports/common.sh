@@ -45,12 +45,19 @@ cpu_family = '$CPUFAM'
 cpu = '$CPUFAM'
 endian = 'little'
 EOC
+# meson_diag BUILDDIR: dump the dependency-lookup part of meson-log.txt (CI debugging)
+meson_diag() {
+    [ -f "$1/meson-logs/meson-log.txt" ] || return 0
+    echo "--- meson-log (pkg-config lookups) ---"
+    grep -n -A4 -i "pkg-config\|pkgconf\|PKG_CONFIG" "$1/meson-logs/meson-log.txt" | tail -60
+    echo "--- env ---"; pkg-config --version; command -v pkg-config
+}
 # meson_port SRCDIR BUILDDIR [meson options...]: configure, build, install into the ports root
 meson_port() {
     s=$1; b=$2; shift 2
     rm -rf "$b"
     env -u PKG_CONFIG_LIBDIR -u PKG_CONFIG_SYSROOT_DIR PKG_CONFIG_PATH="${HOST_PC_PATH:-}" \
-    meson setup "$b" "$s" --cross-file "$CROSS" --prefix=/usr --libdir=lib --buildtype=release -Ddefault_library=shared "$@" >"$b.log" 2>&1 || { tail -30 "$b.log"; exit 1; }
+    meson setup "$b" "$s" --cross-file "$CROSS" --prefix=/usr --libdir=lib --buildtype=release -Ddefault_library=shared "$@" >"$b.log" 2>&1 || { tail -30 "$b.log"; meson_diag "$b"; exit 1; }
     ninja -C "$b" >>"$b.log" 2>&1 || { tail -30 "$b.log"; exit 1; }
     DESTDIR="$PREFIX_ROOT" meson install -C "$b" --no-rebuild >>"$b.log" 2>&1 || { tail -30 "$b.log"; exit 1; }
 }
