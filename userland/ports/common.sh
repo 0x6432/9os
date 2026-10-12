@@ -17,6 +17,7 @@ fetch() { f=${2:-$(basename "$1")}; [ -s "$DL/$f" ] || curl -sfL -o "$DL/$f" "$1
 mkso() { so=$1; shift; "$CC" -shared -nostdlib -Wl,-soname,"$so" -o "$so" "$@" -L"$SYSROOT/lib" -lc; }
 DCCBIN=$UL/musl-dcc
 # pkg-config sees only the ports root (cross libraries), with paths rewritten into it
+# (cmake = false in the cross file: meson must not find host libraries through a host cmake)
 export PKG_CONFIG_LIBDIR="$PREFIX_ROOT/usr/lib/pkgconfig:$PREFIX_ROOT/usr/share/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$PREFIX_ROOT"
 export PKG_CONFIG_PATH=
@@ -29,6 +30,7 @@ cpp = '$DCCBIN'
 ar = 'llvm-ar'
 strip = 'llvm-strip'
 pkg-config = 'pkg-config'
+cmake = 'false'
 [built-in options]
 c_args = ['-I$PREFIX_ROOT/usr/include']
 c_link_args = ['-L$PREFIX_ROOT/usr/lib', '-Wl,-rpath-link,$PREFIX_ROOT/usr/lib']
