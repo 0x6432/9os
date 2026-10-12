@@ -43,6 +43,7 @@ struct thread {
     int *clear_child_tid;
     /* signals */
     uint64_t sig_mask, sig_pending, saved_mask;
+    uint64_t sig_waitset;          /* rt_sigtimedwait set: counts as blocked for "ignored" checks */
     struct sigpend sigq;           /* M33: siginfo for sig_pending */
     uint64_t robust_list, robust_len;   /* set_robust_list() head (user address) */
     /* M33 ptrace (kernel/core/ptrace.c): tracee side */

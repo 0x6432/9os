@@ -519,6 +519,12 @@ static int64_t do_send(struct file *file, struct usock *s, struct iovec_k *iov, 
     bool nb = file_nonblock(file, flags);
     bool dgram = s->type != SOCK_STREAM;
     if (dgram && total > SOCK_BUF) return -EMSGSIZE;
+    if (!dgram && !total && !nfds) {            /* empty stream write: nothing to queue (as Linux) */
+        uint64_t f = ulock();
+        bool live = s->state == SS_CONNECTED && s->peer && !s->shut_wr;
+        uunlock(f);
+        if (live) return 0;                     /* else the normal path reports the error */
+    }
     /* datagram destinations that are filesystem names are resolved once, outside the lock */
     struct inode *ino = nullptr;
     if (s->type == SOCK_DGRAM) {

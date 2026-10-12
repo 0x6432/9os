@@ -185,7 +185,7 @@ void signal_send_info(struct process *p, const struct ksiginfo *ki) {
     /* like Linux, a signal blocked by the (first) thread is queued even if its default action
      * is to ignore it, so sigwait/signalfd can still collect e.g. SIGCHLD */
     struct thread *t0 = list_empty(&p->threads) ? nullptr : list_entry(p->threads.next, struct thread, proc_node);
-    bool blocked = t0 && (t0->sig_mask & bit);
+    bool blocked = t0 && ((t0->sig_mask | t0->sig_waitset) & bit);   /* sigtimedwait unblocks its set */
     bool traced = t0 && t0->ptracer;       /* the tracer sees every signal, even ignored ones */
     bool ignored = sig != SIGKILL && sig != SIGSTOP && !traced &&
                    (ka->handler == SIG_IGN || (ka->handler == SIG_DFL && (bit & IGNORE_SIGS) && !blocked));
@@ -216,7 +216,7 @@ int signal_thread_info(struct thread *t, const struct ksiginfo *ki) {
     uint64_t bit = SIGBIT(sig);
     if (sig == SIGKILL || sig == SIGCONT || (bit & STOP_SIGS)) { signal_send_info(p, ki); return 0; }
     struct k_sigaction *ka = &p->sigactions[sig];
-    if (!t->ptracer && (ka->handler == SIG_IGN || (ka->handler == SIG_DFL && (bit & IGNORE_SIGS) && !(t->sig_mask & bit))))
+    if (!t->ptracer && (ka->handler == SIG_IGN || (ka->handler == SIG_DFL && (bit & IGNORE_SIGS) && !((t->sig_mask | t->sig_waitset) & bit))))
         return 0;
     struct sigq_node *n = sig >= SIGRTMIN_ ? kmalloc(sizeof *n) : nullptr;
     if (sig >= SIGRTMIN_ && !n) return -EAGAIN;
@@ -613,8 +613,10 @@ int64_t sys_rt_sigtimedwait(const uint64_t *uset, void *uinfo, const struct time
         uint64_t now = time_ns();
         if (now >= deadline) { arch_irq_restore(f); t->sig_mask = oldmask; return -EAGAIN; }
         t->sig_mask = oldmask & ~set;
+        t->sig_waitset = oldmask & set;   /* as Linux real_blocked: blocked SIG_DFL-ignored signals (SIGCHLD) still queue */
         int r = wait_event_timeout(&never, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
         t->sig_mask = oldmask;
+        t->sig_waitset = 0;
         arch_irq_restore(f);
         if (r == -EINTR) {
             /* woken by a signal: loop to see if it is one we wait for */

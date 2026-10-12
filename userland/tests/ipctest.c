@@ -15,6 +15,7 @@
 #include <sys/timerfd.h>
 #include <sys/signalfd.h>
 #include <sys/epoll.h>
+#include <poll.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -239,6 +240,9 @@ static void test_unix(void) {
     CHECK(write(sv[0], "hello", 5) == 5);
     char buf[64] = {0};
     CHECK(read(sv[1], buf, sizeof buf) == 5 && !memcmp(buf, "hello", 5));
+    /* an empty stream write queues nothing: no POLLIN, FIONREAD 0 (sway's IPC spun on this) */
+    CHECK(write(sv[0], "", 0) == 0);
+    { struct pollfd pf = { sv[1], POLLIN, 0 }; CHECK(poll(&pf, 1, 0) == 0); }
     STEP("pair");
     /* pass a pipe's write end and use it */
     int p[2]; pipe(p);
