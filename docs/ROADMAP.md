@@ -71,7 +71,7 @@ NUMA, cgroups v2 controllers, eBPF, live patching, hundreds of real-hardware dri
 | M34 ✅ | **sysfs + uevents** | `/sys/class`, `/sys/devices`, `/sys/dev/char`, netlink `NETLINK_KOBJECT_UEVENT`, a static udev db shim | libinput, wlroots, KDE |
 | M35 ✅ | **Input/seat stack** | xkeyboard-config, libevdev, mtdev, libinput, seatd ports (+ /dev/uinput, libudev-zero) | wlroots |
 | M36 ✅ | **DRM atomic + PRIME** | properties, atomic commits, dma-buf/PRIME fds, zero-copy virtio-gpu scanout (resource per dumb buffer) | wlroots/Sway |
-| M37 | **Sway + foot** | wlroots, tinywl, Sway, freetype/fontconfig/fcft, foot | a real desktop |
+| M37 ✅ | **Sway + foot** | wlroots, tinywl, Sway, freetype/fontconfig/fcft, foot (+ memfd seals, HarfBuzz/cairo/Pango) | a real desktop |
 | M38 | **Mesa softpipe → llvmpipe** | EGL/GLES2/GBM in software | GL apps, Qt Quick |
 | M39 | **Audio** | virtio-snd or Intel HDA, minimal ALSA PCM ABI | sound |
 | M40 | **KDE groundwork** | DBus, Qt6 (qtbase, qtwayland, qtdeclarative), namespaces/`unshare` subset as needed, more `/proc` | KDE Plasma attempts |
