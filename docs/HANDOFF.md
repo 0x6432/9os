@@ -1607,8 +1607,10 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
    PR CI only. Source downloads now share fetch.sh (DNS/TLS retries, archive validation,
    atomic publication and invalid-cache replacement), with offline mock-curl regressions.
 2. LLVM/llvmpipe: the new shared LLVM JIT port and ORC generated-code regression are WIP.
-   Only the guest backend is configured (X86/AArch64/RISCV), with host TableGen. Local
-   x86 LLVM compilation is in progress; do not claim LLVM/llvmpipe tested yet.
+   Only the guest backend is configured (X86/AArch64/RISCV), with host TableGen. The x86 musl
+   LLVM library now builds, and ORC `jittest` passes 12 checks in QEMU (generated native
+   add function, repeated calls/lookups, signed arguments and cleanup). llvmpipe build
+   and runtime validation are still in progress; do not claim llvmpipe tested yet.
 3. GLES2 compositor validation now proceeds independently of LLVM: the actual kms_swrast
    PRIME/EGL-image path works on softpipe, despite the earlier PIPE_CAP_DMABUF assumption.
    No capabilities were spoofed. `egltest dmabuf` passed 37 checks on x86: GBM export,
@@ -1645,3 +1647,20 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   archive matches the existing upstream cache exactly (SHA256
   `819979c922a0be258aed133d93920bce6a3d3565a60588d6d372ce9db2712cd3`).
 - No other architecture is built/tested locally; use PR CI for those results.
+
+### LLVM JIT and GLES2 validation checkpoint
+- GLES2 CI run 38431082155 at c94fd99 passed x86_64, riscv64 and aarch64.
+- LLVM 18 CMake's `engine` pseudo-component expands to obsolete `jit` and fails to link
+  `-lLLVMjit`; use concrete `mcjit`, `executionengine`, `interpreter`, native and ORC
+  components instead. Include LTO for Mesa's LLVM >=15 optional module.
+- The target libLLVM DSO is stripped and needs only libc++, libc++abi and musl (no host
+  libgcc_s/libatomic). It is approximately 49 MiB on x86.
+- The host-executable llvm-config is built from LLVM's source with the target-generated
+  configuration tables, linking only the host's LLVM support library. Its target
+  development-tree paths prevent host library/header leakage. LLVM 18 checks
+  `libLLVM-18.so` in the build tree but CMake only creates that alias at install; provide
+  a build-tree symlink to the installed target DSO.
+- Optional `MESA_LLVM=1 PORTS=mesa` uses this tool. Mesa ORC's cache dynamic_cast requires
+  RTTI; a guarded/idempotent patch selects zero compiler threads explicitly and uses
+  static_cast to LLVM 18's known SimpleCompiler subclass. The source mismatch guard
+  and repeated application are tested. Default ports do not enable LLVM yet.

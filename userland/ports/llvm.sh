@@ -27,7 +27,7 @@ cmake -S "$S" -B "$B" -G Ninja \
     -DLLVM_TARGETS_TO_BUILD="$TARGET" -DLLVM_TABLEGEN="$TBLGEN" \
     -DLLVM_NATIVE_TOOL_DIR="$(dirname "$TBLGEN")" \
     -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON \
-    '-DLLVM_DYLIB_COMPONENTS=bitwriter;engine;mcdisassembler;mcjit;core;executionengine;scalaropts;transformutils;instcombine;coroutines;native;orcjit;lto' \
+    '-DLLVM_DYLIB_COMPONENTS=bitwriter;interpreter;mcdisassembler;mcjit;core;executionengine;scalaropts;transformutils;instcombine;coroutines;native;orcjit;lto' \
     -DLLVM_ENABLE_EH=OFF -DLLVM_ENABLE_RTTI=OFF -DLLVM_ENABLE_ASSERTIONS=OFF \
     -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF \
     -DLLVM_ENABLE_BINDINGS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF \
@@ -41,6 +41,9 @@ cmake -S "$S" -B "$B" -G Ninja \
 ninja -C "$B" -j"${JOBS:-2}" LLVM >> "$B.log" 2>&1 || { tail -40 "$B.log"; exit 1; }
 DESTDIR="$PREFIX_ROOT" cmake --install "$B" --component LLVM --strip >> "$B.log" 2>&1
 DESTDIR="$PREFIX_ROOT" cmake --install "$B" --component llvm-headers >> "$B.log" 2>&1
+# LLVM 18's config tool checks the compatibility SONAME in the development tree;
+# CMake creates that alias only during installation. Point it at the target DSO.
+ln -sf "$PREFIX_ROOT/usr/lib/libLLVM-18.so" "$B/lib/libLLVM-18.so"
 # A host-executable llvm-config carrying the TARGET's generated metadata.
 # It only queries configuration; the target library is never loaded on the host.
 mkdir -p "$B/host-bin"
