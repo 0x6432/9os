@@ -6,7 +6,10 @@ D=/tmp/glsmoke-$$; mkdir -m 700 "$D" || exit 1
 export XDG_RUNTIME_DIR="$D" LIBSEAT_BACKEND=builtin LANG=C.UTF-8
 export WLR_RENDERER=gles2 WLR_RENDERER_ALLOW_SOFTWARE=1 LIBGL_ALWAYS_SOFTWARE=1
 export GALLIUM_DRIVER=${GALLIUM_DRIVER:-softpipe}
-sway -d > "$D/sway.log" 2>&1 & compositor=$!
+# Keep this renderer smoke focused: the default desktop bar is covered by the
+# separate pixman/foot test, and adds unrelated clients/font/render buffers.
+printf 'font monospace 10\n' > "$D/config"
+sway -d -c "$D/config" > "$D/sway.log" 2>&1 & compositor=$!
 client=
 cleanup() {
     [ -z "$client" ] || { kill "$client" 2>/dev/null || true; wait "$client" 2>/dev/null || true; }

@@ -1687,3 +1687,21 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   lifecycle alongside softpipe + pixman fallback coverage. Full x86 run is in progress
   (expected main-suite count 87); all-architecture LLVM CI must still validate this head.
 - Do not merge PR #4 or mark M38 complete until the new cross-architecture results pass.
+
+### M38 non-x86 CI follow-up (run 38437484009, head 0b7488f)
+- x86 passed. Both non-x86 builds completed; runtime results need fixes.
+- aarch64: jittest and all llvmpipe EGL modes die with SIGILL during JIT setup; softpipe
+  modes and the softpipe GLES2 compositor pass. Set SCTLR_EL1.UCT/UCI per CPU to allow
+  EL0 CTR_EL0 reads and DC/IC maintenance used by __clear_cache. PAN/PXN/UXN remain
+  enabled. This is a source-grounded fix pending ARM CI verification, not a confirmed
+  root cause yet. ARM SIGILL diagnostics now print opcode/PC/ESR if it persists.
+- hardentest now executes/re-writes a native return-value stub three times with RW/RX
+  transitions and __builtin___clear_cache, independently of LLVM. All three architecture
+  stubs are implemented; local testing remains x86 only.
+- riscv64: JIT and all llvmpipe modes pass, including the llvmpipe compositor. The first
+  softpipe compositor is OOM-killed (RSS ~78 MiB) after the long libinput/desktop suite.
+  Use a minimal no-bar configuration for glsmoke; the existing pixman/foot test retains
+  full default-desktop coverage. No guest RAM or disk budgets changed.
+- After a sandbox wipe, setup must put llvm-config and llvm-tblgen 18 on PATH as well
+  as clang/llvm-ar/etc; otherwise AL2023 can silently select LLVM 15 native tools.
+- The sandbox was wiped again and x86-only setup is rebuilding ports, including LLVM.

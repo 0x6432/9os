@@ -118,6 +118,38 @@ static void wx(void) {
     CHECK(hard_val("wx_mappings") == w1, "R+X counted as W+X");
 }
 
+/* Execute rewritten native code with W^X transitions and explicit cache flush.
+ * This covers EL0 CTR/DC/IC permission on ARM and riscv_flush_icache on RISC-V,
+ * independently of LLVM's much larger JIT stack. */
+static void jit_cache(void) {
+    unsigned char *p = mmap(0, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    CHECK(p != MAP_FAILED, "JIT cache mapping");
+    if (p == MAP_FAILED) return;
+    for (int value = 42; value < 45; value++) {
+        int writable = mprotect(p, 4096, PROT_READ | PROT_WRITE) == 0;
+        CHECK(writable, "JIT cache writable transition");
+        if (!writable) break;
+#if defined(__x86_64__)
+        unsigned char code[] = {0xb8, (unsigned char)value, 0, 0, 0, 0xc3};
+#elif defined(__aarch64__)
+        uint32_t code[] = {0x52800000u | ((uint32_t)value << 5), 0xd65f03c0u};
+#elif defined(__riscv)
+        uint32_t code[] = {((uint32_t)value << 20) | 0x513u, 0x8067u};
+#else
+#error unsupported JIT cache test architecture
+#endif
+        memcpy(p, code, sizeof code);
+        int executable = mprotect(p, 4096, PROT_READ | PROT_EXEC) == 0;
+        CHECK(executable, "JIT cache executable transition");
+        if (!executable) break;
+        __builtin___clear_cache((char *)p, (char *)p + sizeof code);
+        int actual = ((int (*)(void))p)();
+        CHECK(actual == value, "rewritten JIT code returned %d, expected %d", actual, value);
+    }
+    CHECK(munmap(p, 4096) == 0, "JIT cache unmap");
+    puts("  JIT cache rewrite/execute done");
+}
+
 int main(int argc, char **argv) {
     if (argc > 1 && !strcmp(argv[1], "child")) return child();
     setvbuf(stdout, 0, _IONBF, 0);
@@ -131,6 +163,7 @@ int main(int argc, char **argv) {
     aslr();
     efault();
     wx();
+    jit_cache();
     printf("hardentest: %s\n", fails ? "FAIL" : "OK");
     return fails != 0;
 }

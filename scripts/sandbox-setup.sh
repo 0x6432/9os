@@ -9,7 +9,7 @@ sudo dnf install -y -q clang lld llvm clang18 llvm18 lld18 cmake xorriso mtools 
 pip3 install -q meson ninja Mako PyYAML packaging 2>/dev/null || pip3 install -q --user meson ninja Mako PyYAML packaging
 mkdir -p "$TOOLS_DIR/bin" "$TOOLS_DIR/dl"
 # Match Ubuntu CI: libc++ 18 requires clang >=16 (the default AL2023 clang is 15).
-for t in clang clang++ ld.lld llvm-ar llvm-ranlib llvm-strip llvm-nm; do
+for t in clang clang++ ld.lld llvm-ar llvm-ranlib llvm-strip llvm-nm llvm-config llvm-tblgen; do
     ln -sfn "/usr/lib64/llvm18/bin/$t" "$TOOLS_DIR/bin/$t"
 done
 export PATH="$TOOLS_DIR/bin:$PATH"
