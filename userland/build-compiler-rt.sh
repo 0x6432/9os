@@ -8,9 +8,9 @@ TOP=$(cd "$(dirname "$0")" && pwd)
 SRC=$TOP/build/compiler-rt-$VER.src
 mkdir -p "$TOP/build"
 if [ ! -d "$SRC" ]; then
-    T=$TOP/build/compiler-rt-$VER.src.tar.xz
+    T=${TOOLS_DIR:-/data/tools}/dl/compiler-rt-$VER.src.tar.xz
     [ -f ${TOOLS_DIR:-/data/tools}/compiler-rt-$VER.src.tar.xz ] && T=${TOOLS_DIR:-/data/tools}/compiler-rt-$VER.src.tar.xz
-    [ -f "$T" ] || curl -sL -o "$T" https://github.com/llvm/llvm-project/releases/download/llvmorg-$VER/compiler-rt-$VER.src.tar.xz
+    "$TOP/fetch.sh" "$T" https://github.com/llvm/llvm-project/releases/download/llvmorg-$VER/compiler-rt-$VER.src.tar.xz
     (cd "$TOP/build" && tar xf "$T")
 fi
 SYSROOT=$TOP/sysroot/$ARCH

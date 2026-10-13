@@ -13,7 +13,11 @@ NATIVE_PC=$UL/build/ports-$ARCH/native-pc     # .pc files of build-machine data 
 DL=${DL:-${TOOLS_DIR:-/data/tools}/dl}
 mkdir -p "$PORTS_SRC" "$PORTS_BUILD" "$PREFIX_ROOT/usr/bin" "$PREFIX_ROOT/usr/lib" "$PREFIX_ROOT/usr/include" "$DL"
 # fetch URL [file]: download once into $DL
-fetch() { f=${2:-$(basename "$1")}; [ -s "$DL/$f" ] || curl -sfL -o "$DL/$f" "$1"; echo "$DL/$f"; }
+fetch() {
+    f=${2:-$(basename "$1")}
+    "$UL/fetch.sh" "$DL/$f" "$1" || return "$?"
+    echo "$DL/$f"
+}
 # build a shared library from objects: mkso libname.so obj...
 mkso() { so=$1; shift; "$CC" -shared -nostdlib -Wl,-soname,"$so" -o "$so" "$@" -L"$SYSROOT/lib" -lc; }
 DCCBIN=$UL/musl-dcc
