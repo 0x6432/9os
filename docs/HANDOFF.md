@@ -1521,6 +1521,11 @@ real VT switching for seatd, libwacom and the libinput test suite. debug-gui is 
   - AF_UNIX: an empty stream write queues nothing (it queued an empty chunk: POLLIN with
     FIONREAD 0, and sway's IPC server spun on swaymsg's empty payload).
   - pipes: FIONREAD (swaybar's status line reader).
+  - Socket rings (`kernel/net/ring.c`) are page-backed: a 2 MiB TCP receive buffer must not
+    need an order-9 contiguous buddy block. After the full input/graphics workload, those
+    allocations intermittently failed with ~230 MiB free, leaving clients in SYN_SENT
+    (`nettest tcp_bigwindow` / `net2test tcp_loss` timeouts). Child/socket teardown frees
+    every page; partial allocation failure unwinds without leaks.
   - The firmware-framebuffer `fb0`/`card0` hang below a platform device
     `/sys/devices/platform/simple-framebuffer.0` (unless virtio-gpu drives them), so
     `/sys/dev/char/226:0/device/drm` exists: libdrm's `drmGetDeviceNameFromFd2`, which wlroots
@@ -1546,6 +1551,12 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
 - CI main suite (`ci-tests.sh`, when sway is built): `fc-list` finds DejaVu Sans Mono; sway
   starts on the KMS device, `swaymsg exec 'foot -a smoke'` maps a window (checked in
   `swaymsg -t get_tree`), `swaymsg exit` ends sway.
+- `scripts/net-ring-host-tests.sh` (also in x86 CI): real ring implementation against a
+  fragmented allocator, page/capacity wrap, peek/skip/consume and injected allocation failure;
+  480,005 checks. Local GCC ASan/UBSan + leak detection also pass.
+- After the ring fix, local x86 full CI-equivalent run passes 76/76 + 20/20 + 6/6, disk
+  e2fsck/clean shutdown, UP 6/6, MLFQ 9/9, eight-CPU 7/7. A second full main run with four
+  consecutive Sway/foot start-map-exit cycles passes 79/79. Cross-arch testing stays in CI.
 - Checked by hand with host screendumps on virtio-gpu: tinywl + wlclient (60 fps), foot under
   tinywl (DejaVu, colors, CSD), sway with two tiled foot windows and swaybar.
 
@@ -1556,3 +1567,11 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
 4. foot/fcft without HarfBuzz shaping (no ligatures/complex scripts in foot; Pango shapes).
 5. libc++ is headers only: C++ code that needs the C++ runtime (exceptions, RTTI,
    `operator new`, iostreams) cannot be built yet.
+
+### Follow-up diagnostic
+- One pre-ring-fix repeated full workload hit `kfree`'s `PG_LARGE` assertion during the
+  Sway smoke test (x86); no call site was captured. It did not recur in the two post-fix
+  full-workload runs, including repeated Sway lifecycles. This is not independently
+  root-caused: if it recurs, log the invalid pointer/page flags and caller before the
+  assertion and symbolize against that exact kernel ELF. Do not assume the ring fix
+  proves this separate assertion resolved.
