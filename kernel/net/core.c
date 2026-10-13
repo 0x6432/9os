@@ -77,41 +77,6 @@ void pkt_queue_purge(struct list_node *q) {
     list_for_each_safe(it, tmp, q) { list_del(it); pkt_free(list_entry(it, struct pkt, node)); }
 }
 
-/* ------------------------------------------------------------------ rings */
-bool ring_alloc(struct ring *r, size_t cap) {
-    r->buf = kmalloc(cap);
-    r->cap = r->buf ? cap : 0;
-    r->head = r->len = 0;
-    return r->buf != nullptr;
-}
-void ring_free(struct ring *r) { kfree(r->buf); r->buf = nullptr; r->cap = r->head = r->len = 0; }
-size_t ring_space(const struct ring *r) { return r->cap - r->len; }
-size_t ring_put(struct ring *r, const uint8_t *src, size_t n) {
-    n = MIN(n, ring_space(r));
-    size_t tail = (r->head + r->len) % (r->cap ? r->cap : 1);
-    size_t a = MIN(n, r->cap - tail);
-    memcpy(r->buf + tail, src, a);
-    memcpy(r->buf, src + a, n - a);
-    r->len += n;
-    return n;
-}
-size_t ring_get(struct ring *r, uint8_t *dst, size_t n, size_t skip, bool consume) {
-    if (skip >= r->len) return 0;
-    n = MIN(n, r->len - skip);
-    size_t start = (r->head + skip) % r->cap;
-    size_t a = MIN(n, r->cap - start);
-    memcpy(dst, r->buf + start, a);
-    memcpy(dst + a, r->buf, n - a);
-    if (consume) ring_drop(r, skip + n);
-    return n;
-}
-void ring_drop(struct ring *r, size_t n) {
-    n = MIN(n, r->len);
-    r->head = (r->head + n) % (r->cap ? r->cap : 1);
-    r->len -= n;
-    if (!r->len) r->head = 0;
-}
-
 /* ------------------------------------------------------------------ checksums */
 uint32_t csum_partial(const void *buf, size_t len, uint32_t sum) {
     const uint8_t *p = buf;

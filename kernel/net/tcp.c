@@ -413,8 +413,8 @@ void tcp_sock_init(struct sock *s) {
 }
 
 static bool tcp_alloc_rings(struct sock *s) {
-    if (!s->snd.buf && !ring_alloc(&s->snd, (size_t)s->sndbuf)) return false;
-    if (!s->rcv.buf && !ring_alloc(&s->rcv, (size_t)s->rcvbuf)) return false;
+    if (!s->snd.pages && !ring_alloc(&s->snd, (size_t)s->sndbuf)) return false;
+    if (!s->rcv.pages && !ring_alloc(&s->rcv, (size_t)s->rcvbuf)) return false;
     return true;
 }
 

@@ -80,6 +80,7 @@ jobs:
           scripts/slab-host-tests.sh
           scripts/sched-host-tests.sh
           scripts/rbtree-host-tests.sh
+          scripts/net-ring-host-tests.sh
 
       - name: Build userland (musl, BusyBox, Bash, ports)
         run: userland/build-all.sh

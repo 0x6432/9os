@@ -11,6 +11,7 @@
 #include <kernel/types.h>
 #include <kernel/list.h>
 #include <kernel/mutex.h>
+#include <kernel/ring.h>
 
 static inline uint16_t htons(uint16_t v) { return __builtin_bswap16(v); }
 static inline uint16_t ntohs(uint16_t v) { return __builtin_bswap16(v); }
@@ -225,7 +226,6 @@ struct sockaddr_ll_k { uint16_t family, protocol; int32_t ifindex; uint16_t haty
 enum { TCP_ESTABLISHED = 1, TCP_SYN_SENT, TCP_SYN_RECV, TCP_FIN_WAIT1, TCP_FIN_WAIT2, TCP_TIME_WAIT,
        TCP_CLOSE, TCP_CLOSE_WAIT, TCP_LAST_ACK, TCP_LISTEN, TCP_CLOSING };
 
-struct ring { uint8_t *buf; size_t cap, head, len; };   /* bytes [head, head+len) mod cap */
 
 struct sock {
     int family, type, protocol;
@@ -357,14 +357,8 @@ int net_proc_tcp(char *buf, size_t max);
 extern int sysctl_ip_forward, sysctl_ip_default_ttl, sysctl_somaxconn, sysctl_ipv6_forwarding, sysctl_ipv6_disable;
 extern int sysctl_ipv6_hop_limit, sysctl_ipv6_accept_ra, sysctl_ipv6_dad_transmits, sysctl_ipv6_autoconf, sysctl_icmpv6_echo_ignore_all;
 extern int sysctl_tcp_window_scaling, sysctl_tcp_timestamps, sysctl_tcp_sack, sysctl_tcp_fin_timeout;
-void ring_free(struct ring *r);
 int net_proc_udp(char *buf, size_t max, bool raw);
 
 /* ring buffers */
-size_t ring_space(const struct ring *r);
-size_t ring_put(struct ring *r, const uint8_t *src, size_t n);
-size_t ring_get(struct ring *r, uint8_t *dst, size_t n, size_t skip, bool consume);
-void ring_drop(struct ring *r, size_t n);
-bool ring_alloc(struct ring *r, size_t cap);
 
 uint64_t random_u64(void);
