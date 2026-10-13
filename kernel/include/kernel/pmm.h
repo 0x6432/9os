@@ -39,7 +39,7 @@ static inline void page_uflag_clear(struct page *p, uint16_t f) { __atomic_fetch
 static inline bool page_uflag_test(struct page *p, uint16_t f) { return __atomic_load_n(&p->uflags, __ATOMIC_RELAXED) & f; }
 
 extern struct page *page_array;
-extern uint64_t max_pfn;
+extern uint64_t first_pfn, max_pfn; /* physical PFN interval covered by page_array */
 
 void pmm_init(void);
 struct page *page_alloc(unsigned order);
@@ -58,8 +58,8 @@ struct pmm_cache_stats {
 };
 void pmm_cache_stats(struct pmm_cache_stats *stats);
 
-static inline paddr_t page_to_phys(struct page *p) { return (paddr_t)(p - page_array) << PAGE_SHIFT; }
-static inline struct page *phys_to_page(paddr_t pa) { return &page_array[pa >> PAGE_SHIFT]; }
+static inline paddr_t page_to_phys(struct page *p) { return (paddr_t)(p - page_array + first_pfn) << PAGE_SHIFT; }
+static inline struct page *phys_to_page(paddr_t pa) { return &page_array[(pa >> PAGE_SHIFT) - first_pfn]; }
 /* drop one reference on an order-0 page (shared by tmpfs and user mappings) */
 static inline void page_ref_inc(struct page *pg) { __atomic_fetch_add(&pg->refcount, 1, __ATOMIC_RELAXED); }
 static inline bool page_ref_dec_test(struct page *pg) { return __atomic_sub_fetch(&pg->refcount, 1, __ATOMIC_ACQ_REL) <= 0; }

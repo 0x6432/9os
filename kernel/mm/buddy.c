@@ -7,7 +7,7 @@
 #include <kernel/sched.h>
 
 struct page *page_array;
-uint64_t max_pfn;
+uint64_t first_pfn, max_pfn;
 
 static struct list_node free_lists[MAX_ORDER];
 static uint64_t free_count[MAX_ORDER];
@@ -43,8 +43,8 @@ static void free_block(uint64_t pfn, unsigned order) {
     /* coalesce with buddies */
     while (order < MAX_ORDER - 1) {
         uint64_t buddy = pfn ^ (1ULL << order);
-        if (buddy >= max_pfn) break;
-        struct page *b = &page_array[buddy];
+        if (buddy < first_pfn || buddy >= max_pfn) break;
+        struct page *b = &page_array[buddy - first_pfn];
         /* A local cache may mark an allocated buddy PG_PCPU without buddy_lock.
          * Both transitions are non-free; use an atomic load for that flag race. */
         if (!(__atomic_load_n(&b->flags, __ATOMIC_RELAXED) & PG_FREE) || b->order != order) break;
@@ -54,7 +54,7 @@ static void free_block(uint64_t pfn, unsigned order) {
         pfn &= ~(1ULL << order);
         order++;
     }
-    struct page *p = &page_array[pfn];
+    struct page *p = &page_array[pfn - first_pfn];
     p->flags = PG_FREE;
     p->order = order;
     list_add(&free_lists[order], &p->node);
@@ -70,10 +70,10 @@ static struct page *alloc_block_locked(unsigned order) {
     struct page *p = list_first(&free_lists[o], struct page, node);
     list_del(&p->node);
     free_count[o]--;
-    uint64_t pfn = p - page_array;
+    uint64_t pfn = p - page_array + first_pfn;
     while (o > order) {         /* split, returning upper halves to the free lists */
         o--;
-        struct page *half = &page_array[pfn + (1ULL << o)];
+        struct page *half = &page_array[pfn + (1ULL << o) - first_pfn];
         half->flags = PG_FREE;
         half->order = o;
         list_add(&free_lists[o], &half->node);
@@ -157,7 +157,7 @@ void page_free(struct page *p, unsigned order) {
     uint64_t f = buddy_lock_irqsave();
     assert(!(p->flags & (PG_FREE | PG_RESERVED | PG_PCPU)));
     __atomic_fetch_add(&free_pages, 1ULL << order, __ATOMIC_RELAXED);
-    free_block(p - page_array, order);
+    free_block(p - page_array + first_pfn, order);
     spin_unlock_irqrestore(&buddy_lock, f);
 }
 
@@ -199,7 +199,7 @@ void pmm_drain_cpu_caches(void) {
             list_del(it);
             assert(p->flags == PG_PCPU);
             p->flags = 0;
-            free_block(p - page_array, 0);
+            free_block(p - page_array + first_pfn, 0);
         }
         spin_unlock(&buddy_lock);
     }
@@ -237,7 +237,7 @@ static void add_range(paddr_t base, uint64_t len) {
     while (pfn < end) {
         unsigned order = MAX_ORDER - 1;
         while (order && ((pfn & ((1ULL << order) - 1)) || pfn + (1ULL << order) > end)) order--;
-        for (uint64_t i = 0; i < (1ULL << order); i++) page_array[pfn + i].flags = 0;
+        for (uint64_t i = 0; i < (1ULL << order); i++) page_array[pfn + i - first_pfn].flags = 0;
         free_block(pfn, order);
         total_pages += 1ULL << order;
         free_pages += 1ULL << order;
@@ -249,15 +249,22 @@ void pmm_init(void) {
     struct limine_memmap_response *mm = boot_memmap();
     for (unsigned i = 0; i < MAX_ORDER; i++) list_init(&free_lists[i]);
 
-    uint64_t top = 0;
+    uint64_t bottom = UINT64_MAX, top = 0;
     for (uint64_t i = 0; i < mm->entry_count; i++) {
         struct limine_memmap_entry *e = mm->entries[i];
-        if (e->type == LIMINE_MEMMAP_USABLE || e->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE ||
-            e->type == LIMINE_MEMMAP_EXECUTABLE_AND_MODULES || e->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE)
+        if (e->length && (e->type == LIMINE_MEMMAP_USABLE || e->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE ||
+            e->type == LIMINE_MEMMAP_EXECUTABLE_AND_MODULES || e->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE)) {
+            bottom = MIN(bottom, e->base);
             top = MAX(top, e->base + e->length);
+        }
     }
-    max_pfn = top >> PAGE_SHIFT;
-    uint64_t array_bytes = ALIGN_UP(max_pfn * sizeof(struct page), PAGE_SIZE);
+    if (bottom == UINT64_MAX || top <= bottom) panic("pmm: no physical RAM");
+    /* ARM/RISC-V RAM starts high in physical space. Do not allocate millions
+     * of reserved descriptors for the unused prefix below RAM. Keep physical
+     * PFNs for buddy alignment/XOR, translating only metadata-array indexes. */
+    first_pfn = bottom >> PAGE_SHIFT;
+    max_pfn = ALIGN_UP(top, PAGE_SIZE) >> PAGE_SHIFT;
+    uint64_t array_bytes = ALIGN_UP((max_pfn - first_pfn) * sizeof(struct page), PAGE_SIZE);
 
     /* carve the page array out of the first usable region big enough */
     paddr_t array_pa = 0;
@@ -270,7 +277,7 @@ void pmm_init(void) {
     }
     if (!array_pa) panic("pmm: no room for page array (%lu bytes)", array_bytes);
     page_array = PHYS_TO_VIRT(array_pa);
-    for (uint64_t i = 0; i < max_pfn; i++)
+    for (uint64_t i = 0; i < max_pfn - first_pfn; i++)
         page_array[i] = (struct page){ .flags = PG_RESERVED };
 
     for (uint64_t i = 0; i < mm->entry_count; i++) {

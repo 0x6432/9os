@@ -37,7 +37,7 @@ void panic(const char *fmt, ...) {
 static void reset(void) {
     test_cpu = 0;
     page_array = metadata;
-    max_pfn = ARRAY_SIZE(metadata);
+    first_pfn = 0; max_pfn = ARRAY_SIZE(metadata);
     total_pages = free_pages = cached_pages = 0;
     pcaches_enabled = false;
     buddy_lock.locked = cache_drain_lock.locked = 0;
@@ -189,8 +189,58 @@ static void concurrent_test(void) {
     page_free(p, 7);
     free_total(128);
 }
+/* Exercise the actual boot initializer with high RAM bases, an internal hole,
+ * a reserved executable page, and an unaligned lower PFN. The old absolute-PFN
+ * metadata allocation would ask for 14/28 MiB in this 2 MiB synthetic RAM map. */
+uint64_t hhdm_offset;
+static struct limine_memmap_response host_map;
+struct limine_memmap_response *boot_memmap(void) { return &host_map; }
+static unsigned char boot_arena[512 * PAGE_SIZE] __attribute__((aligned(PAGE_SIZE)));
+static void high_ram_test(uint64_t base) {
+    reset();
+    hhdm_offset = (uint64_t)boot_arena - base;
+    struct limine_memmap_entry entries[] = {
+        {.base = base, .length = PAGE_SIZE, .type = LIMINE_MEMMAP_EXECUTABLE_AND_MODULES},
+        {.base = base + PAGE_SIZE, .length = 255 * PAGE_SIZE, .type = LIMINE_MEMMAP_USABLE},
+        {.base = base + 256 * PAGE_SIZE, .length = 64 * PAGE_SIZE, .type = LIMINE_MEMMAP_RESERVED},
+        {.base = base + 320 * PAGE_SIZE, .length = 192 * PAGE_SIZE, .type = LIMINE_MEMMAP_USABLE},
+    };
+    struct limine_memmap_entry *ep[4];
+    for (int i = 0; i < 4; i++) ep[i] = &entries[i];
+    host_map = (struct limine_memmap_response){.entry_count = 4, .entries = ep};
+    total_pages = free_pages = cached_pages = 0;
+    memset(free_count, 0, sizeof free_count);
+    pmm_init();
+    CHECK(first_pfn == base / PAGE_SIZE && max_pfn - first_pfn == 512);
+    CHECK(page_array == (struct page *)(boot_arena + PAGE_SIZE));
+    CHECK(phys_to_page(base) == page_array && page_to_phys(page_array) == base);
+    CHECK(phys_to_page(base + 511 * PAGE_SIZE) == &page_array[511]);
+    uint64_t metadata_pages = ALIGN_UP(512 * sizeof(struct page), PAGE_SIZE) / PAGE_SIZE;
+    uint64_t expected = 447 - metadata_pages;
+    uint64_t fp, tp; pmm_stats(&fp, &tp); CHECK(fp == expected && tp == expected);
+    pmm_selftest();
+    struct page *allocated[512]; unsigned n = 0;
+    while (n < 512 && (allocated[n] = page_alloc(0))) {
+        paddr_t pa = page_to_phys(allocated[n]);
+        CHECK(pa >= base + (1 + metadata_pages) * PAGE_SIZE && pa < base + 512 * PAGE_SIZE);
+        CHECK(pa < base + 256 * PAGE_SIZE || pa >= base + 320 * PAGE_SIZE);
+        CHECK(phys_to_page(pa) == allocated[n]);
+        n++;
+    }
+    CHECK(n == expected && page_alloc(0) == nullptr);
+    while (n) page_free(allocated[--n], 0);
+    pmm_stats(&fp, &tp); CHECK(fp == expected && tp == expected);
+    struct page *large = page_alloc(7); CHECK(large);
+    CHECK((page_to_phys(large) & (128 * PAGE_SIZE - 1)) == 0);
+    page_free(large, 7);
+    pmm_enable_cpu_caches();
+    struct page *cached = page_alloc(0); CHECK(cached);
+    page_free(cached, 0); pmm_drain_cpu_caches();
+    pmm_stats(&fp, &tp); CHECK(fp == expected && tp == expected);
+}
 int main(void) {
+    high_ram_test(0x40000000); high_ram_test(0x80000000); high_ram_test(0x80003000);
     reuse_test(); coalesce_test(); remote_test(); overlapping_drain_test(); concurrent_test();
-    printf("pmm-host: %d checks passed (reuse, remote recovery, coalescing, parallel drains)\n", checks);
+    printf("pmm-host: %d checks passed (reuse, remote recovery, coalescing, parallel drains, high RAM bases/holes)\n", checks);
     return 0;
 }

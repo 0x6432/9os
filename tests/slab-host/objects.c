@@ -27,7 +27,7 @@ void panic(const char *fmt, ...) {
 }
 static void setup(void) {
     hhdm_offset = (uint64_t)arena;
-    page_array = metadata; max_pfn = NPAGES;
+    page_array = metadata; first_pfn = 0; max_pfn = NPAGES;
     for (unsigned i = 0; i < MAX_ORDER; i++) list_init(&free_lists[i]);
     for (int i = 0; i < NPAGES; i++) metadata[i].flags = PG_RESERVED;
     for (int i = 0; i < ncpus; i++) { cpus[i].id = i; cpus[i].online = true; }

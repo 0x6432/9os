@@ -1705,3 +1705,24 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - After a sandbox wipe, setup must put llvm-config and llvm-tblgen 18 on PATH as well
   as clang/llvm-ar/etc; otherwise AL2023 can silently select LLVM 15 native tools.
 - The sandbox was wiped again and x86-only setup is rebuilding ports, including LLVM.
+
+### M38 validation and compact PMM metadata follow-up
+- Run 38448570303 at 6ede9f0: x86 and aarch64 succeed. ARM's independent code-rewrite
+  test, ORC JIT and both GLES2 compositor paths pass, verifying the UCT/UCI fix.
+- riscv64 still OOM-kills the first softpipe compositor with the no-bar config; simply
+  removing the bar was insufficient. JIT, EGL modes and llvmpipe compositor still pass.
+- Found concrete kernel overhead: page_array formerly allocated descriptors from PFN
+  zero to the highest RAM address, wasting ~28 MiB below RISC-V's high RAM base (~14 MiB
+  on ARM). It now covers [first_pfn, max_pfn), while buddy alignment/XOR and allocation
+  addresses remain absolute physical PFNs. Internal holes stay reserved; coalescing
+  cannot cross the lower metadata boundary. No guest RAM or disk budget increase.
+- The actual pmm_init/buddy/cache implementation is tested on the x86 host with synthetic
+  0x40000000, 0x80000000 and unaligned 0x80003000 RAM bases, an executable page, metadata
+  carving, an internal reserved hole, exhaustion, address round-trips, high-order
+  alignment/coalescing and cache drains. PMM 23622 checks and slab 65512082 checks pass.
+- Compact-metadata x86 guest smoke passes 7/7: hardentest, vmtest, slabtest, jittest and
+  both softpipe/llvmpipe GLES2 compositors, plus boot. Full validation follows.
+- Earlier local full softpipe fallback passed 82/82 + 20/20 + 6/6, clean shutdown/e2fsck,
+  UP 6/6, MLFQ 9/9, SMP8 7/7. LLVM has been restored locally after the wipe.
+- The PMM change still needs PR CI to verify the recovered RAM and remaining RISC-V OOM.
+  Keep PR #4 draft and unmerged.
