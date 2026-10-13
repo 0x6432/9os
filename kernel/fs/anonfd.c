@@ -531,11 +531,20 @@ int64_t sys_epoll_pwait2(int epfd, struct epoll_event_u *uev, int max, const str
 /* ------------------------------------------------------------------ memfd */
 struct inode *tmpfs_create_anon(uint32_t mode);
 #define MFD_CLOEXEC 1
+#define MFD_ALLOW_SEALING 2
+#define MFD_NOEXEC_SEAL 8
+#define MFD_EXEC 0x10
 int64_t sys_memfd_create(const char *uname, unsigned flags) {
     char name[250];
-    if (strncpy_from_user(name, uname, sizeof name) < 0) return -EFAULT;
-    struct inode *i = tmpfs_create_anon(S_IFREG | 0777);
+    if (flags & ~(MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL | MFD_EXEC)) return -EINVAL;   /* no HUGETLB */
+    if ((flags & MFD_NOEXEC_SEAL) && (flags & MFD_EXEC)) return -EINVAL;
+    long nl = strncpy_from_user(name, uname, sizeof name);
+    if (nl < 0) return nl == -ENAMETOOLONG ? -EINVAL : -EFAULT;
+    struct inode *i = tmpfs_create_anon(flags & MFD_NOEXEC_SEAL ? S_IFREG | 0666 : S_IFREG | 0777);
     if (!i) return -ENOMEM;
+    /* without MFD_ALLOW_SEALING the file starts (and stays) sealed against more seals */
+    i->i_seals = SEAL_MEMFD | (flags & MFD_NOEXEC_SEAL ? F_SEAL_EXEC : 0) |
+                 (flags & (MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL) ? 0 : F_SEAL_SEAL);
     struct file *f = file_open_inode(i, O_RDWR);
     iput(i);
     if (!f) return -ENOMEM;

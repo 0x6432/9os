@@ -1628,7 +1628,7 @@ void drm_init(void) {
     static struct device drmk, conn;
     drmk.devtype = "drm_minor";
     drmk.attrs = card_attrs;
-    chrdev_sysfs(&drmk, "drm", "card0", "dri/card0", DRM_MAJOR, 0, virtio_gpu_kdev());
+    chrdev_sysfs(&drmk, "drm", "card0", "dri/card0", DRM_MAJOR, 0, display_kdev());
     conn.parent = &drmk; conn.subsys = "drm"; conn.attrs = conn_attrs;
     strncpy(conn.name, "card0-Virtual-1", sizeof conn.name - 1);
     device_add(&conn);

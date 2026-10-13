@@ -81,8 +81,8 @@ void sock_free(struct sock *s) {
     sock_mc_drop_all(s);
     pkt_queue_purge(&s->rxq);
     pkt_queue_purge(&s->ooo);
-    kfree(s->snd.buf);
-    kfree(s->rcv.buf);
+    ring_free(&s->snd);
+    ring_free(&s->rcv);
     struct bpf_prog_k *f = (struct bpf_prog_k *)s->filter;
     if (f) { kfree(f->insns); kfree(f); }
     kfree(s);

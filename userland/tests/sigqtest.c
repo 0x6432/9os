@@ -313,12 +313,28 @@ static void test_restart(void) {
     CHECK(waitpid(c, &st, 0) == c && WIFEXITED(st) && WEXITSTATUS(st) == 0, "handled signal: EINTR + rem");
 }
 
+/* busybox init: SIGCHLD blocked, SIG_DFL, collected with sigtimedwait while the child exits */
+static void test_sigwait_chld(void) {
+    sigset_t set, old; sigemptyset(&set); sigaddset(&set, SIGCHLD);
+    signal(SIGCHLD, SIG_DFL);
+    sigprocmask(SIG_BLOCK, &set, &old);
+    pid_t c = fork();
+    if (!c) { usleep(150000); _exit(3); }
+    struct timespec ts = { 3, 0 };
+    siginfo_t si;
+    int sig = sigtimedwait(&set, &si, &ts);
+    CHECK(sig == SIGCHLD && si.si_pid == c, "sigtimedwait SIGCHLD got %d", sig);
+    int st; CHECK(waitpid(c, &st, 0) == c && WEXITSTATUS(st) == 3, "reap");
+    sigprocmask(SIG_SETMASK, &old, NULL);
+}
+
 int main(void) {
     test_restart(); fprintf(stderr, "sigqtest: restart done\n");
     test_queue();  fprintf(stderr, "sigqtest: queue done\n");
     test_timers(); fprintf(stderr, "sigqtest: timers done\n");
     test_robust(); fprintf(stderr, "sigqtest: robust done\n");
     test_pidfd();  fprintf(stderr, "sigqtest: pidfd done\n");
+    test_sigwait_chld(); fprintf(stderr, "sigqtest: sigwait done\n");
     if (fails) { printf("sigqtest: %d failures\n", fails); return 1; }
     printf("sigqtest: all passed\n");
     return 0;

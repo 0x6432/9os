@@ -1481,3 +1481,97 @@ real VT switching for seatd, libwacom and the libinput test suite. debug-gui is 
 4. Zero-copy needs a full-screen, tightly packed primary (else the copy path); the hardware
    cursor only for 64×64 cursor fbs.
 5. DMA_BUF_IOCTL_SYNC is a no-op (coherent memory); no implicit-fence export/import.
+
+## M37: Sway + foot (branch notion/m37)
+
+### What landed
+- **Ports** (`userland/ports/*.sh`, in this order in `build-ports.sh`): hwdata 0.390 (pnp.ids;
+  target `.pc` plus a build-machine `.pc` in `$NATIVE_PC`), libdisplay-info 0.1.1, **wlroots
+  0.18.2** (DRM + libinput backends, libseat session, pixman renderer, shm/dumb allocators; no
+  Xwayland, no GLES/Vulkan; `tinywl` installed), freetype 2.13.3, fontconfig 2.15.0 (needs host
+  `gperf`), DejaVu 2.37 TTFs, tllist, fcft 3.1.10 (no shaping), **foot 1.19.0**, libc++ 18.1.8
+  *headers only*, fribidi 1.0.16, HarfBuzz 10.1.0, libpng 1.6.44, cairo 1.18.4 (image + FT/
+  fontconfig + PNG), Pango 1.54.0, json-c 0.18 (built without CMake from a hand-written
+  `config.h`), **sway 1.10.1** (+ swaybar, swaymsg, swaynag; no tray, no gdk-pixbuf, no man
+  pages; the default config's wallpaper line is commented out because there is no swaybg).
+- **Build plumbing** (`ports/common.sh`): `wl_native` (meson native file with the host
+  wayland-scanner and build-machine pkg-config dirs), `cmake = 'false'` in the cross file (meson
+  must not find host libraries through a host CMake), `meson_diag` (prints meson's dependency
+  lookups on configure failures, for CI), C++ through `userland/musl-dcxx` (musl-cc with
+  `CXXINC` = the ports root's libc++ headers before libc's). HarfBuzz builds with
+  `-fno-exceptions -fno-rtti` and links as C, so nothing needs a C++ runtime library.
+  `musl-cc` rewrites `-export-dynamic` (meson ≥ 1.12 spells gmodule's `-Wl,--export-dynamic`
+  that way, which clang rejects). CI installs `gperf` and `libglib2.0-dev-bin` (host
+  `glib-mkenums` for libgudev/Pango).
+- `mkroot.sh` copies `usr/share/{fonts,fontconfig}`, `etc/{fonts,xdg,sway}` and creates
+  `var/cache/fontconfig`.
+- **Kernel**:
+  - memfd sealing: `MFD_ALLOW_SEALING`, `MFD_NOEXEC_SEAL`/`MFD_EXEC` (other flags EINVAL),
+    `F_ADD_SEALS`/`F_GET_SEALS` (`inode->i_seals`, `SEAL_MEMFD` marks sealable inodes): SEAL,
+    SHRINK, GROW, WRITE (EBUSY while a writable shared mapping exists), FUTURE_WRITE, EXEC.
+    tmpfs write/truncate enforce them; `mmap(MAP_SHARED, PROT_WRITE)` of a write-sealed file is
+    EPERM. Shared mappings that may never become writable (file not O_RDWR, or sealed) carry
+    `VMA_NOMAYWRITE`, so `mprotect(PROT_WRITE)` on them is EACCES (as Linux).
+  - `process_exit` waits for the other threads of the process to leave before tearing down
+    files and the mm (a sibling sleeping in the kernel was later scheduled with
+    `proc->mm == NULL`: panic in `arch_switch_mm` when sway/foot got SIGTERM at shutdown).
+  - `rt_sigtimedwait` keeps blocked SIG_DFL-ignored signals queued while it temporarily
+    unblocks its set (`thread->sig_waitset`, Linux's real_blocked): busybox init waits for
+    SIGCHLD that way and never reaped orphans before (zombie sway/swaybar children).
+  - AF_UNIX: an empty stream write queues nothing (it queued an empty chunk: POLLIN with
+    FIONREAD 0, and sway's IPC server spun on swaymsg's empty payload).
+  - pipes: FIONREAD (swaybar's status line reader).
+  - Socket rings (`kernel/net/ring.c`) are page-backed: a 2 MiB TCP receive buffer must not
+    need an order-9 contiguous buddy block. After the full input/graphics workload, those
+    allocations intermittently failed with ~230 MiB free, leaving clients in SYN_SENT
+    (`nettest tcp_bigwindow` / `net2test tcp_loss` timeouts). Child/socket teardown frees
+    every page; partial allocation failure unwinds without leaks.
+  - The firmware-framebuffer `fb0`/`card0` hang below a platform device
+    `/sys/devices/platform/simple-framebuffer.0` (unless virtio-gpu drives them), so
+    `/sys/dev/char/226:0/device/drm` exists: libdrm's `drmGetDeviceNameFromFd2`, which wlroots
+    needs, failed without it.
+- `sctrace PID [COUNT]` (`userland/tools/sctrace.c`): attaches with ptrace to every thread
+  and prints syscalls (number, three args, result) — a minimal strace.
+
+### Running it
+```
+mkdir -p /tmp/xdg && chmod 700 /tmp/xdg
+export XDG_RUNTIME_DIR=/tmp/xdg LIBSEAT_BACKEND=builtin LANG=C.UTF-8
+sway &                     # or: tinywl -s foot
+SWAYSOCK=$(ls /tmp/xdg/sway-ipc.*) swaymsg exec foot
+```
+Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
+`virtiogpu` on the kernel command line, scanout is zero-copy.
+
+### Tests
+- `ipctest seals` (memfd seals, incl. EBUSY/EPERM/EACCES cases and FUTURE_WRITE), `ipctest`
+  unix part (empty stream write: no POLLIN), `pipetest` (FIONREAD; `exit()` with threads
+  blocked in a pipe read and in nanosleep, 40 times), `sigqtest` (sigtimedwait collects a
+  blocked SIG_DFL SIGCHLD).
+- CI main suite (`ci-tests.sh`, when sway is built): `fc-list` finds DejaVu Sans Mono; sway
+  starts on the KMS device, `swaymsg exec 'foot -a smoke'` maps a window (checked in
+  `swaymsg -t get_tree`), `swaymsg exit` ends sway.
+- `scripts/net-ring-host-tests.sh` (also in x86 CI): real ring implementation against a
+  fragmented allocator, page/capacity wrap, peek/skip/consume and injected allocation failure;
+  480,005 checks. Local GCC ASan/UBSan + leak detection also pass.
+- After the ring fix, local x86 full CI-equivalent run passes 76/76 + 20/20 + 6/6, disk
+  e2fsck/clean shutdown, UP 6/6, MLFQ 9/9, eight-CPU 7/7. A second full main run with four
+  consecutive Sway/foot start-map-exit cycles passes 79/79. Cross-arch testing stays in CI.
+- Checked by hand with host screendumps on virtio-gpu: tinywl + wlclient (60 fps), foot under
+  tinywl (DejaVu, colors, CSD), sway with two tiled foot windows and swaybar.
+
+### Known limits
+1. No Xwayland, no GL/Vulkan renderer (pixman only; Mesa is M38), one output.
+2. No swaybg/wallpaper, no tray (no sd-bus), no gdk-pixbuf (swaybar icons: PNG only).
+3. No X11 Compose tables: xkbcommon warns, dead keys do not compose in foot.
+4. foot/fcft without HarfBuzz shaping (no ligatures/complex scripts in foot; Pango shapes).
+5. libc++ is headers only: C++ code that needs the C++ runtime (exceptions, RTTI,
+   `operator new`, iostreams) cannot be built yet.
+
+### Follow-up diagnostic
+- One pre-ring-fix repeated full workload hit `kfree`'s `PG_LARGE` assertion during the
+  Sway smoke test (x86); no call site was captured. It did not recur in the two post-fix
+  full-workload runs, including repeated Sway lifecycles. This is not independently
+  root-caused: if it recurs, log the invalid pointer/page flags and caller before the
+  assertion and symbolize against that exact kernel ELF. Do not assume the ring fix
+  proves this separate assertion resolved.

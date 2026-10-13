@@ -9,6 +9,7 @@ DCC="env DYNAMIC=1 $UL/musl-cc"
 PORTS_SRC=$UL/build/ports-src
 PORTS_BUILD=$UL/build/ports-$ARCH
 PREFIX_ROOT=$UL/build/ports-root-$ARCH
+NATIVE_PC=$UL/build/ports-$ARCH/native-pc     # .pc files of build-machine data (hwdata)
 DL=${DL:-${TOOLS_DIR:-/data/tools}/dl}
 mkdir -p "$PORTS_SRC" "$PORTS_BUILD" "$PREFIX_ROOT/usr/bin" "$PREFIX_ROOT/usr/lib" "$PREFIX_ROOT/usr/include" "$DL"
 # fetch URL [file]: download once into $DL
@@ -26,7 +27,7 @@ CROSS=$PORTS_BUILD/meson-cross.txt
 cat > "$CROSS" <<EOC
 [binaries]
 c = '$DCCBIN'
-cpp = '$DCCBIN'
+cpp = '$UL/musl-dcxx'
 ar = 'llvm-ar'
 strip = 'llvm-strip'
 pkg-config = 'pkg-config'
@@ -34,6 +35,8 @@ cmake = 'false'
 [built-in options]
 c_args = ['-I$PREFIX_ROOT/usr/include']
 c_link_args = ['-L$PREFIX_ROOT/usr/lib', '-Wl,-rpath-link,$PREFIX_ROOT/usr/lib']
+cpp_args = ['-I$PREFIX_ROOT/usr/include']
+cpp_link_args = ['-L$PREFIX_ROOT/usr/lib', '-Wl,-rpath-link,$PREFIX_ROOT/usr/lib']
 [properties]
 needs_exe_wrapper = true
 pkg_config_libdir = ['$PREFIX_ROOT/usr/lib/pkgconfig', '$PREFIX_ROOT/usr/share/pkgconfig']
@@ -71,3 +74,12 @@ autotools_port() {
 }
 # fix .la/.pc leftovers that would point at host paths
 cleanup_la() { rm -f "$PREFIX_ROOT"/usr/lib/*.la; }
+# wl_native: meson native file with the host wayland-scanner (from wayland.sh) and the
+# build-machine .pc dirs (wayland-scanner, $NATIVE_PC); prints its path
+wl_native() {
+    h=${HOST_TOOLS:-${TOOLS_DIR:-/data/tools}/host}
+    pcd=$(dirname "$(find "$h" -name wayland-scanner.pc | head -1)")
+    mkdir -p "$NATIVE_PC"
+    printf "[binaries]\nwayland-scanner = '%s'\n[built-in options]\npkg_config_path = ['%s', '%s']\n" "$h/bin/wayland-scanner" "$pcd" "$NATIVE_PC" > "$PORTS_BUILD/meson-native-wl.txt"
+    echo "$PORTS_BUILD/meson-native-wl.txt"
+}

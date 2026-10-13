@@ -471,6 +471,28 @@ int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
 }
 
 int64_t fcntl_lock(struct file *f, int cmd, void *uarg);   /* fs/locks.c */
+/* F_ADD_SEALS: memfds only; F_SEAL_WRITE fails while a writable shared mapping exists */
+static int64_t memfd_add_seals(struct file *f, unsigned add) {
+    struct inode *ino = f->inode;
+    if (!ino || !(inode_seals(ino) & SEAL_MEMFD)) return -EINVAL;
+    if (add & ~(F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE | F_SEAL_FUTURE_WRITE | F_SEAL_EXEC)) return -EINVAL;
+    if ((f->flags & O_ACCMODE) == O_RDONLY) return -EPERM;
+    uint64_t fl = arch_irq_save();
+    spin_lock_ipi(&ino->i_mmap_lock);      /* serializes with new mappings being linked */
+    int64_t r = 0;
+    uint32_t s = ino->i_seals;
+    if (s & F_SEAL_SEAL) r = -EPERM;
+    else if ((add & F_SEAL_WRITE) && !(s & F_SEAL_WRITE)) {
+        list_for_each(it, &ino->i_mmap) {
+            struct vma *v = list_entry(it, struct vma, fnode);
+            if ((v->flags & VMA_SHARED) && (v->prot & VM_WRITE)) { r = -EBUSY; break; }
+        }
+    }
+    if (!r) __atomic_store_n(&ino->i_seals, s | add, __ATOMIC_RELEASE);
+    spin_unlock(&ino->i_mmap_lock);
+    arch_irq_restore(fl);
+    return r;
+}
 int64_t fcntl_lease(struct file *f, int fd, int cmd, int arg);
 int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
     struct file *f = fd_get(fd);
@@ -485,6 +507,11 @@ int64_t sys_fcntl(int fd, int cmd, uint64_t arg) {
     case F_GETFD: return fd_cloexec_get(fd) ? FD_CLOEXEC : 0;
     case F_SETFD: return fd_cloexec_set(fd, arg & FD_CLOEXEC);
     case F_GETFL: return f->flags;
+    case 1033: return memfd_add_seals(f, (unsigned)arg);                    /* F_ADD_SEALS */
+    case 1034: {                                                            /* F_GET_SEALS */
+        uint32_t s = f->inode ? inode_seals(f->inode) : 0;
+        return s & SEAL_MEMFD ? (int64_t)(s & ~SEAL_MEMFD) : -EINVAL;
+    }
     case F_SETFL: {                       /* atomic: lock-free readers/writers test O_NONBLOCK */
         uint32_t o = __atomic_load_n(&f->flags, __ATOMIC_RELAXED), n;
         do n = (o & ~(uint32_t)(O_APPEND | O_NONBLOCK)) | (uint32_t)(arg & (O_APPEND | O_NONBLOCK));

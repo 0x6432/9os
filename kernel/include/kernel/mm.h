@@ -25,6 +25,7 @@ enum {
     VMA_PHYS   = 8,     /* device memory: never freed, shared on fork */
     VMA_LOCKED = 16,    /* mlock: populated, its pages are never reclaimed */
     VMA_HEAP   = 32,    /* brk area */
+    VMA_NOMAYWRITE = 64, /* shared file mapping that may never become writable (O_RDONLY, sealed) */
 };
 
 struct file;

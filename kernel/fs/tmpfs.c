@@ -217,6 +217,8 @@ static int t_truncate(struct inode *i, uint64_t size) {
 }
 static int t_truncate_locked(struct inode *i, uint64_t size) {
     struct tfile *f = i->priv;
+    uint32_t seals = inode_seals(i);
+    if ((size < i->size && (seals & F_SEAL_SHRINK)) || (size > i->size && (seals & F_SEAL_GROW))) return -EPERM;
     if (size < i->size) {
         mapping_truncate(&f->as, (size + PAGE_SIZE - 1) / PAGE_SIZE);
         filemap_zero_tail(&f->as, size);
@@ -260,6 +262,9 @@ static ssize_t t_write(struct file *fl, const void *buf, size_t n, off_t *off) {
     mutex_lock(&f->lock);
     if (fl->flags & O_APPEND) *off = i->size;
     if (*off < 0) { mutex_unlock(&f->lock); return -EINVAL; }
+    uint32_t seals = inode_seals(i);
+    if ((seals & (F_SEAL_WRITE | F_SEAL_FUTURE_WRITE)) ||
+        ((seals & F_SEAL_GROW) && (uint64_t)*off + n > i->size)) { mutex_unlock(&f->lock); return -EPERM; }
     uint64_t size = i->size;
     ssize_t r = filemap_write(&f->as, &size, buf, n, *off);
     if (r > 0) {

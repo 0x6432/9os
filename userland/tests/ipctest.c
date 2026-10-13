@@ -1,4 +1,4 @@
-/* ipctest: eventfd, timerfd, signalfd, epoll (incl. nesting), memfd + MAP_SHARED, AF_UNIX
+/* ipctest: eventfd, timerfd, signalfd, epoll (incl. nesting), memfd + MAP_SHARED + seals, AF_UNIX
  * stream/dgram/seqpacket sockets, SCM_RIGHTS fd passing and SO_PEERCRED. */
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -15,6 +15,7 @@
 #include <sys/timerfd.h>
 #include <sys/signalfd.h>
 #include <sys/epoll.h>
+#include <poll.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -150,6 +151,69 @@ static void test_memfd(void) {
     printf("memfd ok\n");
 }
 
+#ifndef F_ADD_SEALS
+#define F_ADD_SEALS 1033
+#define F_GET_SEALS 1034
+#define F_SEAL_SEAL 1
+#define F_SEAL_SHRINK 2
+#define F_SEAL_GROW 4
+#define F_SEAL_WRITE 8
+#endif
+#ifndef F_SEAL_FUTURE_WRITE
+#define F_SEAL_FUTURE_WRITE 0x10
+#endif
+static void test_seals(void) {
+    int m = memfd_create("noseal", 0);                       /* sealing not allowed */
+    CHECK(m >= 0 && fcntl(m, F_GET_SEALS) == F_SEAL_SEAL);
+    CHECK(fcntl(m, F_ADD_SEALS, F_SEAL_WRITE) < 0 && errno == EPERM);
+    close(m);
+    CHECK(memfd_create("bad", 0x1000) < 0 && errno == EINVAL);
+    int t = open("/tmp/sealf", O_RDWR | O_CREAT | O_TRUNC, 0600);   /* regular files: not sealable */
+    CHECK(t >= 0 && fcntl(t, F_GET_SEALS) < 0 && errno == EINVAL);
+    CHECK(fcntl(t, F_ADD_SEALS, F_SEAL_GROW) < 0 && errno == EINVAL);
+    close(t); unlink("/tmp/sealf");
+
+    m = memfd_create("seal", MFD_ALLOW_SEALING | MFD_CLOEXEC);
+    CHECK(m >= 0 && fcntl(m, F_GET_SEALS) == 0);
+    CHECK(ftruncate(m, 2 * 4096) == 0);
+    CHECK(fcntl(m, F_ADD_SEALS, 0x4000) < 0 && errno == EINVAL);
+    CHECK(fcntl(m, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW) == 0);
+    CHECK(fcntl(m, F_GET_SEALS) == (F_SEAL_SHRINK | F_SEAL_GROW));
+    CHECK(ftruncate(m, 4096) < 0 && errno == EPERM);
+    CHECK(ftruncate(m, 3 * 4096) < 0 && errno == EPERM);
+    CHECK(ftruncate(m, 2 * 4096) == 0);
+    CHECK(pwrite(m, "x", 1, 2 * 4096) < 0 && errno == EPERM);            /* would grow */
+    CHECK(pwrite(m, "ok", 2, 100) == 2);
+    char *a = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, m, 0);
+    CHECK(a != MAP_FAILED);
+    CHECK(fcntl(m, F_ADD_SEALS, F_SEAL_WRITE) < 0 && errno == EBUSY);    /* writable mapping */
+    munmap(a, 4096);
+    char *p = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE, m, 0);   /* private: fine */
+    CHECK(p != MAP_FAILED);
+    CHECK(fcntl(m, F_ADD_SEALS, F_SEAL_WRITE) == 0);
+    p[0] = 'P'; CHECK(p[100] == 'o');
+    char c = 0; CHECK(pread(m, &c, 1, 0) == 1 && c == 0);
+    CHECK(pwrite(m, "no", 2, 0) < 0 && errno == EPERM);
+    CHECK(mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, m, 0) == MAP_FAILED && errno == EPERM);
+    char *r = mmap(NULL, 4096, PROT_READ, MAP_SHARED, m, 0);
+    CHECK(r != MAP_FAILED && r[100] == 'o');
+    CHECK(mprotect(r, 4096, PROT_READ | PROT_WRITE) < 0 && errno == EACCES);
+    CHECK(fcntl(m, F_ADD_SEALS, F_SEAL_SEAL) == 0);
+    CHECK(fcntl(m, F_ADD_SEALS, F_SEAL_SHRINK) < 0 && errno == EPERM);
+    munmap(r, 4096); munmap(p, 4096); close(m);
+
+    m = memfd_create("future", MFD_ALLOW_SEALING);           /* FUTURE_WRITE: old mappings keep writing */
+    CHECK(ftruncate(m, 4096) == 0);
+    a = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, m, 0);
+    CHECK(a != MAP_FAILED && fcntl(m, F_ADD_SEALS, F_SEAL_FUTURE_WRITE) == 0);
+    a[0] = 'A';
+    CHECK(pread(m, &c, 1, 0) == 1 && c == 'A');
+    CHECK(write(m, "w", 1) < 0 && errno == EPERM);
+    CHECK(mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, m, 0) == MAP_FAILED && errno == EPERM);
+    munmap(a, 4096); close(m);
+    printf("seals ok\n");
+}
+
 static int send_fd(int s, int fd, const char *msg) {
     struct iovec iov = { (void *)msg, strlen(msg) };
     char ctl[CMSG_SPACE(sizeof(int))] = {0};
@@ -176,6 +240,9 @@ static void test_unix(void) {
     CHECK(write(sv[0], "hello", 5) == 5);
     char buf[64] = {0};
     CHECK(read(sv[1], buf, sizeof buf) == 5 && !memcmp(buf, "hello", 5));
+    /* an empty stream write queues nothing: no POLLIN, FIONREAD 0 (sway's IPC spun on this) */
+    CHECK(write(sv[0], "", 0) == 0);
+    { struct pollfd pf = { sv[1], POLLIN, 0 }; CHECK(poll(&pf, 1, 0) == 0); }
     STEP("pair");
     /* pass a pipe's write end and use it */
     int p[2]; pipe(p);
@@ -279,6 +346,7 @@ int main(int argc, char **argv) {
     if (!*only || !strcmp(only, "signalfd")) test_signalfd();
     if (!*only || !strcmp(only, "epoll")) test_epoll();
     if (!*only || !strcmp(only, "memfd")) test_memfd();
+    if (!*only || !strcmp(only, "seals")) test_seals();
     if (!*only || !strcmp(only, "unix")) test_unix();
     printf("ipctest: %s (%d checks, %d failures)\n", fails ? "FAILED" : "PASSED", checks, fails);
     return fails != 0;
