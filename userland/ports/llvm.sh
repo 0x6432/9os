@@ -22,6 +22,7 @@ cmake -S "$S" -B "$B" -G Ninja \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DCMAKE_C_COMPILER="$DCCBIN" -DCMAKE_CXX_COMPILER="$UL/musl-dcxx" \
     -DCMAKE_AR="$(command -v llvm-ar)" -DCMAKE_RANLIB="$(command -v llvm-ranlib)" \
+    -DCMAKE_STRIP="$(command -v llvm-strip)" -DLLVM_PARALLEL_LINK_JOBS=1 \
     -DLLVM_HOST_TRIPLE="$ARCH-unknown-linux-musl" -DLLVM_DEFAULT_TARGET_TRIPLE="$ARCH-unknown-linux-musl" \
     -DLLVM_TARGETS_TO_BUILD="$TARGET" -DLLVM_TABLEGEN="$TBLGEN" \
     -DLLVM_NATIVE_TOOL_DIR="$(dirname "$TBLGEN")" \
@@ -38,7 +39,7 @@ cmake -S "$S" -B "$B" -G Ninja \
     -DCMAKE_SHARED_LINKER_FLAGS="-L$PREFIX_ROOT/usr/lib -Wl,-rpath-link,$PREFIX_ROOT/usr/lib" \
     > "$B.log" 2>&1 || { tail -40 "$B.log"; exit 1; }
 ninja -C "$B" -j"${JOBS:-2}" LLVM >> "$B.log" 2>&1 || { tail -40 "$B.log"; exit 1; }
-DESTDIR="$PREFIX_ROOT" cmake --install "$B" --component LLVM >> "$B.log" 2>&1
+DESTDIR="$PREFIX_ROOT" cmake --install "$B" --component LLVM --strip >> "$B.log" 2>&1
 DESTDIR="$PREFIX_ROOT" cmake --install "$B" --component llvm-headers >> "$B.log" 2>&1
 # A host-executable llvm-config carrying the TARGET's generated metadata.
 # It only queries configuration; the target library is never loaded on the host.

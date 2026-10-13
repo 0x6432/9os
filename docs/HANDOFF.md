@@ -1618,8 +1618,9 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
    explicitly selects pixman. `wlgltest` creates a Wayland EGL xdg-shell window, checks
    three RGB frames and waits for real compositor frame callbacks (20 checks).
    `glsmoke` forces GLES2 + software permission, checks that the EGL client is mapped,
-   verifies the GLES2 renderer log and checks a clean compositor exit. Initial client
-   presentation passed; lifecycle retesting is in progress after fixing the exit-IPC race.
+   verifies the GLES2 renderer log and checks a clean compositor exit. Three consecutive x86
+   lifecycles pass after fixing the exit-IPC race. Full local regression results: 82/82
+   main, 20/20 + 6/6 disk-root, UP 6/6, MLFQ 9/9 and SMP8 7/7.
    The compositor may close IPC before swaymsg receives the exit reply; its process exit
    status, not swaymsg's reply status, is the authoritative cleanup check.
 4. Exceptions/RTTI/unwinder support later, before toolkits requiring them (Qt/KDE).
@@ -1637,3 +1638,10 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Three normal x86 runs observed EBUSY and passed. Two runs with
   `KMSTEST_FLIP_DELAY_US=50000` observed completion between calls and passed. CI runs
   both normal and delayed variants; main-suite count becomes 80 when all ports exist.
+
+### GLES2 CI source-mirror follow-up
+- aarch64 CI run 38427458419 failed before compilation at seatd download: all sourcehut
+  connect attempts timed out. Added Alpine v3.22 distfiles as a fallback; its seatd 0.9.1
+  archive matches the existing upstream cache exactly (SHA256
+  `819979c922a0be258aed133d93920bce6a3d3565a60588d6d372ce9db2712cd3`).
+- No other architecture is built/tested locally; use PR CI for those results.
