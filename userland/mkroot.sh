@@ -49,7 +49,7 @@ fi
 P=$TOP/build/ports-root-$ARCH/usr
 [ -d "$P/libexec" ] && cp -a "$P/libexec" usr/
 mkdir -p usr/share
-for d in X11 libinput libwacom; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
+for d in X11 libinput libwacom drirc.d; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
 # M37: fonts and fontconfig, foot's config
 for d in fonts fontconfig; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
 for d in fonts xdg sway; do [ -d "$P/../etc/$d" ] && mkdir -p etc && cp -a "$P/../etc/$d" etc/; done
