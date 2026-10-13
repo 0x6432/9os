@@ -281,10 +281,33 @@ int main(void) {
     readfile("/sys/class/drm/card0-Virtual-1/dpms", sbuf, sizeof sbuf);
     CHECK(!strcmp(sbuf, "On\n"), "sysfs dpms On");
 
-    /* nonblocking commit + event, EBUSY while pending */
-    CHECK(!flip_to(fd, B.fb, 0, DRM_MODE_ATOMIC_NONBLOCK | DRM_MODE_PAGE_FLIP_EVENT, (void *)0x1234), "nonblocking flip");
-    CHECK_ERR(flip_to(fd, A.fb, 0, DRM_MODE_ATOMIC_NONBLOCK, NULL), EBUSY, "second nonblocking commit");
-    CHECK(wait_event(fd) && ev_data == 0x1234, "flip event");
+    /* Prepare both requests before queuing: property lookups themselves can cross a
+     * vblank. EBUSY is required only while pending, not after the first flip completes.
+     * Re-submit B so the expected green pixel stays invariant in either legal case. */
+    drmModeAtomicReq *flip = drmModeAtomicAlloc();
+    drmModeAtomicAddProperty(flip, primary_id, P(primary_id, DRM_MODE_OBJECT_PLANE, "FB_ID"), B.fb);
+    drmVBlank vb = { .request = { .type = DRM_VBLANK_RELATIVE, .sequence = 1 } };
+    CHECK(!drmWaitVBlank(fd, &vb), "vblank before nonblocking commits");
+    int event_before = ev_count;
+    CHECK(!drmModeAtomicCommit(fd, flip, DRM_MODE_ATOMIC_NONBLOCK | DRM_MODE_PAGE_FLIP_EVENT,
+                              (void *)0x1234), "nonblocking flip");
+    const char *flip_delay = getenv("KMSTEST_FLIP_DELAY_US");
+    if (flip_delay) usleep((useconds_t)strtoul(flip_delay, NULL, 10));
+    errno = 0;
+    int second = drmModeAtomicCommit(fd, flip, DRM_MODE_ATOMIC_NONBLOCK, NULL);
+    int second_errno = errno;
+    if (second == 0) {
+        struct pollfd ready = { fd, POLLIN, 0 };
+        CHECK(poll(&ready, 1, 0) == 1 && (ready.revents & POLLIN),
+              "accepted second commit requires first completion event");
+        printf("kmstest: first flip completed between nonblocking commits\n");
+    } else {
+        CHECK(second < 0 && second_errno == EBUSY,
+              "second nonblocking commit: got %d, errno %d (want EBUSY)", second, second_errno);
+        printf("kmstest: second nonblocking commit rejected while pending (EBUSY)\n");
+    }
+    drmModeAtomicFree(flip);
+    CHECK(wait_event(fd) && ev_count == event_before + 1 && ev_data == 0x1234, "one ordered flip event");
     CHECK_PX(10, 10, 0x00ff00);
     /* blocking commit with event */
     CHECK(!flip_to(fd, A.fb, 0, DRM_MODE_PAGE_FLIP_EVENT, (void *)0x55), "blocking commit with event");

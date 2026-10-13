@@ -1614,3 +1614,15 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
 4. Exceptions/RTTI/unwinder support later, before toolkits requiring them (Qt/KDE).
 
 Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 yet.
+
+### KMS test timing follow-up
+- M38 x86 CI exposed an old kmstest assumption: its second NONBLOCK ioctl must always
+  return EBUSY. Property lookup ioctls (or host preemption) can span a vblank, completing
+  the first commit before the second is submitted. The requests are now prepared first
+  and synchronized to vblank; either EBUSY while pending or success with the first
+  completion event already readable is valid. The event is checked exactly once and
+  its user-data ordering retained. Both requests select the same green framebuffer so
+  their relative completion timing cannot invalidate the pixel assertion.
+- Three normal x86 runs observed EBUSY and passed. Two runs with
+  `KMSTEST_FLIP_DELAY_US=50000` observed completion between calls and passed. CI runs
+  both normal and delayed variants; main-suite count becomes 80 when all ports exist.
