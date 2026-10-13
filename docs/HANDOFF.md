@@ -1606,11 +1606,22 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
    shutdown/e2fsck, UP 6/6, MLFQ 9/9 and eight-CPU 7/7. Other-arch validation stays in
    PR CI only. Source downloads now share fetch.sh (DNS/TLS retries, archive validation,
    atomic publication and invalid-cache replacement), with offline mock-curl regressions.
-2. LLVM/llvmpipe. The compositor still uses the M37 pixman path: wlroots' GLES2 renderer
-   requires EGL_EXT_image_dma_buf_import; upstream softpipe does not override
-   PIPE_CAP_DMABUF, while llvmpipe does. Do not just advertise that capability without
-   verifying the import/export path. Test PRIME/EGL images before enabling a GL compositor.
-3. A Wayland EGL client and GLES2 compositor smoke test; retain pixman as a fallback.
+2. LLVM/llvmpipe: the new shared LLVM JIT port and ORC generated-code regression are WIP.
+   Only the guest backend is configured (X86/AArch64/RISCV), with host TableGen. Local
+   x86 LLVM compilation is in progress; do not claim LLVM/llvmpipe tested yet.
+3. GLES2 compositor validation now proceeds independently of LLVM: the actual kms_swrast
+   PRIME/EGL-image path works on softpipe, despite the earlier PIPE_CAP_DMABUF assumption.
+   No capabilities were spoofed. `egltest dmabuf` passed 37 checks on x86: GBM export,
+   EGL image import after closing the export fd, green-pixel readback, blue render through
+   the imported image and matching bytes in the original mapped GBM buffer.
+   wlroots now builds GLES2/GBM alongside pixman/shm/dumb. The existing Sway/foot CI test
+   explicitly selects pixman. `wlgltest` creates a Wayland EGL xdg-shell window, checks
+   three RGB frames and waits for real compositor frame callbacks (20 checks).
+   `glsmoke` forces GLES2 + software permission, checks that the EGL client is mapped,
+   verifies the GLES2 renderer log and checks a clean compositor exit. Initial client
+   presentation passed; lifecycle retesting is in progress after fixing the exit-IPC race.
+   The compositor may close IPC before swaymsg receives the exit reply; its process exit
+   status, not swaymsg's reply status, is the authoritative cleanup check.
 4. Exceptions/RTTI/unwinder support later, before toolkits requiring them (Qt/KDE).
 
 Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 yet.

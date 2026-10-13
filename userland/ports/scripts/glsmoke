@@ -1,6 +1,7 @@
 #!/bin/sh
 # M38: force GLES2 (no silent pixman fallback), present a Wayland EGL client.
 set -u
+unset SWAYSOCK WAYLAND_DISPLAY
 D=/tmp/glsmoke-$$; mkdir -m 700 "$D" || exit 1
 export XDG_RUNTIME_DIR="$D" LIBSEAT_BACKEND=builtin LANG=C.UTF-8
 export WLR_RENDERER=gles2 WLR_RENDERER_ALLOW_SOFTWARE=1 LIBGL_ALWAYS_SOFTWARE=1
@@ -38,7 +39,9 @@ cat "$D/client.log"
 if [ "$r" != 0 ] || [ "$mapped" != 1 ] || ! grep -q 'Creating GLES2 renderer' "$D/sway.log"; then
     tail -45 "$D/sway.log"; echo "glsmoke: FAILED (client=$r mapped=$mapped)"; exit 1
 fi
-swaymsg -q exit || exit 1
+# Sway may close the IPC connection before swaymsg receives the exit reply.
+# The compositor exit status below is the authoritative clean-exit check.
+swaymsg -q exit || true
 for i in $(seq 20); do kill -0 "$compositor" 2>/dev/null || break; sleep 1; done
 if kill -0 "$compositor" 2>/dev/null; then echo 'glsmoke: FAILED compositor exit'; exit 1; fi
 wait "$compositor"; r=$?
