@@ -1575,3 +1575,39 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
   root-caused: if it recurs, log the invalid pointer/page flags and caller before the
   assertion and symbolize against that exact kernel ELF. Do not assume the ring fix
   proves this separate assertion resolved.
+
+## M38 WIP: Mesa software rendering (branch notion/m38, draft PR #4)
+
+### Landed so far
+- `libcxx.sh`: libc++ + libc++abi 18.1.8 shared runtimes for musl, not just headers.
+  Exceptions, RTTI and the unwinder are disabled for now. CMake builds from release sources;
+  the LLVM archive supplies CMake modules only (no LLVM compiler/library built yet).
+  Do not put installed libc++ headers in the runtime build's include_next path (`CXXINC=`),
+  or link an installed runtime into itself (`CXX_RUNTIME=0`). Explicitly disable host
+  libgcc_s/libatomic probes. Installed DSOs depend only on libc++abi and musl.
+- `musl-dcxx` links libc++/libc++abi when installed; runtime builds can opt out. Sandbox
+  setup now installs clang/LLVM/lld 18 alongside the AL2023 clang 15 and puts the version-18
+  tools in `/data/tools/bin`, matching Ubuntu CI. libc++ 18 needs clang >=16.
+- `mesa.sh`: Mesa 24.3.4, softpipe, EGL/GLES2/OpenGL/GBM, Wayland platform. No LLVM, Vulkan,
+  GLX, GLVND, video APIs, shader disk cache, zlib/zstd or libunwind. Host generators need
+  Mako, PyYAML and packaging; the native file points to the host wayland-scanner.
+- `cxxtest`: allocation/vector/sort, strings/iostreams, threads/mutex/condition-variable,
+  static initialization guards and thread-local destructors pass in x86 QEMU.
+- `egltest`: surfaceless EGL 1.5 + GLES context, vertex/fragment shaders, buffer upload,
+  triangle draw, exact green triangle/red background pixels, swap and context teardown
+  (18 checks). Mesa reports OpenGL ES 3.1, renderer softpipe.
+- `egltest gbm`: the same rendering through `/dev/dri/card0`, GBM and an EGL window surface;
+  lock the front buffer, verify geometry and GEM handle, map it and check its green pixel
+  (26 checks). Mesa emits device-information lookup warnings, but falls back to kms_swrast
+  successfully. Both modes and cxxtest are conditional CI main-suite commands.
+
+### Next
+1. Full x86 regression run, then other-arch validation through PR CI only.
+2. LLVM/llvmpipe. The compositor still uses the M37 pixman path: wlroots' GLES2 renderer
+   requires EGL_EXT_image_dma_buf_import; upstream softpipe does not override
+   PIPE_CAP_DMABUF, while llvmpipe does. Do not just advertise that capability without
+   verifying the import/export path. Test PRIME/EGL images before enabling a GL compositor.
+3. A Wayland EGL client and GLES2 compositor smoke test; retain pixman as a fallback.
+4. Exceptions/RTTI/unwinder support later, before toolkits requiring them (Qt/KDE).
+
+Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 yet.
