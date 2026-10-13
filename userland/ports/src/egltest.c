@@ -3,6 +3,9 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
+#include <gbm.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,25 +21,53 @@ static GLuint shader(GLenum type, const char *s) {
     if (!ok) { char b[1024]; glGetShaderInfoLog(sh, sizeof b, NULL, b); puts(b); }
     return sh;
 }
-int main(void) {
+static struct gbm_device *gd;
+static struct gbm_surface *gs;
+static int drmfd = -1;
+static void gbm_cleanup(void) {
+    if (gs) gbm_surface_destroy(gs);
+    if (gd) gbm_device_destroy(gd);
+    if (drmfd >= 0) close(drmfd);
+}
+int main(int argc, char **argv) {
+    int use_gbm = argc == 2 && !strcmp(argv[1], "gbm");
+    atexit(gbm_cleanup);
     setvbuf(stdout, NULL, _IONBF, 0);
     setenv("LIBGL_ALWAYS_SOFTWARE", "1", 1); setenv("GALLIUM_DRIVER", "softpipe", 1);
-    EGLDisplay d = eglGetPlatformDisplay(EGL_PLATFORM_SURFACELESS_MESA, EGL_DEFAULT_DISPLAY, NULL);
-    CHECK(d != EGL_NO_DISPLAY, "surfaceless display");
+    if (use_gbm) {
+        drmfd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
+        CHECK(drmfd >= 0, "open DRM card");
+        if (fails) return 1;
+        gd = gbm_create_device(drmfd);
+        CHECK(gd != NULL, "GBM device");
+        if (fails) return 1;
+    }
+    EGLDisplay d = eglGetPlatformDisplay(use_gbm ? EGL_PLATFORM_GBM_KHR : EGL_PLATFORM_SURFACELESS_MESA, use_gbm ? (void *)gd : EGL_DEFAULT_DISPLAY, NULL);
+    CHECK(d != EGL_NO_DISPLAY, "platform display");
     EGLint major = 0, minor = 0;
     CHECK(eglInitialize(d, &major, &minor), "eglInitialize");
     if (fails) return 1;
     printf("egltest: EGL %d.%d %s\n", major, minor, eglQueryString(d, EGL_VENDOR));
     CHECK(eglBindAPI(EGL_OPENGL_ES_API), "bind GLES API");
-    const EGLint attrs[] = {EGL_SURFACE_TYPE, EGL_PBUFFER_BIT, EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-        EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8, EGL_NONE};
-    EGLConfig config; EGLint n = 0;
-    CHECK(eglChooseConfig(d, attrs, &config, 1, &n) && n == 1, "RGBA8 pbuffer config");
+    const EGLint attrs[] = {EGL_SURFACE_TYPE, use_gbm ? EGL_WINDOW_BIT : EGL_PBUFFER_BIT, EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, use_gbm ? 0 : 8, EGL_NONE};
+    EGLConfig config = NULL, configs[64]; EGLint n = 0;
+    CHECK(eglChooseConfig(d, attrs, configs, 64, &n) && n > 0, "renderable config");
+    for (int i = 0; i < n; i++) {
+        EGLint visual = 0; eglGetConfigAttrib(d, configs[i], EGL_NATIVE_VISUAL_ID, &visual);
+        if (!use_gbm || visual == GBM_FORMAT_XRGB8888) { config = configs[i]; break; }
+    }
+    CHECK(config != NULL, "compatible native visual");
     if (fails) { eglTerminate(d); return 1; }
     const EGLint ca[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
     const EGLint pa[] = {EGL_WIDTH, 64, EGL_HEIGHT, 64, EGL_NONE};
     EGLContext c = eglCreateContext(d, config, EGL_NO_CONTEXT, ca);
-    EGLSurface p = eglCreatePbufferSurface(d, config, pa);
+    if (use_gbm) {
+        gs = gbm_surface_create(gd, 64, 64, GBM_FORMAT_XRGB8888, GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+        CHECK(gs != NULL, "GBM surface");
+        if (fails) { eglTerminate(d); return 1; }
+    }
+    EGLSurface p = use_gbm ? eglCreatePlatformWindowSurface(d, config, gs, NULL) : eglCreatePbufferSurface(d, config, pa);
     CHECK(c != EGL_NO_CONTEXT && p != EGL_NO_SURFACE, "context and pbuffer");
     CHECK(eglMakeCurrent(d, p, p, c), "make current");
     if (fails) { eglTerminate(d); return 1; }
@@ -61,7 +92,24 @@ int main(void) {
     CHECK(center[0] == 0 && center[1] == 255 && center[2] == 0 && center[3] == 255, "green triangle pixel");
     CHECK(corner[0] == 255 && corner[1] == 0 && corner[2] == 0 && corner[3] == 255, "red clear pixel");
     CHECK(glGetError() == GL_NO_ERROR, "GLES error state");
-    CHECK(eglSwapBuffers(d, p), "pbuffer swap");
+    CHECK(eglSwapBuffers(d, p), "surface swap");
+    if (use_gbm) {
+        struct gbm_bo *bo = gbm_surface_lock_front_buffer(gs);
+        CHECK(bo != NULL, "GBM front buffer");
+        if (bo) {
+            CHECK(gbm_bo_get_width(bo) == 64 && gbm_bo_get_height(bo) == 64 && gbm_bo_get_stride(bo) >= 256, "GBM buffer geometry");
+            CHECK(gbm_bo_get_handle(bo).u32 != 0, "DRM GEM handle");
+            uint32_t stride = 0; void *map_data = NULL;
+            unsigned char *pixels = gbm_bo_map(bo, 0, 0, 64, 64, GBM_BO_TRANSFER_READ, &stride, &map_data);
+            CHECK(pixels != NULL, "GBM front buffer map");
+            if (pixels) {
+                unsigned char *px = pixels + 32 * stride + 32 * 4;
+                CHECK(px[0] == 0 && px[1] == 255 && px[2] == 0, "GBM rendered front buffer pixel");
+                gbm_bo_unmap(bo, map_data);
+            }
+            gbm_surface_release_buffer(gs, bo);
+        }
+    }
     glDeleteBuffers(1, &b); glDeleteProgram(prog); glDeleteShader(vs); glDeleteShader(fs);
     CHECK(eglMakeCurrent(d, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "unbind context");
     CHECK(eglDestroySurface(d, p) && eglDestroyContext(d, c), "destroy surface/context");
