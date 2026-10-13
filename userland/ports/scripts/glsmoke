@@ -1,0 +1,48 @@
+#!/bin/sh
+# M38: force GLES2 (no silent pixman fallback), present a Wayland EGL client.
+set -u
+D=/tmp/glsmoke-$$; mkdir -m 700 "$D" || exit 1
+export XDG_RUNTIME_DIR="$D" LIBSEAT_BACKEND=builtin LANG=C.UTF-8
+export WLR_RENDERER=gles2 WLR_RENDERER_ALLOW_SOFTWARE=1 LIBGL_ALWAYS_SOFTWARE=1
+export GALLIUM_DRIVER=${GALLIUM_DRIVER:-softpipe}
+sway -d > "$D/sway.log" 2>&1 & compositor=$!
+client=
+cleanup() {
+    [ -z "$client" ] || { kill "$client" 2>/dev/null || true; wait "$client" 2>/dev/null || true; }
+    if kill -0 "$compositor" 2>/dev/null; then
+        [ -z "${SWAYSOCK:-}" ] || swaymsg -q exit 2>/dev/null || true
+        for i in $(seq 20); do kill -0 "$compositor" 2>/dev/null || break; sleep 1; done
+        kill "$compositor" 2>/dev/null || true
+    fi
+    wait "$compositor" 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+for i in $(seq 60); do
+    for f in "$D"/sway-ipc.*; do [ -S "$f" ] && export SWAYSOCK="$f"; done
+    [ -z "${SWAYSOCK:-}" ] || break
+    kill -0 "$compositor" 2>/dev/null || break
+    sleep 1
+done
+if [ -z "${SWAYSOCK:-}" ]; then tail -45 "$D/sway.log"; echo 'glsmoke: FAILED compositor startup'; exit 1; fi
+for f in "$D"/wayland-*; do [ -S "$f" ] && export WAYLAND_DISPLAY=${f##*/}; done
+WLGLTEST_HOLD_SECONDS=3 wlgltest > "$D/client.log" 2>&1 & client=$!
+mapped=0
+for i in $(seq 30); do
+    if swaymsg -t get_tree | grep -q '"app_id": "eglesmoke"'; then mapped=1; break; fi
+    kill -0 "$client" 2>/dev/null || break
+    sleep 1
+done
+wait "$client"; r=$?; client=
+cat "$D/client.log"
+if [ "$r" != 0 ] || [ "$mapped" != 1 ] || ! grep -q 'Creating GLES2 renderer' "$D/sway.log"; then
+    tail -45 "$D/sway.log"; echo "glsmoke: FAILED (client=$r mapped=$mapped)"; exit 1
+fi
+swaymsg -q exit || exit 1
+for i in $(seq 20); do kill -0 "$compositor" 2>/dev/null || break; sleep 1; done
+if kill -0 "$compositor" 2>/dev/null; then echo 'glsmoke: FAILED compositor exit'; exit 1; fi
+wait "$compositor"; r=$?
+[ "$r" = 0 ] || { tail -45 "$D/sway.log"; echo "glsmoke: FAILED compositor status $r"; exit 1; }
+trap - EXIT HUP INT TERM
+rm -rf "$D"
+echo "glsmoke: PASSED ($GALLIUM_DRIVER GLES2, mapped EGL client, frame callbacks, clean exit)"
