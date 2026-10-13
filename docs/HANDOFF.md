@@ -1602,7 +1602,10 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
   successfully. Both modes and cxxtest are conditional CI main-suite commands.
 
 ### Next
-1. Full x86 regression run, then other-arch validation through PR CI only.
+1. Latest local x86 full CI-equivalent run passes: 79/79 + 20/20 + 6/6, clean disk-root
+   shutdown/e2fsck, UP 6/6, MLFQ 9/9 and eight-CPU 7/7. Other-arch validation stays in
+   PR CI only. Source downloads now share fetch.sh (DNS/TLS retries, archive validation,
+   atomic publication and invalid-cache replacement), with offline mock-curl regressions.
 2. LLVM/llvmpipe. The compositor still uses the M37 pixman path: wlroots' GLES2 renderer
    requires EGL_EXT_image_dma_buf_import; upstream softpipe does not override
    PIPE_CAP_DMABUF, while llvmpipe does. Do not just advertise that capability without
