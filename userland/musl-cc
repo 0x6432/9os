@@ -7,6 +7,13 @@ RT=$(${LIBGCC_CC:-gcc} -print-libgcc-file-name 2>/dev/null)
 [ "$ARCH" = x86_64 ] || RT=$TOP/sysroot/$ARCH/lib/libclang_rt.builtins.a
 link=1
 shared=0
+# gcc-only spelling that some meson versions emit for -Wl,--export-dynamic (gmodule-2.0.pc)
+n=$#
+for a in "$@"; do
+    [ "$a" = -export-dynamic ] && a=-Wl,--export-dynamic
+    set -- "$@" "$a"
+done
+shift $n
 for a in "$@"; do case "$a" in -c|-S|-E|-M|-MM) link=0;; -r|-Wl,-r|-nostdlib) link=2;; -shared) shared=1;; esac; done
 [ $link = 1 ] && [ $shared = 1 ] && link=3
 if [ $link = 2 ]; then
