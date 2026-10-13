@@ -6,7 +6,7 @@ T=$(fetch "https://archive.mesa3d.org/mesa-$V.tar.xz")
 S=$PORTS_SRC/mesa-$V; [ -d "$S" ] || tar xJf "$T" -C "$PORTS_SRC"
 N=$(wl_native)
 DRIVERS=softpipe; LLVMOPT=disabled
-if [ "${MESA_LLVM:-0}" = 1 ]; then
+if [ "${MESA_LLVM:-1}" = 1 ]; then
     DRIVERS=softpipe,llvmpipe; LLVMOPT=enabled
     CONFIG=$PORTS_BUILD/llvm/host-bin/llvm-config
     [ -x "$CONFIG" ] || { echo "mesa: build the llvm port first" >&2; exit 1; }

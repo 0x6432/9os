@@ -27,7 +27,7 @@ cmake -S "$S" -B "$B" -G Ninja \
     -DLLVM_TARGETS_TO_BUILD="$TARGET" -DLLVM_TABLEGEN="$TBLGEN" \
     -DLLVM_NATIVE_TOOL_DIR="$(dirname "$TBLGEN")" \
     -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON \
-    '-DLLVM_DYLIB_COMPONENTS=bitwriter;interpreter;mcdisassembler;mcjit;core;executionengine;scalaropts;transformutils;instcombine;coroutines;native;orcjit;lto' \
+    '-DLLVM_DYLIB_COMPONENTS=bitwriter;interpreter;mcdisassembler;mcjit;core;executionengine;scalaropts;transformutils;instcombine;coroutines;native;orcjit;lto;passes;target;analysis' \
     -DLLVM_ENABLE_EH=OFF -DLLVM_ENABLE_RTTI=OFF -DLLVM_ENABLE_ASSERTIONS=OFF \
     -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF \
     -DLLVM_ENABLE_BINDINGS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF \

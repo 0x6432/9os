@@ -26,9 +26,9 @@ static struct gbm_device *gd;
 static struct gbm_surface *gs;
 static int drmfd = -1;
 static void gbm_cleanup(void) {
-    if (gs) gbm_surface_destroy(gs);
-    if (gd) gbm_device_destroy(gd);
-    if (drmfd >= 0) close(drmfd);
+    if (gs) { gbm_surface_destroy(gs); gs = NULL; }
+    if (gd) { gbm_device_destroy(gd); gd = NULL; }
+    if (drmfd >= 0) { close(drmfd); drmfd = -1; }
 }
 static void dmabuf_test(EGLDisplay d, struct gbm_bo *bo) {
     const char *ext = eglQueryString(d, EGL_EXTENSIONS);
@@ -172,6 +172,10 @@ int main(int argc, char **argv) {
     CHECK(eglMakeCurrent(d, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "unbind context");
     CHECK(eglDestroySurface(d, p) && eglDestroyContext(d, c), "destroy surface/context");
     CHECK(eglTerminate(d), "terminate display"); eglReleaseThread();
+    /* GBM still owns a Gallium screen. Destroy it before Mesa's later-registered
+     * ORC singleton atexit handler; otherwise GBM cleanup uses a dead JIT.
+     * The early-error atexit fallback remains safe and idempotent. */
+    gbm_cleanup();
     printf("egltest: %s (%d checks, %d failures)\n", fails ? "FAILED" : "PASSED", checks, fails);
     return fails != 0;
 }

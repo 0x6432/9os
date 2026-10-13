@@ -1588,7 +1588,8 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
 - `musl-dcxx` links libc++/libc++abi when installed; runtime builds can opt out. Sandbox
   setup now installs clang/LLVM/lld 18 alongside the AL2023 clang 15 and puts the version-18
   tools in `/data/tools/bin`, matching Ubuntu CI. libc++ 18 needs clang >=16.
-- `mesa.sh`: Mesa 24.3.4, softpipe, EGL/GLES2/OpenGL/GBM, Wayland platform. No LLVM, Vulkan,
+- `mesa.sh`: Mesa 24.3.4, softpipe + llvmpipe, EGL/GLES2/OpenGL/GBM, Wayland platform.
+  LLVM 18 ORC JIT is enabled by default (`MESA_LLVM=0` selects softpipe-only). No Vulkan,
   GLX, GLVND, video APIs, shader disk cache, zlib/zstd or libunwind. Host generators need
   Mako, PyYAML and packaging; the native file points to the host wayland-scanner.
 - `cxxtest`: allocation/vector/sort, strings/iostreams, threads/mutex/condition-variable,
@@ -1664,3 +1665,25 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   RTTI; a guarded/idempotent patch selects zero compiler threads explicitly and uses
   static_cast to LLVM 18's known SimpleCompiler subclass. The source mismatch guard
   and repeated application are tested. Default ports do not enable LLVM yet.
+
+### llvmpipe x86 checkpoint (cross-architecture CI pending)
+- Default port order now builds LLVM + jittest before Mesa. Meson builds llvmpipe with
+  ORC explicitly on all architectures; RISCV uses JITLink, x86/aarch64 use RuntimeDyld
+  in Mesa. LLVM's standalone LLJIT defaults choose JITLink for all three guest backends.
+- Mesa additionally needs LLVM `passes`, `target` and `analysis` C APIs exported from
+  the shared library, not merely pulled as static transitive dependencies.
+- LLVM's constructor/JIT code passes locally. llvmpipe reports GLES 3.2 and LLVM 18.1.8,
+  128-bit vectors. The surfaceless (18 checks), GBM (26), PRIME/EGL-image (37) and forced
+  GLES2 Wayland compositor (three frames, 20 client checks) all pass in x86 QEMU.
+  A combined run with repeated GBM/import lifecycles plus softpipe fallback passes 11/11.
+- Initial GBM tests rendered correctly but crashed on process exit: their early atexit
+  cleanup ran after Mesa's later-registered ORC singleton destructor. Explicitly destroy
+  GBM surface/device before returning, with idempotent cleanup as an early-error fallback.
+  Both formerly failing modes then pass twice, including zero process exit status.
+- Each meson_port snapshots its cross file. Previously the next port overwrote the
+  shared template and Ninja regeneration lost Mesa's llvm-config binary. Verified
+  wlroots rebuild remains a no-op after another port rewrites the template.
+- CI adds jittest, three explicit llvmpipe EGL modes and a forced llvmpipe compositor
+  lifecycle alongside softpipe + pixman fallback coverage. Full x86 run is in progress
+  (expected main-suite count 87); all-architecture LLVM CI must still validate this head.
+- Do not merge PR #4 or mark M38 complete until the new cross-architecture results pass.

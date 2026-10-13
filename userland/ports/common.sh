@@ -62,8 +62,11 @@ meson_diag() {
 meson_port() {
     s=$1; b=$2; shift 2
     rm -rf "$b"
+    # Freeze this port's cross configuration. Other ports rewrite $CROSS and
+    # must not change a previously configured build during Ninja regeneration.
+    cp "$CROSS" "$b.cross"
     env -u PKG_CONFIG_LIBDIR -u PKG_CONFIG_SYSROOT_DIR PKG_CONFIG_PATH="${HOST_PC_PATH:-}" \
-    meson setup "$b" "$s" --cross-file "$CROSS" --prefix=/usr --libdir=lib --buildtype=release -Ddefault_library=shared "$@" >"$b.log" 2>&1 || { tail -30 "$b.log"; meson_diag "$b"; exit 1; }
+    meson setup "$b" "$s" --cross-file "$b.cross" --prefix=/usr --libdir=lib --buildtype=release -Ddefault_library=shared "$@" >"$b.log" 2>&1 || { tail -30 "$b.log"; meson_diag "$b"; exit 1; }
     ninja -C "$b" >>"$b.log" 2>&1 || { tail -30 "$b.log"; exit 1; }
     DESTDIR="$PREFIX_ROOT" meson install -C "$b" --no-rebuild >>"$b.log" 2>&1 || { tail -30 "$b.log"; exit 1; }
 }
