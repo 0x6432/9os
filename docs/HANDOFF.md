@@ -1758,3 +1758,8 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   cached upstream archive (SHA256 abf1aace86208eebdd5d3550ffded4c8d73bb405b796d51c389c9d0604cbcfbf).
   Prefer that checksum-pinned mirror, retain freedesktop upstream fallback; local x86
   libevdev rebuild passes. No dependency version or source content changed.
+- M39's first x86 PR job likewise timed out downloading xkeyboard-config from X.org,
+  before the audio guest tests. Switched to Alpine's SHA512-pinned upstream release-tag
+  archive for the same 2.43 version, with upstream GitLab fallback. All 419 files from
+  the former release tarball are byte-identical in the tag archive. Fresh extraction
+  and x86 rebuild pass; this is a download/packaging change, not a data-version upgrade.
