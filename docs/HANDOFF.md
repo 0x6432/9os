@@ -34,6 +34,10 @@ _Updated after every milestone. Read this first when picking up the project._
 | M22 Wayland terminal | ✅ `wlterm`: pty + shell, 8x16 font, ANSI/VT subset (cursor motion, erase, insert/delete, SGR 16 colours, DSR), US keymap from evdev codes; wlkms renders real title text; `scripts/qemu-type.py` types into the guest via the QEMU monitor |
 | M26–M32b | ✅ VMM v2, hardening, interrupt-driven I/O, block layer + virtio-blk, ext2 + unified page cache, users/permissions, networking v1/v2 (see the sections below) |
 | M33 ptrace + POSIX timers | ✅ `ptrace` (stops, events, regsets, syscall info, single step and hardware breakpoints/watchpoints on all three arches), queued siginfo + `rt_sigqueueinfo`, `timer_create` family, robust futexes, process-shared futexes, `clone3` + pidfds, `waitid` (P_PIDFD, WNOWAIT), `flock`/POSIX/OFD locks + leases + `/proc/locks`, xattrs (in-inode on ext2) and POSIX ACLs on tmpfs and ext2; `ptracetest`, `sigqtest`, `locktest`, `leasetest`, `xattrtest`, `acltest` |
+| M34–M37 sysfs/input/DRM/Sway | ✅ sysfs + udev shim, libinput/seatd, atomic KMS + PRIME, Sway + foot; see later milestone sections |
+| M38 Mesa LLVM | ✅ native llvmpipe JIT + PRIME/EGL-image sharing; all-architecture CI |
+| M39 audio | ✅ validated minimal virtio-snd PCM playback; no mixer/capture/mmap |
+| M40 KDE groundwork | ◐ DBus session bus, full C++ runtime and Qt Core/DBus slices; CI pending, GUI/Wayland/Quick not yet ported |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -1837,3 +1841,30 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - x86 guest validates both variants, DBus and zero lockdep violations (5/5 boot checks);
   host-musl sanity also passes. Full Mesa/LLVM compatibility and non-x86 unwind support
   must be validated by the separate PR CI before merging. No Qt/GUI completion claim.
+
+### M40 Qt Core/DBus slice (not Qt GUI/Wayland/Quick or KDE)
+- Qt 6.8.3 qtbase, independently SHA512-pinned to Alpine v3.22 release metadata.
+  Host-built moc/rcc/DBus code generators live under TOOLS_DIR/host/qt-6.8.3 and
+  are never guest executables. Target Core + DBus use the musl C++ runtime and
+  directly link libdbus. GUI/network/SQL/ICU/GLib are disabled; bundled zlib/PCRE2.
+  Feature inputs use FEATURE_* so repeated CMake configuration preserves intent.
+- The first real guest stalled on Qt DBus blocking queued calls. Qt's 64-bit semaphore
+  requires FUTEX_WAKE_OP, previously ENOSYS. Implement SET/ADD/OR/ANDN/XOR, signed
+  12-bit arguments/comparisons, shifted operands and two atomic wake lists. Fault in
+  writable/COW memory outside futex locks; revalidate/pin the PTE under mm lock while
+  performing the user RMW. Both buckets lock in address order across RMW + wakeups.
+- futexoptest's same 128 checks pass against host Linux and x86 9os: all arithmetic,
+  comparison wake decisions, same-key wakes, Linux zero/negative count semantics,
+  signed/shifted operands, invalid pointers/read-only memory, unsupported encodings,
+  concurrent user/kernel atomic increments, shared inode/offset aliases and fork COW.
+  scripts/futex-host-tests.sh adds the host oracle to CI; normal CI runs the guest test.
+- qttest passes 31 checks, repeatedly as root and once as UID 1000: Unicode, base64,
+  compression, JSON/regex, atomic files, threads, timers, socket notifier, QProcess exit
+  and output, DBus auth/capabilities, names/credentials, signals, a separate Qt service,
+  RPC, PID credentials, memfd transfer after closing the original fd, errors and clean
+  child exit. Qt DBus regression reproduces the missing wake-op without the kernel fix.
+- Full available local x86 core/disk/audio plus Qt and UP/SMP8 regressions are running.
+  Local optional graphics are not restored; full graphics/non-x86 coverage belongs to
+  PR CI. PR #6 DBus and #7 C++ are independent prerequisite merge gates; Qt is the next
+  branch, notion/m40-qtbase. Keep all unmerged until their required CI is green.
+- M39 merged-main run 38624667601 has ARM and RISC-V success; x86 remains in progress.
