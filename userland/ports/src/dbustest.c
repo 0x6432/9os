@@ -104,7 +104,7 @@ int main(void) {
     if (r) dbus_message_unref(r);
     q=request("org.nineos.Missing","/missing","org.nineos.Test","Echo");
     r=dbus_connection_send_with_reply_and_block(c,q,5000,&e);
-    CHECK(!r && dbus_error_is_set(&e)); if (r) dbus_message_unref(r); dbus_message_unref(q); dbus_error_free(&e);
+    CHECK(!r && dbus_error_has_name(&e,DBUS_ERROR_SERVICE_UNKNOWN)); if (r) dbus_message_unref(r); dbus_message_unref(q); dbus_error_free(&e);
     q=request("org.nineos.Test","/org/nineos/Test","org.nineos.Test","Quit"); r=call(c,q);
     CHECK(r && dbus_message_get_type(r)==DBUS_MESSAGE_TYPE_METHOD_RETURN); if (r) dbus_message_unref(r);
     int status=0; CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && WEXITSTATUS(status)==0);

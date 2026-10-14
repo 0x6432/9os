@@ -1816,3 +1816,9 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Initial DBus port disables systemd/X11/LSM integration and service auto-activation;
   no system bus/messagebus account, Qt/KDE, logind or namespace claim. Local testing
   is x86_64 only; other-architecture build/guest coverage belongs to PR CI.
+- Initial x86 real-session regression passes all 25 checks; repeated sessions, dbus-send
+  ListNames, propagated child status 23, UID-1000 session and bounded daemon cleanup
+  pass (5/5 lifecycle boot checks). Upstream dbus-run-session sends SIGTERM without
+  waiting for daemon exit, so cleanup validation polls rather than asserting immediately.
+- PR #6 is the isolated DBus slice; full graphics and cross-architecture coverage is
+  pending CI. Current local restore includes core + DBus, not the full graphics stack.
