@@ -1763,3 +1763,18 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   archive for the same 2.43 version, with upstream GitLab fallback. All 419 files from
   the former release tarball are byte-identical in the tag archive. Fresh extraction
   and x86 rebuild pass; this is a download/packaging change, not a data-version upgrade.
+
+### M39 non-x86 CI: audio passes, absent-card boot ordering fixed
+- Run 38549963468 at 86153e6: x86 job succeeds. ARM and RISC-V each pass main 88/88,
+  disk-root 20/20 + 6/6, sndtest 109 checks and the exact 16384-frame WAV verification.
+  Their subsequent absent-card boot fails in firmware, before the kernel starts.
+- Evidence: normal RISC-V boots use CD controller Pci(0x6,0x0). Removing audio shifts it
+  to Pci(0x5,0x0), but persisted UEFI boot variables still select the old path and fall
+  through to the internal shell. ARM shows the same CD controller shift/shell fallback.
+- Append optional QEMU_SOUND after the boot controllers, preserving the boot-device prefix
+  whether sound is present or absent. Host regression inspects every architecture's Make
+  command expansion without building or running non-x86 guests. All three pass.
+- The sound driver/PCM/WAV checks need no change. New PR CI must verify the ordering fix
+  and complete the remaining scheduler boots. Keep PR #5 draft and unmerged.
+- Merged-main run 38544619661 failed only ARM's libevdev download; x86 and RISC-V passed.
+  Requested a failed-job rerun after run completion; its result remains pending.
