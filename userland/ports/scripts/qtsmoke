@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+mkdir -p /run/dbus
+/usr/bin/dbus-uuidgen --ensure=/etc/machine-id
+exec /usr/bin/dbus-run-session -- /usr/bin/qttest
