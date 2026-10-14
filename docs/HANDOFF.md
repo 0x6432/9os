@@ -1750,3 +1750,11 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Full x86 regression and PR CI are still needed for M39. Keep its PR draft/unmerged;
   existing merge approval covered already-open PRs, not this new unvalidated milestone.
 - See docs/AUDIO.md for supported ABI and explicit limitations.
+- Additional local x86 run with MSI-X vectors disabled passes repeated sndtest (109 checks
+  twice) plus lockdep (zero violations). QEMU exposes this case as the polling fallback,
+  not INTx; do not claim local INTx verification.
+- M38 merged-main CI encountered a libevdev source-download timeout on ARM, before LLVM
+  or guest tests. Alpine v3.21's mirrored libevdev 1.13.3 tarball is byte-identical to the
+  cached upstream archive (SHA256 abf1aace86208eebdd5d3550ffded4c8d73bb405b796d51c389c9d0604cbcfbf).
+  Prefer that checksum-pinned mirror, retain freedesktop upstream fallback; local x86
+  libevdev rebuild passes. No dependency version or source content changed.
