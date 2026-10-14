@@ -27,6 +27,7 @@ if [ -e userland/build/ports-root-$ARCH/usr/bin/dbussmoke ]; then
     DBUSCLEAN="for i in 1 2 3 4 5 6 7 8 9 10; do pidof dbus-daemon >/dev/null || break; sleep 1; done; ! pidof dbus-daemon && [ \$(wc -c < /etc/machine-id) = 33 ]"
 fi
 CXX=; [ -e userland/build/ports-root-$ARCH/usr/bin/cxxtest ] && CXX=cxxtest
+[ -e userland/build/ports-root-$ARCH/usr/bin/cxxtest-noeh ] && CXX="$CXX cxxtest-noeh"
 WL=; [ -e userland/build/ports-root-$ARCH/usr/bin/wltest ] && WL=wltest
 IN=; [ -e userland/build/ports-root-$ARCH/usr/bin/inputtest ] && IN=inputtest
 KMS2=; [ -e userland/build/ports-root-$ARCH/usr/bin/kmstest ] && IN="$IN kmstest" && KMS2="KMSTEST_FLIP_DELAY_US=50000 kmstest"
