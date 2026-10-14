@@ -40,7 +40,7 @@ jobs:
         arch: [x86_64, riscv64, aarch64]
     env:
       ARCH: ${{ matrix.arch }}
-      TOOLS_DIR: ${{ github.workspace }}/../tools
+      TOOLS_DIR: ${{ github.workspace }}/.tools
       NO_PORTS: ${{ (github.event_name == 'workflow_dispatch' && !inputs.ports) && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
@@ -81,6 +81,7 @@ jobs:
           scripts/sched-host-tests.sh
           scripts/rbtree-host-tests.sh
           scripts/net-ring-host-tests.sh
+          scripts/snd-host-tests.sh
           python3 scripts/fetch-host-tests.py
 
       - name: Build userland (musl, BusyBox, Bash, ports)

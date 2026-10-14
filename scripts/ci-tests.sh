@@ -38,7 +38,7 @@ fsck_img() {   # e2fsck the partition at 1 MiB
 rc=0
 BIGMD5=$(python3 scripts/net-host-server.py --md5)
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext2.img" --disk "$B/scratch.img" --net-test "$@" \
-    libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest locktest leasetest asynctest xattrtest acltest sigqtest sysfstest "sysfstest -u" uinputtest vttest looptest \
+    libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest locktest leasetest asynctest xattrtest acltest sigqtest sysfstest "sysfstest -u" uinputtest vttest looptest sndtest \
     "udevshim -c && grep -q E:ID_INPUT_KEYBOARD=1 \$(grep -l ID_INPUT_KEY= /run/udev/data/c13:*) && udevshim -q /dev/input/event0 | grep -qx ID_INPUT=1" \
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
@@ -73,4 +73,6 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot2-$ARCH.log" --di
 if grep -aq "not cleanly unmounted" "build/test-diskroot2-$ARCH.log"; then echo "FAIL   clean shutdown of the disk root"; rc=1
 else echo "PASS   clean shutdown of the disk root"; fi
 fsck_img "$B/root.img" || rc=1
+# M39: real audio samples and no-card boot.
+scripts/snd-qemu-tests.sh "$ARCH" "$@" || rc=1
 exit $rc

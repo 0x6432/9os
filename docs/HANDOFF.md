@@ -1726,3 +1726,76 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   UP 6/6, MLFQ 9/9, SMP8 7/7. LLVM has been restored locally after the wipe.
 - The PMM change still needs PR CI to verify the recovered RAM and remaining RISC-V OOM.
   Keep PR #4 draft and unmerged.
+
+### M38 validated and integrated; M39 audio bring-up
+- All-architecture run 38460487771 at 449a26e succeeded: main 87/87 per architecture,
+  disk-root 20/20 + 6/6, filesystem checks, UP 6/6, MLFQ 9/9; x86 SMP8 7/7.
+- RISC-V metadata shrank from 35840 KiB to 7164 KiB, recovering ~28 MiB; boot free RAM
+  increased from ~338 MiB to 366 MiB. Softpipe and llvmpipe compositor tests both pass.
+  ARM recovered ~14 MiB (21504 -> 7168 KiB); JIT/cache rewrite also passes.
+- User authorized merging all PRs. PR #4 was the only open PR and merged as db3f3c2.
+  There are no remaining open PRs from M36-M38. Do not delete branches without approval.
+- A subsequent sandbox wipe required another x86-only restore. LLVM/userland restoration
+  is still running; the independent sound tests used an already restored core sysroot.
+- M39 WIP: virtio-snd PCI playback plus a restricted Linux ALSA PCM ABI. Fixed stereo
+  S16_LE/48 kHz, 256-frame periods, eight DMA slots, exclusive open, status, prepare/start,
+  drain/drop/free, write/WRITEI, poll/nonblocking, IRQ completion and polling fallback.
+  No mixer/control card, capture, mmap or general alsa-lib/application compatibility yet.
+- Host ABI comparisons with independent Linux headers pass. Local x86 sndtest passes
+  109 checks; host WAV verifies 16384 stereo frames exactly. No-card boot passes.
+- Found a cross-queue ownership race in the initial DROP implementation: prepared TX was
+  exposed before START, allowing RELEASE to race an unconsumed TX notification. Stage
+  prepared data in kernel-owned slots until successful START; reclaim only completion-
+  returned DMA. The resulting WAV/drop/drain/reopen regression passes.
+- Full x86 regression and PR CI are still needed for M39. Keep its PR draft/unmerged;
+  existing merge approval covered already-open PRs, not this new unvalidated milestone.
+- See docs/AUDIO.md for supported ABI and explicit limitations.
+- Additional local x86 run with MSI-X vectors disabled passes repeated sndtest (109 checks
+  twice) plus lockdep (zero violations). QEMU exposes this case as the polling fallback,
+  not INTx; do not claim local INTx verification.
+- M38 merged-main CI encountered a libevdev source-download timeout on ARM, before LLVM
+  or guest tests. Alpine v3.21's mirrored libevdev 1.13.3 tarball is byte-identical to the
+  cached upstream archive (SHA256 abf1aace86208eebdd5d3550ffded4c8d73bb405b796d51c389c9d0604cbcfbf).
+  Prefer that checksum-pinned mirror, retain freedesktop upstream fallback; local x86
+  libevdev rebuild passes. No dependency version or source content changed.
+- M39's first x86 PR job likewise timed out downloading xkeyboard-config from X.org,
+  before the audio guest tests. Switched to Alpine's SHA512-pinned upstream release-tag
+  archive for the same 2.43 version, with upstream GitLab fallback. All 419 files from
+  the former release tarball are byte-identical in the tag archive. Fresh extraction
+  and x86 rebuild pass; this is a download/packaging change, not a data-version upgrade.
+
+### M39 non-x86 CI: audio passes, absent-card boot ordering fixed
+- Run 38549963468 at 86153e6: x86 job succeeds. ARM and RISC-V each pass main 88/88,
+  disk-root 20/20 + 6/6, sndtest 109 checks and the exact 16384-frame WAV verification.
+  Their subsequent absent-card boot fails in firmware, before the kernel starts.
+- Evidence: normal RISC-V boots use CD controller Pci(0x6,0x0). Removing audio shifts it
+  to Pci(0x5,0x0), but persisted UEFI boot variables still select the old path and fall
+  through to the internal shell. ARM shows the same CD controller shift/shell fallback.
+- Append optional QEMU_SOUND after the boot controllers, preserving the boot-device prefix
+  whether sound is present or absent. Host regression inspects every architecture's Make
+  command expansion without building or running non-x86 guests. All three pass.
+- The sound driver/PCM/WAV checks need no change. New PR CI must verify the ordering fix
+  and complete the remaining scheduler boots. Keep PR #5 draft and unmerged.
+- Merged-main run 38544619661 failed only ARM's libevdev download; x86 and RISC-V passed.
+  Requested a failed-job rerun after run completion; its result remains pending.
+
+### M39 boot fix verified; cache-path repair
+- Run 38562988168 at 3effe49: x86 and ARM succeed. ARM main 88/88, disk-root 20/20 +
+  6/6, waveform match, no-card boot 2/2, UP 6/6 and MLFQ 9/9 verify the boot-order fix.
+- RISC-V failed downloading fontconfig before guest tests; requested failed-job retry at
+  unchanged code. Earlier RISC-V audio/PCM/WAV/main coverage had already passed at 86153e6.
+- Merged-main run 38544619661 attempt 2 is fully successful, including release publication.
+- Found why repeated CI runs have no cache: successful x86 post-step logs say "Invalid
+  pattern .../9os/../tools/dl. Relative pathing '.' and '..' is not allowed." Repository
+  Actions API reports zero cache entries. Use canonical runner.temp/9os-tools for TOOLS_DIR,
+  not workspace/../tools; a host regression rejects forbidden path components.
+- This workflow change needs fresh PR CI and verification that caches are actually saved.
+  No kernel/PCM change. Keep PR #5 draft/unmerged until final validation and user approval.
+- Corrected the first cache-path attempt: runner.temp is unavailable in job-level env;
+  workflow validation rejected it before starting jobs. Use github.workspace/.tools
+  (canonical, no relative components, valid job context), and ignore .tools/ in git.
+  The host regression now also enforces the job-valid context.
+- Fontconfig's last RISC-V download failed with timeouts/HTTP 418. Use the same 2.15.0
+  upstream gzip release mirrored by Alpine v3.20, pinned to its independent SHA512;
+  archive digest, extraction, release version and offline downloader regressions pass.
+  No dependency version change. Fresh CI must validate this final workflow/storage head.

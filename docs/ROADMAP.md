@@ -72,8 +72,8 @@ NUMA, cgroups v2 controllers, eBPF, live patching, hundreds of real-hardware dri
 | M35 ✅ | **Input/seat stack** | xkeyboard-config, libevdev, mtdev, libinput, seatd ports (+ /dev/uinput, libudev-zero) | wlroots |
 | M36 ✅ | **DRM atomic + PRIME** | properties, atomic commits, dma-buf/PRIME fds, zero-copy virtio-gpu scanout (resource per dumb buffer) | wlroots/Sway |
 | M37 ✅ | **Sway + foot** | wlroots, tinywl, Sway, freetype/fontconfig/fcft, foot (+ memfd seals, HarfBuzz/cairo/Pango) | a real desktop |
-| M38 | **Mesa softpipe → llvmpipe** | EGL/GLES2/GBM in software | GL apps, Qt Quick |
-| M39 | **Audio** | virtio-snd or Intel HDA, minimal ALSA PCM ABI | sound |
+| M38 ✅ | **Mesa softpipe → llvmpipe** | EGL/GLES2/GBM, native LLVM JIT, PRIME/EGL-image sharing and GLES2 Wayland compositor; all-architecture CI green | GL apps, Qt Quick |
+| M39 ◐ | **Audio** | virtio-snd playback + fixed-format Linux PCM ABI; x86 waveform/queue tests pass, full/cross-architecture validation pending; mixer/capture/mmap not implemented | sound |
 | M40 | **KDE groundwork** | DBus, Qt6 (qtbase, qtwayland, qtdeclarative), namespaces/`unshare` subset as needed, more `/proc` | KDE Plasma attempts |
 
 Smaller ports to slot in when the kernel side allows it: make, tcc, ncurses → nano/vim/htop, Doom (fbdev/evdev), Python, git (after M30), curl/OpenSSL (after M32).

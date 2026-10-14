@@ -14,3 +14,10 @@ third_party/uACPI
 third_party/limine-bin
 !userland/skel/**/*.d/
 !userland/skel/**/*.d/**
+
+# Python test helpers
+__pycache__/
+*.py[cod]
+
+# Canonical GitHub Actions tools/cache directory
+.tools/

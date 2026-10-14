@@ -71,3 +71,5 @@
 #define ENODATA 61
 #define EWOULDBLOCK 11
 #define EOVERFLOW 75
+
+#define EBADFD 77
