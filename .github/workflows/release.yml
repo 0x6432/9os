@@ -40,7 +40,7 @@ jobs:
         arch: [x86_64, riscv64, aarch64]
     env:
       ARCH: ${{ matrix.arch }}
-      TOOLS_DIR: ${{ runner.temp }}/9os-tools
+      TOOLS_DIR: ${{ github.workspace }}/.tools
       NO_PORTS: ${{ (github.event_name == 'workflow_dispatch' && !inputs.ports) && '1' || '' }}
     steps:
       - uses: actions/checkout@v4

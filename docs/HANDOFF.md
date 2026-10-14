@@ -1791,3 +1791,11 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   not workspace/../tools; a host regression rejects forbidden path components.
 - This workflow change needs fresh PR CI and verification that caches are actually saved.
   No kernel/PCM change. Keep PR #5 draft/unmerged until final validation and user approval.
+- Corrected the first cache-path attempt: runner.temp is unavailable in job-level env;
+  workflow validation rejected it before starting jobs. Use github.workspace/.tools
+  (canonical, no relative components, valid job context), and ignore .tools/ in git.
+  The host regression now also enforces the job-valid context.
+- Fontconfig's last RISC-V download failed with timeouts/HTTP 418. Use the same 2.15.0
+  upstream gzip release mirrored by Alpine v3.20, pinned to its independent SHA512;
+  archive digest, extraction, release version and offline downloader regressions pass.
+  No dependency version change. Fresh CI must validate this final workflow/storage head.
