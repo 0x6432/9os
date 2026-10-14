@@ -21,7 +21,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 static int checks, fails;
-#define CHECK(x) do { ++checks; if (!(x)) { ++fails; std::fprintf(stderr,"qttest: FAIL %d: %s\n",__LINE__,#x); } } while (0)
+#define CHECK(x) do { ++checks; bool ok=bool(x); std::printf("qttest: %s %d: %s\n",ok ? "ok" : "FAIL",__LINE__,#x); std::fflush(stdout); if (!ok) ++fails; } while (0)
 class Service : public QObject {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.nineos.QtTest")
@@ -44,6 +44,7 @@ public slots:
 };
 int main(int argc, char **argv) {
     QCoreApplication app(argc,argv);
+    alarm(60); // Bound failures even if an event loop or process primitive stalls.
     if (app.arguments().contains("--server")) {
         auto bus=QDBusConnection::sessionBus(); Service svc;
         if (!bus.isConnected() || !bus.registerService("org.nineos.QtTest") ||

@@ -3,7 +3,7 @@
 set -e
 D=$(cd "$(dirname "$0")" && pwd)
 # dependency order
-ALL="lua sqlite libffi expat dbus wayland wltest wayland-protocols pixman libxkbcommon libdrm wlkms kmstest xkeyboard-config libudev-zero libevdev mtdev check glib libgudev libwacom libinput seatd inputtest hwdata libdisplay-info libcxx-headers libcxx cxxtest llvm jittest mesa egltest wlgltest wlroots freetype fontconfig dejavu tllist fcft foot fribidi harfbuzz libpng cairo pango json-c sway"
+ALL="lua sqlite libffi expat dbus wayland wltest wayland-protocols pixman libxkbcommon libdrm wlkms kmstest xkeyboard-config libudev-zero libevdev mtdev check glib libgudev libwacom libinput seatd inputtest hwdata libdisplay-info libcxx-headers libcxx cxxtest qtbase llvm jittest mesa egltest wlgltest wlroots freetype fontconfig dejavu tllist fcft foot fribidi harfbuzz libpng cairo pango json-c sway"
 for p in ${PORTS:-$ALL}; do
     echo "== port $p ($ARCH)"; sh "$D/ports/$p.sh"
 done

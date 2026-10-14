@@ -11,13 +11,13 @@ S=$PORTS_SRC/qtbase-everywhere-src-$V
 [ -d "$S" ] || tar xJf "$T" -C "$PORTS_SRC"
 H=${HOST_TOOLS:-${TOOLS_DIR:-/data/tools}/host}/qt-$V
 HB=$UL/build/qt-host-$V
-if [ ! -x "$H/libexec/moc" ] || [ ! -x "$H/libexec/qdbuscpp2xml" ]; then
+if [ ! -x "$H/libexec/moc" ] || [ ! -x "$H/bin/qdbuscpp2xml" ] || [ ! -x "$H/bin/qdbusxml2cpp" ]; then
     env -u PKG_CONFIG_LIBDIR -u PKG_CONFIG_SYSROOT_DIR -u PKG_CONFIG_PATH \
     cmake -S "$S" -B "$HB" -G Ninja -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
-        -DQT_FEATURE_gui=OFF -DQT_FEATURE_network=OFF -DQT_FEATURE_sql=OFF \
-        -DQT_FEATURE_dbus=ON -DQT_FEATURE_dbus_linked=OFF -DQT_FEATURE_icu=OFF -DQT_FEATURE_glib=OFF \
-        -DQT_FEATURE_system_pcre2=OFF -DQT_FEATURE_system_zlib=OFF \
+        -DFEATURE_gui=OFF -DFEATURE_network=OFF -DFEATURE_sql=OFF \
+        -DFEATURE_dbus=ON -DFEATURE_dbus_linked=OFF -DFEATURE_icu=OFF -DFEATURE_glib=OFF \
+        -DFEATURE_system_pcre2=OFF -DFEATURE_system_zlib=OFF \
         > "$HB.log" 2>&1 || { tail -40 "$HB.log"; exit 1; }
     cmake --build "$HB" -j"${JOBS:-2}" >> "$HB.log" 2>&1 || { tail -40 "$HB.log"; exit 1; }
     cmake --install "$HB" >> "$HB.log" 2>&1 || { tail -40 "$HB.log"; exit 1; }
@@ -45,9 +45,9 @@ EOT
 cmake -S "$S" -B "$B" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$TC" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
-    -DQT_FEATURE_gui=OFF -DQT_FEATURE_network=OFF -DQT_FEATURE_sql=OFF \
-    -DQT_FEATURE_dbus=ON -DQT_FEATURE_dbus_linked=ON -DQT_FEATURE_icu=OFF -DQT_FEATURE_glib=OFF \
-    -DQT_FEATURE_system_pcre2=OFF -DQT_FEATURE_system_zlib=OFF \
+    -DFEATURE_gui=OFF -DFEATURE_network=OFF -DFEATURE_sql=OFF \
+    -DFEATURE_dbus=ON -DFEATURE_dbus_linked=ON -DFEATURE_icu=OFF -DFEATURE_glib=OFF \
+    -DFEATURE_system_pcre2=OFF -DFEATURE_system_zlib=OFF \
     > "$B.log" 2>&1 || { tail -50 "$B.log"; exit 1; }
 cmake --build "$B" -j"${JOBS:-2}" >> "$B.log" 2>&1 || { tail -50 "$B.log"; exit 1; }
 DESTDIR="$PREFIX_ROOT" cmake --install "$B" >> "$B.log" 2>&1 || { tail -40 "$B.log"; exit 1; }

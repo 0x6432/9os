@@ -26,6 +26,12 @@ if [ -e userland/build/ports-root-$ARCH/usr/bin/dbussmoke ]; then
     # Upstream dbus-run-session sends SIGTERM then exits without waiting for the daemon.
     DBUSCLEAN="for i in 1 2 3 4 5 6 7 8 9 10; do pidof dbus-daemon >/dev/null || break; sleep 1; done; ! pidof dbus-daemon && [ \$(wc -c < /etc/machine-id) = 33 ]"
 fi
+QT=; QTUSER=; QTCLEAN=
+if [ -e userland/build/ports-root-$ARCH/usr/bin/qtsmoke ]; then
+    QT="qtsmoke && qtsmoke"
+    QTUSER="mkdir -p /tmp/qt-user && chown 1000:1000 /tmp/qt-user && chmod 700 /tmp/qt-user && su user -s /bin/sh -c 'XDG_RUNTIME_DIR=/tmp/qt-user dbus-run-session -- qttest'; r=\$?; rm -rf /tmp/qt-user; [ \$r = 0 ]"
+    QTCLEAN="$DBUSCLEAN"
+fi
 CXX=; [ -e userland/build/ports-root-$ARCH/usr/bin/cxxtest ] && CXX=cxxtest
 [ -e userland/build/ports-root-$ARCH/usr/bin/cxxtest-noeh ] && CXX="$CXX cxxtest-noeh"
 WL=; [ -e userland/build/ports-root-$ARCH/usr/bin/wltest ] && WL=wltest
@@ -52,7 +58,7 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     "touch /tmp/fa && setfacl -m u:1000:r,g:2000:rw /tmp/fa && getfacl -n /tmp/fa | grep -q '^user:1000:r--' && getfacl -c /tmp/fa | grep -q '^mask::rw-' && setfacl -x u:1000 /tmp/fa && setfacl -b /tmp/fa && ! getfacl -c /tmp/fa | grep -q mask && mkdir /tmp/fd && setfacl -d -m u:1000:rwx /tmp/fd && getfacl -cdn /tmp/fd | grep -q '^user:1000:rwx' && touch /tmp/fd/x && getfacl -cn /tmp/fd/x | grep -q '^user:1000:rwx' && rm -rf /tmp/fa /tmp/fd" \
-    ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
+    ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${QT:+"$QT"} ${QTUSER:+"$QTUSER"} ${QTCLEAN:+"$QTCLEAN"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
     "T=/usr/libexec/libinput/libinput-test-suite; [ ! -x \$T ] || { udevshim -d; chvt 2; \$T -j1 --filter-group=udev > /tmp/li.log 2>&1; r=\$?; chvt 1; kill \$(cat /run/udev/udevshim.pid); [ \$r = 0 ] || grep -A12 'failed:' /tmp/li.log; [ \$r = 0 ]; }" \
     drmdemo ${SW1:+"$SW1"} ${SW2:+"$SW2"} ${GLSMOKE} ${LLGLSMOKE:+"$LLGLSMOKE"} \
     nettest net2test "ping -c 2 -W 2 127.0.0.1" \
