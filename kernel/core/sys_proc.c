@@ -1,4 +1,5 @@
 #include <kernel/vmm.h>
+#include <kernel/uaccess.h>
 /* Process, time and miscellaneous system calls. */
 #include <kernel/vfs.h>
 #include <kernel/syscall.h>
@@ -618,11 +619,9 @@ static struct futex_bucket *futex_bucket(struct mm *mm, uint32_t *uaddr) {
 static uint64_t fb_lock(struct futex_bucket *b) { uint64_t f = arch_irq_save(); spin_lock_ipi(&b->lock); return f; }
 static void fb_unlock(struct futex_bucket *b, uint64_t f) { spin_unlock(&b->lock); arch_irq_restore(f); }
 
-static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
+static int futex_wake_locked(struct futex_bucket *b, struct mm *mm, uint32_t *uaddr, int n) {
     if (n <= 0) return 0;
-    struct futex_bucket *b = futex_bucket(mm, uaddr);
     int woken = 0;
-    uint64_t f = fb_lock(b);
     list_for_each_safe(it, tmp, &b->head) {
         if (woken >= n) break;
         struct futex_waiter *w = list_entry(it, struct futex_waiter, node);
@@ -632,9 +631,15 @@ static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
         wake_up(&w->wq);            /* under the bucket lock: w stays alive until we drop it */
         woken++;
     }
-    fb_unlock(b, f);
     __atomic_fetch_add(&futex_wakes, (uint64_t)woken, __ATOMIC_RELAXED);
     return woken;
+}
+static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
+    struct futex_bucket *b = futex_bucket(mm, uaddr);
+    uint64_t f = fb_lock(b);
+    int r = futex_wake_locked(b, mm, uaddr, n);
+    fb_unlock(b, f);
+    return r;
 }
 int futex_wake(uint32_t *uaddr, int n) { return futex_wake_mm(curproc->mm, uaddr, n); }
 
@@ -670,6 +675,72 @@ int futex_wake_any(uint32_t *uaddr, int n) {
     int r = futex_wake_mm(k.mm, k.addr, n);
     if (k.mm != curproc->mm && r < n) r += futex_wake_mm(curproc->mm, uaddr, n - r);
     return r;
+}
+
+/* FUTEX_WAKE_OP: serialize the atomic RMW and both wake lists against waiter enqueue.
+ * Prefault outside the bucket locks; mm lock pins the validated user PTE during the RMW.
+ * A concurrent COW/reclaim invalidation returns EAGAIN and is prefaulted/retried outside. */
+static int futex_atomic_op32(uint32_t *uaddr, unsigned op, uint32_t arg, uint32_t *old) {
+    struct mm *mm = curproc->mm;
+    mm_lock(mm);
+    struct vma *v = vma_find(mm, (vaddr_t)uaddr);
+    paddr_t pa; unsigned fl;
+    int r = 0;
+    if (!v || (vaddr_t)uaddr < v->start || !(v->prot & VM_WRITE) || (v->flags & VMA_PHYS)) r = -EFAULT;
+    else if (!vmm_query(mm->pt, (vaddr_t)uaddr, &pa, &fl) || !(fl & VM_WRITE)) r = -EAGAIN;
+    if (!r) {
+        user_access_begin();
+        switch (op) {
+        case 0: *old = __atomic_exchange_n(uaddr, arg, __ATOMIC_SEQ_CST); break;
+        case 1: *old = __atomic_fetch_add(uaddr, arg, __ATOMIC_SEQ_CST); break;
+        case 2: *old = __atomic_fetch_or(uaddr, arg, __ATOMIC_SEQ_CST); break;
+        case 3: *old = __atomic_fetch_and(uaddr, ~arg, __ATOMIC_SEQ_CST); break;
+        case 4: *old = __atomic_fetch_xor(uaddr, arg, __ATOMIC_SEQ_CST); break;
+        }
+        user_access_end();
+    }
+    mm_unlock(mm);
+    return r;
+}
+static int futex_wake_op(uint32_t *addr, uint32_t *addr2, bool shared, int n, int n2, uint32_t encoded) {
+    if (((uintptr_t)addr | (uintptr_t)addr2) & 3) return -EINVAL;
+    if (!access_ok(addr, 4) || !access_ok(addr2, 4)) return -EFAULT;
+    unsigned op = encoded >> 28, cmp = (encoded >> 24) & 15;
+    int32_t arg = (int32_t)(encoded << 8) >> 20, cmpval = (int32_t)(encoded << 20) >> 20;
+    if ((op & 7) > 4) return -ENOSYS;
+    if (op & 8) arg = (int32_t)(1u << ((uint32_t)arg & 31));
+    for (;;) {
+        if (!user_range_ok(addr2, 4, true)) return -EFAULT;
+        struct futex_key a = futex_key_of(addr, shared), b = futex_key_of(addr2, shared);
+        struct futex_bucket *ba = futex_bucket(a.mm, a.addr), *bb = futex_bucket(b.mm, b.addr);
+        struct futex_bucket *l1 = ba < bb ? ba : bb, *l2 = ba < bb ? bb : ba;
+        uint64_t f = arch_irq_save();
+        spin_lock_ipi(&l1->lock);
+        if (l2 != l1) spin_lock_ipi(&l2->lock);
+        uint32_t old;
+        int r = futex_atomic_op32(addr2, op & 7, (uint32_t)arg, &old);
+        if (!r) {
+            int32_t val = (int32_t)old;
+            bool match = false;
+            switch (cmp) {
+            case 0: match = val == cmpval; break;
+            case 1: match = val != cmpval; break;
+            case 2: match = val < cmpval; break;
+            case 3: match = val <= cmpval; break;
+            case 4: match = val > cmpval; break;
+            case 5: match = val >= cmpval; break;
+            default: r = -ENOSYS; break;
+            }
+            if (!r) {
+                r = futex_wake_locked(ba, a.mm, a.addr, n);
+                if (match) r += futex_wake_locked(bb, b.mm, b.addr, n2);
+            }
+        }
+        if (l2 != l1) spin_unlock(&l2->lock);
+        spin_unlock(&l1->lock);
+        arch_irq_restore(f);
+        if (r != -EAGAIN) return r;
+    }
 }
 
 /* move up to n waiters from key a to key b (FUTEX_REQUEUE): a waiter's bucket may change, so
@@ -767,6 +838,10 @@ int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *
     case 1: case 10:     /* FUTEX_WAKE(_BITSET) */
         if (cmd == 10 && !val3) return -EINVAL;
         { struct futex_key k = futex_key_of(uaddr, shared); return futex_wake_mm(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX)); }
+    case 5:    /* FUTEX_WAKE_OP: val2 is passed in the timeout slot, not a pointer */
+        /* Linux checks each limit after waking the first waiter: even <= 0 wakes one. */
+        return futex_wake_op(uaddr, uaddr2, shared, MAX((int32_t)val, 1),
+                             MAX((int32_t)(uintptr_t)uts, 1), val3);
     case 3: case 4: {    /* FUTEX_REQUEUE / CMP_REQUEUE: wake val, then wake (instead of move) the rest */
         if (cmd == 4) {
             struct futex_bucket *b = futex_bucket(curproc->mm, uaddr);

@@ -82,6 +82,7 @@ jobs:
           scripts/rbtree-host-tests.sh
           scripts/net-ring-host-tests.sh
           scripts/snd-host-tests.sh
+          scripts/futex-host-tests.sh
           python3 scripts/fetch-host-tests.py
 
       - name: Build userland (musl, BusyBox, Bash, ports)
