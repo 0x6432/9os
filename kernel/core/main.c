@@ -28,6 +28,7 @@ void virtio_blk_init(void);
 void loop_init(void);
 void net_init(void);
 void virtio_net_init(void);
+void virtio_snd_init(void);
 #include <kernel/pci.h>
 #include <kernel/irq.h>
 
@@ -107,6 +108,7 @@ void kmain(void) {
     loop_init();
     net_init();
     virtio_net_init();
+    virtio_snd_init();
     fbcon_vt_init();       /* per-VT shadow buffers (heap is up) */
     vt_late_init();
     fbcon_init();          /* (re)attach the console if a GPU driver provided a framebuffer */
