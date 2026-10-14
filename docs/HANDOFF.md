@@ -1778,3 +1778,16 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   and complete the remaining scheduler boots. Keep PR #5 draft and unmerged.
 - Merged-main run 38544619661 failed only ARM's libevdev download; x86 and RISC-V passed.
   Requested a failed-job rerun after run completion; its result remains pending.
+
+### M39 boot fix verified; cache-path repair
+- Run 38562988168 at 3effe49: x86 and ARM succeed. ARM main 88/88, disk-root 20/20 +
+  6/6, waveform match, no-card boot 2/2, UP 6/6 and MLFQ 9/9 verify the boot-order fix.
+- RISC-V failed downloading fontconfig before guest tests; requested failed-job retry at
+  unchanged code. Earlier RISC-V audio/PCM/WAV/main coverage had already passed at 86153e6.
+- Merged-main run 38544619661 attempt 2 is fully successful, including release publication.
+- Found why repeated CI runs have no cache: successful x86 post-step logs say "Invalid
+  pattern .../9os/../tools/dl. Relative pathing '.' and '..' is not allowed." Repository
+  Actions API reports zero cache entries. Use canonical runner.temp/9os-tools for TOOLS_DIR,
+  not workspace/../tools; a host regression rejects forbidden path components.
+- This workflow change needs fresh PR CI and verification that caches are actually saved.
+  No kernel/PCM change. Keep PR #5 draft/unmerged until final validation and user approval.
