@@ -34,7 +34,7 @@ static struct {
     paddr_t ctrl_pa, events_pa, tx_pa;
     uint8_t *ctrl, *events, *tx;
     bool present, opened, failed, ctrl_pending;
-    uint32_t ctrl_len, stream, busy;
+    uint32_t ctrl_len, stream, busy, submitted;
     unsigned frames[PCM_PERIODS];
     uint64_t appl, hw;
     int state;
@@ -56,10 +56,10 @@ static void reap(void *arg) {
     }
     while (virtq_pop(&snd.q[2], &id, &len)) {
         unsigned slot = id / 3;
-        if (id % 3 || slot >= PCM_PERIODS || !(snd.busy & (1u << slot))) { fail_locked(); continue; }
+        if (id % 3 || slot >= PCM_PERIODS || !(snd.submitted & (1u << slot))) { fail_locked(); continue; }
         uint32_t st; memcpy(&st, snd.tx + slot * PAGE_SIZE + 8, 4);
-        if (len < 8 || st != S_OK) fail_locked();
-        snd.busy &= ~(1u << slot); snd.hw += snd.frames[slot]; notify = true;
+        if (len < 8 || st != S_OK) { pr_warn("snd: bad tx status id=%u len=%u status=%x\n", id, len, st); fail_locked(); }
+        snd.busy &= ~(1u << slot); snd.submitted &= ~(1u << slot); snd.hw += snd.frames[slot]; notify = true;
     }
     while (virtq_pop(&snd.q[1], &id, &len)) {
         if (id >= snd.q[1].size) { fail_locked(); continue; }
@@ -108,7 +108,17 @@ static void defaults(void) {
 }
 static int start(void) {
     if (snd.state != PCM_PREPARED) return -EBADFD;
-    int r = command(R_START); if (!r) snd.state = PCM_RUNNING; return r;
+    int r = command(R_START);
+    if (r) return r;
+    snd.state = PCM_RUNNING;
+    /* Prepared data stays kernel-owned until START. DROP can discard it without
+     * racing a device's control queue against an unconsumed TX notification. */
+    uint64_t f = spin_lock_irqsave(&snd.lock);
+    for (unsigned slot = 0; slot < PCM_PERIODS; slot++) if (snd.busy & (1u << slot)) {
+        snd.submitted |= 1u << slot; virtq_push(&snd.q[2], (uint16_t)(slot * 3));
+    }
+    spin_unlock_irqrestore(&snd.lock, f);
+    return 0;
 }
 static int empty_queue(bool drain) {
     if (snd.state < PCM_PREPARED) return 0;
@@ -123,9 +133,18 @@ static int empty_queue(bool drain) {
     if (dead()) return -EIO;
     int r = snd.state == PCM_RUNNING ? command(R_STOP) : 0;
     if (!r) r = command(R_RELEASE); /* returns every pending TX buffer before completion */
-    reap(nullptr);
-    if (!r && snd.busy) { uint64_t f = spin_lock_irqsave(&snd.lock); fail_locked(); spin_unlock_irqrestore(&snd.lock, f); r = -EIO; }
-    if (!r) snd.state = PCM_SETUP;
+    uint64_t end = time_ns() + 1000000000ull;
+    while (!r && __atomic_load_n(&snd.submitted, __ATOMIC_ACQUIRE) && !dead()) {
+        reap(nullptr);
+        if (time_ns() >= end) return timeout();
+        wait_event_timeout(&snd.wq, 1000000ull);
+    }
+    if (!r && dead()) r = -EIO;
+    if (!r) {
+        uint64_t f = spin_lock_irqsave(&snd.lock);
+        snd.busy = 0; snd.appl = snd.hw; /* discard only unsent prepared data */
+        spin_unlock_irqrestore(&snd.lock, f); snd.state = PCM_SETUP;
+    }
     return r;
 }
 static int pcm_open(struct inode *ino, struct file *f) {
@@ -171,7 +190,7 @@ static ssize_t transfer(struct file *f, const void *buf, size_t n) {
         snd.q[2].desc[h + 2] = (struct vq_desc){ pa + 8, 8, VQ_WRITE, 0 };
         snd.frames[slot] = count / PCM_FRAME_BYTES; snd.busy |= 1u << slot;
         snd.appl += count / PCM_FRAME_BYTES;
-        virtq_push(&snd.q[2], (uint16_t)h);
+        if (snd.state == PCM_RUNNING) { snd.submitted |= 1u << slot; virtq_push(&snd.q[2], (uint16_t)h); }
         uint64_t queued = snd.appl - snd.hw;
         spin_unlock_irqrestore(&snd.lock, fl);
         done += count; end = time_ns() + 4000000000ull;
@@ -223,7 +242,7 @@ static int pcm_ioctl_locked(struct file *f, uint64_t cmd, uint64_t arg) {
     case PCM_IO_SW_PARAMS: {
         if (snd.state == PCM_OPEN) return -EBADFD;
         struct pcm_sw_params p; if ((r = copy_in(&p, arg, sizeof p))) return r;
-        if (!p.avail_min || p.avail_min > PCM_BUFFER || !p.start_threshold || p.boundary < PCM_BUFFER || p.boundary > (1ull << 62) || p.period_step != 1 || p.tstamp_mode || p.silence_size || p.silence_threshold) return -EINVAL;
+        if (!p.avail_min || p.avail_min > PCM_BUFFER || !p.start_threshold || p.boundary < PCM_BUFFER || p.boundary > (1ull << 62) || p.period_step != 1 || p.stop_threshold != PCM_BUFFER || p.tstamp_mode || p.silence_size || p.silence_threshold) return -EINVAL;
         snd.sw = p; memset(snd.sw.reserved, 0, sizeof snd.sw.reserved); return copy_out(arg, &snd.sw, sizeof snd.sw);
     }
     case PCM_IO_PREPARE:
@@ -270,6 +289,7 @@ static int pcm_ioctl_locked(struct file *f, uint64_t cmd, uint64_t arg) {
     }
 }
 static int pcm_ioctl(struct file *f, uint64_t cmd, uint64_t arg) {
+    cmd = (uint32_t)cmd; /* musl ioctl(int request) sign-extends high-bit requests */
     mutex_lock(&snd.io); reap(nullptr);
     int r = dead() ? -EIO : pcm_ioctl_locked(f, cmd, arg); mutex_unlock(&snd.io); return r;
 }
@@ -277,7 +297,10 @@ static unsigned pcm_poll(struct file *f) {
     if (dead()) return POLLERR;
     int state = __atomic_load_n(&snd.state, __ATOMIC_ACQUIRE);
     if (state != PCM_PREPARED && state != PCM_RUNNING) return POLLERR;
-    return available() >= __atomic_load_n(&snd.sw.avail_min, __ATOMIC_RELAXED) ? POLLOUT | POLLWRNORM : 0;
+    uint64_t fl = spin_lock_irqsave(&snd.lock);
+    bool slot = snd.busy != (1u << PCM_PERIODS) - 1;
+    spin_unlock_irqrestore(&snd.lock, fl);
+    return slot && available() >= __atomic_load_n(&snd.sw.avail_min, __ATOMIC_RELAXED) ? POLLOUT | POLLWRNORM : 0;
 }
 static const struct file_ops pcm_ops = { .open = pcm_open, .release = pcm_close, .write = pcm_write, .ioctl = pcm_ioctl, .poll = pcm_poll };
 
