@@ -2,7 +2,7 @@
 
 _Updated after every milestone. Read this first when picking up the project._
 
-## Current state: M33 complete (ptrace, POSIX timers, robust/shared futexes, clone3/pidfd, waitid, file locks + leases, xattrs + POSIX ACLs); M26–M32b done; M24 locking work continues opportunistically
+## Current state: M39 complete (validated minimal audio); M40 DBus/Qt groundwork in progress; M24 locking work continues opportunistically
 
 | Milestone | Status |
 |-----------|--------|
@@ -1799,3 +1799,20 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   upstream gzip release mirrored by Alpine v3.20, pinned to its independent SHA512;
   archive digest, extraction, release version and offline downloader regressions pass.
   No dependency version change. Fresh CI must validate this final workflow/storage head.
+
+### M39 completed; M40 session-bus first slice
+- PR #5 merged as 74243cc after run 38587582797 passed on x86_64, riscv64 and
+  aarch64: main 88/88, disk-root 20/20 + 6/6, PCM 109 checks, exact 16384-frame
+  stereo WAV, absent-card boot, UP and MLFQ tests; x86 also passes the SMP8 suite.
+  Cache uploads now succeed (~196–198 MiB per architecture).
+- Audio scope stays fixed-format playback only, not ALSA mixer/capture/mmap or an
+  audio server. Previous pending/unmerged notes above are historical, now superseded.
+- User authorizes future PR merges according to agent judgment after sound review
+  and validation; no repeated merge approval needed. Branch deletion is not authorized.
+- M40 begins with DBus 1.16.2, independently SHA512-pinned Alpine/upstream mirrors,
+  shared libdbus, explicit private session daemon/tools, and a real forked-client
+  regression (auth, ownership, credentials, RPC, UNIX FD transfer and clean exit).
+  Root image includes DBus configuration/data. Optional CI runs dbussmoke when built.
+- Initial DBus port disables systemd/X11/LSM integration and service auto-activation;
+  no system bus/messagebus account, Qt/KDE, logind or namespace claim. Local testing
+  is x86_64 only; other-architecture build/guest coverage belongs to PR CI.
