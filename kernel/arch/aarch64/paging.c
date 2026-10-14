@@ -267,6 +267,12 @@ uint64_t arch_kernel_wx_pages(void) { return wx_scan(kernel_pt.root, 0); }
 
 bool a64_pan, a64_rndr;
 void arch_harden_cpu(void) {
+    /* The normal EL0 JIT/libffi ABI needs CTR_EL0 and cache maintenance.
+     * Limine may leave SCTLR.UCT/UCI clear, trapping __clear_cache as SIGILL.
+     * These instructions still obey translation/access checks; PAN/PXN/UXN
+     * remain enabled. Do this per CPU, including APs. */
+    sysreg_write(sctlr_el1, sysreg_read(sctlr_el1) | (1ULL << 15) | (1ULL << 26));
+    isb();
     uint64_t mmfr1 = sysreg_read(id_aa64mmfr1_el1);
     if ((mmfr1 >> 20) & 0xf) {          /* PAN: set on every exception entry (SCTLR.SPAN = 0) */
         sysreg_write(sctlr_el1, sysreg_read(sctlr_el1) & ~(1ULL << 23));

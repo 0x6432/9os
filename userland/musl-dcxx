@@ -1,5 +1,11 @@
 #!/bin/sh
-# musl-dcc for C++ sources: adds the libc++ headers of the ports root (installed by
-# ports/libcxx-headers.sh). Only header-only parts of the C++ library are usable (HarfBuzz).
+# libc++ C++ compiler wrapper. Runtime builds set CXXINC= and CXX_RUNTIME=0
+# because they supply generated headers and must not link the installed library.
 T=$(cd "$(dirname "$0")" && pwd)
-CXXINC=$T/build/ports-root-${ARCH:-x86_64}/usr/include/c++/v1 DYNAMIC=1 exec "$T/musl-cc" "$@"
+P=$T/build/ports-root-${ARCH:-x86_64}/usr
+link=1
+for a in "$@"; do case "$a" in -c|-S|-E|-M|-MM|-r|-Wl,-r|-nostdlib) link=0;; esac; done
+if [ "$link" = 1 ] && [ "${CXX_RUNTIME:-1}" = 1 ] && [ -e "$P/lib/libc++.so" ]; then
+    set -- "$@" -L"$P/lib" -lc++ -lc++abi
+fi
+CXXINC=${CXXINC-$P/include/c++/v1} DYNAMIC=1 exec "$T/musl-cc" "$@"

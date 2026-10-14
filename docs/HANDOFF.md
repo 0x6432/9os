@@ -1575,3 +1575,154 @@ Mod4+Return opens foot, Mod4+Shift+e exits. With `-device virtio-gpu-pci` and
   root-caused: if it recurs, log the invalid pointer/page flags and caller before the
   assertion and symbolize against that exact kernel ELF. Do not assume the ring fix
   proves this separate assertion resolved.
+
+## M38 WIP: Mesa software rendering (branch notion/m38, draft PR #4)
+
+### Landed so far
+- `libcxx.sh`: libc++ + libc++abi 18.1.8 shared runtimes for musl, not just headers.
+  Exceptions, RTTI and the unwinder are disabled for now. CMake builds from release sources;
+  the LLVM archive supplies CMake modules only (no LLVM compiler/library built yet).
+  Do not put installed libc++ headers in the runtime build's include_next path (`CXXINC=`),
+  or link an installed runtime into itself (`CXX_RUNTIME=0`). Explicitly disable host
+  libgcc_s/libatomic probes. Installed DSOs depend only on libc++abi and musl.
+- `musl-dcxx` links libc++/libc++abi when installed; runtime builds can opt out. Sandbox
+  setup now installs clang/LLVM/lld 18 alongside the AL2023 clang 15 and puts the version-18
+  tools in `/data/tools/bin`, matching Ubuntu CI. libc++ 18 needs clang >=16.
+- `mesa.sh`: Mesa 24.3.4, softpipe + llvmpipe, EGL/GLES2/OpenGL/GBM, Wayland platform.
+  LLVM 18 ORC JIT is enabled by default (`MESA_LLVM=0` selects softpipe-only). No Vulkan,
+  GLX, GLVND, video APIs, shader disk cache, zlib/zstd or libunwind. Host generators need
+  Mako, PyYAML and packaging; the native file points to the host wayland-scanner.
+- `cxxtest`: allocation/vector/sort, strings/iostreams, threads/mutex/condition-variable,
+  static initialization guards and thread-local destructors pass in x86 QEMU.
+- `egltest`: surfaceless EGL 1.5 + GLES context, vertex/fragment shaders, buffer upload,
+  triangle draw, exact green triangle/red background pixels, swap and context teardown
+  (18 checks). Mesa reports OpenGL ES 3.1, renderer softpipe.
+- `egltest gbm`: the same rendering through `/dev/dri/card0`, GBM and an EGL window surface;
+  lock the front buffer, verify geometry and GEM handle, map it and check its green pixel
+  (26 checks). Mesa emits device-information lookup warnings, but falls back to kms_swrast
+  successfully. Both modes and cxxtest are conditional CI main-suite commands.
+
+### Next
+1. Latest local x86 full CI-equivalent run passes: 79/79 + 20/20 + 6/6, clean disk-root
+   shutdown/e2fsck, UP 6/6, MLFQ 9/9 and eight-CPU 7/7. Other-arch validation stays in
+   PR CI only. Source downloads now share fetch.sh (DNS/TLS retries, archive validation,
+   atomic publication and invalid-cache replacement), with offline mock-curl regressions.
+2. LLVM/llvmpipe: the new shared LLVM JIT port and ORC generated-code regression are WIP.
+   Only the guest backend is configured (X86/AArch64/RISCV), with host TableGen. The x86 musl
+   LLVM library now builds, and ORC `jittest` passes 12 checks in QEMU (generated native
+   add function, repeated calls/lookups, signed arguments and cleanup). llvmpipe build
+   and runtime validation are still in progress; do not claim llvmpipe tested yet.
+3. GLES2 compositor validation now proceeds independently of LLVM: the actual kms_swrast
+   PRIME/EGL-image path works on softpipe, despite the earlier PIPE_CAP_DMABUF assumption.
+   No capabilities were spoofed. `egltest dmabuf` passed 37 checks on x86: GBM export,
+   EGL image import after closing the export fd, green-pixel readback, blue render through
+   the imported image and matching bytes in the original mapped GBM buffer.
+   wlroots now builds GLES2/GBM alongside pixman/shm/dumb. The existing Sway/foot CI test
+   explicitly selects pixman. `wlgltest` creates a Wayland EGL xdg-shell window, checks
+   three RGB frames and waits for real compositor frame callbacks (20 checks).
+   `glsmoke` forces GLES2 + software permission, checks that the EGL client is mapped,
+   verifies the GLES2 renderer log and checks a clean compositor exit. Three consecutive x86
+   lifecycles pass after fixing the exit-IPC race. Full local regression results: 82/82
+   main, 20/20 + 6/6 disk-root, UP 6/6, MLFQ 9/9 and SMP8 7/7.
+   The compositor may close IPC before swaymsg receives the exit reply; its process exit
+   status, not swaymsg's reply status, is the authoritative cleanup check.
+4. Exceptions/RTTI/unwinder support later, before toolkits requiring them (Qt/KDE).
+
+Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 yet.
+
+### KMS test timing follow-up
+- M38 x86 CI exposed an old kmstest assumption: its second NONBLOCK ioctl must always
+  return EBUSY. Property lookup ioctls (or host preemption) can span a vblank, completing
+  the first commit before the second is submitted. The requests are now prepared first
+  and synchronized to vblank; either EBUSY while pending or success with the first
+  completion event already readable is valid. The event is checked exactly once and
+  its user-data ordering retained. Both requests select the same green framebuffer so
+  their relative completion timing cannot invalidate the pixel assertion.
+- Three normal x86 runs observed EBUSY and passed. Two runs with
+  `KMSTEST_FLIP_DELAY_US=50000` observed completion between calls and passed. CI runs
+  both normal and delayed variants; main-suite count becomes 80 when all ports exist.
+
+### GLES2 CI source-mirror follow-up
+- aarch64 CI run 38427458419 failed before compilation at seatd download: all sourcehut
+  connect attempts timed out. Added Alpine v3.22 distfiles as a fallback; its seatd 0.9.1
+  archive matches the existing upstream cache exactly (SHA256
+  `819979c922a0be258aed133d93920bce6a3d3565a60588d6d372ce9db2712cd3`).
+- No other architecture is built/tested locally; use PR CI for those results.
+
+### LLVM JIT and GLES2 validation checkpoint
+- GLES2 CI run 38431082155 at c94fd99 passed x86_64, riscv64 and aarch64.
+- LLVM 18 CMake's `engine` pseudo-component expands to obsolete `jit` and fails to link
+  `-lLLVMjit`; use concrete `mcjit`, `executionengine`, `interpreter`, native and ORC
+  components instead. Include LTO for Mesa's LLVM >=15 optional module.
+- The target libLLVM DSO is stripped and needs only libc++, libc++abi and musl (no host
+  libgcc_s/libatomic). It is approximately 49 MiB on x86.
+- The host-executable llvm-config is built from LLVM's source with the target-generated
+  configuration tables, linking only the host's LLVM support library. Its target
+  development-tree paths prevent host library/header leakage. LLVM 18 checks
+  `libLLVM-18.so` in the build tree but CMake only creates that alias at install; provide
+  a build-tree symlink to the installed target DSO.
+- Optional `MESA_LLVM=1 PORTS=mesa` uses this tool. Mesa ORC's cache dynamic_cast requires
+  RTTI; a guarded/idempotent patch selects zero compiler threads explicitly and uses
+  static_cast to LLVM 18's known SimpleCompiler subclass. The source mismatch guard
+  and repeated application are tested. Default ports do not enable LLVM yet.
+
+### llvmpipe x86 checkpoint (cross-architecture CI pending)
+- Default port order now builds LLVM + jittest before Mesa. Meson builds llvmpipe with
+  ORC explicitly on all architectures; RISCV uses JITLink, x86/aarch64 use RuntimeDyld
+  in Mesa. LLVM's standalone LLJIT defaults choose JITLink for all three guest backends.
+- Mesa additionally needs LLVM `passes`, `target` and `analysis` C APIs exported from
+  the shared library, not merely pulled as static transitive dependencies.
+- LLVM's constructor/JIT code passes locally. llvmpipe reports GLES 3.2 and LLVM 18.1.8,
+  128-bit vectors. The surfaceless (18 checks), GBM (26), PRIME/EGL-image (37) and forced
+  GLES2 Wayland compositor (three frames, 20 client checks) all pass in x86 QEMU.
+  A combined run with repeated GBM/import lifecycles plus softpipe fallback passes 11/11.
+- Initial GBM tests rendered correctly but crashed on process exit: their early atexit
+  cleanup ran after Mesa's later-registered ORC singleton destructor. Explicitly destroy
+  GBM surface/device before returning, with idempotent cleanup as an early-error fallback.
+  Both formerly failing modes then pass twice, including zero process exit status.
+- Each meson_port snapshots its cross file. Previously the next port overwrote the
+  shared template and Ninja regeneration lost Mesa's llvm-config binary. Verified
+  wlroots rebuild remains a no-op after another port rewrites the template.
+- CI adds jittest, three explicit llvmpipe EGL modes and a forced llvmpipe compositor
+  lifecycle alongside softpipe + pixman fallback coverage. Full x86 run is in progress
+  (expected main-suite count 87); all-architecture LLVM CI must still validate this head.
+- Do not merge PR #4 or mark M38 complete until the new cross-architecture results pass.
+
+### M38 non-x86 CI follow-up (run 38437484009, head 0b7488f)
+- x86 passed. Both non-x86 builds completed; runtime results need fixes.
+- aarch64: jittest and all llvmpipe EGL modes die with SIGILL during JIT setup; softpipe
+  modes and the softpipe GLES2 compositor pass. Set SCTLR_EL1.UCT/UCI per CPU to allow
+  EL0 CTR_EL0 reads and DC/IC maintenance used by __clear_cache. PAN/PXN/UXN remain
+  enabled. This is a source-grounded fix pending ARM CI verification, not a confirmed
+  root cause yet. ARM SIGILL diagnostics now print opcode/PC/ESR if it persists.
+- hardentest now executes/re-writes a native return-value stub three times with RW/RX
+  transitions and __builtin___clear_cache, independently of LLVM. All three architecture
+  stubs are implemented; local testing remains x86 only.
+- riscv64: JIT and all llvmpipe modes pass, including the llvmpipe compositor. The first
+  softpipe compositor is OOM-killed (RSS ~78 MiB) after the long libinput/desktop suite.
+  Use a minimal no-bar configuration for glsmoke; the existing pixman/foot test retains
+  full default-desktop coverage. No guest RAM or disk budgets changed.
+- After a sandbox wipe, setup must put llvm-config and llvm-tblgen 18 on PATH as well
+  as clang/llvm-ar/etc; otherwise AL2023 can silently select LLVM 15 native tools.
+- The sandbox was wiped again and x86-only setup is rebuilding ports, including LLVM.
+
+### M38 validation and compact PMM metadata follow-up
+- Run 38448570303 at 6ede9f0: x86 and aarch64 succeed. ARM's independent code-rewrite
+  test, ORC JIT and both GLES2 compositor paths pass, verifying the UCT/UCI fix.
+- riscv64 still OOM-kills the first softpipe compositor with the no-bar config; simply
+  removing the bar was insufficient. JIT, EGL modes and llvmpipe compositor still pass.
+- Found concrete kernel overhead: page_array formerly allocated descriptors from PFN
+  zero to the highest RAM address, wasting ~28 MiB below RISC-V's high RAM base (~14 MiB
+  on ARM). It now covers [first_pfn, max_pfn), while buddy alignment/XOR and allocation
+  addresses remain absolute physical PFNs. Internal holes stay reserved; coalescing
+  cannot cross the lower metadata boundary. No guest RAM or disk budget increase.
+- The actual pmm_init/buddy/cache implementation is tested on the x86 host with synthetic
+  0x40000000, 0x80000000 and unaligned 0x80003000 RAM bases, an executable page, metadata
+  carving, an internal reserved hole, exhaustion, address round-trips, high-order
+  alignment/coalescing and cache drains. PMM 23622 checks and slab 65512082 checks pass.
+- Compact-metadata x86 guest smoke passes 7/7: hardentest, vmtest, slabtest, jittest and
+  both softpipe/llvmpipe GLES2 compositors, plus boot. Full validation follows.
+- Earlier local full softpipe fallback passed 82/82 + 20/20 + 6/6, clean shutdown/e2fsck,
+  UP 6/6, MLFQ 9/9, SMP8 7/7. LLVM has been restored locally after the wipe.
+- The PMM change still needs PR CI to verify the recovered RAM and remaining RISC-V OOM.
+  Keep PR #4 draft and unmerged.

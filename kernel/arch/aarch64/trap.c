@@ -79,6 +79,12 @@ void trap_dispatch(struct trap_frame *f, int kind) {
             else if (ec == 0x30) { sig = SIGTRAP; code = TRAP_HWBKPT; }                  /* hw breakpoint */
             else if (ec == 0x34) { sig = SIGTRAP; code = TRAP_HWBKPT; addr = f->far; }   /* watchpoint */
             else if (ec == 0x2c) { sig = SIGFPE; code = 0; }
+            if (sig == SIGILL) {
+                uint32_t insn = 0;
+                copy_from_user(&insn, (void *)f->pc, sizeof insn);
+                pr_warn("aarch64: illegal instruction pid %d pc %lx insn %08x esr %lx\n",
+                        current->proc->pid, f->pc, insn, f->esr);
+            }
             signal_force_info(current, sig, code, addr);
             goto out;
         }

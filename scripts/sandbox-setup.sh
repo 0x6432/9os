@@ -4,10 +4,16 @@
 set -e
 TOOLS_DIR=${TOOLS_DIR:-/data/tools}; export TOOLS_DIR
 cd "$(dirname "$0")/.."
-sudo dnf install -y -q clang lld llvm xorriso mtools cpio expat-devel libffi-devel bison flex pkgconf gcc make \
+sudo dnf install -y -q clang lld llvm clang18 llvm18 lld18 cmake xorriso mtools cpio expat-devel libffi-devel bison flex pkgconf gcc make \
     glibc-static gperf git bzip2 xz e2fsprogs util-linux >/dev/null
-pip3 install -q meson ninja 2>/dev/null || pip3 install -q --user meson ninja
-mkdir -p "$TOOLS_DIR/bin" "$TOOLS_DIR/dl" && cd "$TOOLS_DIR"
+pip3 install -q meson ninja Mako PyYAML packaging 2>/dev/null || pip3 install -q --user meson ninja Mako PyYAML packaging
+mkdir -p "$TOOLS_DIR/bin" "$TOOLS_DIR/dl"
+# Match Ubuntu CI: libc++ 18 requires clang >=16 (the default AL2023 clang is 15).
+for t in clang clang++ ld.lld llvm-ar llvm-ranlib llvm-strip llvm-nm llvm-config llvm-tblgen; do
+    ln -sfn "/usr/lib64/llvm18/bin/$t" "$TOOLS_DIR/bin/$t"
+done
+export PATH="$TOOLS_DIR/bin:$PATH"
+cd "$TOOLS_DIR"
 cd - >/dev/null
 scripts/install-qemu-alpine.sh
 [ -d "$TOOLS_DIR/limine-bin" ] || { git clone -q --depth 1 --branch v11.4.1-binary https://github.com/limine-bootloader/limine.git "$TOOLS_DIR/limine-bin"; make -C "$TOOLS_DIR/limine-bin" >/dev/null; }
