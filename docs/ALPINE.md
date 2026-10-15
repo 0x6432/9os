@@ -97,3 +97,20 @@ Widgets applications, complete Alpine service compatibility or KDE/Plasma. Sourc
 Qt Quick remains separate work. **M40 remains incomplete.** The existing
 source-build CI remains the reproducible custom-port/regression lane; the new
 `alpine-prebuilt-runtime` workflow provides the fast compatibility lane.
+
+## Experimental desktop profile (not a completed desktop)
+
+`python3 userland/alpine/build.py --arch x86_64 --profile desktop` assembles a
+separate signed KDE/Plasma/KWin/Konsole/Dolphin/Mesa runtime. Its checked-in
+`x86_64-desktop.json` lock and generated `alpine-desktop-x86_64.lock.json` must
+not be substituted for the base profile lock. `USERLAND=alpine-desktop` uses
+separate kernel/image outputs. The current installed payload is about 2 GiB;
+prefer an ext2 disk root with the smaller base initramfs for iterative debugging.
+No target Qt, Mesa, LLVM or libc build is involved. `musl-dev` supplies headers
+and startup objects for compiling small ABI regression programs, not libraries.
+
+The initial private-bus KWin virtual/QPainter experiment reached real compositor
+supportInformation and a Konsole QtWidgets child PTY. Its final shutdown assertion
+is still being debugged. OpenGL Quick creates a llvmpipe context but has not yet
+produced validated frames. The diagnostic `alpine-kwin-probe` is experimental,
+not an acceptance test or a claim of working Plasma, KMS or service compatibility.

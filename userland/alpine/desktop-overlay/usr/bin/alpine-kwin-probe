@@ -1,0 +1,57 @@
+#!/bin/sh
+# Bring up REAL KWin and QtWidgets on a private bus; virtual output for diagnosis.
+set -eu
+if [ "${1:-}" != --session ]; then exec dbus-run-session -- "$0" --session; fi
+D=$(mktemp -d /tmp/alpine-kwin-XXXXXX)
+kwin=;client=
+cleanup() {
+    for p in "$client" "$kwin"; do
+        [ -n "$p" ] || continue
+        kill "$p" 2>/dev/null || true
+        for i in $(seq 30); do kill -0 "$p" 2>/dev/null || break; sleep .1; done
+        kill -KILL "$p" 2>/dev/null || true; wait "$p" 2>/dev/null || true
+    done
+    rm -rf "$D"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+unset DISPLAY WAYLAND_DISPLAY QT_QPA_PLATFORM QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH
+export XDG_RUNTIME_DIR="$D" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" XDG_DATA_HOME="$D/data"
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=KDE LANG=C.UTF-8
+export QT_QUICK_BACKEND=software QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1
+export KWIN_COMPOSE=Q LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe LP_NUM_THREADS=1
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME"
+kwin_wayland --virtual --width 640 --height 480 --socket 9os-kwin --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
+for i in $(seq 300); do
+    [ ! -S "$D/9os-kwin" ] || break
+    kill -0 "$kwin" 2>/dev/null || break
+    sleep .1
+done
+if [ ! -S "$D/9os-kwin" ]; then cat "$D/kwin.log"; echo 'alpine-kwin: FAIL compositor startup'; exit 1; fi
+bus_ready=0; deadline=$(( $(date +%s) + 60 ))
+while [ "$(date +%s)" -lt "$deadline" ]; do
+    if timeout -s KILL 3 /usr/lib/qt6/bin/qdbus org.kde.KWin /KWin org.kde.KWin.supportInformation > "$D/support" 2> "$D/bus.log"; then bus_ready=1;break;fi
+    kill -0 "$kwin" 2>/dev/null || break
+    sleep .2
+done
+[ "$bus_ready" = 1 ] || { cat "$D/bus.log" "$D/kwin.log"; echo 'alpine-kwin: FAIL bus readiness'; exit 1; }
+cat "$D/support"
+export WAYLAND_DISPLAY="$D/9os-kwin" QT_QPA_PLATFORM=wayland
+# Launch a genuine KDE QtWidgets application with a real child PTY, not --version.
+konsole --separate --nofork -e /bin/sh -c "test -t 0 && tty > '$D/terminal'; echo KDE_WIDGETS_CHILD_READY >> '$D/terminal'; sleep 3" > "$D/client.log" 2>&1 & client=$!
+for i in $(seq 200); do
+    [ ! -f "$D/terminal" ] || break
+    kill -0 "$client" 2>/dev/null || break
+    sleep .1
+done
+if [ ! -f "$D/terminal" ] || ! grep -q KDE_WIDGETS_CHILD_READY "$D/terminal"; then cat "$D/client.log" "$D/kwin.log"; echo 'alpine-kwin: FAIL Konsole PTY'; exit 1; fi
+cat "$D/terminal"
+if wait "$client"; then r=0; else r=$?; fi
+client=; echo "KONSOLE_EXIT_STATUS=$r"
+[ "$r" = 0 ] || { cat "$D/client.log" "$D/kwin.log"; exit 1; }
+kill -TERM "$kwin"
+if wait "$kwin"; then r=0; else r=$?; fi
+kwin=; echo "KWIN_TERMINATED_STATUS=$r"
+[ "$r" = 0 ] || { cat "$D/client.log" "$D/kwin.log"; exit 1; }
+cat "$D/client.log" "$D/kwin.log"
+echo 'alpine-kwin: PASSED private-bus KWin virtual/QPainter and real Konsole QtWidgets PTY'

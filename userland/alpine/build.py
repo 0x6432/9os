@@ -154,6 +154,8 @@ def main():
         # accounts and smoke programs, not any source-built shared libraries.
         shutil.copytree(TOP / 'userland/skel', stage, dirs_exist_ok=True, symlinks=True)
         shutil.copytree(TOP / 'userland/alpine/overlay', stage, dirs_exist_ok=True, symlinks=True)
+        if args.profile == 'desktop':
+            shutil.copytree(TOP / 'userland/alpine/desktop-overlay', stage, dirs_exist_ok=True, symlinks=True)
         os.chmod(stage / 'etc/shadow', 0o640)
         os.chmod(stage / 'bin/busybox', 0o4755)
         manifest = {'profile': args.profile, 'alpine': VERSION, 'arch': arch, 'minirootfs_sha256': MINI[arch], 'packages': entries}
