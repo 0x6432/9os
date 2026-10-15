@@ -56,6 +56,15 @@ def validate_entries(entries, arch, locked):
             raise ValueError('Every locked APK needs an exact SHA256')
     return entries
 
+def validate_profile(entries):
+    # An older offscreen-only lock must not silently create a broken Wayland image.
+    files = [e['url'].rsplit('/', 1)[-1] for e in entries]
+    for package in PACKAGES:
+        if not any(re.fullmatch(re.escape(package) + r'-[0-9][A-Za-z0-9+_.-]*\.apk', f) for f in files):
+            raise ValueError('Lock missing required profile package: ' + package)
+    if 'qt6-qtdeclarative-6.8.3-r0.apk' not in files:
+        raise ValueError('Expected the reviewed Alpine Qt6.8.3 package set')
+
 def mini(arch, cache, offline=False):
     name = f'alpine-minirootfs-{VERSION}-{arch}.tar.gz'
     path = cache / name
@@ -120,6 +129,7 @@ def main():
             if not entries or not any(u['url'].endswith('/qt6-qtdeclarative-6.8.3-r0.apk') for u in entries):
                 raise ValueError('Expected the reviewed Alpine Qt6.8.3 package set')
         validate_entries(entries, arch, locked=bool(args.lock))
+        validate_profile(entries)
         def fetch(entry):
             url = entry['url']
             path = cache / url.rsplit('/', 1)[-1]

@@ -5,7 +5,7 @@ set -eu
 unset DISPLAY WAYLAND_DISPLAY SWAYSOCK QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH QML_IMPORT_PATH QML2_IMPORT_PATH
 case ${ALPINE_WAYLAND_USER:-} in ''|user) ;; *) echo 'Unsupported test user'; exit 1;; esac
 D=$(mktemp -d /tmp/alpine-wayland-XXXXXX)
-client=; compositor=; SWAYSOCK=
+client=; compositor=; SWAYSOCK=; expected_uid=0
 cleanup() {
     [ -z "$client" ] || { kill "$client" 2>/dev/null || true; wait "$client" 2>/dev/null || true; }
     if [ -n "$compositor" ]; then
@@ -36,10 +36,11 @@ C=$D/client; mkdir -m700 "$C"
 export QT_QPA_PLATFORM=wayland QT_QUICK_BACKEND=software QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1 QT_WAYLAND_SHELL_INTEGRATION=xdg-shell WAYLAND_DEBUG=client
 if [ "${ALPINE_WAYLAND_USER:-}" = user ]; then
+    expected_uid=1000
     chown 1000:1000 "$C" "$WAYLAND_DISPLAY"; chmod 600 "$WAYLAND_DISPLAY"; chmod 711 "$D"
-    su user -s /bin/sh -c "cd '$C' && export XDG_RUNTIME_DIR='$C'; exec /usr/lib/qt6/bin/qmlscene /usr/share/9os/alpine-wayland.qml" > "$C/client.log" 2>&1 & client=$!
+    su user -s /bin/sh -c "cd '$C' && export XDG_RUNTIME_DIR='$C'; printf ALPINE_WAYLAND_CLIENT_UID=; id -u; exec /usr/lib/qt6/bin/qmlscene /usr/share/9os/alpine-wayland.qml" > "$C/client.log" 2>&1 & client=$!
 else
-    (cd "$C"; exec /usr/lib/qt6/bin/qmlscene /usr/share/9os/alpine-wayland.qml) > "$C/client.log" 2>&1 & client=$!
+    (cd "$C"; printf ALPINE_WAYLAND_CLIENT_UID=; id -u; exec /usr/lib/qt6/bin/qmlscene /usr/share/9os/alpine-wayland.qml) > "$C/client.log" 2>&1 & client=$!
 fi
 ready=0
 for i in $(seq 100); do
@@ -56,7 +57,9 @@ grim -o HEADLESS-1 "$D/output.png" || { cat "$D/sway.log"; echo 'alpine-wayland:
 echo ALPINE_WAYLAND_PNG_BEGIN
 base64 "$D/output.png"
 echo ALPINE_WAYLAND_PNG_END
+echo "ALPINE_WAYLAND_TRACE_BEGIN uid=$expected_uid"
 cat "$C/client.log"
+echo ALPINE_WAYLAND_TRACE_END
 wait "$client"; r=$?; client=
 [ "$r" = 0 ] || { echo 'alpine-wayland: FAIL client status'; exit 1; }
 swaymsg -q exit || true
