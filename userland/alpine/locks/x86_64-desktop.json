@@ -93,12 +93,20 @@
       "sha256": "39c2956d35f8a6b40ddc32274a711a15a4f21deae8139585d16623e729eb159a"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/ffmpeg-libavfilter-6.1.2-r2.apk",
+      "sha256": "1348e0a21471f13c5eca73d68837abbc7a6ece60e3d3995098f11014ce1389c9"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/ffmpeg-libavformat-6.1.2-r2.apk",
       "sha256": "4ed9f2fec9a90a5a187e5798f4f6ecbec15e2a3b3e1d37050703d0c9e17c62f7"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/ffmpeg-libavutil-6.1.2-r2.apk",
       "sha256": "68ea6b522f56be9254077d9280e1c071d44eefd10eb3260e62e72a9c472a96f1"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/ffmpeg-libpostproc-6.1.2-r2.apk",
+      "sha256": "8164d1e792444704e2674ff82b93523021db8324488e6324066243e8bc81240f"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/ffmpeg-libswresample-6.1.2-r2.apk",
@@ -469,8 +477,16 @@
       "sha256": "18b879570d30e71db8076fcd24cc2986a8fa4209a69e6f72d027fb178fb5ba15"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/kpipewire-6.3.6-r0.apk",
+      "sha256": "2297442b750dc422f2eb55d9e9e1f9d4006dab68332050a59eef203261ed2b60"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/kpty-6.13.0-r0.apk",
       "sha256": "ef5c680f15d63973045bbb7b91da6b777950273cc561a8ba206dd43ae1c8fb8b"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/kquickcharts-6.13.0-r0.apk",
+      "sha256": "1a5f32d6e580a6e7f018970dd5e139362d0384b7edf399501a344232dfef0b0f"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/krunner-6.13.0-r0.apk",
@@ -569,6 +585,10 @@
       "sha256": "16c03ab0b87a0882fd7e932549efe583bad8a8fe8a59325fa899a8093e164d7c"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libass-0.17.3-r0.apk",
+      "sha256": "0d39b7d10bcb654cca89c25d839813907b7bfcb741b35d9de259da0f23cc6f71"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libasyncns-0.8-r4.apk",
       "sha256": "c5c63eff5aec9af7cce01e96dfad422a9db5ef12c3a5541d3d5fed989f6c4578"
     },
@@ -627,6 +647,10 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libdmtx-libs-0.7.7-r1.apk",
       "sha256": "0a3fe13b3123d4859bff160f3eb6ff923ef448f397c49bd6b2415e6965c26cc5"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libdovi-3.3.1-r1.apk",
+      "sha256": "5a2e6c13b08b2bc58460b10f9ca3707ebc3a6541f1d13e04278541cd3ffe77af"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libeditorconfig-0.12.9-r1.apk",
@@ -713,6 +737,10 @@
       "sha256": "fd757b416596ed034a1a421ab2531bfce80b29822c490ee611778259d4219117"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libplacebo-6.338.2-r3.apk",
+      "sha256": "95e9c84fd4efd1e2c34c225d4076202e0243d0367ee3227dd1ec9b44a5185aa5"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libplasma-6.3.6-r0.apk",
       "sha256": "9df958efae58b17fcd385c7c3fa32735dea0cbc2bc7ed8d61f5de15e574fc97d"
     },
@@ -763,6 +791,10 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libtag-2.0.2-r0.apk",
       "sha256": "099f1fd6b7759fa9c7d8b519a9e372065e2f3ddd077639682aa1e96140b013f7"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libunibreak-6.1-r0.apk",
+      "sha256": "32d4d88af2be45661f73198f586f3b29a624d0b5b2f60cc2ba0b381d681b3fe2"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libusbmuxd-2.1.1-r0.apk",
@@ -1045,6 +1077,10 @@
       "sha256": "3fdbebd48cc008b6de55d0824e1a70cf734141f16f0956647e41dcee9b09ee84"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/shaderc-2024.4-r0.apk",
+      "sha256": "d03ccc04f55365d1de9b4d8a39340af8ab5ff8f86263b4c3766db41259014036"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/shadow-4.17.3-r0.apk",
       "sha256": "498c24794f42cac2bcd44240e52f986aeaa43b9176e5d9532faf0e1707826692"
     },
@@ -1137,6 +1173,10 @@
       "sha256": "0aa14be3d5b2146d5e4ab8a36655003ed4c8d2f3206591a207e30918bd860f3d"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/vidstab-1.1.1-r0.apk",
+      "sha256": "270e658f9134b51b7fb2751e5161e9e43a4de5df3ae8f055a80897e12bf0daf9"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/volume_key-0.3.12-r7.apk",
       "sha256": "99575cbd69aba622f5ff5179570c1002160bca94706f86a5a712efd62a3c9e46"
     },
@@ -1227,6 +1267,10 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/xwayland-24.1.9-r0.apk",
       "sha256": "fe26872fb4721d5fb103b325285d461436d7c59acc2aa99e4c66172f8ca235fd"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/zimg-3.0.5-r3.apk",
+      "sha256": "32dffe81e7295c87733b071f9d12b06214fb121e81e8281a67061eabae32bbb8"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/zix-libs-0.6.2-r0.apk",
@@ -1439,6 +1483,10 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/glib-2.84.4-r0.apk",
       "sha256": "f9ec9e7d1f348fe2a87a124261f560909d1a4ac3020964c4ec372ff50f8ffad5"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/glslang-libs-1.4.309.0-r0.apk",
+      "sha256": "2a93283397af8add1fc1dadcbe0405c33d67ba93899322e58d1138d144418820"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/gmp-6.3.0-r3.apk",
@@ -2292,5 +2340,9 @@
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zstd-libs-1.5.7-r0.apk",
       "sha256": "1bdd6e57cfbfbfd6e8481cad37ddd5d199950715bec1879b3afb600272dbb09e"
     }
-  ]
+  ],
+  "generated_caches": {
+    "usr/share/glib-2.0/schemas/gschemas.compiled": "2ac97354cf3d8a4cd3258031b8c0bb3ee5452311db4d9acfc7296fe37ab1015c",
+    "usr/share/mime/mime.cache": "4c7f5d5f02d34d7d7461357e2d9de7437908d59e29379f3ba2ca0475fc340b1a"
+  }
 }

@@ -31,6 +31,19 @@ case ${ALPINE_PLASMA_OUTPUT:-headless} in
  *) echo 'Unknown output backend';exit 1 ;;
 esac
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME"
+# These are ordinary session defaults, not alternate rendering/test substitutes.
+cat > "$XDG_CONFIG_HOME/kdeglobals" <<'CONFIG'
+[General]
+ColorScheme=BreezeLight
+[Icons]
+Theme=breeze
+[KDE]
+widgetStyle=Breeze
+CONFIG
+cat > "$XDG_CONFIG_HOME/kcminputrc" <<'CONFIG'
+[Mouse]
+cursorTheme=breeze_cursors
+CONFIG
 if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = headless ];then echo 'output * resolution 800x600' > "$D/sway.conf";else : > "$D/sway.conf";fi
 printf '%s\n'  'default_border none' 'default_floating_border none' 'for_window [app_id="kwin_wayland"] fullscreen enable' >> "$D/sway.conf"
 sway -d -c "$D/sway.conf" > "$D/sway.log" 2>&1 & swaypid=$!
@@ -68,6 +81,7 @@ if [ "$ready" != 1 ];then
  cat "$D/desktops" "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';exit 1
 fi
 printf PLASMA_DESKTOPS=;cat "$D/desktops"
+/usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript 'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].wallpaperPlugin="org.kde.image";ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];ds[i].writeConfig("Image","file:///usr/share/wallpapers/Next/contents/images/1024x768.png");}print("PLASMA_WALLPAPER_CONFIGURED="+ds.length);'
 /usr/lib/qt6/bin/qdbus org.kde.KWin /KWin org.kde.KWin.supportInformation
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  konsole --separate --nofork -e /bin/sh > "$D/konsole.log" 2>&1 & client=$!

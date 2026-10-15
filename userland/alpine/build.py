@@ -12,7 +12,7 @@ MINI = {
     'riscv64': '72f7e69f6950c2799137a934fae61513016efa546afcb4a05540a505c4184150',
 }
 PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq', 'strace', 'musl-dev']
-PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['seatd', 'mesa-dri-gallium', 'kwin', 'plasma-workspace', 'plasma-desktop', 'breeze', 'plasma-workspace-wallpapers', 'konsole', 'dolphin']}
+PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['seatd', 'mesa-dri-gallium', 'kwin', 'plasma-workspace', 'plasma-desktop', 'breeze', 'plasma-workspace-wallpapers', 'kquickcharts', 'kpipewire', 'tzdata', 'konsole', 'dolphin']}
 TOP = pathlib.Path(__file__).resolve().parents[2]
 
 def digest(path):
@@ -168,6 +168,9 @@ def main():
                 if executable is None:
                     raise ValueError('Desktop profile requires host tool: ' + tool)
                 subprocess.run([executable, *options, str(stage / path)], check=True)
+        if args.profile == 'desktop':
+            shutil.copyfile(stage / 'usr/share/zoneinfo/UTC', stage / 'etc/localtime')
+            (stage / 'etc/timezone').write_text('UTC\n')
         os.chmod(stage / 'etc/shadow', 0o640)
         os.chmod(stage / 'bin/busybox', 0o4755)
         manifest = {'profile': args.profile, 'alpine': VERSION, 'arch': arch, 'minirootfs_sha256': MINI[arch], 'packages': entries}
