@@ -1,0 +1,62 @@
+#!/bin/sh
+# Run inside a real non-root Wayland/DBus session. Exercise KDE's actual KIO model.
+set -eu
+[ "$(id -u)" = 1000 ] || { echo 'Dolphin probe requires the normal VM user';exit 1; }
+[ -n "${WAYLAND_DISPLAY:-}" ] && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]
+D=$(mktemp -d /tmp/alpine-dolphin-XXXXXX)
+client=
+cleanup() {
+ r=$?
+ if [ -n "$client" ];then
+  kill "$client" 2>/dev/null || true
+  for i in $(seq 30);do kill -0 "$client" 2>/dev/null || break;sleep .1;done
+  kill -KILL "$client" 2>/dev/null || true;wait "$client" 2>/dev/null || true
+ fi
+ cat "$D/client.log" 2>/dev/null || true
+ rm -rf "$D"
+ exit "$r"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+mkdir "$D/files"
+printf 'real KDE directory model\n' > "$D/files/before.txt"
+dolphin --new-window "$D/files" > "$D/client.log" 2>&1 & client=$!
+Q=/usr/lib/qt6/bin/qdbus
+service=;object=;deadline=$(( $(date +%s) + 90 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ for name in $(timeout -s KILL 5 "$Q" | grep '^org.kde.dolphin' || true);do
+  for path in $(timeout -s KILL 5 "$Q" "$name" | grep '^/' || true);do
+   if timeout -s KILL 5 "$Q" "$name" "$path" org.kde.dolphin.MainWindow.isUrlOpen "file://$D/files" 2>/dev/null | grep -qx true;then
+    service=$name;object=$path;break
+   fi
+  done
+  [ -z "$object" ] || break
+ done
+ [ -z "$object" ] || break
+ kill -0 "$client" 2>/dev/null || break;sleep .2
+done
+[ -n "$object" ] || { echo 'alpine-dolphin: FAIL real directory URL readback';exit 1; }
+visible() { timeout -s KILL 5 "$Q" "$service" "$object" org.kde.dolphin.MainWindow.isItemVisibleInAnyView "file://$D/files/$1"; }
+ready=0;deadline=$(( $(date +%s) + 60 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ if visible before.txt | grep -qx true;then ready=1;break;fi
+ sleep .2
+done
+[ "$ready" = 1 ] || { echo 'alpine-dolphin: FAIL initial real KIO listing';exit 1; }
+mv "$D/files/before.txt" "$D/files/after.txt"
+printf 'created after the GUI directory loaded\n' > "$D/files/new.txt"
+ready=0;deadline=$(( $(date +%s) + 60 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ if visible after.txt | grep -qx true && visible new.txt | grep -qx true && visible before.txt | grep -qx false;then ready=1;break;fi
+ sleep .2
+done
+[ "$ready" = 1 ] || { echo 'alpine-dolphin: FAIL live KIO directory changes';exit 1; }
+printf 'DOLPHIN_MODEL_READY uid=%s service=%s object=%s\n' "$(id -u)" "$service" "$object"
+sleep "${ALPINE_DOLPHIN_HOLD:-0}"
+timeout -s KILL 5 "$Q" "$service" "$object" org.kde.dolphin.MainWindow.quit
+for i in $(seq 200);do kill -0 "$client" 2>/dev/null || break;sleep .1;done
+if kill -0 "$client" 2>/dev/null;then echo 'alpine-dolphin: FAIL graceful application quit';exit 1;fi
+if wait "$client";then r=0;else r=$?;fi
+client=
+[ "$r" = 0 ] || { echo "alpine-dolphin: FAIL application exit=$r";exit 1; }
+echo 'alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit'
