@@ -1,5 +1,5 @@
 #!/bin/sh
-# M40: Core + DBus + raster GUI and native Wayland ABI; QPA module is separate.
+# M40: Core + DBus + raster/EGL GUI and native Wayland ABI; QPA is separate.
 . "$(dirname "$0")/common.sh"
 V=6.8.3
 T=$DL/qtbase-everywhere-src-$V.tar.xz

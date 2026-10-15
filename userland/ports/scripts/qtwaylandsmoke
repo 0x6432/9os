@@ -1,5 +1,5 @@
 #!/bin/sh
-# Actual xdg-shell/raster/shm Qt window under Sway; no EGL or Qt Quick fallback.
+# Actual xdg-shell Qt raster or explicit EGL/GLES window under Sway. No Quick.
 set -u
 unset SWAYSOCK WAYLAND_DISPLAY
 D=/tmp/qtwayland-$$; mkdir -m700 "$D" || exit 1

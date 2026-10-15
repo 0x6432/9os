@@ -2049,3 +2049,25 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   validated; the restored x86 dependency/Qt build is running.
 - Only x86 is built/tested locally. PR #10's head/CI are left unchanged by this
   new work. Keep committing/pushing WIP, and never delete branches implicitly.
+
+### Qt EGL/GLES first local runtime results (integration still gated)
+- Restored x86 Qtbase + QtWayland EGL build succeeded, including compilation of
+  qtgltest and the real wayland-egl platform plugin. No non-x86 local build.
+- Each tested client performs 37 checks: shader compilation/link, RGB VBO draw
+  and pixel readback, resize, swaps, three compositor callbacks and clean exit.
+  Softpipe reports OpenGL ES 3.1; llvmpipe LLVM18.1.8 reports OpenGL ES 3.2.
+- IMPORTANT unresolved observation: the first combined focused run passed
+  softpipe root/UID1000 and llvmpipe root, then stalled on llvmpipe UID1000.
+  The guest stopped producing output despite the client's alarm; stopped the
+  run manually rather than counting it as a pass. Preserve that failure in
+  build/qtgl-focused.log and /data/qtgl-focused.out. Cause is NOT identified.
+- The same llvmpipe UID1000 case then passed on a fresh boot (3/3 including
+  diagnostics). All four renderer/identity cases passed sequentially (5/5)
+  in a diagnostic rerun with a guest watchdog, and all four also passed in
+  the ordered full suite now running. Those reruns do NOT erase the original
+  stall. Broader/stress validation and exact-head PR CI remain required.
+- PR #10's ARM and RISC-V jobs have completed successfully: main101/101,
+  disk20/20+6/6, audio2/2+2/2, UP6/6, MLFQ9/9 each. x86 is now in boot tests;
+  do not merge until the entire exact-head run passes.
+- Logs: /data/qtgl-ports-build.log, /data/qtgl-user-isolated.out,
+  /data/qtgl-sequence.out, /data/qtgl-full-ci.out and matching build/*.log.
