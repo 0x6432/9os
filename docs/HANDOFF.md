@@ -2284,3 +2284,31 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   returned before desktop readiness, and screenshot targeted the child compositor
   instead of outer Sway; stronger desktop/panel and capture checks are pending.
   NO claim of KMS/input, hardware acceleration, complete services or completed M40.
+
+### Desktop ABI follow-up (in progress; M40 is NOT complete)
+- Prerequisite PR14 merged19f501770690461ef86119644040f4e0e40ebdb3 and
+  PR15 merged08dea06cfa76efffac63e6f44e63eb7e76d74a3f after current-head fast
+  and full-source CI succeeded on all three architectures; branches retained.
+- PR16 mergeda85c0708b39680d7571a4bac3541edc8e8bad698 after fast ALL3 main14,
+  UP8, x86SMP8 8, source ALL3 main111, disk20+6, both fscks and clean shutdown,
+  audio2+2, UP9, MLFQ12 and x86SMP8 10 passed. It does NOT implement preallocation.
+- PR17 f02fa50 desktop CI passed real llvmpipe Quick root/non-root and KWin/
+  Konsole on ALL3, but failed Plasma on ALL3: PulseAudio asserted on musl's
+  PTHREAD_PRIO_INHERIT capability probe receiving ENOSYS. The new kernel returns
+  EOPNOTSUPP for explicitly unsupported PI futex commands; no fake PI lock.
+  pimutextest tests working ordinary recursive-mutex fallback (Linux10/9os11).
+- unixcredtest is a same-source Linux oracle for forked inherited socketpairs:
+  zero-length datagrams, MSG_PEEK credentials, send-time real IDs versus
+  socket-time SO_PEERCRED effective IDs, mixed-sender stream boundaries, and
+  shutdown/closed-peer errors. Linux root and x86 guest:140 checks, zero failures.
+  Fixed datagram socketpair destination lookup and stale socket-creator message
+  credentials. Real eudev trigger + settle now passes in the x86 disk-root guest.
+- sysfs statfs/fstatfs now identify SYSFS_MAGIC rather than TMPFS_MAGIC.
+  procinfotest: same-source Linux and x86 guest27 checks, zero failures.
+- Latest x86 stock Plasma reaches desktops=1/panels=1 and captures a real panel,
+  but wallpaper is BLACK and strict host capture check correctly FAILS. A longer
+  bounded cold-start deadline was needed after enabling the packaged volume
+  applet. Testing real llvmpipe EGL scene-graph rendering next; do not substitute
+  a fake wallpaper or weaken the black-background negative control.
+- seatd uses its actual CLI/default /run/seatd.sock, not unsupported -s.
+  KMS/input acceptance and the updated current-head ALL3 gates remain pending.

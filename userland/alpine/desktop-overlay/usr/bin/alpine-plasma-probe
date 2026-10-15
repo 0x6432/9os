@@ -72,11 +72,19 @@ for i in $(seq 300);do [ ! -S "$D/9os-plasma" ] || break;kill -0 "$kwin" 2>/dev/
 [ -S "$D/9os-plasma" ] || { cat "$D/kwin.log";exit 1; }
 export WAYLAND_DISPLAY="$D/9os-plasma" QT_QPA_PLATFORM=wayland
 dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM
+# Plasma's stock wallpaper uses scene-graph OpacityAnimator transitions. Exercise
+# its real EGL renderer rather than patching packaged QML to hide missing frames.
+if [ "${ALPINE_PLASMA_RENDERER:-software}" = opengl ];then
+ unset QT_QUICK_BACKEND
+ export QSG_RHI_BACKEND=opengl QT_QPA_PLATFORM=wayland-egl
+ export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe LP_NUM_THREADS=1
+ export QSG_INFO=1
+fi
 plasmashell --replace --no-respawn > "$D/plasma.log" 2>&1 & plasma=$!
 ready=0
-deadline=$(( $(date +%s) + 100 ))
+deadline=$(( $(date +%s) + 180 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- if timeout -s KILL 2 /usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript  'print("desktops="+desktops().length+" panels="+panels().length)'  > "$D/desktops" 2> "$D/bus.log";then
+ if timeout -s KILL 5 /usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript  'print("desktops="+desktops().length+" panels="+panels().length)'  > "$D/desktops" 2> "$D/bus.log";then
   if grep -Eq 'desktops=[1-9][0-9]* panels=[1-9][0-9]*' "$D/desktops";then ready=1;break;fi
  fi
  kill -0 "$plasma" 2>/dev/null || break
