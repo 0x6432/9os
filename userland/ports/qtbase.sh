@@ -43,12 +43,12 @@ set(CMAKE_EXE_LINKER_FLAGS_INIT "-L$PREFIX_ROOT/usr/lib -Wl,-rpath-link,$PREFIX_
 set(CMAKE_SHARED_LINKER_FLAGS_INIT "-L$PREFIX_ROOT/usr/lib -Wl,-rpath-link,$PREFIX_ROOT/usr/lib")
 EOT
 cmake -S "$S" -B "$B" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$TC" \
-    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
     -DFEATURE_gui=ON -DFEATURE_widgets=OFF -DFEATURE_network=OFF -DFEATURE_sql=OFF \
     -DINPUT_opengl=no -DFEATURE_opengl=OFF -DFEATURE_vulkan=OFF -DFEATURE_xcb=OFF \
     -DFEATURE_eglfs=OFF -DFEATURE_linuxfb=OFF -DFEATURE_evdev=OFF -DFEATURE_libinput=OFF \
-    -DFEATURE_xkbcommon=OFF -DFEATURE_fontconfig=OFF \
+    -DFEATURE_wayland=ON -DFEATURE_xkbcommon=ON -DFEATURE_fontconfig=OFF \
     -DFEATURE_system_freetype=OFF -DFEATURE_system_harfbuzz=OFF \
     -DFEATURE_system_png=OFF -DFEATURE_system_jpeg=OFF \
     -DFEATURE_dbus=ON -DFEATURE_dbus_linked=ON -DFEATURE_icu=OFF -DFEATURE_glib=OFF \
