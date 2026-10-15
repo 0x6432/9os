@@ -13,6 +13,7 @@ S=$PORTS_SRC/qtdeclarative-everywhere-src-$V
 H=${HOST_TOOLS:-${TOOLS_DIR:-/data/tools}/host}/qt-$V
 HB=$UL/build/qtdeclarative-host-$V
 # Build real upstream native QML tools; never run a target tool in a cross build.
+# qml_python means the required BUILD-HOST interpreter, not a target dependency.
 # ShaderTools discovery is explicitly disabled so a cached host qsb cannot
 # silently turn this headless prerequisite into an unvalidated Qt Quick port.
 if [ ! -x "$H/libexec/qmltyperegistrar" ] || [ ! -x "$H/libexec/qmlcachegen" ] || [ ! -f "$H/lib/cmake/Qt6QmlTools/Qt6QmlToolsConfig.cmake" ]; then
@@ -22,7 +23,7 @@ if [ ! -x "$H/libexec/qmltyperegistrar" ] || [ ! -x "$H/libexec/qmlcachegen" ] |
         -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_DISABLE_FIND_PACKAGE_Qt6ShaderToolsTools=ON \
         -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
         -DFEATURE_qml_jit=OFF -DFEATURE_qml_network=OFF -DFEATURE_qml_debug=OFF \
-        -DFEATURE_qml_python=OFF -DFEATURE_qml_xmllistmodel=OFF \
+        -DFEATURE_qml_python=ON -DFEATURE_qml_xmllistmodel=OFF \
         > "$HB.log" 2>&1 || { tail -60 "$HB.log"; exit 1; }
     cmake --build "$HB" -j"${JOBS:-2}" >> "$HB.log" 2>&1 || { tail -50 "$HB.log"; exit 1; }
     cmake --install "$HB" >> "$HB.log" 2>&1 || { tail -40 "$HB.log"; exit 1; }
@@ -34,7 +35,7 @@ cmake -S "$S" -B "$B" -G Ninja \
     -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_DISABLE_FIND_PACKAGE_Qt6ShaderToolsTools=ON \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
     -DFEATURE_qml_jit=OFF -DFEATURE_qml_network=OFF -DFEATURE_qml_debug=OFF \
-    -DFEATURE_qml_python=OFF -DFEATURE_qml_xmllistmodel=OFF \
+    -DFEATURE_qml_python=ON -DFEATURE_qml_xmllistmodel=OFF \
     > "$B.log" 2>&1 || { tail -60 "$B.log"; exit 1; }
 # This must be the portable interpreter on all targets, including RISC-V.
 grep -qx 'QT_FEATURE_qml_jit:INTERNAL=OFF' "$B/CMakeCache.txt"
