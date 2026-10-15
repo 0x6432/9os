@@ -23,6 +23,7 @@ Window {
                 root.grabbed = true
                 if (!tile.grabToImage(function(result) {
                     if (result.url.toString() === "") { console.log("alpine-quick: FAIL grab"); Qt.exit(3) }
+                    if (!result.saveToFile("capture.png")) { console.log("alpine-quick: FAIL save"); Qt.exit(6) }
                     console.log("alpine-quick: PASSED software frames", root.frames, "grab", result.url)
                     Qt.quit()
                 })) { console.log("alpine-quick: FAIL grab request"); Qt.exit(4) }

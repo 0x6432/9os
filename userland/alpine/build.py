@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build an isolated, signed Alpine runtime; never execute target package scripts."""
-import argparse, concurrent.futures, fcntl, hashlib, json, os, pathlib, platform
+import argparse, concurrent.futures, fcntl, hashlib, json, os, pathlib, platform, re
 import shutil, subprocess, tempfile, time, urllib.request
 
 VERSION = '3.22.6'
@@ -18,9 +18,11 @@ def digest(path):
     with open(path, 'rb') as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
 
-def download(url, path, sha=None):
+def download(url, path, sha=None, offline=False):
     if path.exists() and (sha is None or digest(path) == sha):
         return
+    if offline:
+        raise ValueError('Offline cache missing or checksum mismatch: ' + str(path))
     part = path.with_suffix(path.suffix + '.part')
     for attempt in range(3):
         try:
@@ -36,10 +38,28 @@ def download(url, path, sha=None):
                 raise
             time.sleep(attempt + 1)
 
-def mini(arch, cache):
+def validate_entries(entries, arch, locked):
+    if not isinstance(entries, list) or not entries:
+        raise ValueError('Empty/invalid package set')
+    pattern = re.compile(re.escape(BASE + '/' + BRANCH) +
+                         r'/(main|community)/' + re.escape(arch) + r'/[A-Za-z0-9+_.-]+\.apk')
+    names = set()
+    for e in entries:
+        if not isinstance(e, dict) or not pattern.fullmatch(e.get('url', '')):
+            raise ValueError('Package URL must name an APK in the selected stable architecture')
+        name = e['url'].rsplit('/', 1)[-1]
+        if name in names:
+            raise ValueError('Duplicate package filename: ' + name)
+        names.add(name)
+        sha = e.get('sha256')
+        if (locked or sha is not None) and (not isinstance(sha, str) or not re.fullmatch('[0-9a-f]{64}', sha)):
+            raise ValueError('Every locked APK needs an exact SHA256')
+    return entries
+
+def mini(arch, cache, offline=False):
     name = f'alpine-minirootfs-{VERSION}-{arch}.tar.gz'
     path = cache / name
-    download(f'{BASE}/{BRANCH}/releases/{arch}/{name}', path, MINI[arch])
+    download(f'{BASE}/{BRANCH}/releases/{arch}/{name}', path, MINI[arch], offline)
     return path
 
 def unpack(archive, root):
@@ -49,7 +69,16 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--arch', choices=MINI, default=os.environ.get('ARCH', 'x86_64'))
     ap.add_argument('--lock', type=pathlib.Path, help='Replay exact signed APK URLs/hashes; no index refresh')
+    ap.add_argument('--offline', action='store_true', help='Require locked, cached artifacts; never contact repositories')
+    ap.add_argument('--resolve', action='store_true', help='Explicitly refresh dependency resolution instead of a checked-in lock')
     args = ap.parse_args()
+    checked = TOP / f'userland/alpine/locks/{args.arch}.json'
+    if args.resolve and args.lock:
+        ap.error('--resolve and --lock are mutually exclusive')
+    if args.lock is None and not args.resolve and checked.exists():
+        args.lock = checked
+    if args.offline and not args.lock:
+        ap.error('--offline requires a checked-in or explicit lock')
     if platform.machine() != 'x86_64':
         ap.error('bootstrap currently requires an x86_64 build host (all targets cross-installed)')
     start = time.monotonic()
@@ -66,9 +95,9 @@ def main():
     with tempfile.TemporaryDirectory(prefix=f'alpine-{arch}-', dir=work) as tmp:
         tmp = pathlib.Path(tmp)
         host = tmp / 'host'; host.mkdir()
-        unpack(mini('x86_64', cache), host)
+        unpack(mini('x86_64', cache, args.offline), host)
         stage = tmp / 'root'; stage.mkdir()
-        unpack(mini(arch, cache), stage)
+        unpack(mini(arch, cache, args.offline), stage)
         repos = tmp / 'repositories'
         repos.write_text('\n'.join(f'{BASE}/{BRANCH}/{r}' for r in ['main', 'community']) + '\n')
         apk = [str(host / 'lib/ld-musl-x86_64.so.1'), '--library-path',
@@ -88,13 +117,11 @@ def main():
             entries = [{'url': u, 'sha256': None} for u in out.splitlines() if u.startswith('https://') and u.endswith('.apk')]
             if not entries or not any(u['url'].endswith('/qt6-qtdeclarative-6.8.3-r0.apk') for u in entries):
                 raise ValueError('Expected the reviewed Alpine Qt6.8.3 package set')
+        validate_entries(entries, arch, locked=bool(args.lock))
         def fetch(entry):
             url = entry['url']
-            allowed = tuple(f'{BASE}/{BRANCH}/{r}/{arch}/' for r in ['main', 'community'])
-            if not url.startswith(allowed) or '/' in url.rsplit('/', 1)[-1] or not url.endswith('.apk'):
-                raise ValueError('Unexpected package URL: ' + url)
             path = cache / url.rsplit('/', 1)[-1]
-            download(url, path, entry['sha256'])
+            download(url, path, entry['sha256'], args.offline)
             return {'url': url, 'sha256': digest(path)}
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
             entries = sorted(pool.map(fetch, entries), key=lambda e: e['url'])

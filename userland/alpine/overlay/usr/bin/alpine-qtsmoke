@@ -9,6 +9,11 @@ D=$(mktemp -d /tmp/alpine-qt-XXXXXX)
 trap 'rm -rf "$D"' EXIT HUP INT TERM
 chmod 700 "$D"
 export XDG_RUNTIME_DIR="$D"
+cd "$D"
 /usr/lib/qt6/bin/qmlscene /usr/share/9os/alpine-quick.qml > "$D/client.log" 2>&1 || { cat "$D/client.log"; exit 1; }
 cat "$D/client.log"
 grep -q 'alpine-quick: PASSED software frames' "$D/client.log"
+test -s "$D/capture.png"
+echo ALPINE_QUICK_PNG_BEGIN
+base64 "$D/capture.png"
+echo ALPINE_QUICK_PNG_END

@@ -2193,3 +2193,24 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Next: restore x86 ports/SDK, compile and run guest qmltest, investigate fresh
   PR CI failures, validate existing Qt/graphics regressions. Quick rendering,
   ShaderTools/qsb, Widgets and KDE remain unfinished; M40 is NOT complete.
+
+
+### Source QML integrated; Alpine prebuilt fast lane
+- Source PR12 merged as85c956b6bb859cebba1b5d91cd9e55255cf8630e after
+  exact183be0e CI38759388437 passed all3 main109/109, persistence20+6,
+  fsck/clean/audio, UP9/9, MLFQ12/12 and x86 SMP8 10/10. Its PR body is
+  authoritative; earlier interrupted-build/pending sections above are historical.
+- User requested Alpine prebuilts to avoid repeated source compilation. New
+  isolated USERLAND=alpine uses signed Alpine3.22.6 Qt6.8.3/GCC libstdc++/musl
+  packages, not our libc++ libraries. No target Qt/Mesa/LLVM/musl/BusyBox compile.
+- Builder pins mini archives, verifies APK signatures, writes URL/SHA256 lock,
+  supports strict offline replay, disables ALL target install scripts, preserves
+  source profile paths. Initial x86 cache replay assembled139 APKs in4.7seconds
+  (CACHED, not a cold-download benchmark); installed payload about493MiB.
+- x86 guest initial6/6; stronger pixel suite8/8: prebuilt DBus, QtQuick software
+  frames/bindings/grab/PNG and EVERY captured RGBA pixel verified as root/UID1000,
+  zero lockdep. Five host integrity/lock negative controls pass. UP/SMP8 and
+  three-architecture CI are further gates; do not claim these passed prematurely.
+- See docs/ALPINE.md. QtQuick offscreen software success is NOT Wayland/EGL,
+  hardware acceleration, Widgets/KDE or complete Alpine distro compatibility.
+  M40 remains unfinished. Never build/test non-x86 locally; retain branches.

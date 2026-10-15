@@ -1,0 +1,66 @@
+name: alpine-prebuilt-runtime
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: alpine-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  alpine:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64, riscv64]
+    env:
+      ARCH: ${{ matrix.arch }}
+      TOOLS_DIR: ${{ github.workspace }}/.tools
+    steps:
+      - uses: actions/checkout@v4
+      - name: Host tools only (no Qt compiler/toolchain build)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio python3-pil
+          scripts/install-qemu-alpine.sh
+          echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
+          scripts/fetch-deps.sh
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.TOOLS_DIR }}/dl/alpine
+          key: alpine-v3.22-${{ matrix.arch }}-${{ hashFiles('userland/alpine/locks/*.json') }}
+          restore-keys: alpine-v3.22-${{ matrix.arch }}-
+      - name: Lock/checksum negative controls
+        if: matrix.arch == 'x86_64'
+        run: python3 scripts/alpine-host-tests.py
+      - name: Install signed prebuilt runtime
+        run: python3 userland/alpine/build.py --arch "$ARCH"
+      - name: Prove exact offline replay (no index/network)
+        run: python3 userland/alpine/build.py --arch "$ARCH" --lock "userland/build/alpine-$ARCH.lock.json" --offline
+      - name: Build 9os kernel and isolated image
+        run: make -j2 ARCH=$ARCH USERLAND=alpine iso
+      - name: Prebuilt DBus and Qt Quick, root/non-root and pixel readback
+        run: scripts/alpine-tests.sh "$ARCH"
+      - name: Uniprocessor Quick
+        run: >-
+          python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 1
+          --boot-timeout 300 --log build/test-alpine-up-$ARCH.log alpine-qtsmoke
+          "su user -s /bin/sh -c alpine-qtsmoke" "grep -q '^violations 0' /proc/lockdep"
+          "host:python3 scripts/alpine-pixel-check.py build/test-alpine-up-$ARCH.log"
+      - name: Eight-CPU Quick
+        if: matrix.arch == 'x86_64'
+        run: >-
+          python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
+          --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log alpine-qtsmoke
+          "su user -s /bin/sh -c alpine-qtsmoke" "grep -q '^violations 0' /proc/lockdep"
+          "host:python3 scripts/alpine-pixel-check.py build/test-alpine-smp8-$ARCH.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpine-evidence-${{ matrix.arch }}
+          path: |
+            build/test-alpine*.log
+            userland/build/alpine-${{ matrix.arch }}.lock.json
+          if-no-files-found: warn
