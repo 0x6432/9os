@@ -49,19 +49,21 @@ jobs:
         run: >-
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 1
           --boot-timeout 300 --log build/test-alpine-up-$ARCH.log alpine-qtsmoke
-          "su user -s /bin/sh -c alpine-qtsmoke" "grep -q '^violations 0' /proc/lockdep"
+          "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-up-$ARCH.log"
           alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"
           "host:python3 scripts/alpine-wayland-check.py build/test-alpine-up-$ARCH.log"
+          "grep -q '^violations 0' /proc/lockdep"
       - name: Eight-CPU Quick offscreen and Wayland
         if: matrix.arch == 'x86_64'
         run: >-
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
           --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log alpine-qtsmoke
-          "su user -s /bin/sh -c alpine-qtsmoke" "grep -q '^violations 0' /proc/lockdep"
+          "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-smp8-$ARCH.log"
           alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"
           "host:python3 scripts/alpine-wayland-check.py build/test-alpine-smp8-$ARCH.log"
+          "grep -q '^violations 0' /proc/lockdep"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
