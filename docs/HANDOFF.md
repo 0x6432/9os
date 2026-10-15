@@ -1822,3 +1822,18 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   waiting for daemon exit, so cleanup validation polls rather than asserting immediately.
 - PR #6 is the isolated DBus slice; full graphics and cross-architecture coverage is
   pending CI. Current local restore includes core + DBus, not the full graphics stack.
+- Final local x86 core + DBus + original C++ suite passes 76/76; disk-root 20/20 +
+  6/6, both e2fsck checks, clean shutdown, PCM/WAV and absent-card boots also pass.
+  An earlier suite was interrupted by editing its script while executing; reran the
+  final immutable script successfully. This is not full local graphics coverage.
+
+### M40 C++ runtime prerequisite (separate branch)
+- Qt Core requires C++ exceptions; the M38 runtime deliberately omitted them. Enable
+  LLVM 18.1.8 libunwind + libc++abi exceptions + libc++ RTTI/exceptions. The wrapper
+  links libunwind and supplies a target DSO rpath-link for build-time resolution only.
+- Expanded cxxtest covers recursive RAII unwinding, exceptions across the libc++ DSO,
+  exception_ptr surviving thread exit, virtual-base/cross-casts, dynamic typeid and
+  bad_cast. Keep cxxtest-noeh to test the former no-EH/no-RTTI consumer configuration.
+- x86 guest validates both variants, DBus and zero lockdep violations (5/5 boot checks);
+  host-musl sanity also passes. Full Mesa/LLVM compatibility and non-x86 unwind support
+  must be validated by the separate PR CI before merging. No Qt/GUI completion claim.

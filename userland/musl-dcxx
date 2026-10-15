@@ -6,6 +6,7 @@ P=$T/build/ports-root-${ARCH:-x86_64}/usr
 link=1
 for a in "$@"; do case "$a" in -c|-S|-E|-M|-MM|-r|-Wl,-r|-nostdlib) link=0;; esac; done
 if [ "$link" = 1 ] && [ "${CXX_RUNTIME:-1}" = 1 ] && [ -e "$P/lib/libc++.so" ]; then
-    set -- "$@" -L"$P/lib" -lc++ -lc++abi
+    set -- "$@" -L"$P/lib" -Wl,-rpath-link,"$P/lib" -lc++ -lc++abi
+    [ ! -e "$P/lib/libunwind.so" ] || set -- "$@" -lunwind
 fi
 CXXINC=${CXXINC-$P/include/c++/v1} DYNAMIC=1 exec "$T/musl-cc" "$@"
