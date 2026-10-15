@@ -1,0 +1,61 @@
+#!/bin/sh
+# Actual xdg-shell/raster/shm Qt window under Sway; no EGL or Qt Quick fallback.
+set -u
+unset SWAYSOCK WAYLAND_DISPLAY
+D=/tmp/qtwayland-$$; mkdir -m700 "$D" || exit 1
+export XDG_RUNTIME_DIR="$D" LIBSEAT_BACKEND=builtin LANG=C.UTF-8 WLR_RENDERER=pixman
+printf 'font monospace 10\nfor_window [app_id="qtwaylandsmoke"] floating enable\n' > "$D/config"
+sway -d -c "$D/config" > "$D/sway.log" 2>&1 & compositor=$!
+client=
+cleanup() {
+    [ -z "$client" ] || { kill "$client" 2>/dev/null || true; wait "$client" 2>/dev/null || true; }
+    if kill -0 "$compositor" 2>/dev/null; then
+        [ -z "${SWAYSOCK:-}" ] || swaymsg -q exit 2>/dev/null || true
+        for i in $(seq 20); do kill -0 "$compositor" 2>/dev/null || break; sleep 1; done
+        kill "$compositor" 2>/dev/null || true
+        sleep 1; kill -KILL "$compositor" 2>/dev/null || true
+    fi
+    wait "$compositor" 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+for i in $(seq 60); do
+    for f in "$D"/sway-ipc.*; do [ -S "$f" ] && export SWAYSOCK="$f"; done
+    [ -z "${SWAYSOCK:-}" ] || break
+    kill -0 "$compositor" 2>/dev/null || break
+    sleep 1
+done
+if [ -z "${SWAYSOCK:-}" ]; then cat "$D/sway.log"; echo 'qtwaylandsmoke: FAILED compositor startup'; exit 1; fi
+for f in "$D"/wayland-*; do [ -S "$f" ] && export WAYLAND_DISPLAY="$f"; done
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then cat "$D/sway.log"; echo 'qtwaylandsmoke: FAILED Wayland socket'; exit 1; fi
+export QT_QPA_PLATFORM=wayland QT_QPA_PLATFORM_PLUGIN_PATH=/usr/plugins/platforms
+export QT_WAYLAND_SHELL_INTEGRATION=xdg-shell QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+case ${QTWAYLAND_CLIENT_USER:-} in
+    '') qtwaylandtest > "$D/client.log" 2>&1 & client=$! ;;
+    user)
+        # Only the test account gets access to this session's Wayland socket.
+        # Keep a separate, correctly owned 0700 runtime dir for the Qt client.
+        mkdir -m700 "$D/client" && chown 1000:1000 "$D/client" || exit 1
+        chown 1000:1000 "$WAYLAND_DISPLAY" && chmod 600 "$WAYLAND_DISPLAY" && chmod 711 "$D" || exit 1
+        su user -s /bin/sh -c "XDG_RUNTIME_DIR='$D/client' qtwaylandtest" > "$D/client.log" 2>&1 & client=$! ;;
+    *) echo 'qtwaylandsmoke: FAILED unsupported test user'; exit 1 ;;
+esac
+mapped=0
+for i in $(seq 30); do
+    if swaymsg -t get_tree | grep -q '"app_id": "qtwaylandsmoke"'; then mapped=1; break; fi
+    kill -0 "$client" 2>/dev/null || break
+    sleep 1
+done
+wait "$client"; r=$?; client=
+cat "$D/client.log"
+if [ "$r" != 0 ] || [ "$mapped" != 1 ] || ! grep -q 'qtwaylandtest: compositor frame 3' "$D/client.log"; then
+    cat "$D/sway.log"; echo "qtwaylandsmoke: FAILED (client=$r mapped=$mapped)"; exit 1
+fi
+swaymsg -q exit || true
+for i in $(seq 20); do kill -0 "$compositor" 2>/dev/null || break; sleep 1; done
+if kill -0 "$compositor" 2>/dev/null; then echo 'qtwaylandsmoke: FAILED compositor exit'; exit 1; fi
+wait "$compositor"; r=$?
+[ "$r" = 0 ] || { cat "$D/sway.log"; echo "qtwaylandsmoke: FAILED compositor status $r"; exit 1; }
+trap - EXIT HUP INT TERM
+rm -rf "$D"
+echo "qtwaylandsmoke: PASSED (raster/shm xdg-shell, three compositor callbacks, mapped app, clean exit)"

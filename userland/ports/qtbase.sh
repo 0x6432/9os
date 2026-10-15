@@ -1,5 +1,5 @@
 #!/bin/sh
-# M40 raster GUI slice: Core + DBus + offscreen; Wayland/GL/Quick follow separately.
+# M40: Core + DBus + raster GUI and native Wayland ABI; QPA module is separate.
 . "$(dirname "$0")/common.sh"
 V=6.8.3
 T=$DL/qtbase-everywhere-src-$V.tar.xz
@@ -42,18 +42,26 @@ set(CMAKE_CXX_FLAGS_INIT "-I$PREFIX_ROOT/usr/include")
 set(CMAKE_EXE_LINKER_FLAGS_INIT "-L$PREFIX_ROOT/usr/lib -Wl,-rpath-link,$PREFIX_ROOT/usr/lib")
 set(CMAKE_SHARED_LINKER_FLAGS_INIT "-L$PREFIX_ROOT/usr/lib -Wl,-rpath-link,$PREFIX_ROOT/usr/lib")
 EOT
+# moc's cached empty output can survive a raster -> Wayland feature transition.
+# Preserve compiled objects, but rescan generated metadata when enabling the ABI.
+OLD_WAYLAND=$(sed -n 's/^QT_FEATURE_wayland:INTERNAL=//p' "$B/CMakeCache.txt" 2>/dev/null || true)
 cmake -S "$S" -B "$B" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$TC" \
-    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
     -DFEATURE_gui=ON -DFEATURE_widgets=OFF -DFEATURE_network=OFF -DFEATURE_sql=OFF \
     -DINPUT_opengl=no -DFEATURE_opengl=OFF -DFEATURE_vulkan=OFF -DFEATURE_xcb=OFF \
     -DFEATURE_eglfs=OFF -DFEATURE_linuxfb=OFF -DFEATURE_evdev=OFF -DFEATURE_libinput=OFF \
-    -DFEATURE_xkbcommon=OFF -DFEATURE_fontconfig=OFF \
+    -DFEATURE_wayland=ON -DFEATURE_xkbcommon=ON -DFEATURE_fontconfig=OFF \
     -DFEATURE_system_freetype=OFF -DFEATURE_system_harfbuzz=OFF \
     -DFEATURE_system_png=OFF -DFEATURE_system_jpeg=OFF \
     -DFEATURE_dbus=ON -DFEATURE_dbus_linked=ON -DFEATURE_icu=OFF -DFEATURE_glib=OFF \
     -DFEATURE_system_pcre2=OFF -DFEATURE_system_zlib=OFF \
     > "$B.log" 2>&1 || { tail -50 "$B.log"; exit 1; }
+if [ "$OLD_WAYLAND" != ON ] && [ -d "$B/src/gui" ]; then
+    rm -rf "$B/src/gui/Gui_autogen"
+    rm -f "$B/src/gui/CMakeFiles/Gui_autogen.dir/ParseCache.txt" \
+          "$B/src/gui/CMakeFiles/Gui_autogen.dir/AutogenUsed.txt"
+fi
 cmake --build "$B" -j"${JOBS:-2}" >> "$B.log" 2>&1 || { tail -50 "$B.log"; exit 1; }
 DESTDIR="$PREFIX_ROOT" cmake --install "$B" >> "$B.log" 2>&1 || { tail -40 "$B.log"; exit 1; }
 "$H/libexec/moc" "$UL/ports/src/qttest.cc" -o "$PORTS_BUILD/qttest.moc"
@@ -69,4 +77,4 @@ install -m755 "$UL/ports/scripts/qtsmoke" "$PREFIX_ROOT/usr/bin/qtsmoke"
     "$UL/ports/src/qtguitest.cc" -L"$PREFIX_ROOT/usr/lib" -lQt6Gui -lQt6Core \
     -o "$PREFIX_ROOT/usr/bin/qtguitest"
 install -m755 "$UL/ports/scripts/qtguismoke" "$PREFIX_ROOT/usr/bin/qtguismoke"
-echo "Qt $V Core + DBus + raster/offscreen GUI installed (Wayland/GL/Quick not yet built)"
+echo "Qt $V Core + DBus + raster GUI/Wayland native ABI installed (QPA module separate; no GL/Quick)"

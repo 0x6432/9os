@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+include("${CMAKE_CURRENT_LIST_DIR}/Qt6WaylandScannerToolsTargets.cmake")
+# Qt loads tools in a sibling source directory before generating client protocols.
+set_property(TARGET Qt6::qtwaylandscanner PROPERTY IMPORTED_GLOBAL TRUE)
+check_required_components(Qt6WaylandScannerTools)
