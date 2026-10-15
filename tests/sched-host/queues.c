@@ -7,6 +7,7 @@
 #include <pthread.h>
 
 extern int printf(const char *, ...);
+extern int fflush(void *);
 extern void abort(void);
 struct cpu cpus[MAX_CPUS];
 int ncpus;
@@ -15,7 +16,7 @@ _Thread_local struct thread *test_current;
 _Thread_local int sched_test_cpu;
 static struct thread idle[MAX_CPUS], running[MAX_CPUS], threads[16];
 static int checks;
-#define CHECK(c) do { __atomic_fetch_add(&checks, 1, __ATOMIC_RELAXED); if (!(c)) { printf("FAIL line %d: %s\n", __LINE__, #c); abort(); } } while (0)
+#define CHECK(c) do { __atomic_fetch_add(&checks, 1, __ATOMIC_RELAXED); if (!(c)) { printf("FAIL line %d: %s\n", __LINE__, #c); fflush(nullptr); abort(); } } while (0)
 void smp_send_resched(struct cpu *c) { c->resched = true; c->ipi_pending |= IPI_RESCHED; }
 void lockdep_acquire(const struct lock_class *c, bool sleeping) { (void)c; (void)sleeping; }
 void lockdep_release(const struct lock_class *c, bool sleeping) { (void)c; (void)sleeping; }
@@ -291,8 +292,19 @@ static void kernel_progress_test(void) {
     running[0].bkl_depth = 2; CHECK(!sched_kernel_preemptible());
     running[0].bkl_depth = 0; CHECK(sched_kernel_preemptible());
     running[0].bkl_depth = 1; running[0].proc = nullptr;
-    CHECK(sched_kernel_preemptible()); /* preserve preemptive kernel-thread tests */
+    /* A detached exiting process looks like a kernel thread here. Neither may
+     * be preempted while holding the BKL; the IRQ hook must leave work pending. */
+    CHECK(!sched_kernel_preemptible());
+    cpus[0].resched = true;
+    int before = machine_switches, drops = bkl_drops;
+    trap_exit_hook_sched();
+    CHECK(machine_switches == before && bkl_drops == drops && cpus[0].resched);
+    running[0].bkl_depth = 2; CHECK(!sched_kernel_preemptible());
+    trap_exit_hook_sched();
+    CHECK(machine_switches == before && bkl_drops == drops && cpus[0].resched);
+    running[0].bkl_depth = 0; CHECK(sched_kernel_preemptible());
     test_current = cpus[0].idle; CHECK(sched_kernel_preemptible());
+    test_current = nullptr; CHECK(sched_kernel_preemptible());
 }
 int main(void) {
     affinity_test(); steal_test(); balance_test(); churn_test();

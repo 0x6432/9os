@@ -2130,3 +2130,22 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   pending; earlier full-suite numbers must not be labeled final-head results.
 - Logs: /data/orphan-before-proc.out (negative control), /data/orphan-fixed-up.out,
   /data/qtgl-vfork-full-ci.out (105/106), corresponding build/*.log.
+
+### Final runtime suite and corrected native scheduler contract
+- Kernel/runtime at aa0de02 passed full x86 main107/107, disk20/20+6/6,
+  both e2fsck and clean disk shutdown, audio2/2+2/2. Both original bounded
+  DBus cleanup gates passed. All four EGL cases passed37 checks each; vfork7892
+  and orphan40 regressions passed. These are the post-both-fixes results.
+- CI run38736788594 x86 stopped before userland in sched-host: it still asserted
+  that proc=null with BKL held is preemptible, the exact unsafe exception now
+  removed. Do not misclassify this as a Qt compile failure or silently rerun.
+- Updated real scheduler host coverage: BKL-held detached/kernel threads must
+  defer preemption at nesting1/2, IRQ hook leaves reschedule pending without
+  switching/dropping BKL, BKL-free/idle/no-current contexts remain eligible.
+  Failure diagnostics flush before abort so CI does not lose the assertion.
+- Complete native x86 host gate now passed: PMM23622, slab65512082, scheduler
+  RR/MLFQ28548 each, RB tree200000 rounds, network ring480005, sound checks,
+  Linux futex128 and fetch atomicity/retry/poisoned-cache tests.
+- Next source revision changes host tests/docs ONLY, not runtime binaries.
+  Cold-boot and SMP/MLFQ tests still required. Keep PR11 draft until its new
+  exact-head CI is green on all three architectures. No branches deleted.
