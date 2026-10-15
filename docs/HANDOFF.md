@@ -2353,3 +2353,24 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   shell startup; KMS4 validation running. No fake udev service/rules workaround.
 - M40 remains incomplete; current-head ALL3 regression and actual end-to-end
   physical keyboard acceptance are required, plus remaining scope review.
+
+### Physical input acceptance checkpoint
+- KMS4 x86 diagnostic11/11 passed untraced: actual QEMU keyboard -> libinput ->
+  Sway DRM -> nested KWin -> Konsole /dev/pts/0. Typed file creation and
+  physical1280x800 screenshot visually reviewed; zero lockdep, clean halt.
+- Permanent root repeat also reported11/11 for guest/host checks, including
+  fresh physical screenshot helper and keyboard/PTY proof. Its outer shell
+  exited2 because its host driver was edited while still executing; do NOT
+  count that invocation as a successful script exit. Never edit an active
+  driver, guest runtime tree, ISO or disk. A fresh immutable run is required.
+- Saved75e3d01 adds real root seatd -g video broker + UID1000 desktop extension,
+  typed id -u proof and ALL3 KMS CI. Local normal-user run and full desktop
+  suite are running in sequence at /data/kms-user.out, /data/desktop-full.out;
+  status /data/desktop-validation-status. Do NOT edit their active scripts.
+- CI75e3d01: fast38817891542, source38817891502. Previous068 source canceled
+  by substantive code push, not documentation. Current-head gates still needed.
+- Follow-up review keeps sys_ioctl's raw64 dispatcher signature and explicitly
+  masks cmd=(uint32_t)cmd inside it. This avoids relying on narrow C-argument
+  canonicalization conventions. This is portability hardening, not an observed
+  RISC-V failure: the earlier ioctl oracle already passed fast ALL3 at75.
+  Only x86 builds/tests locally; further non-x86 results must come from CI.

@@ -153,3 +153,12 @@ Physical KMS diagnostics now require wlroots' actual `drm,libinput` backends
 and an enumerated keyboard. A real PTY and rendered physical display alone
 do NOT prove that keyboard input reaches Konsole; that end-to-end test remains
 a separate gate. M40 is NOT complete.
+
+Local x86 physical KMS input now passes the diagnostic11/11 gate: real QEMU
+key events enter Konsole on `/dev/pts/0`, create the expected file, and appear
+in a visually reviewed1280x800 physical screenshot. This is Sway DRM scanout
+with nested KWin/QPainter and stock Plasma, not direct KWin DRM or accelerated
+GPU rendering. The permanent gate additionally requires UID1000: a genuine
+root `seatd -g video` broker grants device access to the existing video group;
+KWin, Plasma and Konsole run as the normal VM user. That stronger test and
+updated ALL3 validation are still pending; no complete-M40 claim.
