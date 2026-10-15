@@ -97,7 +97,7 @@ jobs:
 
   desktop:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
@@ -134,11 +134,15 @@ jobs:
           make -j2 ARCH=$ARCH USERLAND=alpine iso
       - name: Real EGL Quick pixels, KWin, Konsole and Plasma on disk root
         run: scripts/alpine-desktop-tests.sh "$ARCH"
+      - name: Physical KMS keyboard to real Konsole PTY, then clean shutdown
+        run: scripts/alpine-kms-tests.sh "$ARCH"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: alpine-desktop-evidence-${{ matrix.arch }}
           path: |
             build/test-alpine-desktop-*.log
+            build/test-alpine-kms-*.log
+            build/test-alpine-kms-*.png
             userland/build/alpine-desktop-${{ matrix.arch }}.lock.json
           if-no-files-found: warn

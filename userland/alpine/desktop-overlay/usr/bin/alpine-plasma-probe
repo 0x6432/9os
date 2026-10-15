@@ -38,7 +38,11 @@ case ${ALPINE_PLASMA_OUTPUT:-headless} in
  kms)
   export WLR_BACKENDS=drm,libinput LIBSEAT_BACKEND=seatd SEATD_SOCK=/run/seatd.sock
   unset WLR_HEADLESS_OUTPUTS
-  seatd -l debug > "$D/seat.log" 2>&1 & seat=$!
+  if [ "${ALPINE_PLASMA_EXTERNAL_SEAT:-0}" != 1 ];then
+   seatd -l debug > "$D/seat.log" 2>&1 & seat=$!
+  else
+   : > "$D/seat.log" # Root-owned broker is logged by alpine-plasma-user-probe.
+  fi
   for i in $(seq 50);do [ ! -S "$SEATD_SOCK" ] || break;sleep .1;done
   [ -S "$SEATD_SOCK" ] || { cat "$D/seat.log";exit 1; } ;;
  *) echo 'Unknown output backend';exit 1 ;;
@@ -89,8 +93,8 @@ for i in $(seq 300);do [ ! -S "$D/9os-plasma" ] || break;kill -0 "$kwin" 2>/dev/
 [ -S "$D/9os-plasma" ] || { cat "$D/kwin.log";exit 1; }
 export WAYLAND_DISPLAY="$D/9os-plasma" QT_QPA_PLATFORM=wayland
 dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM
-# Plasma's stock wallpaper uses scene-graph OpacityAnimator transitions. Exercise
-# its real EGL renderer rather than patching packaged QML to hide missing frames.
+# Optional real EGL scene graph diagnostic; the default remains stock software.
+# Neither mode patches packaged QML or substitutes a test wallpaper.
 if [ "${ALPINE_PLASMA_RENDERER:-software}" = opengl ];then
  unset QT_QUICK_BACKEND
  export QSG_RHI_BACKEND=opengl QT_QPA_PLATFORM=wayland-egl QSG_RENDER_LOOP=basic
