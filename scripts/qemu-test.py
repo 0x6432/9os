@@ -20,6 +20,8 @@ def main():
     ap.add_argument('cmds', nargs='*')
     ap.add_argument('--smp', default='4')
     ap.add_argument('--sched', default='')
+    ap.add_argument('--userland', choices=['source', 'alpine'], default='source')
+    ap.add_argument('--memory', default=None, help='QEMU memory, e.g. 2048M for Alpine Qt')
     ap.add_argument('--boot-timeout', type=float, default=180)
     ap.add_argument('--timeout', type=float, default=240, help='per command')
     ap.add_argument('--log', default=None)
@@ -41,6 +43,8 @@ def main():
     make = ['make', '-s', 'ARCH=' + a.arch, 'SMP=' + a.smp, 'run', 'QEMUFLAGS=-display none ' + os.environ.get('QEMU_EXTRA', '') +
             ''.join(f' -drive file={d},if=none,id=vd{k},format=raw -device virtio-blk-pci,drive=vd{k},serial=9os-disk{k}' for k, d in enumerate(a.disk))]
     make.insert(3, 'QEMU_NET=' + net)
+    make.insert(3, 'USERLAND=' + a.userland)
+    if a.memory: make.insert(3, 'QEMU_MEMORY=' + a.memory)
     if a.sched: make.insert(3, 'SCHED=' + a.sched)
     if a.cmdline: make.insert(3, 'CMDLINE=' + a.cmdline)
     p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,

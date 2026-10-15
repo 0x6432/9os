@@ -74,7 +74,7 @@ NUMA, cgroups v2 controllers, eBPF, live patching, hundreds of real-hardware dri
 | M37 ✅ | **Sway + foot** | wlroots, tinywl, Sway, freetype/fontconfig/fcft, foot (+ memfd seals, HarfBuzz/cairo/Pango) | a real desktop |
 | M38 ✅ | **Mesa softpipe → llvmpipe** | EGL/GLES2/GBM, native LLVM JIT, PRIME/EGL-image sharing and GLES2 Wayland compositor; all-architecture CI green | GL apps, Qt Quick |
 | M39 ✅ | **Audio** | virtio-snd playback + fixed-format Linux PCM ABI; all-architecture PCM/waveform/queue/no-card CI passes; mixer/capture/mmap not implemented | sound |
-| M40 ◐ | **KDE groundwork** | DBus, full C++ runtime, Qt Core/DBus, raster/offscreen GUI and raster QtWayland merged after three-architecture CI; EGL/GLES plus IRQ/vfork/orphan-reaping fixes also merged after three-architecture CI; headless QtDeclarative interpreter prerequisite in development (not yet guest-validated); Quick, Widgets, KDE, namespaces/`unshare` subset as needed and more `/proc` remain | KDE Plasma attempts |
+| M40 ◐ | **KDE groundwork** | DBus, full C++ runtime, Qt Core/DBus, raster/offscreen GUI and raster QtWayland merged after three-architecture CI; EGL/GLES plus IRQ/vfork/orphan-reaping fixes also merged after three-architecture CI; headless QtDeclarative interpreter merged after all-architecture CI; isolated prebuilt Alpine Quick offscreen/software lane in validation; source Quick, Wayland Quick, Widgets, KDE, namespaces/`unshare` subset as needed and more `/proc` remain | KDE Plasma attempts |
 
 Smaller ports to slot in when the kernel side allows it: make, tcc, ncurses → nano/vim/htop, Doom (fbdev/evdev), Python, git (after M30), curl/OpenSSL (after M32).
 

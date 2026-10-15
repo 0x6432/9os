@@ -21,3 +21,6 @@ __pycache__/
 
 # Canonical GitHub Actions tools/cache directory
 .tools/
+
+# Isolated prebuilt runtime image
+userland/alpine-root-*/

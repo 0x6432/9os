@@ -1,0 +1,19 @@
+#!/bin/sh
+# Exercise Alpine's unmodified Qt Quick libraries, not our libc++ Qt port.
+set -eu
+unset QML_IMPORT_PATH QML2_IMPORT_PATH QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH
+export QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_DISABLE_DISK_CACHE=1
+# Force interpreter for a portable first test; Alpine's JIT remains in its binaries.
+export QV4_FORCE_INTERPRETER=1
+D=$(mktemp -d /tmp/alpine-qt-XXXXXX)
+trap 'rm -rf "$D"' EXIT HUP INT TERM
+chmod 700 "$D"
+export XDG_RUNTIME_DIR="$D"
+cd "$D"
+/usr/lib/qt6/bin/qmlscene /usr/share/9os/alpine-quick.qml > "$D/client.log" 2>&1 || { cat "$D/client.log"; exit 1; }
+cat "$D/client.log"
+grep -q 'alpine-quick: PASSED software frames' "$D/client.log"
+test -s "$D/capture.png"
+echo ALPINE_QUICK_PNG_BEGIN
+base64 "$D/capture.png"
+echo ALPINE_QUICK_PNG_END
