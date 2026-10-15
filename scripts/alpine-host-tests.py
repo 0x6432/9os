@@ -29,6 +29,25 @@ class TrustTests(unittest.TestCase):
             with self.assertRaises(ValueError):m.install_desktop_accounts(stage)
             (stage/'etc/passwd').write_text('messagebus:x:0:0::/:/bin/false\n')
             with self.assertRaises(ValueError):m.install_desktop_accounts(stage)
+    def test_existing_daemon_identity_cannot_keep_root_group_login_or_password(self):
+        bad = [
+            ('passwd', 'messagebus:x:81:0::/dev/null:/sbin/nologin\n'),
+            ('passwd', 'messagebus:x:81:81::/dev/null:/bin/sh\n'),
+            ('passwd', 'messagebus:x:82:81::/dev/null:/sbin/nologin\n'),
+            ('passwd', 'messagebus:x:81:81::/dev/null:/sbin/nologin\nother:x:81:81::/:/bin/false\n'),
+            ('group', 'messagebus:x:0:\n'),
+            ('group', 'messagebus:x:81:\nmessagebus:x:81:\n'),
+            ('shadow', 'messagebus::0:0:99999:7:::\n'),
+            ('shadow', 'messagebus:$6$not-a-locked-password:0:0:99999:7:::\n'),
+        ]
+        for name, text in bad:
+            with self.subTest(name=name, record=text), tempfile.TemporaryDirectory() as d:
+                stage=pathlib.Path(d);(stage/'etc').mkdir()
+                for key, data in [('passwd','root:x:0:0:root:/root:/bin/sh\n'),('group','root:x:0:\n'),('shadow','root::0:0:::::\n')]:
+                    (stage/'etc'/key).write_text(data)
+                m.install_desktop_accounts(stage)
+                (stage/'etc'/name).write_text(text)
+                with self.assertRaises(ValueError):m.install_desktop_accounts(stage)
     def entry(self, **kw):
         return dict(url=m.BASE+'/v3.22/main/x86_64/musl-1.2.5-r12.apk', sha256='a'*64, **kw)
     def test_strict_locked_urls(self):
