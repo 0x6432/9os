@@ -44,12 +44,13 @@ set(CMAKE_SHARED_LINKER_FLAGS_INIT "-L$PREFIX_ROOT/usr/lib -Wl,-rpath-link,$PREF
 EOT
 # moc's cached empty output can survive a raster -> Wayland feature transition.
 # Preserve compiled objects, but rescan generated metadata when enabling the ABI.
+OLD_OPENGL=$(sed -n 's/^QT_FEATURE_opengl:INTERNAL=//p' "$B/CMakeCache.txt" 2>/dev/null || true)
 OLD_WAYLAND=$(sed -n 's/^QT_FEATURE_wayland:INTERNAL=//p' "$B/CMakeCache.txt" 2>/dev/null || true)
 cmake -S "$S" -B "$B" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$TC" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
     -DFEATURE_gui=ON -DFEATURE_widgets=OFF -DFEATURE_network=OFF -DFEATURE_sql=OFF \
-    -DINPUT_opengl=no -DFEATURE_opengl=OFF -DFEATURE_vulkan=OFF -DFEATURE_xcb=OFF \
+    -DINPUT_opengl=es2 -DFEATURE_opengl=ON -DFEATURE_opengles2=ON -DFEATURE_egl=ON -DFEATURE_vulkan=OFF -DFEATURE_xcb=OFF \
     -DFEATURE_eglfs=OFF -DFEATURE_linuxfb=OFF -DFEATURE_evdev=OFF -DFEATURE_libinput=OFF \
     -DFEATURE_wayland=ON -DFEATURE_xkbcommon=ON -DFEATURE_fontconfig=OFF \
     -DFEATURE_system_freetype=OFF -DFEATURE_system_harfbuzz=OFF \
@@ -57,7 +58,7 @@ cmake -S "$S" -B "$B" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$TC" \
     -DFEATURE_dbus=ON -DFEATURE_dbus_linked=ON -DFEATURE_icu=OFF -DFEATURE_glib=OFF \
     -DFEATURE_system_pcre2=OFF -DFEATURE_system_zlib=OFF \
     > "$B.log" 2>&1 || { tail -50 "$B.log"; exit 1; }
-if [ "$OLD_WAYLAND" != ON ] && [ -d "$B/src/gui" ]; then
+if { [ "$OLD_WAYLAND" != ON ] || [ "$OLD_OPENGL" != ON ]; } && [ -d "$B/src/gui" ]; then
     rm -rf "$B/src/gui/Gui_autogen"
     rm -f "$B/src/gui/CMakeFiles/Gui_autogen.dir/ParseCache.txt" \
           "$B/src/gui/CMakeFiles/Gui_autogen.dir/AutogenUsed.txt"
@@ -77,4 +78,4 @@ install -m755 "$UL/ports/scripts/qtsmoke" "$PREFIX_ROOT/usr/bin/qtsmoke"
     "$UL/ports/src/qtguitest.cc" -L"$PREFIX_ROOT/usr/lib" -lQt6Gui -lQt6Core \
     -o "$PREFIX_ROOT/usr/bin/qtguitest"
 install -m755 "$UL/ports/scripts/qtguismoke" "$PREFIX_ROOT/usr/bin/qtguismoke"
-echo "Qt $V Core + DBus + raster GUI/Wayland native ABI installed (QPA module separate; no GL/Quick)"
+echo "Qt $V Core + DBus + raster GUI/Wayland native ABI installed (QPA module separate; EGL/GLES enabled, no Quick)"

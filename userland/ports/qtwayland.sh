@@ -1,5 +1,5 @@
 #!/bin/sh
-# M40: QtWayland raster/shm client only. No compositor, EGL, QML/Quick or KDE claim.
+# M40: QtWayland raster + experimental EGL/GLES clients. No compositor/Quick/KDE claim.
 . "$(dirname "$0")/common.sh"
 V=6.8.3
 T=$DL/qtwayland-everywhere-src-$V.tar.xz
@@ -30,7 +30,7 @@ cmake -S "$S" -B "$B" -G Ninja \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
     -DWaylandScanner_EXECUTABLE="$HOST/bin/wayland-scanner" \
     -DFEATURE_wayland_client=ON -DFEATURE_wayland_server=OFF \
-    -DFEATURE_wayland_egl=OFF -DFEATURE_wayland_decoration_adwaita=OFF \
+    -DFEATURE_wayland_egl=ON -DFEATURE_wayland_decoration_adwaita=OFF \
     > "$B.log" 2>&1 || { tail -60 "$B.log"; exit 1; }
 cmake --build "$B" -j"${JOBS:-2}" >> "$B.log" 2>&1 || { tail -50 "$B.log"; exit 1; }
 DESTDIR="$PREFIX_ROOT" cmake --install "$B" >> "$B.log" 2>&1 || { tail -40 "$B.log"; exit 1; }
@@ -44,4 +44,12 @@ test -f "$PREFIX_ROOT/usr/lib/libQt6WaylandClient.so"
     "$UL/ports/src/qtwaylandtest.cc" -L"$PREFIX_ROOT/usr/lib" \
     -lQt6Gui -lQt6Core -lwayland-client -o "$PREFIX_ROOT/usr/bin/qtwaylandtest"
 install -m755 "$UL/ports/scripts/qtwaylandsmoke" "$PREFIX_ROOT/usr/bin/qtwaylandsmoke"
-echo "Qt $V Wayland raster/shm client installed (no EGL/Quick/compositor)"
+"$UL/musl-dcxx" -std=c++17 -O2 -fPIC -fexceptions -frtti \
+    -I"$PREFIX_ROOT/usr/include" -I"$PREFIX_ROOT/usr/include/QtCore" \
+    -I"$PREFIX_ROOT/usr/include/QtGui" -I"$PREFIX_ROOT/usr/include/QtOpenGL" \
+    -I"$PREFIX_ROOT/usr/include/QtGui/$V" -I"$PREFIX_ROOT/usr/include/QtGui/$V/QtGui" \
+    "$UL/ports/src/qtgltest.cc" -L"$PREFIX_ROOT/usr/lib" \
+    -lQt6OpenGL -lQt6Gui -lQt6Core -lwayland-client -o "$PREFIX_ROOT/usr/bin/qtgltest"
+install -m755 "$UL/ports/scripts/qtglsmoke" "$PREFIX_ROOT/usr/bin/qtglsmoke"
+test -f "$PREFIX_ROOT/usr/plugins/platforms/libqwayland-egl.so"
+echo "Qt $V Wayland raster/shm and EGL/GLES clients installed (no Quick/compositor)"
