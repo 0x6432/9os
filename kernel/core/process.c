@@ -223,7 +223,16 @@ int process_fork_ex(struct trap_frame *f, uint64_t flags, uint64_t newsp, int *p
     thread_start(t);
     if (current->ptracer && !(flags & CLONE_UNTRACED)) ptrace_fork_event(flags, exit_signal, tid);
     if (flags & CLONE_VFORK) {
-        while (!vd.done) wait_event(&vd.wq);
+        /* Completion may run across a timer/context switch between the condition
+         * check and wait_event(). Check and enqueue under the scheduler lock so
+         * an already completed child cannot leave its parent asleep forever.
+         * Do not return/spin on signals while the child still shares our mm and
+         * the completion object still lives on this kernel stack. */
+        for (;;) {
+            uint64_t fl = sched_wait_lock();
+            if (vd.done) { sched_wait_unlock(fl); break; }
+            wait_event_uninterruptible_locked(&vd.wq, fl);
+        }
         if (current->ptracer) ptrace_vfork_done(tid);
     }
     return tid;

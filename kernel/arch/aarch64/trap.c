@@ -99,4 +99,5 @@ void trap_dispatch(struct trap_frame *f, int kind) {
 out:
     user_return_work(f);
     bkl_exit();
+    trap_exit_hook_sched();
 }

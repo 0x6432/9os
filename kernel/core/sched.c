@@ -963,9 +963,11 @@ __noreturn void sched_start_ap(struct cpu *c) {
  * critical section before another kernel-mode IRQ preempts it. Otherwise many
  * vCPUs can endlessly acquire -> preempt -> drop -> retake the ticket lock and
  * never execute the operation. Explicit waits/yields still drop the BKL; user
- * return and BKL-free/kernel-thread contexts remain preemptible. */
+ * return and BKL-free contexts remain preemptible. Kernel threads and an
+ * exiting user thread (whose proc is already detached) must also finish any
+ * BKL-protected critical section before an IRQ can preempt them. */
 bool sched_kernel_preemptible(void) {
-    return !current || !current->proc || current->bkl_depth == 0;
+    return !current || current->bkl_depth == 0;
 }
 void trap_exit_hook_sched(void) {
     if (need_resched && current && sched_kernel_preemptible()) schedule();

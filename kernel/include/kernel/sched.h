@@ -115,6 +115,7 @@ uint64_t sched_idle_ticks(int cpu);
 uint64_t sched_rq_coordinated(int cpu);
 void sched_timer_changed(void);
 bool sched_kernel_preemptible(void);
+void trap_exit_hook_sched(void);
 int sched_set_affinity(struct thread *t, uint64_t mask);
 int sched_set_policy(struct thread *t, int policy, int rt_prio, int nice);
 

@@ -2071,3 +2071,39 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   do not merge until the entire exact-head run passes.
 - Logs: /data/qtgl-ports-build.log, /data/qtgl-user-isolated.out,
   /data/qtgl-sequence.out, /data/qtgl-full-ci.out and matching build/*.log.
+
+### Captured vfork/IRQ preemption regression and fix in progress
+- PR #10 is merged as fff89ec1f48c61dd66fdbfc22da22c3b7e9ac5ed after exact-head
+  run38720105985 passed all three arches (main101/101 each). No branch deletion.
+- EGL head33c5f0f passed local main105/105, disk20/20+6/6, both e2fsck and
+  clean shutdown, audio2/2+2/2. SMP8 focused11/11; SMP4 and UP stress each
+  completed20 EGL clients,37 checks each. Initial focused SMP4/UP stalls remain
+  important evidence; never hide them behind passing retries.
+- Alternating cold boots: four passed6/6, then UP boot5 stalled before login,
+  before any Qt client. Paused QEMU RAM plus DWARF decode found udhcpc blocked
+  on its stack vfork queue with vd.done=1 and no live child. Definite lost wake.
+- Root synchronization violation: user_return_work scheduled unconditionally
+  before checking whether an IRQ interrupted kernel mode, bypassing the
+  existing sched_kernel_preemptible guard. A timer could drop the BKL inside
+  process exit/exec/vfork critical sections, allowing a parent to run/reap while
+  completion publication still used the child. The old guard's !proc exception
+  also wrongly treated an exiting user thread as an exempt kernel thread.
+- Targeted wait-only prototype was insufficient: vforktest blocked with a zombie
+  child, cleared child vfork pointer and parent completion still false. This
+  first regression run was mislabeled 'old' locally: qemu-test's make rebuilt
+  the wait-only prototype despite MAKEFLAGS --old-file. Do NOT cite it as an
+  unchanged-old-kernel A/B test. Its snapshot is still valid prototype evidence.
+- Full candidate: atomic scheduler-lock condition/enqueue for vfork, lifetime-
+  safe uninterruptible wait; respect BKL depth for kernel-mode preemption;
+  reconsider reschedule after IRQ's BKL nesting is dropped on all three archs.
+  Explicit waits/yields and user returns still schedule normally. Only x86 built.
+- New vforktest:2000 shared-mm clone+exit,256 clone+exec,32 delayed children with
+  pending SIGUSR1 and512 real vfork+exit; separate child stacks for clone, checks
+  delayed signal/lifetime and statuses. Same source passed7892 checks on Linux.
+  Added to main/UP/MLFQ/SMP8 CI. Full candidate UP boot passed8/8, including
+  vforktest7892, all four EGL renderer/UID cases37 each, DBus and zero lockdep.
+- Fresh full suite, CPU-count/cold-boot stress and exact-head PR CI are REQUIRED
+  after this kernel change. Earlier105/105 is pre-fix, not candidate validation.
+- Logs: build/vfork-fixed-up.log, /data/vfork-fixed-up.out, /data/vforktest-host.out;
+  snapshots /data/qtgl-boot5-pretimeout and /data/vfork-first-test-snapshot.
+  PR #11 body carries the latest checkpoint; M40/Qt Quick/KDE remain unfinished.

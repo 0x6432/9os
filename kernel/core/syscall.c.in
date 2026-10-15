@@ -27,7 +27,11 @@ void ptrace_syscall_exit(struct trap_frame *f);
 
 /* Runs with interrupts off, with or without the BKL; signal work takes it (recursively). */
 void user_return_work(struct trap_frame *f) {
-    if (need_resched && current) schedule();
+    /* IRQ exits also call this with a kernel frame. Do not drop the BKL in
+     * the middle of a process critical section: a woken parent could reap a
+     * child that is still publishing its exit/vfork completion. Kernel-mode
+     * preemption is reconsidered after the trap drops its own BKL nesting. */
+    if (need_resched && current && (trap_from_user(f) || sched_kernel_preemptible())) schedule();
     if (!trap_from_user(f) || !current || !current->proc) return;
     struct process *p = current->proc;
     if ((p->alarm_ns && time_ns() >= p->alarm_ns) || signal_pending(current) || current->restore_mask) {
