@@ -434,7 +434,10 @@ static int64_t do_getdents(int fd, void *buf, size_t size, bool old) {
 int64_t sys_getdents64(int fd, void *buf, size_t size) { return do_getdents(fd, buf, size, false); }
 int64_t sys_getdents(int fd, void *buf, size_t size) { return do_getdents(fd, buf, size, true); }
 
-int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
+/* Linux's request parameter is unsigned int, even on a 64-bit syscall ABI.
+ * musl can sign-extend its public int request; discard the upper bits once at
+ * this boundary so read-direction requests reach PTY/input/DRM drivers. */
+int64_t sys_ioctl(int fd, uint32_t cmd, uint64_t arg) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
     if (cmd == 0x5421) {           /* FIONBIO */

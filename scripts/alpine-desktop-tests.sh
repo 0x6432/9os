@@ -7,11 +7,11 @@ ARCH=${1:-x86_64}
 ROOT=userland/alpine-desktop-root-$ARCH
 DISK=build/alpine-desktop-$ARCH.img
 L=build/test-alpine-desktop-$ARCH.log
-for test in fallocatetest ptracestoptest unixcredtest procinfotest pimutextest;do cp "userland/alpine-root-$ARCH/usr/bin/$test" "$ROOT/usr/bin/$test";done
+for test in fallocatetest ptracestoptest unixcredtest procinfotest pimutextest ioctlwidthtest desktopframecheck;do cp "userland/alpine-root-$ARCH/usr/bin/$test" "$ROOT/usr/bin/$test";done
 scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
 python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 480 --log "$L" \
- 'grep -q "root=/dev/vda1" /proc/cmdline' fallocatetest ptracestoptest unixcredtest procinfotest pimutextest \
+ 'grep -q "root=/dev/vda1" /proc/cmdline' fallocatetest ptracestoptest unixcredtest procinfotest pimutextest ioctlwidthtest \
  'ALPINE_WAYLAND_RENDERER=opengl alpine-wayland-smoke' \
  'ALPINE_WAYLAND_RENDERER=opengl ALPINE_WAYLAND_USER=user alpine-wayland-smoke' \
  "host:python3 scripts/alpine-wayland-check.py $L --renderer opengl" \

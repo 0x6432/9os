@@ -40,10 +40,12 @@ jobs:
           scripts/unixcred-host-tests.sh
           scripts/procinfo-host-tests.sh
           scripts/pimutex-host-tests.sh
+          scripts/ioctlwidth-host-tests.sh
           python3 scripts/rootfs-stamp-host-tests.py
           python3 scripts/alpine-host-tests.py
           python3 scripts/alpine-wayland-host-tests.py
           python3 scripts/alpine-plasma-host-tests.py
+          python3 scripts/desktopframe-host-tests.py
       - name: Install signed prebuilt runtime
         # apk2 applies Sway's signed security.capability xattr. The runner needs
         # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.

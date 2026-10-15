@@ -44,7 +44,7 @@ for i in $(seq 200); do
     kill -0 "$client" 2>/dev/null || break
     sleep .1
 done
-if [ ! -f "$D/terminal" ] || ! grep -q KDE_WIDGETS_CHILD_READY "$D/terminal"; then cat "$D/client.log" "$D/kwin.log"; echo 'alpine-kwin: FAIL Konsole PTY'; exit 1; fi
+if [ ! -f "$D/terminal" ] || ! grep -q KDE_WIDGETS_CHILD_READY "$D/terminal" || ! grep -q '^/dev/pts/' "$D/terminal"; then cat "$D/client.log" "$D/kwin.log"; echo 'alpine-kwin: FAIL Konsole PTY'; exit 1; fi
 cat "$D/terminal"
 if wait "$client"; then r=0; else r=$?; fi
 client=; echo "KONSOLE_EXIT_STATUS=$r"

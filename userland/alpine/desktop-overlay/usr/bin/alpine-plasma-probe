@@ -104,6 +104,25 @@ fi
 printf PLASMA_DESKTOPS=;cat "$D/desktops"
 dbus-send --session --print-reply --reply-timeout=120000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].wallpaperPlugin="org.kde.image";ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];ds[i].writeConfig("Image","file:///usr/share/wallpapers/Next/contents/images/1024x768.png");}print("PLASMA_WALLPAPER_CONFIGURED="+ds.length);'
 /usr/lib/qt6/bin/qdbus org.kde.KWin /KWin org.kde.KWin.supportInformation
+swaymsg -t get_tree > "$D/tree.json";cat "$D/tree.json"
+cat "$D/plasma.log" "$D/kwin.log"
+output=$(swaymsg -t get_outputs | jq -r '.[]|select(.active==true)|.name' | head -n1)
+[ -n "$output" ] || exit 1
+# Do not guess when asynchronous image loading/animation has completed. Poll
+# actual compositor pixels; the independent host PNG checker stays unchanged.
+frame_ready=0;stable=0;deadline=$(( $(date +%s) + 150 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ WAYLAND_DISPLAY="$parent" grim -t ppm -o "$output" "$D/plasma.ppm"
+ if desktopframecheck "$D/plasma.ppm" > "$D/frame.log";then stable=$((stable+1));else stable=0;fi
+ if [ "$stable" -ge 2 ];then frame_ready=1;break;fi
+ kill -0 "$plasma" 2>/dev/null || break
+ sleep 3
+done
+cat "$D/frame.log"
+[ "$frame_ready" = 1 ] || { echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness';exit 1; }
+WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
+echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+cat "$D/plasma.log" "$D/kwin.log"
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty';echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
  for i in $(seq 1200);do
@@ -117,15 +136,7 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  cat "$D/interactive-pty"
  sleep 3
 fi
-sleep 30
-swaymsg -t get_tree > "$D/tree.json";cat "$D/tree.json"
-cat "$D/plasma.log" "$D/kwin.log"
-output=$(swaymsg -t get_outputs | jq -r '.[]|select(.active==true)|.name' | head -n1)
-[ -n "$output" ] || exit 1
-WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
-echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
-cat "$D/plasma.log" "$D/kwin.log"
-echo 'alpine-plasma: EXPERIMENT rendered shell; acceptance checks still pending'
+echo 'alpine-plasma: real wallpaper/panel rendered; independent host acceptance required'
 if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
  swaymsg -t get_inputs
  cat "$D/seat.log" "$D/sway.log"
