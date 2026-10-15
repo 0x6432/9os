@@ -8,7 +8,10 @@ ARCH=${1:-x86_64}; shift
 cd "$(dirname "$0")/.."
 PATH=$PATH:/usr/sbin:/sbin
 EGLDMA=; GLSMOKE=;
-[ -e userland/build/ports-root-$ARCH/usr/bin/glsmoke ] && GLSMOKE=glsmoke
+# Keep a crashed smoke shell from hiding the first compositor/allocator failure.
+# Preserve its status; diagnostics are not a retry or a substitute for passing frames.
+GLDIAG='r=$?; echo "graphics smoke failure: status $r"; cat /proc/meminfo; ps; for d in /tmp/glsmoke-*; do [ -d "$d" ] || continue; for f in config client.log sway.log; do [ ! -f "$d/$f" ] || { echo "=== $d/$f ==="; cat "$d/$f"; }; done; done; (exit "$r")'
+[ -e userland/build/ports-root-$ARCH/usr/bin/glsmoke ] && GLSMOKE="glsmoke || { $GLDIAG; }"
 [ -e userland/build/ports-root-$ARCH/usr/bin/egltest ] && EGLDMA="egltest dmabuf"
 EGL=; EGLGBM=; [ -e userland/build/ports-root-$ARCH/usr/bin/egltest ] && EGL=egltest && EGLGBM="egltest gbm"
 JIT=; LLEGL=; LLEGLGBM=; LLEGLDMA=; LLGLSMOKE=

@@ -3,6 +3,7 @@
 #include <QBackingStore>
 #include <QBuffer>
 #include <QClipboard>
+#include <QColor>
 #include <QElapsedTimer>
 #include <QFontDatabase>
 #include <QFontMetrics>
@@ -10,6 +11,7 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QScreen>
+#include <QRegion>
 #include <QThread>
 #include <QWindow>
 #include <cstdio>
