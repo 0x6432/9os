@@ -2149,3 +2149,23 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Next source revision changes host tests/docs ONLY, not runtime binaries.
   Cold-boot and SMP/MLFQ tests still required. Keep PR11 draft until its new
   exact-head CI is green on all three architectures. No branches deleted.
+
+
+### QtDeclarative interpreter prerequisite (separate branch, not Quick)
+- Branch notion/m40-qtquick starts from PR11 head c2250e0; PR11 remains draft
+  while exact-head all-three-architecture CI run38738334622 builds userland.
+  Its final local results supersede the earlier pending notes above: full107/107,
+  disk20/20+6/6, both fsck and audio gates; ten fresh UP/SMP4 boots8/8 each,
+  MLFQ SMP2 12/12 and expanded MLFQ SMP8 18/18, zero lockdep violations.
+- New independently SHA512-pinned QtDeclarative6.8.3 port builds native
+  qmltyperegistrar/qmlcachegen and a target QML interpreter, models and
+  WorkerScript. JavaScript JIT is explicitly off on every target for portability.
+  ShaderToolsTools discovery is explicitly disabled: no accidental Quick build.
+- qml_python is the REQUIRED build-host Python interpreter feature, not a
+  target Python dependency. Disabling it causes an upstream configure error.
+- New qmltest covers JavaScript, QObject calls/properties, QML bindings/signals,
+  timers, installed ListModel/WorkerScript imports, worker messaging, local file
+  loading, error handling and GC. Root/repeated/non-root tests are wired into CI.
+  Initial build/testing is in progress; these are NOT yet validated results.
+- Only x86_64 is built locally. Qt Quick rendering still needs ShaderTools/qsb
+  and subsequent scene-graph validation; Widgets/KDE and M40 remain unfinished.
