@@ -47,6 +47,7 @@ int64_t sys_exit();
 int64_t sys_exit_group();
 int64_t sys_faccessat();
 int64_t sys_faccessat2();
+int64_t sys_fallocate();
 int64_t sys_fchdir();
 int64_t sys_fchmod();
 int64_t sys_fchmodat();
@@ -360,7 +361,7 @@ static const syscall_fn syscall_table[NR_SYSCALLS] = {
     [__NR_ftruncate] = (syscall_fn)sys_ftruncate,
 #endif
 #ifdef __NR_fallocate
-    [__NR_fallocate] = (syscall_fn)sys_zero,
+    [__NR_fallocate] = (syscall_fn)sys_fallocate,
 #endif
 #ifdef __NR_faccessat
     [__NR_faccessat] = (syscall_fn)sys_faccessat,
