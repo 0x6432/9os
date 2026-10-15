@@ -1863,8 +1863,47 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   and output, DBus auth/capabilities, names/credentials, signals, a separate Qt service,
   RPC, PID credentials, memfd transfer after closing the original fd, errors and clean
   child exit. Qt DBus regression reproduces the missing wake-op without the kernel fix.
-- Full available local x86 core/disk/audio plus Qt and UP/SMP8 regressions are running.
-  Local optional graphics are not restored; full graphics/non-x86 coverage belongs to
-  PR CI. PR #6 DBus and #7 C++ are independent prerequisite merge gates; Qt is the next
-  branch, notion/m40-qtbase. Keep all unmerged until their required CI is green.
-- M39 merged-main run 38624667601 has ARM and RISC-V success; x86 remains in progress.
+- Final focused local x86 validation at 7be98bd passed: available main suite 81/81,
+  disk-root 20/20 + 6/6, PCM/no-card boots 2/2 each, UP/SMP8 5/5 each, zero lockdep
+  violations. That restore lacked the full graphics stack; these were not full
+  graphics results. See the newer integration checkpoint below for current gates.
+- M39 merged-main run 38624667601 completed successfully on all three architectures.
+
+
+
+### 2026-10-15 integration checkpoint and raster GUI WIP
+- PR #6 DBus and PR #7 full C++ runtime were reviewed and merged, in that order,
+  using merge commits e74a453 and 1a822f7. Their exact-head PR CI passed x86_64,
+  aarch64 and riscv64, including the full graphics ports. No branches were deleted.
+- PR #8 (7be98bd) remains blocked: run 38633337627 passed x86_64 and aarch64,
+  but riscv64 failed softpipe and llvmpipe Sway/Wayland GL smoke commands (95/97).
+  Qt, futex, C++, LLVM JIT, EGL/GBM/dmabuf, disk-root and audio checks passed there.
+  First failure was a shell pipeline EBADF/segfault; the next compositor had no DRM
+  master and no frame callbacks. Do not describe this as a Qt failure or dismiss it
+  as a harmless flake. A single failed-job-only rerun (attempt 2) is pending.
+- The sandbox was wiped. Restored core tools with NO_PORTS=1 ARCHES=x86_64 and
+  recovered the complete x86 ports runtime from run 38633337627's successful
+  x86 ISO artifact. Ten consecutive softpipe/llvmpipe graphics sessions passed on
+  that unmodified CI image (five of each), with zero lockdep violations.
+- A subsequent local full-suite attempt is NOT a validation gate: the checkout
+  was initially created under a private umask, leaving passwd/DBus configuration
+  unreadable by UID 1000; the build also contended with QEMU and an active shell
+  script was edited during execution. Normalize tracked file modes, rebuild the
+  root, and run a fresh stable suite without concurrent builds/script edits.
+- Separate branch notion/m40-qtgui prepares a raster/offscreen-only Qt Gui slice:
+  bundled FreeType/HarfBuzz/PNG, no OpenGL/Vulkan/XCB/device backends, QPA plugins
+  packaged at /usr/plugins, and qtguitest/qtguismoke. Tests cover pixels, scaling,
+  pixmaps, PNG roundtrip, real font glyphs, clipboard, exposed raster windows,
+  backing-store flush/grab, resize/hide and font removal. Root and UID 1000 tests
+  are gated on the installed smoke command. Build/local validation is pending.
+- Raster configuration requires both INPUT_opengl=no and FEATURE_opengl=OFF;
+  FEATURE_opengl alone still trips Qt's explicit OpenGL configuration report.
+  Qt's "No QPA platform plugin enabled" warning omits the offscreen/minimal
+  plugins from its condition; verify installed libqoffscreen.so and real tests.
+- Graphics CI diagnostics retain the original error status (including 139) and
+  dump full remaining compositor/client logs plus memory/process state. They do
+  not retry tests, hide failures or relax frame-callback requirements.
+- For a focused raster restore, include the dejavu port as well as expat, dbus,
+  libcxx-headers, libcxx, cxxtest and qtbase. Local builds/tests remain x86 only;
+  aarch64/riscv64 must use PR CI. QtWayland, GL GUI, QtDeclarative/Quick and KDE
+  remain unfinished; M40 is NOT complete.

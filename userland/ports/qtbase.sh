@@ -1,5 +1,5 @@
 #!/bin/sh
-# M40 Qt base first slice: Core + DBus. GUI/Wayland/Quick follow separately.
+# M40 raster GUI slice: Core + DBus + offscreen; Wayland/GL/Quick follow separately.
 . "$(dirname "$0")/common.sh"
 V=6.8.3
 T=$DL/qtbase-everywhere-src-$V.tar.xz
@@ -46,7 +46,7 @@ cmake -S "$S" -B "$B" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$TC" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
     -DFEATURE_gui=ON -DFEATURE_widgets=OFF -DFEATURE_network=OFF -DFEATURE_sql=OFF \
-    -DFEATURE_opengl=OFF -DFEATURE_vulkan=OFF -DFEATURE_xcb=OFF \
+    -DINPUT_opengl=no -DFEATURE_opengl=OFF -DFEATURE_vulkan=OFF -DFEATURE_xcb=OFF \
     -DFEATURE_eglfs=OFF -DFEATURE_linuxfb=OFF -DFEATURE_evdev=OFF -DFEATURE_libinput=OFF \
     -DFEATURE_xkbcommon=OFF -DFEATURE_fontconfig=OFF \
     -DFEATURE_system_freetype=OFF -DFEATURE_system_harfbuzz=OFF \
