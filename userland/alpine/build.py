@@ -102,7 +102,9 @@ def main():
         repos.write_text('\n'.join(f'{BASE}/{BRANCH}/{r}' for r in ['main', 'community']) + '\n')
         apk = [str(host / 'lib/ld-musl-x86_64.so.1'), '--library-path',
                f'{host}/lib:{host}/usr/lib', str(host / 'sbin/apk')]
-        trust = ['--keys-dir', str(host / 'etc/apk/keys')]
+        # Repository signing keys differ by architecture. The TARGET mini is
+        # independently SHA-pinned too; never disable verification to cross-install.
+        trust = ['--keys-dir', str(stage / 'etc/apk/keys')]
         if args.lock:
             lock = json.loads(args.lock.read_text())
             if (lock['arch'], lock['alpine'], lock['minirootfs_sha256']) != (arch, VERSION, MINI[arch]):

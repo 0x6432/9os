@@ -2214,3 +2214,11 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - See docs/ALPINE.md. QtQuick offscreen software success is NOT Wayland/EGL,
   hardware acceleration, Widgets/KDE or complete Alpine distro compatibility.
   M40 remains unfinished. Never build/test non-x86 locally; retain branches.
+
+- Local stronger Alpine suite8/8, UP5/5 and SMP8 5/5 are now completed, each
+  root/non-root with EVERY pixel checked. Source and Alpine Make outputs verified
+  isolated. Current PR13 fast CI found non-x86 index UNTRUSTED errors: native
+  x86 mini keys do not cover target repository keys. Fix selects the TARGET
+  SHA-pinned mini keyring, retaining strict signatures (never allow-untrusted).
+  Non-x86 validation remains CI-only. x86 native apk negative control with empty
+  keys correctly rejects a genuine signed APK as UNTRUSTED.

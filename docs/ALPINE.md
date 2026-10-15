@@ -32,7 +32,7 @@ optimization. Tests use the usual passwordless root/test accounts: VM use only.
 
 - Minirootfs 3.22.6 archives are SHA256-pinned per architecture, including the
   native x86 bootstrap. The pins came from Alpine's release metadata over HTTPS.
-- The bootstrap's Alpine keys verify repository indexes and every APK. No
+- The target's SHA-pinned mini keyring verifies repository indexes and every APK. No
   `--allow-untrusted`, disabled certificate checking or target install scripts.
 - Native apk cross-installs target packages with `--no-scripts --no-chown`; no
   ARM/RISC binaries are executed during installation. OpenRC, udev services,
