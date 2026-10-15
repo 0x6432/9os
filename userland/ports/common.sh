@@ -2,7 +2,10 @@
 # which mkroot.sh copies into the root filesystem.
 set -e
 ARCH=${ARCH:-x86_64}; export ARCH
-UL=$(cd "$(dirname "$0")/.." && pwd)
+# Qt rejects symlinked build directories (the sandbox's /data is a symlink).
+# Resolve once for every derived source/build/sysroot path, even when invoked
+# from a logical symlinked checkout path.
+UL=$(cd "$(dirname "$0")/.." && pwd -P)
 SYSROOT=$UL/sysroot/$ARCH
 CC="$UL/musl-cc"
 DCC="env DYNAMIC=1 $UL/musl-cc"
