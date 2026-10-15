@@ -2169,3 +2169,27 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   Initial build/testing is in progress; these are NOT yet validated results.
 - Only x86_64 is built locally. Qt Quick rendering still needs ShaderTools/qsb
   and subsequent scene-graph validation; Widgets/KDE and M40 remain unfinished.
+
+
+### PR11 merged; QML build interrupted by sandbox reset
+- Reviewed exact c2250e0 and completed run38738334622 job logs: ALL three
+  architectures passed full107/107, disk20/20+6/6, both fsck/clean shutdown,
+  audio2/2+2/2, UP8/8 and MLFQ11/11; x86 additionally SMP8 9/9.
+  Four EGL renderer/UID clients passed on each architecture. PR11 merged with
+  merge commit3dfc219a0a471c246e121a7bd28aa67b41981268; branches retained.
+- QML native generators installed successfully; target x86 configured with
+  qml_jit=OFF, Quick support=no and reached514/571 build steps before the
+  sandbox reset. Final target build/runtime result is UNCONFIRMED, not passed.
+- Same qmltest source passed41/41 on native x86 Qt6.8.3 after correcting an
+  unsupported globalThis assumption to a global var and checking evaluation
+  errors. This is native Qt validation, NOT a 9os guest result.
+- All source was committed/pushed before the reset. Repository restored from
+  origin/notion/m40-qtquick. x86-only NO_PORTS sandbox restore started detached;
+  log /data/qml-sandbox-restore.log. Previous tools, sources, artifacts and local
+  runtime logs are gone. PR11 completed CI logs were downloaded again.
+- QML gets repeated/root/non-root main coverage plus conditional UP/MLFQ/SMP8
+  runtime gates. Draft PR must pass fresh full-stack CI; do not merge based on
+  native-only checks. No local ARM/RISC builds; no branch deletion.
+- Next: restore x86 ports/SDK, compile and run guest qmltest, investigate fresh
+  PR CI failures, validate existing Qt/graphics regressions. Quick rendering,
+  ShaderTools/qsb, Widgets and KDE remain unfinished; M40 is NOT complete.
