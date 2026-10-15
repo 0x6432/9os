@@ -8,7 +8,10 @@ ARCH=${1:-x86_64}; shift
 cd "$(dirname "$0")/.."
 PATH=$PATH:/usr/sbin:/sbin
 EGLDMA=; GLSMOKE=;
-[ -e userland/build/ports-root-$ARCH/usr/bin/glsmoke ] && GLSMOKE=glsmoke
+# Keep a crashed smoke shell from hiding the first compositor/allocator failure.
+# Preserve its status; diagnostics are not a retry or a substitute for passing frames.
+GLDIAG='r=$?; echo "graphics smoke failure: status $r"; cat /proc/meminfo; ps; for d in /tmp/glsmoke-*; do [ -d "$d" ] || continue; for f in config client.log sway.log; do [ ! -f "$d/$f" ] || { echo "=== $d/$f ==="; cat "$d/$f"; }; done; done; (exit "$r")'
+[ -e userland/build/ports-root-$ARCH/usr/bin/glsmoke ] && GLSMOKE="glsmoke || { $GLDIAG; }"
 [ -e userland/build/ports-root-$ARCH/usr/bin/egltest ] && EGLDMA="egltest dmabuf"
 EGL=; EGLGBM=; [ -e userland/build/ports-root-$ARCH/usr/bin/egltest ] && EGL=egltest && EGLGBM="egltest gbm"
 JIT=; LLEGL=; LLEGLGBM=; LLEGLDMA=; LLGLSMOKE=
@@ -32,6 +35,11 @@ if [ -e userland/build/ports-root-$ARCH/usr/bin/qtsmoke ]; then
     QTUSER="mkdir -p /tmp/qt-user && chown 1000:1000 /tmp/qt-user && chmod 700 /tmp/qt-user && su user -s /bin/sh -c 'XDG_RUNTIME_DIR=/tmp/qt-user dbus-run-session -- qttest'; r=\$?; rm -rf /tmp/qt-user; [ \$r = 0 ]"
     QTCLEAN="$DBUSCLEAN"
 fi
+QTGUI=; QTGUIUSER=
+if [ -e userland/build/ports-root-$ARCH/usr/bin/qtguismoke ]; then
+    QTGUI="qtguismoke && qtguismoke"
+    QTGUIUSER="su user -s /bin/sh -c qtguismoke"
+fi
 CXX=; [ -e userland/build/ports-root-$ARCH/usr/bin/cxxtest ] && CXX=cxxtest
 [ -e userland/build/ports-root-$ARCH/usr/bin/cxxtest-noeh ] && CXX="$CXX cxxtest-noeh"
 WL=; [ -e userland/build/ports-root-$ARCH/usr/bin/wltest ] && WL=wltest
@@ -42,7 +50,15 @@ KMS2=; [ -e userland/build/ports-root-$ARCH/usr/bin/kmstest ] && IN="$IN kmstest
 SW1=; SW2=; [ -e userland/build/ports-root-$ARCH/usr/bin/sway ] && SW1="fc-list | grep -q DejaVuSansMono.ttf" && SW2="(mkdir -p /tmp/xdg && chmod 700 /tmp/xdg && export XDG_RUNTIME_DIR=/tmp/xdg LIBSEAT_BACKEND=builtin LANG=C.UTF-8 WLR_RENDERER=pixman && (sway > /tmp/sway.log 2>&1 &) && for i in \$(seq 60); do ls /tmp/xdg/sway-ipc.* >/dev/null 2>&1 && break; sleep 1; done && export SWAYSOCK=\$(ls /tmp/xdg/sway-ipc.*) && swaymsg -q exec 'foot -a smoke' && for i in \$(seq 60); do swaymsg -t get_tree | grep -q '\"app_id\": \"smoke\"' && break; sleep 1; done; swaymsg -t get_tree | grep -q '\"app_id\": \"smoke\"'; r=\$?; swaymsg -q exit; for i in \$(seq 20); do pidof sway >/dev/null || break; sleep 1; done; ! pidof sway >/dev/null && [ \$r = 0 ] || { tail -20 /tmp/sway.log; false; })"
 B=build/ci-$ARCH; mkdir -p "$B"
 INODE_SIZE=256 sh scripts/mkdisk.sh "$B/ext2.img" 128 || exit 1
-sh scripts/mkdisk.sh "$B/root.img" 256 "userland/root-$ARCH" || exit 1
+# Disk-root persistence deliberately keeps a second complete /usr copy. Size its
+# storage from the actual payload plus filesystem/test headroom, not a fixed
+# 256 MiB that can no longer hold both copies once Qt Gui is present.
+ROOT_KIB=$(du -sk "userland/root-$ARCH" | awk '{print $1}')
+USR_KIB=$(du -sk "userland/root-$ARCH/usr" | awk '{print $1}')
+ROOT_MB=$(( (ROOT_KIB + USR_KIB + 1023) / 1024 + 64 ))
+[ "$ROOT_MB" -ge 256 ] || ROOT_MB=256
+echo "Disk-root validation image: $ROOT_MB MiB (root $ROOT_KIB KiB, /usr copy $USR_KIB KiB)"
+sh scripts/mkdisk.sh "$B/root.img" "$ROOT_MB" "userland/root-$ARCH" || exit 1
 rm -f "$B/scratch.img"; truncate -s 16M "$B/scratch.img"
 fsck_img() {   # e2fsck the partition at 1 MiB
     dd if="$1" of="$1.part" bs=1M skip=1 status=none && e2fsck -fn "$1.part" >"$1.fsck" 2>&1
@@ -58,9 +74,9 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     "touch /tmp/fa && setfacl -m u:1000:r,g:2000:rw /tmp/fa && getfacl -n /tmp/fa | grep -q '^user:1000:r--' && getfacl -c /tmp/fa | grep -q '^mask::rw-' && setfacl -x u:1000 /tmp/fa && setfacl -b /tmp/fa && ! getfacl -c /tmp/fa | grep -q mask && mkdir /tmp/fd && setfacl -d -m u:1000:rwx /tmp/fd && getfacl -cdn /tmp/fd | grep -q '^user:1000:rwx' && touch /tmp/fd/x && getfacl -cn /tmp/fd/x | grep -q '^user:1000:rwx' && rm -rf /tmp/fa /tmp/fd" \
-    ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${QT:+"$QT"} ${QTUSER:+"$QTUSER"} ${QTCLEAN:+"$QTCLEAN"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
+    ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${QT:+"$QT"} ${QTUSER:+"$QTUSER"} ${QTCLEAN:+"$QTCLEAN"} ${QTGUI:+"$QTGUI"} ${QTGUIUSER:+"$QTGUIUSER"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
     "T=/usr/libexec/libinput/libinput-test-suite; [ ! -x \$T ] || { udevshim -d; chvt 2; \$T -j1 --filter-group=udev > /tmp/li.log 2>&1; r=\$?; chvt 1; kill \$(cat /run/udev/udevshim.pid); [ \$r = 0 ] || grep -A12 'failed:' /tmp/li.log; [ \$r = 0 ]; }" \
-    drmdemo ${SW1:+"$SW1"} ${SW2:+"$SW2"} ${GLSMOKE} ${LLGLSMOKE:+"$LLGLSMOKE"} \
+    drmdemo ${SW1:+"$SW1"} ${SW2:+"$SW2"} ${GLSMOKE:+"$GLSMOKE"} ${LLGLSMOKE:+"$LLGLSMOKE"} \
     nettest net2test "ping -c 2 -W 2 127.0.0.1" \
     "for i in 1 2 3 4 5 6 7 8 9 10; do ifconfig eth0 | grep -q 'inet addr:10.0.2.15' && break; sleep 1; done; ifconfig eth0 | grep -q 'inet addr:10.0.2.15'" \
     "route -n | grep -q '^0.0.0.0 *10.0.2.2'" "grep -q nameserver /etc/resolv.conf" \

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Explicit raster/offscreen platform; does not exercise Wayland, GL, or Qt Quick.
+set -eu
+D=/tmp/qtgui-$$
+mkdir -m700 "$D"
+trap 'rm -rf "$D"' EXIT
+trap 'exit 1' HUP INT TERM
+export XDG_RUNTIME_DIR="$D" QT_QPA_PLATFORM=offscreen
+export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/plugins/platforms
+qtguitest

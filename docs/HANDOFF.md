@@ -1863,8 +1863,112 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   and output, DBus auth/capabilities, names/credentials, signals, a separate Qt service,
   RPC, PID credentials, memfd transfer after closing the original fd, errors and clean
   child exit. Qt DBus regression reproduces the missing wake-op without the kernel fix.
-- Full available local x86 core/disk/audio plus Qt and UP/SMP8 regressions are running.
-  Local optional graphics are not restored; full graphics/non-x86 coverage belongs to
-  PR CI. PR #6 DBus and #7 C++ are independent prerequisite merge gates; Qt is the next
-  branch, notion/m40-qtbase. Keep all unmerged until their required CI is green.
-- M39 merged-main run 38624667601 has ARM and RISC-V success; x86 remains in progress.
+- Final focused local x86 validation at 7be98bd passed: available main suite 81/81,
+  disk-root 20/20 + 6/6, PCM/no-card boots 2/2 each, UP/SMP8 5/5 each, zero lockdep
+  violations. That restore lacked the full graphics stack; these were not full
+  graphics results. See the newer integration checkpoint below for current gates.
+- M39 merged-main run 38624667601 completed successfully on all three architectures.
+
+
+
+### 2026-10-15 integration checkpoint and raster GUI WIP
+- PR #6 DBus and PR #7 full C++ runtime were reviewed and merged, in that order,
+  using merge commits e74a453 and 1a822f7. Their exact-head PR CI passed x86_64,
+  aarch64 and riscv64, including the full graphics ports. No branches were deleted.
+- PR #8 (7be98bd) remains blocked: run 38633337627 passed x86_64 and aarch64,
+  but riscv64 failed softpipe and llvmpipe Sway/Wayland GL smoke commands (95/97).
+  Qt, futex, C++, LLVM JIT, EGL/GBM/dmabuf, disk-root and audio checks passed there.
+  First failure was a shell pipeline EBADF/segfault; the next compositor had no DRM
+  master and no frame callbacks. Do not describe this as a Qt failure or dismiss it
+  as a harmless flake. A single failed-job-only rerun (attempt 2) is pending.
+- The sandbox was wiped. Restored core tools with NO_PORTS=1 ARCHES=x86_64 and
+  recovered the complete x86 ports runtime from run 38633337627's successful
+  x86 ISO artifact. Ten consecutive softpipe/llvmpipe graphics sessions passed on
+  that unmodified CI image (five of each), with zero lockdep violations.
+- A subsequent local full-suite attempt is NOT a validation gate: the checkout
+  was initially created under a private umask, leaving passwd/DBus configuration
+  unreadable by UID 1000; the build also contended with QEMU and an active shell
+  script was edited during execution. Normalize tracked file modes, rebuild the
+  root, and run a fresh stable suite without concurrent builds/script edits.
+- Separate branch notion/m40-qtgui prepares a raster/offscreen-only Qt Gui slice:
+  bundled FreeType/HarfBuzz/PNG, no OpenGL/Vulkan/XCB/device backends, QPA plugins
+  packaged at /usr/plugins, and qtguitest/qtguismoke. Tests cover pixels, scaling,
+  pixmaps, PNG roundtrip, real font glyphs, clipboard, exposed raster windows,
+  backing-store flush/grab, resize/hide and font removal. Root and UID 1000 tests
+  are gated on the installed smoke command. The target x86 build succeeded.
+  Focused SMP4 run passed 12/12 commands; the initial GUI test passed 20 checks
+  twice as root and once as UID 1000. Added automatic DejaVu discovery brings
+  qtguitest to 21 checks; all three sessions passed in the subsequent full suite.
+- Raster configuration requires both INPUT_opengl=no and FEATURE_opengl=OFF;
+  FEATURE_opengl alone still trips Qt's explicit OpenGL configuration report.
+  Qt's "No QPA platform plugin enabled" warning omits the offscreen/minimal
+  plugins from its condition; verify installed libqoffscreen.so and real tests.
+- Graphics CI diagnostics retain the original error status (including 139) and
+  dump full remaining compositor/client logs plus memory/process state. They do
+  not retry tests, hide failures or relax frame-callback requirements.
+- For a focused raster restore, include the dejavu port as well as expat, dbus,
+  libcxx-headers, libcxx, cxxtest and qtbase. Local builds/tests remain x86 only;
+  aarch64/riscv64 must use PR CI. QtWayland, GL GUI, QtDeclarative/Quick and KDE
+  remain unfinished; M40 is NOT complete.
+
+- That subsequent full raster suite was NOT green: main 98/99 (softpipe Sway was
+  OOM-killed), disk-root 19/20 (copying /usr exhausted the 256 MiB image). Stopped
+  the follow-on comparison of the incomplete copy instead of collecting binary
+  diff noise. Do not substitute the passing focused tests for the full gate.
+- Trim the runtime copy only: remove static archives/qmake metadata/CMake objects
+  and strip unneeded shared-library symbol tables, keeping dynamic symbols and
+  unwinding sections. Ports build sysroots retain all development files. The
+  trimmed x86 root is 126440 KiB; QPA plugins and DejaVu fonts remain installed.
+  This reduces reserved initramfs backing and guest disk use; RAM stays 512 MiB.
+  The old 256 MiB persistence disk still proved too small (see the latest gate below).
+- Default raster font discovery uses /usr/lib/fonts -> ../share/fonts/dejavu;
+  no environment override or fontconfig daemon is needed for the offscreen test.
+  This is NOT system desktop/fontconfig/Wayland integration.
+
+
+### Latest raster slice validation gates (PR #9)
+- Trimmed runtime: GUI 21/21 repeatedly as root and UID 1000. One-CPU and eight-CPU
+  focused boots each passed 8/8: raster GUI root/user, Qt DBus, futex 128 checks,
+  full C++ runtime, no-EH C++ consumer and zero lockdep violations. Stripping did
+  not break exception unwinding, RTTI or dynamic QPA plugin loading.
+- Full main suite is still NOT green: 98/99; softpipe's Wayland client reached
+  its 60-second alarm before mapping/frame callbacks. llvmpipe passed. After
+  trimming there was no Sway OOM report in that attempt; do not claim the softpipe
+  stall was fixed by trimming or that it is the same root cause as PR #8's failure.
+- Persistence harness must fit the original root AND its deliberate /usr copy.
+  Size from root KiB + /usr KiB + 64 MiB filesystem/test headroom, minimum 256 MiB.
+  The current x86 payload requires 304 MiB. All persistence operations/checks are
+  unchanged. The correctly sized rerun passed 20/20 + 6/6, clean shutdown and
+  e2fsck; fixed PCM/no-card boots passed 2/2 each in the prior trimmed run.
+- Graphics-only EGL/GBM/dmabuf (both renderers) -> pixman/foot -> both Sway GL
+  smoke sequence passed 14/14. VM-pressure + FD stress -> both GL smokes passed
+  9/9. Per-test memory checkpoints through core tests -> both GL smokes passed
+  89/89. The stall has only reproduced in the complete ordered main workload so
+  far; do not infer a kernel fix from these smaller passing runs.
+- PR #8's failed-job RISC-V rerun reached QEMU boot tests; it remains a merge gate.
+  PR #9 must stay draft until its exact-head all-architecture CI and the dependency
+  pass. Update PR bodies for subsequent results instead of docs-only CI restarts.
+- Useful logs if the sandbox survives: /data/qtgui-trim-ci.log (failed full gate),
+  /data/qtgui-disk-final.log, /data/qtgui-up.out, /data/qtgui-smp8.out,
+  /data/qtgui-graphics-isolation.out, /data/qtgui-pressure-isolation.out,
+  /data/qtgui-core-memory.out; guest serial logs are under build/qtgui-*.log.
+- No local non-x86 builds/tests or branch deletions. QtWayland, GL GUI, Widgets,
+  QtDeclarative/Quick and KDE remain unfinished; M40 is NOT complete.
+
+### Sysfs generated-inode lifetime fix (validation in progress)
+- Full ordered x86 memory checkpoints isolated a 159072 KiB MemAvailable drop
+  across the libinput udev suite. Generated sysfs lookup inodes had nonzero link
+  counts but no owning directory entry or cache; iput therefore never evicted
+  them, retaining their device references as well.
+- Add I_EPHEMERAL for generated non-superblock inodes: preserve visible nlink,
+  evict at last iput. Sysfs directory inodes explicitly pin their parent chain
+  until eviction (including cwd/open-directory lifetime); the mount root does
+  not drop attach()'s borrowed parent. Fix partial snew allocation cleanup.
+- New sysfstest regression warms allocators, repeats 2048 deep stat/read pairs,
+  and verifies bounded retained memory plus getcwd/.. after closing a held dir.
+  It FAILS on the unmodified pre-fix kernel, retaining 17504 KiB. Fixed x86
+  sysfs, udevshim, uinput and input focused boot passes 7/7, zero lockdep.
+- Full ordered x86 graphics/persistence/audio suite is running; do NOT yet claim
+  this fixes every graphics failure. Non-x86 validation remains PR CI only.
+- Logs: /data/qtgui-full-memory.out, /data/sysfs-lifetime-baseline.out,
+  /data/sysfs-lifetime-fixed.out, /data/sysfs-fixed-full-ci.log.
