@@ -2256,3 +2256,8 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   Signature verification and no-target-scripts remain unchanged; do not ignore
   installer failures. newc doesn't preserve capability xattrs into the guest.
   This says nothing about privileged DRM/seat/KMS access. See docs/ALPINE.md.
+- CI38787719195 confirmed signed install+offline replay on ALL3 but failed image
+  packaging: ownership-handoff step had accidentally not been inserted into the
+  workflow. Follow-up now explicitly includes it between replay and make, checks
+  shadow readability/root traversal and restores BusyBox setuid. Local manual
+  sudo install/replay + ownership-handoff + unprivileged ISO + suite11/11 passed.
