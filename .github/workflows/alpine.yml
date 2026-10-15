@@ -38,9 +38,13 @@ jobs:
           python3 scripts/alpine-host-tests.py
           python3 scripts/alpine-wayland-host-tests.py
       - name: Install signed prebuilt runtime
-        run: python3 userland/alpine/build.py --arch "$ARCH"
+        # apk2 applies Sway's signed security.capability xattr. The runner needs
+        # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
+        run: sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH"
       - name: Prove exact offline replay (no index/network)
-        run: python3 userland/alpine/build.py --arch "$ARCH" --lock "userland/build/alpine-$ARCH.lock.json" --offline
+        # apk2 applies Sway's signed security.capability xattr. The runner needs
+        # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
+        run: sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --lock "userland/build/alpine-$ARCH.lock.json" --offline
       - name: Build 9os kernel and isolated image
         run: make -j2 ARCH=$ARCH USERLAND=alpine iso
       - name: Prebuilt DBus and Qt Quick offscreen/Wayland, root/non-root pixels

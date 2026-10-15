@@ -9,7 +9,14 @@ musl or BusyBox. Only the kernel/image packaging is built locally.
 Host prerequisites: Python >=3.11, GNU tar/cpio, clang/lld, xorriso, make, and the
 repository's normal Limine/uACPI/QEMU setup. The image builder currently requires
 an x86_64 host; aarch64/riscv64 are cross-installed and tested by PR CI, not locally.
-Pillow is needed only by the host pixel checker.
+Pillow is needed only by the host pixel checker. Alpine Sway carries a signed
+`security.capability` xattr: apk2 extraction needs host `CAP_SETFCAP` (the sandbox
+has it; ordinary GitHub runners do not). CI uses sudo **only for signed assembly**,
+then returns cache/image ownership to the runner and restores the VM BusyBox
+setuid bit before ordinary unprivileged kernel/image builds. No signature bypass,
+ignored install failure, target script execution or host capability is required
+inside the guest. The newc initramfs does not preserve file capability xattrs;
+these headless tests do not exercise privileged DRM/seat access.
 
 ```sh
 export PATH="${TOOLS_DIR:-/data/tools}/bin:$PATH"

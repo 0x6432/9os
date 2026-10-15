@@ -2248,3 +2248,11 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   EGL Quick rendering or hardware acceleration. Widgets, source Quick rendering,
   complete Alpine service compatibility and KDE/Plasma remain unfinished.
   M40 is NOT complete. See docs/ALPINE.md and the follow-up PR validation body.
+- Initial follow-up CI38787341483 failed signed installation before boot on ALL3:
+  Sway's security.capability xattr requires host CAP_SETFCAP. Local sandbox has
+  that capability even as UID1000, standard runner does not. apk2 has no supported
+  no-xattr option. CI now uses sudo for signed assembly/offline replay only, then
+  chowns cache/image back and restores BusyBox's VM setuid bit (chown clears it).
+  Signature verification and no-target-scripts remain unchanged; do not ignore
+  installer failures. newc doesn't preserve capability xattrs into the guest.
+  This says nothing about privileged DRM/seat/KMS access. See docs/ALPINE.md.
