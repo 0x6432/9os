@@ -67,7 +67,9 @@ int main(int argc, char **argv) {
         CHECK(error.isError() && error.property("message").toString() == "expected-qml-error");
         CHECK(!error.property("stack").toString().isEmpty());
         CHECK(js.evaluate("function {").isError());
-        js.evaluate("globalThis.promiseResult=0; Promise.resolve(21).then(x=>{globalThis.promiseResult=x*2;});");
+        // Qt 6.8 implements ES7; globalThis is not part of that contract.
+        QJSValue promise = js.evaluate("var promiseResult=0; Promise.resolve(21).then(x=>{promiseResult=x*2;});");
+        CHECK(!promise.isError());
         CHECK(until([&] { return js.globalObject().property("promiseResult").toInt() == 42; }));
         js.collectGarbage(); CHECK(bridge.value() == 9);
     }
