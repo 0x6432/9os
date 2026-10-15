@@ -50,6 +50,8 @@ P=$TOP/build/ports-root-$ARCH/usr
 [ -d "$P/libexec" ] && cp -a "$P/libexec" usr/
 # Qt dynamically discovers QPA/image plugins outside usr/lib.
 [ -d "$P/plugins" ] && cp -a "$P/plugins" usr/
+# QML imports include their qmldir files, scripts and target plugin libraries.
+[ -d "$P/qml" ] && cp -a "$P/qml" usr/
 mkdir -p usr/share
 for d in X11 libinput libwacom drirc.d dbus-1; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
 # M37: fonts and fontconfig, foot's config
@@ -67,7 +69,7 @@ fi
 rm -rf usr/lib/pkgconfig usr/lib/cmake
 find usr/lib -type f \( -name '*.a' -o -name '*.prl' -o -name '*.la' \) -delete
 find usr/lib -type d -name 'objects-*' -prune -exec rm -rf {} +
-for d in usr/lib usr/plugins; do
+for d in usr/lib usr/plugins usr/qml; do
     [ -d "$d" ] || continue
     find "$d" -type f -name '*.so*' -exec sh -c '
         for f do

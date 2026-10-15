@@ -1,0 +1,5 @@
+#!/bin/sh
+# Headless QML interpreter: use installed target import plugins, not host paths.
+unset QML_IMPORT_PATH QML2_IMPORT_PATH
+export QML_DISABLE_DISK_CACHE=1
+exec /usr/bin/qmltest
