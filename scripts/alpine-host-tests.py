@@ -23,6 +23,13 @@ class TrustTests(unittest.TestCase):
                 m.validate_entries([dict(good, sha256=sha)], 'x86_64', True)
         with self.assertRaises(ValueError):m.validate_entries([good, good], 'x86_64', True)
         with self.assertRaises(ValueError):m.validate_entries([], 'x86_64', True)
+    def test_profile_requires_wayland_packages(self):
+        entries=[dict(url=m.BASE+'/v3.22/community/x86_64/'+name+'-1.0-r0.apk') for name in m.PACKAGES]
+        entries[0]['url']=m.BASE+'/v3.22/community/x86_64/qt6-qtdeclarative-6.8.3-r0.apk'
+        m.validate_profile(entries)
+        for i in range(len(entries)):
+            with self.subTest(missing=i),self.assertRaises(ValueError):m.validate_profile(entries[:i]+entries[i+1:])
+        with self.assertRaises(ValueError):m.validate_profile([dict(e,url=e['url'].replace('6.8.3','6.9.0')) for e in entries])
     def test_valid_offline_cache_never_uses_network(self):
         with tempfile.TemporaryDirectory() as d:
             p=pathlib.Path(d)/'p.apk';p.write_bytes(b'valid')

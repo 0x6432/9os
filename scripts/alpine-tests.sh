@@ -11,4 +11,6 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 2048M --boot-tim
     'dbus-run-session -- sh -c "exit 23"; test $? = 23' \
     alpine-qtsmoke 'su user -s /bin/sh -c alpine-qtsmoke' \
     "host:python3 scripts/alpine-pixel-check.py $L" \
+    alpine-wayland-smoke 'ALPINE_WAYLAND_USER=user alpine-wayland-smoke' \
+    "host:python3 scripts/alpine-wayland-check.py $L" \
     'grep -q "^violations 0" /proc/lockdep'

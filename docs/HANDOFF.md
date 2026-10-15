@@ -2222,3 +2222,42 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   SHA-pinned mini keyring, retaining strict signatures (never allow-untrusted).
   Non-x86 validation remains CI-only. x86 native apk negative control with empty
   keys correctly rejects a genuine signed APK as UNTRUSTED.
+
+### Alpine real Wayland Quick follow-up (notion/alpine-wayland)
+- Parent PR13 exact abe802e fast run38783200616 passed ALL3: main8/8,
+  UP5/5; x86 SMP8 5/5. Each signed install and explicit offline replay passed.
+  Earlier target-key errors above are historical/fixed. Its separate full-source
+  baseline run38783200494 was still building userland at this checkpoint; keep
+  PR13 draft until its current-head baseline and review pass. Do not rerun it for
+  documentation edits. Do not delete branches.
+- Separate follow-up adds signed prebuilt Sway1.10.1/wlroots0.18.2, grim/jq to
+  Alpine closure:156 x86 APKs, about502MiB. Cached exact offline signed assembly
+  took4.8seconds (not cold download or end-to-end kernel timing). No target Qt,
+  Mesa, LLVM, musl or BusyBox compilation. Required-package validation rejects
+  replay of the older offscreen-only profile lock.
+- Actual QtQuick xdg-shell windows map visibly under Sway headless/pixman. Root
+  and UID1000 each generate >=3 completed surface-frame callbacks; checker
+  handles reused object IDs without counting display.sync or borrowed callbacks.
+  grim captures COMPOSITOR output; EVERY128x96 RGBA pixel checked final green.
+  Client UID, configured window, clean client/compositor exits and lockdep checked.
+- Completed x86 ONLY: focused8/8, full fast11/11, UP8/8 and SMP8 8/8; six lock/cache
+  host tests and seven Wayland evidence negative-control tests pass. Expanded CI
+  repeats root/non-root offscreen/Wayland tests on ALL3; do not claim non-x86
+  follow-up success before current-head PR CI completes.
+- This is real Wayland/composition on HEADLESS SOFTWARE output, not KMS scanout,
+  EGL Quick rendering or hardware acceleration. Widgets, source Quick rendering,
+  complete Alpine service compatibility and KDE/Plasma remain unfinished.
+  M40 is NOT complete. See docs/ALPINE.md and the follow-up PR validation body.
+- Initial follow-up CI38787341483 failed signed installation before boot on ALL3:
+  Sway's security.capability xattr requires host CAP_SETFCAP. Local sandbox has
+  that capability even as UID1000, standard runner does not. apk2 has no supported
+  no-xattr option. CI now uses sudo for signed assembly/offline replay only, then
+  chowns cache/image back and restores BusyBox's VM setuid bit (chown clears it).
+  Signature verification and no-target-scripts remain unchanged; do not ignore
+  installer failures. newc doesn't preserve capability xattrs into the guest.
+  This says nothing about privileged DRM/seat/KMS access. See docs/ALPINE.md.
+- CI38787719195 confirmed signed install+offline replay on ALL3 but failed image
+  packaging: ownership-handoff step had accidentally not been inserted into the
+  workflow. Follow-up now explicitly includes it between replay and make, checks
+  shadow readability/root traversal and restores BusyBox setuid. Local manual
+  sudo install/replay + ownership-handoff + unprivileged ISO + suite11/11 passed.

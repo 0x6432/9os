@@ -34,28 +34,47 @@ jobs:
           restore-keys: alpine-v3.22-${{ matrix.arch }}-
       - name: Lock/checksum negative controls
         if: matrix.arch == 'x86_64'
-        run: python3 scripts/alpine-host-tests.py
+        run: |
+          python3 scripts/alpine-host-tests.py
+          python3 scripts/alpine-wayland-host-tests.py
       - name: Install signed prebuilt runtime
-        run: python3 userland/alpine/build.py --arch "$ARCH"
+        # apk2 applies Sway's signed security.capability xattr. The runner needs
+        # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
+        run: sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH"
       - name: Prove exact offline replay (no index/network)
-        run: python3 userland/alpine/build.py --arch "$ARCH" --lock "userland/build/alpine-$ARCH.lock.json" --offline
+        # apk2 applies Sway's signed security.capability xattr. The runner needs
+        # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
+        run: sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --lock "userland/build/alpine-$ARCH.lock.json" --offline
+      - name: Return image and cache ownership to the runner
+        run: |
+          sudo chown -hR "$(id -u):$(id -g)" "userland/alpine-root-$ARCH" userland/build "$TOOLS_DIR/dl/alpine"
+          # chown clears setuid. Restore the intentional VM-only BusyBox login bit.
+          chmod 4755 "userland/alpine-root-$ARCH/bin/busybox"
+          test -r "userland/alpine-root-$ARCH/etc/shadow"
+          test -x "userland/alpine-root-$ARCH/root"
       - name: Build 9os kernel and isolated image
         run: make -j2 ARCH=$ARCH USERLAND=alpine iso
-      - name: Prebuilt DBus and Qt Quick, root/non-root and pixel readback
+      - name: Prebuilt DBus and Qt Quick offscreen/Wayland, root/non-root pixels
         run: scripts/alpine-tests.sh "$ARCH"
-      - name: Uniprocessor Quick
+      - name: Uniprocessor Quick offscreen and Wayland
         run: >-
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 1
           --boot-timeout 300 --log build/test-alpine-up-$ARCH.log alpine-qtsmoke
-          "su user -s /bin/sh -c alpine-qtsmoke" "grep -q '^violations 0' /proc/lockdep"
+          "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-up-$ARCH.log"
-      - name: Eight-CPU Quick
+          alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"
+          "host:python3 scripts/alpine-wayland-check.py build/test-alpine-up-$ARCH.log"
+          "grep -q '^violations 0' /proc/lockdep"
+      - name: Eight-CPU Quick offscreen and Wayland
         if: matrix.arch == 'x86_64'
         run: >-
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
           --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log alpine-qtsmoke
-          "su user -s /bin/sh -c alpine-qtsmoke" "grep -q '^violations 0' /proc/lockdep"
+          "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-smp8-$ARCH.log"
+          alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"
+          "host:python3 scripts/alpine-wayland-check.py build/test-alpine-smp8-$ARCH.log"
+          "grep -q '^violations 0' /proc/lockdep"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
