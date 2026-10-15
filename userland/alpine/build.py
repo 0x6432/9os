@@ -84,6 +84,26 @@ def merge_named_records(original, overlay):
         result.append(replacements.pop(name, line))
     return '\n'.join(result + list(replacements.values())) + '\n'
 
+def install_desktop_accounts(stage):
+    # --no-scripts deliberately skips dbus.pre-install. Provision only this
+    # explicitly required, locked-down VM daemon identity, not arbitrary hooks.
+    records = {
+        'passwd': 'messagebus:x:81:81:DBus system bus:/dev/null:/sbin/nologin',
+        'group': 'messagebus:x:81:',
+        'shadow': 'messagebus:!:0:0:99999:7:::',
+    }
+    for name, record in records.items():
+        path = stage / 'etc' / name
+        original = path.read_text()
+        lines = [line.split(':') for line in original.splitlines() if line]
+        if any(line[0] == 'messagebus' for line in lines):
+            if name in ('passwd', 'group') and any(line[0] == 'messagebus' and int(line[2]) == 0 for line in lines):
+                raise ValueError('messagebus must not be privileged')
+            continue
+        if name in ('passwd', 'group') and any(line[2] == '81' for line in lines):
+            raise ValueError('VM messagebus id81 already in use')
+        path.write_text(original.rstrip('\n') + '\n' + record + '\n')
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--arch', choices=MINI, default=os.environ.get('ARCH', 'x86_64'))
@@ -183,6 +203,7 @@ def main():
                     raise ValueError('Desktop profile requires host tool: ' + tool)
                 subprocess.run([executable, *options, str(stage / path)], check=True)
         if args.profile == 'desktop':
+            install_desktop_accounts(stage)
             shutil.copyfile(stage / 'usr/share/zoneinfo/UTC', stage / 'etc/localtime')
             (stage / 'etc/timezone').write_text('UTC\n')
         os.chmod(stage / 'etc/shadow', 0o640)

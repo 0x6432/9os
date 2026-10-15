@@ -499,19 +499,35 @@ static void gen(struct pinfo *pi, struct buf *b) {
                     cpus[i].cur ? cpus[i].cur->name : "-");
         sched_for_each_thread(sched_thread_line, b);
         break;
-    case F_STAT:
-        bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 %lu %lu 0 0 %lu %lu %lu %lu %d %d %d 0 %lu %lu %lu\n",
-                p->pid, p->name, pstate(p), p->parent ? p->parent->pid : 0, p->pgid, p->sid,
+    case F_STAT: {
+        struct thread *t = main_thread(p);
+        bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 %lu %lu 0 0 %lu %lu %lu %lu %d %d %d 0 %lu %lu %lu",
+                p->pid, t ? t->name : p->name, pstate(p), p->parent ? p->parent->pid : 0, p->pgid, p->sid,
                 p->ctty ? 0x0501 : 0, p->ctty ? p->ctty->pgrp : -1, p->min_flt, p->cmin_flt,
                 p->utime_ns / 10000000, p->stime_ns / 10000000, p->cutime_ns / 10000000, p->cstime_ns / 10000000,
                 main_prio(p), main_nice(p), nthreads(p), p->start_ticks / 10, vm_size(p), vm_rss(p));
+        /* Fields25..52 are part of the ABI, even when zero. Alpine BusyBox's
+         * fast procps parser skips through processor(39) without an EOF check.
+         * No swap/guest/blkio accounting; code/data/argv addresses are redacted.
+         * Do not expose kernel stack pointers via the legacy kstk fields. */
+        uint64_t ignored = 0, caught = 0;
+        for (int sig = 1; sig < NSIG && sig <= 31; sig++) {
+            if (p->sigactions[sig].handler == SIG_IGN) ignored |= 1UL << (sig - 1);
+            else if (p->sigactions[sig].handler != SIG_DFL) caught |= 1UL << (sig - 1);
+        }
+        bprintf(b, " %lu 0 0 0 0 0 %lu %lu %lu %lu 0 0 0 %d %d %d %d 0 0 0 0 0 0 0 0 0 0 %d\n",
+                UINT64_MAX, p->sig_pending & 0x7fffffffUL, t ? t->sig_mask & 0x7fffffffUL : 0,
+                ignored, caught, p->exit_signal, t && t->cpu ? (int)(t->cpu - cpus) : 0,
+                t ? t->rt_prio : 0, t ? t->policy : 0, p->exit_status);
         break;
+    }
     case F_STATUS: {
+        struct thread *t = main_thread(p);
         char credbuf[1024];
         cred_proc_status(p, credbuf, sizeof credbuf);
         bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nTracerPid:\t%d\n%sVmSize:\t%8lu kB\nVmLck:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
                    "voluntary_ctxt_switches:\t%lu\nnonvoluntary_ctxt_switches:\t%lu\n",
-                p->name, pstate(p), p->pid, p->pid, p->parent ? p->parent->pid : 0, tracer_pid(p),
+                t ? t->name : p->name, pstate(p), p->pid, p->pid, p->parent ? p->parent->pid : 0, tracer_pid(p),
                 credbuf, vm_size(p) >> 10, p->mm ? p->mm->locked_vm >> 10 : 0, vm_rss(p) * (PAGE_SIZE / 1024),
                 nthreads(p), p->nvcsw, p->nivcsw);
         break;
@@ -523,7 +539,7 @@ static void gen(struct pinfo *pi, struct buf *b) {
             b->len = b->cap = p->cmdline_len;
         }
         break;
-    case F_COMM: bprintf(b, "%s\n", p->name); break;
+    case F_COMM: { struct thread *t = main_thread(p); bprintf(b, "%s\n", t ? t->name : p->name); break; }
     case F_ENVIRON: break;
     case F_MAPS:
         if (p->mm) {

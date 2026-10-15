@@ -104,16 +104,25 @@ source-build CI remains the reproducible custom-port/regression lane; the new
 separate signed KDE/Plasma/KWin/Konsole/Dolphin/Mesa runtime. Its checked-in
 `x86_64-desktop.json` lock and generated `alpine-desktop-x86_64.lock.json` must
 not be substituted for the base profile lock. `USERLAND=alpine-desktop` uses
-separate kernel/image outputs. The current installed payload is about 2 GiB;
+separate kernel/image outputs. The current installed payload is about 2.5 GiB;
 prefer an ext2 disk root with the smaller base initramfs for iterative debugging.
 No target Qt, Mesa, LLVM or libc build is involved. `musl-dev` supplies headers
 and startup objects for compiling small ABI regression programs, not libraries.
 
-The initial private-bus KWin virtual/QPainter experiment reached real compositor
-supportInformation and a Konsole QtWidgets child PTY. Its final shutdown assertion
-is still being debugged. OpenGL Quick creates a llvmpipe context but has not yet
-produced validated frames. The diagnostic `alpine-kwin-probe` is experimental,
-not an acceptance test or a claim of working Plasma, KMS or service compatibility.
+The private-bus KWin virtual/QPainter probe and a genuine Konsole QtWidgets
+child PTY pass on all three architectures in the f02fa50 desktop CI, as do real
+llvmpipe OpenGL Quick root/non-root frames. KWin exit15 after requested SIGTERM
+is its upstream signal-handler convention, not a crash. The same CI exposed a
+real Plasma abort on the unsupported PI mutex capability; subsequent kernel
+fixes provide an explicit unsupported result and working ordinary-mutex fallback.
+
+The latest x86-only desktop experiment passes real system DBus (root/non-root),
+eudev trigger/settle, stock Plasma desktop/panel readiness and strict compositor
+capture including the genuine packaged wallpaper. Cold initialization and image
+loading are bounded, not replaced with a test background. `alpine-desktop-services`
+starts the real system bus as a locked messagebus identity and real eudev; it is
+not a logind/udisks/FUSE/PipeWire implementation. Physical KMS/input and updated
+three-architecture validation remain pending. **M40 is not complete.**
 
 The experimental desktop additionally needs host `glib-compile-schemas` and
 `update-mime-database` (Ubuntu packages `libglib2.0-bin shared-mime-info`). Since

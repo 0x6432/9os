@@ -14,6 +14,21 @@ class TrustTests(unittest.TestCase):
         self.assertEqual(out,'root:x:0:root\naudio:x:29:\nvideo:x:44:root,user\nuser:x:1000:\n')
         self.assertEqual(m.merge_named_records(out,overlay),out)
         self.assertIn('daemon:!:0:0:::::',m.merge_named_records('root:*:0:0:::::\ndaemon:!:0:0:::::\n','root::0:0:::::\n'))
+    def test_desktop_daemon_identity_is_locked_unprivileged_and_idempotent(self):
+        with tempfile.TemporaryDirectory() as d:
+            stage=pathlib.Path(d);(stage/'etc').mkdir()
+            for name,text in [('passwd','root:x:0:0:root:/root:/bin/sh\n'),('group','root:x:0:\n'),('shadow','root::0:0:::::\n')]:
+                (stage/'etc'/name).write_text(text)
+            m.install_desktop_accounts(stage)
+            before={name:(stage/'etc'/name).read_text() for name in ['passwd','group','shadow']}
+            self.assertIn('messagebus:x:81:81:',before['passwd'])
+            self.assertIn('messagebus:!:',before['shadow'])
+            m.install_desktop_accounts(stage)
+            self.assertEqual(before,{name:(stage/'etc'/name).read_text() for name in before})
+            (stage/'etc/passwd').write_text('other:x:81:81::/:/bin/false\n')
+            with self.assertRaises(ValueError):m.install_desktop_accounts(stage)
+            (stage/'etc/passwd').write_text('messagebus:x:0:0::/:/bin/false\n')
+            with self.assertRaises(ValueError):m.install_desktop_accounts(stage)
     def entry(self, **kw):
         return dict(url=m.BASE+'/v3.22/main/x86_64/musl-1.2.5-r12.apk', sha256='a'*64, **kw)
     def test_strict_locked_urls(self):

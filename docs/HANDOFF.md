@@ -2312,3 +2312,21 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   a fake wallpaper or weaken the black-background negative control.
 - seatd uses its actual CLI/default /run/seatd.sock, not unsupported -s.
   KMS/input acceptance and the updated current-head ALL3 gates remain pending.
+
+- Follow-up x86 Plasma stock SOFTWARE scene graph DID render the genuine Next
+  wallpaper and full panel: strict800x600 opaque/diverse-background host check
+  passed, image visually reviewed. The prior OpacityAnimator suspicion was not
+  established; do NOT claim software rendering itself is broken. Real system
+  DBus, bounded direct evaluateScript call and30s image-load settling were used.
+  Root and UID1000 system-bus GetId succeeded. No fake logind/udisks/portals.
+- --no-scripts also skips DBus's daemon-account creation. Desktop builder now
+  explicitly installs locked/nologin messagebus UID/GID81, rejecting collisions
+  or privileged existing accounts; nine host trust/account tests pass.
+- Real BusyBox pidof crashed because /proc/PID/stat stopped at field24. Added
+  full52-field ABI record (actual scheduler/signal/exit fields, no swap/guest
+  accounting, address fields redacted), leader comm reflects PR_SET_NAME.
+  Expanded Linux/guest procinfotest47 checks; x86 root AND UID1000 pass.
+  Prebuilt pidof, ps and top now pass without a crash. Musl's public
+  sched_getscheduler wrapper is an ENOSYS stub: oracle uses the real syscall.
+- Physical KMS/keyboard/interactive Konsole validation is running; not yet a
+  pass. New PR17 gates must run on the actual fixes, not its older f02 baseline.

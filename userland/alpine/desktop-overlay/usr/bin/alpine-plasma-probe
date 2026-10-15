@@ -19,7 +19,14 @@ cleanup() {
  done
  rm -rf "$D"
 }
-trap cleanup EXIT
+finish() {
+ r=$?
+ if [ "$r" != 0 ];then
+  for f in plasma kwin sway seat konsole;do [ ! -f "$D/$f.log" ] || { echo "PLASMA_DIAGNOSTIC=$f";cat "$D/$f.log"; };done
+ fi
+ cleanup
+}
+trap finish EXIT
 trap 'exit 1' HUP INT TERM
 unset DISPLAY WAYLAND_DISPLAY QT_QPA_PLATFORM QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH
 export XDG_RUNTIME_DIR="$D" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" XDG_DATA_HOME="$D/data"
@@ -76,9 +83,9 @@ dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM
 # its real EGL renderer rather than patching packaged QML to hide missing frames.
 if [ "${ALPINE_PLASMA_RENDERER:-software}" = opengl ];then
  unset QT_QUICK_BACKEND
- export QSG_RHI_BACKEND=opengl QT_QPA_PLATFORM=wayland-egl
+ export QSG_RHI_BACKEND=opengl QT_QPA_PLATFORM=wayland-egl QSG_RENDER_LOOP=basic
  export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe LP_NUM_THREADS=1
- export QSG_INFO=1
+ export QSG_INFO=1 QT_WAYLAND_DISABLE_WINDOWDECORATION=1 QT_WAYLAND_SHELL_INTEGRATION=xdg-shell
 fi
 plasmashell --replace --no-respawn > "$D/plasma.log" 2>&1 & plasma=$!
 ready=0
@@ -95,13 +102,13 @@ if [ "$ready" != 1 ];then
  cat "$D/desktops" "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';exit 1
 fi
 printf PLASMA_DESKTOPS=;cat "$D/desktops"
-/usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript 'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].wallpaperPlugin="org.kde.image";ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];ds[i].writeConfig("Image","file:///usr/share/wallpapers/Next/contents/images/1024x768.png");}print("PLASMA_WALLPAPER_CONFIGURED="+ds.length);'
+dbus-send --session --print-reply --reply-timeout=120000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].wallpaperPlugin="org.kde.image";ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];ds[i].writeConfig("Image","file:///usr/share/wallpapers/Next/contents/images/1024x768.png");}print("PLASMA_WALLPAPER_CONFIGURED="+ds.length);'
 /usr/lib/qt6/bin/qdbus org.kde.KWin /KWin org.kde.KWin.supportInformation
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  konsole --separate --nofork -e /bin/sh > "$D/konsole.log" 2>&1 & client=$!
  sleep 3
 fi
-sleep 5
+sleep 30
 swaymsg -t get_tree > "$D/tree.json";cat "$D/tree.json"
 cat "$D/plasma.log" "$D/kwin.log"
 output=$(swaymsg -t get_outputs | jq -r '.[]|select(.active==true)|.name' | head -n1)
