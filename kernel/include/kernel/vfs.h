@@ -192,6 +192,7 @@ struct super_block {
     bool pruning;
 };
 #define I_LRU 1
+#define I_EPHEMERAL 2            /* generated pseudo inode: evict at last iput, even if linked */
 void sb_init(struct super_block *sb, const struct super_ops *ops, const char *type);
 /* cached inode (referenced) or null */
 struct inode *icache_find(struct super_block *sb, uint64_t ino);
