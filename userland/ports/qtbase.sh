@@ -45,7 +45,12 @@ EOT
 cmake -S "$S" -B "$B" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$TC" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
-    -DFEATURE_gui=OFF -DFEATURE_network=OFF -DFEATURE_sql=OFF \
+    -DFEATURE_gui=ON -DFEATURE_widgets=OFF -DFEATURE_network=OFF -DFEATURE_sql=OFF \
+    -DFEATURE_opengl=OFF -DFEATURE_vulkan=OFF -DFEATURE_xcb=OFF \
+    -DFEATURE_eglfs=OFF -DFEATURE_linuxfb=OFF -DFEATURE_evdev=OFF -DFEATURE_libinput=OFF \
+    -DFEATURE_xkbcommon=OFF -DFEATURE_fontconfig=OFF \
+    -DFEATURE_system_freetype=OFF -DFEATURE_system_harfbuzz=OFF \
+    -DFEATURE_system_png=OFF -DFEATURE_system_jpeg=OFF \
     -DFEATURE_dbus=ON -DFEATURE_dbus_linked=ON -DFEATURE_icu=OFF -DFEATURE_glib=OFF \
     -DFEATURE_system_pcre2=OFF -DFEATURE_system_zlib=OFF \
     > "$B.log" 2>&1 || { tail -50 "$B.log"; exit 1; }
@@ -58,4 +63,10 @@ DESTDIR="$PREFIX_ROOT" cmake --install "$B" >> "$B.log" 2>&1 || { tail -40 "$B.l
     "$UL/ports/src/qttest.cc" -L"$PREFIX_ROOT/usr/lib" -lQt6DBus -lQt6Core \
     -o "$PREFIX_ROOT/usr/bin/qttest"
 install -m755 "$UL/ports/scripts/qtsmoke" "$PREFIX_ROOT/usr/bin/qtsmoke"
-echo "Qt $V Core + DBus installed (GUI/Wayland/Quick not yet built)"
+"$UL/musl-dcxx" -std=c++17 -O2 -fPIC -fexceptions -frtti \
+    -I"$PREFIX_ROOT/usr/include" -I"$PREFIX_ROOT/usr/include/QtCore" \
+    -I"$PREFIX_ROOT/usr/include/QtGui" \
+    "$UL/ports/src/qtguitest.cc" -L"$PREFIX_ROOT/usr/lib" -lQt6Gui -lQt6Core \
+    -o "$PREFIX_ROOT/usr/bin/qtguitest"
+install -m755 "$UL/ports/scripts/qtguismoke" "$PREFIX_ROOT/usr/bin/qtguismoke"
+echo "Qt $V Core + DBus + raster/offscreen GUI installed (Wayland/GL/Quick not yet built)"

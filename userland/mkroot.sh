@@ -48,6 +48,8 @@ fi
 # M35: helpers and data (libinput tools, xkb layouts, libinput quirks)
 P=$TOP/build/ports-root-$ARCH/usr
 [ -d "$P/libexec" ] && cp -a "$P/libexec" usr/
+# Qt dynamically discovers QPA/image plugins outside usr/lib.
+[ -d "$P/plugins" ] && cp -a "$P/plugins" usr/
 mkdir -p usr/share
 for d in X11 libinput libwacom drirc.d dbus-1; do [ -d "$P/share/$d" ] && cp -a "$P/share/$d" usr/share/; done
 # M37: fonts and fontconfig, foot's config
