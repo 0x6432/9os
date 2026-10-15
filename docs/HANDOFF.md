@@ -2374,3 +2374,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   canonicalization conventions. This is portability hardening, not an observed
   RISC-V failure: the earlier ioctl oracle already passed fast ALL3 at75.
   Only x86 builds/tests locally; further non-x86 results must come from CI.
+
+### ALL3 fast desktop gates at75e3d01 (complete; source gate pending)
+- Fast38817891542 passed all six jobs: ALL3 base19/19 + UP8/8; x86SMP8 8/8;
+  ALL3 desktop18/18 + physical KMS UID1000 keyboard11/11, actual /dev/pts/
+  typed-file/id proof, real physical screenshots and lockdep0. Completed logs
+  /data/ci-75-116707032*.log. This supersedes the old weak Konsole assertion.
+- Source38817891502 is still building ports at75e3d01. PR17 remains draft and
+  unmerged pending that gate and final review; do not restart it for notes.
+- Local explicit-mask follow-up full desktop18/18 passed, /data/desktop-full.out.
+  Local first UID1000 physical repeat failed unchanged180s Plasma readiness
+  deadline despite real seatd/keyboard/DRM success; NOT counted as a pass.
+- Follow-up uses direct bounded libdbus evaluateScript polling instead of
+  repeatedly cold-starting Qt qdbus + introspection. Same180s deadline, same
+  genuine desktop/panel conditions; clear inherited root XDG/bus environment
+  before su user creates its private bus. Local untraced validation is running.
+- Follow-up branch notion/alpine-desktop-acceptance keeps these refinements
+  separate from PR17's in-flight full-source gate. Exploratory real Dolphin
+  probe checks actual URL/KIO listing, rename/create notifications, stale-file
+  removal and clean quit through Dolphin's packaged25.04.2 DBus API. It is NOT
+  validated yet. Current run /data/kms-dolphin.out, driver /data/run-dolphin.sh.
+  Do NOT edit active drivers, ISO/disk or installed runtime scripts.
+- M40 still not marked complete: updated follow-up and full-source validation
+  plus remaining source-port/service limitations must stay explicit.

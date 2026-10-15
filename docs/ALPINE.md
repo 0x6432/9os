@@ -162,3 +162,12 @@ GPU rendering. The permanent gate additionally requires UID1000: a genuine
 root `seatd -g video` broker grants device access to the existing video group;
 KWin, Plasma and Konsole run as the normal VM user. That stronger test and
 updated ALL3 validation are still pending; no complete-M40 claim.
+
+At75e3d01, fast CI38817891542 passes all three architectures: base19/19,
+UP8/8 (x86SMP8 8/8), desktop18/18 and physical UID1000 KMS/keyboard11/11.
+These updated results include the strengthened genuine-PTY check, real stock
+wallpaper/panel captures and typed `id -u == 1000` proof. Full source-regression
+CI38817891502 remains pending, so this is not an integrated/released milestone.
+One local normal-user repeat timed out during Plasma initialization; follow-up
+work removes repeated heavyweight Qt bus-query processes while preserving the
+same deadline/acceptance, and isolates the normal user's bus environment.

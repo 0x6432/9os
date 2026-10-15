@@ -103,13 +103,17 @@ if [ "${ALPINE_PLASMA_RENDERER:-software}" = opengl ];then
 fi
 plasmashell --replace --no-respawn > "$D/plasma.log" 2>&1 & plasma=$!
 ready=0
+: > "$D/desktops"
 deadline=$(( $(date +%s) + 180 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- if timeout -s KILL 5 /usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript  'print("desktops="+desktops().length+" panels="+panels().length)'  > "$D/desktops" 2> "$D/bus.log";then
-  if grep -Eq 'desktops=[1-9][0-9]* panels=[1-9][0-9]*' "$D/desktops";then ready=1;break;fi
+ # Avoid loading Qt and performing introspection in a new qdbus process on
+ # every poll. Ask the same real method directly with bounded libdbus tooling.
+ if timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'print("desktops="+desktops().length+" panels="+panels().length)' > "$D/reply" 2> "$D/bus.log";then
+  sed -n 's/.*string "\(desktops=[0-9]* panels=[0-9]*\)".*/\1/p' "$D/reply" > "$D/desktops"
+  if grep -Eq '^desktops=[1-9][0-9]* panels=[1-9][0-9]*$' "$D/desktops";then ready=1;break;fi
  fi
  kill -0 "$plasma" 2>/dev/null || break
- sleep .2
+ sleep .5
 done
 if [ "$ready" != 1 ];then
  if ! kill -0 "$plasma" 2>/dev/null;then if wait "$plasma";then r=0;else r=$?;fi;plasma=;echo "PLASMA_EARLY_EXIT=$r";fi
@@ -158,3 +162,6 @@ fi
 [ ! -f "$D/konsole.log" ] || cat "$D/konsole.log"
 echo ALPINE_PLASMA_INPUT_READY
 sleep "${ALPINE_PLASMA_HOLD:-0}"
+if [ "${ALPINE_PLASMA_FILEMANAGER:-0}" = 1 ];then
+ ALPINE_DOLPHIN_HOLD="${ALPINE_DOLPHIN_HOLD:-30}" alpine-dolphin-probe
+fi

@@ -28,4 +28,4 @@ if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
  done
  [ "$ready" = 1 ] || { cat "$D/seat.log";exit 1; }
 fi
-su user -s /bin/sh -c 'ALPINE_PLASMA_EXTERNAL_SEAT=1 exec alpine-plasma-probe'
+su user -s /bin/sh -c 'unset XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID; ALPINE_PLASMA_EXTERNAL_SEAT=1 exec alpine-plasma-probe'
