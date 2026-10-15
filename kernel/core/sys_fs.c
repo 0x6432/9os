@@ -835,6 +835,24 @@ int64_t sys_utimensat(int dirfd, const char *upath, const struct timespec *utime
     return 0;
 }
 
+/* No filesystem currently guarantees physical preallocation. Never report
+ * success without reserving space and (unless KEEP_SIZE) extending i_size:
+ * musl posix_fallocate callers then mmap the promised range (Mesa's cache).
+ * EOPNOTSUPP lets callers disable optional caches or use their own fallback. */
+int64_t sys_fallocate(int fd, int mode, off_t offset, off_t len) {
+    struct file *f = fd_get(fd);
+    if (!f || (f->flags & O_PATH)) return -EBADF;
+    if ((f->flags & O_ACCMODE) == O_RDONLY) return -EBADF;
+    if (offset < 0 || len <= 0) return -EINVAL;
+    if ((uint64_t)offset > 0x7fffffffffffffffULL - (uint64_t)len) return -EFBIG;
+    if (S_ISFIFO(f->inode->mode)) return -ESPIPE;
+    if (S_ISDIR(f->inode->mode)) return -EISDIR;
+    if (!S_ISREG(f->inode->mode)) return -ENODEV;
+    if (f->inode->sb && (f->inode->sb->flags & SB_RDONLY)) return -EROFS;
+    (void)mode;
+    return -EOPNOTSUPP;
+}
+
 int64_t sys_ftruncate(int fd, off_t len) {
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;

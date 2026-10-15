@@ -35,6 +35,7 @@ jobs:
       - name: Lock/checksum negative controls
         if: matrix.arch == 'x86_64'
         run: |
+          scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
           python3 scripts/rootfs-stamp-host-tests.py
           python3 scripts/alpine-host-tests.py
