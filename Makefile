@@ -96,7 +96,13 @@ $(BUILD)/%.S.o: %.S $(CONFIG_STAMP)
 	@echo "  AS  $<"
 	@$(CC) $(CFLAGS) $(ASFLAGS_ARCH) -c $< -o $@
 
-$(INITRAMFS): $(shell find $(ROOTFS) -type f 2>/dev/null)
+# File lists in Make prerequisites split package filenames containing spaces.
+# A stable metadata stamp also tracks added/deleted files, symlinks and modes.
+ROOTFS_STAMP := $(BUILD)/rootfs.stamp
+$(ROOTFS_STAMP): FORCE scripts/rootfs-stamp.py
+	python3 scripts/rootfs-stamp.py "$(ROOTFS)" "$@"
+
+$(INITRAMFS): $(ROOTFS_STAMP)
 	@mkdir -p $(BUILD) $(ROOTFS)
 	(cd $(ROOTFS) && find . | cpio -o -H newc -R 0:0 --quiet) > $@
 

@@ -33,7 +33,15 @@ for f in "$D"/wayland-*; do [ ! -S "$f" ] || WAYLAND_DISPLAY="$f"; done
 [ -n "${WAYLAND_DISPLAY:-}" ] || { cat "$D/sway.log"; echo 'alpine-wayland: FAIL socket'; exit 1; }
 export WAYLAND_DISPLAY
 C=$D/client; mkdir -m700 "$C"
-export QT_QPA_PLATFORM=wayland QT_QUICK_BACKEND=software QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1
+export QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1
+case ${ALPINE_WAYLAND_RENDERER:-software} in
+    software) export QT_QPA_PLATFORM=wayland QT_QUICK_BACKEND=software ;;
+    opengl)
+        unset QT_QUICK_BACKEND
+        export QT_QPA_PLATFORM=wayland-egl QSG_RHI_BACKEND=opengl QSG_INFO=1
+        export QSG_RENDER_LOOP=basic LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=softpipe ;;
+    *) echo 'alpine-wayland: FAIL unsupported Quick renderer'; exit 1 ;;
+esac
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1 QT_WAYLAND_SHELL_INTEGRATION=xdg-shell WAYLAND_DEBUG=client
 if [ "${ALPINE_WAYLAND_USER:-}" = user ]; then
     expected_uid=1000
