@@ -20,7 +20,7 @@ def main():
     ap.add_argument('cmds', nargs='*')
     ap.add_argument('--smp', default='4')
     ap.add_argument('--sched', default='')
-    ap.add_argument('--userland', choices=['source', 'alpine'], default='source')
+    ap.add_argument('--userland', choices=['source', 'alpine', 'alpine-desktop'], default='source')
     ap.add_argument('--memory', default=None, help='QEMU memory, e.g. 2048M for Alpine Qt')
     ap.add_argument('--boot-timeout', type=float, default=180)
     ap.add_argument('--timeout', type=float, default=240, help='per command')

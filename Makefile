@@ -5,11 +5,14 @@ USERLAND ?= source
 ifeq ($(USERLAND),alpine)
 BUILD := build/$(ARCH)-alpine
 ROOTFS := userland/alpine-root-$(ARCH)
+else ifeq ($(USERLAND),alpine-desktop)
+BUILD := build/$(ARCH)-alpine-desktop
+ROOTFS := userland/alpine-desktop-root-$(ARCH)
 else ifeq ($(USERLAND),source)
 BUILD := build/$(ARCH)
 ROOTFS := userland/root-$(ARCH)
 else
-$(error USERLAND must be source or alpine)
+$(error USERLAND must be source, alpine or alpine-desktop)
 endif
 CC := clang
 LD := ld.lld

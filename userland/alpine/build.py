@@ -12,6 +12,7 @@ MINI = {
     'riscv64': '72f7e69f6950c2799137a934fae61513016efa546afcb4a05540a505c4184150',
 }
 PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq']
+PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['strace', 'seatd', 'kwin', 'plasma-workspace', 'plasma-desktop', 'konsole', 'dolphin']}
 TOP = pathlib.Path(__file__).resolve().parents[2]
 
 def digest(path):
@@ -56,10 +57,10 @@ def validate_entries(entries, arch, locked):
             raise ValueError('Every locked APK needs an exact SHA256')
     return entries
 
-def validate_profile(entries):
+def validate_profile(entries, profile="base"):
     # An older offscreen-only lock must not silently create a broken Wayland image.
     files = [e['url'].rsplit('/', 1)[-1] for e in entries]
-    for package in PACKAGES:
+    for package in PROFILES[profile]:
         if not any(re.fullmatch(re.escape(package) + r'-[0-9][A-Za-z0-9+_.-]*\.apk', f) for f in files):
             raise ValueError('Lock missing required profile package: ' + package)
     if 'qt6-qtdeclarative-6.8.3-r0.apk' not in files:
@@ -77,11 +78,14 @@ def unpack(archive, root):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--arch', choices=MINI, default=os.environ.get('ARCH', 'x86_64'))
+    ap.add_argument('--profile', choices=PROFILES, default='base', help='Isolated base fast lane or larger KDE desktop runtime')
     ap.add_argument('--lock', type=pathlib.Path, help='Replay exact signed APK URLs/hashes; no index refresh')
     ap.add_argument('--offline', action='store_true', help='Require locked, cached artifacts; never contact repositories')
     ap.add_argument('--resolve', action='store_true', help='Explicitly refresh dependency resolution instead of a checked-in lock')
     args = ap.parse_args()
-    checked = TOP / f'userland/alpine/locks/{args.arch}.json'
+    suffix = '' if args.profile == 'base' else '-desktop'
+    image = 'alpine' + suffix
+    checked = TOP / f'userland/alpine/locks/{args.arch}{suffix}.json'
     if args.resolve and args.lock:
         ap.error('--resolve and --lock are mutually exclusive')
     if args.lock is None and not args.resolve and checked.exists():
@@ -96,9 +100,9 @@ def main():
     cache.mkdir(parents=True, exist_ok=True)
     work = TOP / 'userland/build'
     work.mkdir(exist_ok=True)
-    guard = open(work / f'alpine-{arch}.build.lock', 'w')
+    guard = open(work / f'{image}-{arch}.build.lock', 'w')
     fcntl.flock(guard, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    root = TOP / f'userland/alpine-root-{arch}'
+    root = TOP / f'userland/{image}-root-{arch}'
     if root.exists() and not (root / 'etc/9os-alpine.json').is_file():
         raise SystemExit('Refusing to replace an unmarked image: ' + str(root))
     with tempfile.TemporaryDirectory(prefix=f'alpine-{arch}-', dir=work) as tmp:
@@ -118,10 +122,12 @@ def main():
             lock = json.loads(args.lock.read_text())
             if (lock['arch'], lock['alpine'], lock['minirootfs_sha256']) != (arch, VERSION, MINI[arch]):
                 raise ValueError('lock architecture/release/bootstrap mismatch')
+            if lock.get('profile', 'base') != args.profile:
+                raise ValueError('lock profile mismatch')
             entries = lock['packages']
         else:
             cmd = apk + ['--root', str(host), '--arch', arch] + trust + [
-                '--repositories-file', str(repos), '--no-cache', 'fetch', '--simulate', '--recursive', '--url'] + PACKAGES
+                '--repositories-file', str(repos), '--no-cache', 'fetch', '--simulate', '--recursive', '--url'] + PROFILES[args.profile]
             # --simulate is essential: apk2 --url alone downloads too, and omits
             # cached files from its URL output. Resolve from an empty directory.
             out = subprocess.check_output(cmd, text=True, cwd=tmp)
@@ -129,7 +135,7 @@ def main():
             if not entries or not any(u['url'].endswith('/qt6-qtdeclarative-6.8.3-r0.apk') for u in entries):
                 raise ValueError('Expected the reviewed Alpine Qt6.8.3 package set')
         validate_entries(entries, arch, locked=bool(args.lock))
-        validate_profile(entries)
+        validate_profile(entries, args.profile)
         def fetch(entry):
             url = entry['url']
             path = cache / url.rsplit('/', 1)[-1]
@@ -150,17 +156,17 @@ def main():
         shutil.copytree(TOP / 'userland/alpine/overlay', stage, dirs_exist_ok=True, symlinks=True)
         os.chmod(stage / 'etc/shadow', 0o640)
         os.chmod(stage / 'bin/busybox', 0o4755)
-        manifest = {'alpine': VERSION, 'arch': arch, 'minirootfs_sha256': MINI[arch], 'packages': entries}
+        manifest = {'profile': args.profile, 'alpine': VERSION, 'arch': arch, 'minirootfs_sha256': MINI[arch], 'packages': entries}
         text = json.dumps(manifest, indent=2) + '\n'
         (stage / 'etc/9os-alpine.json').write_text(text)
-        (work / f'alpine-{arch}.lock.json').write_text(text)
+        (work / f'{image}-{arch}.lock.json').write_text(text)
         # mtime-independent image identity also invalidates the Make initramfs.
         (stage / '.9os-image-id').write_text(hashlib.sha256(text.encode()).hexdigest() + '\n')
         if root.exists():
             shutil.rmtree(root)
         stage.rename(root)
-    print(f'Alpine {arch}: {len(entries)} signed APKs, no target compilation, {time.monotonic()-start:.1f}s')
-    print(f'Image: {root}; lock: {work}/alpine-{arch}.lock.json')
+    print(f'Alpine {args.profile}/{arch}: {len(entries)} signed APKs, no target compilation, {time.monotonic()-start:.1f}s')
+    print(f'Image: {root}; lock: {work}/{image}-{arch}.lock.json')
 
 if __name__ == '__main__':
     try:

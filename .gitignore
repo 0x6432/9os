@@ -24,3 +24,5 @@ __pycache__/
 
 # Isolated prebuilt runtime image
 userland/alpine-root-*/
+
+userland/alpine-desktop-root-*/

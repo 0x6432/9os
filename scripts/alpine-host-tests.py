@@ -30,6 +30,14 @@ class TrustTests(unittest.TestCase):
         for i in range(len(entries)):
             with self.subTest(missing=i),self.assertRaises(ValueError):m.validate_profile(entries[:i]+entries[i+1:])
         with self.assertRaises(ValueError):m.validate_profile([dict(e,url=e['url'].replace('6.8.3','6.9.0')) for e in entries])
+    def test_desktop_profile_requires_desktop_packages(self):
+        entries=[dict(url=m.BASE+'/v3.22/community/x86_64/'+name+'-1.0-r0.apk') for name in m.PROFILES['desktop']]
+        entries[0]['url']=m.BASE+'/v3.22/community/x86_64/qt6-qtdeclarative-6.8.3-r0.apk'
+        m.validate_profile(entries,'desktop')
+        m.validate_profile(entries,'base')
+        for missing in ['kwin','plasma-workspace','plasma-desktop','konsole','dolphin','seatd','strace']:
+            subset=[e for e in entries if '/'+missing+'-1.0-r0.apk' not in e['url']]
+            with self.subTest(missing=missing),self.assertRaises(ValueError):m.validate_profile(subset,'desktop')
     def test_valid_offline_cache_never_uses_network(self):
         with tempfile.TemporaryDirectory() as d:
             p=pathlib.Path(d)/'p.apk';p.write_bytes(b'valid')
