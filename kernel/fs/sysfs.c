@@ -20,7 +20,7 @@ enum skind { K_DIR, K_ATTR, K_UEVENT, K_DEV, K_LINK, K_GLOBAL, K_POWER, K_BIN };
 /* power/ of every device: runtime PM is not implemented, so it reports "unsupported" */
 static const char *const power_files[] = { "power/control", "power/runtime_status", "power/async", "power/runtime_enabled",
                                            "power/runtime_active_time", "power/runtime_suspended_time" };
-struct snode { int kind; struct device *dev; int idx; char path[256]; char target[200]; };
+struct snode { int kind; struct device *dev; struct inode *parent; int idx; char path[256]; char target[200]; };
 
 static const char *const fixed_dirs[] = {
     "/devices/virtual", "/devices/system/cpu", "/class/input", "/class/net", "/class/block", "/class/tty",
@@ -134,8 +134,9 @@ static uint32_t kind_mode(int kind, struct device *d, int idx) {
 }
 static struct inode *snew(int kind, const char *path, struct device *d, int idx, const char *target) {
     struct inode *i = inode_alloc(kind_mode(kind, d, idx));
+    if (!i) return nullptr;
     struct snode *s = kzalloc(sizeof *s);
-    if (!i || !s) { kfree(s); return i; }
+    if (!s) { iput(i); return nullptr; }
     s->kind = kind; s->dev = d; s->idx = idx;           /* d: a reference handed over by the caller */
     strncpy(s->path, path, sizeof s->path - 1);
     if (target) strncpy(s->target, target, sizeof s->target - 1);
@@ -146,6 +147,9 @@ static struct inode *snew(int kind, const char *path, struct device *d, int idx,
     i->ino = *path ? path_ino(path) : 1;
     i->uid = i->gid = 0;
     i->nlink = S_ISDIR(i->mode) ? 2 : 1;
+    /* The registry regenerates each lookup; no directory entry owns this inode.
+     * Keep stat's link count, but release the inode and its device at last iput. */
+    i->i_state |= I_EPHEMERAL;
     i->size = kind == K_BIN ? d->attrs[idx].size : S_ISREG(i->mode) ? 4096 : 0;
     return i;
 }
@@ -177,9 +181,16 @@ static int s_lookup(struct inode *dir, const char *name, struct inode **out) {
         generate(lk_cb, l);
         if (l->found) {
             struct inode *i = snew(l->kind, full, l->d, l->idx, l->target);
-            if (!i || !i->priv) { if (l->d) device_put(l->d); }
+            if (!i) { if (l->d) device_put(l->d); }
             if (!i) r = -ENOMEM;
-            else { if (S_ISDIR(i->mode)) i->parent = dir; *out = i; r = 0; }
+            else {
+                /* "..", getcwd and open directory fds can outlive this lookup. */
+                if (S_ISDIR(i->mode)) {
+                    iget(dir); i->parent = dir;
+                    ((struct snode *)i->priv)->parent = dir;
+                }
+                *out = i; r = 0;
+            }
         }
     }
     kfree(full); kfree(l);
@@ -256,6 +267,7 @@ static int s_readlink(struct inode *i, char *buf, size_t size) {
 static void s_evict(struct inode *i) {
     struct snode *s = i->priv;
     if (s && s->dev) device_put(s->dev);
+    if (s) iput(s->parent);
     kfree(s);
 }
 

@@ -1954,3 +1954,21 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   /data/qtgui-core-memory.out; guest serial logs are under build/qtgui-*.log.
 - No local non-x86 builds/tests or branch deletions. QtWayland, GL GUI, Widgets,
   QtDeclarative/Quick and KDE remain unfinished; M40 is NOT complete.
+
+### Sysfs generated-inode lifetime fix (validation in progress)
+- Full ordered x86 memory checkpoints isolated a 159072 KiB MemAvailable drop
+  across the libinput udev suite. Generated sysfs lookup inodes had nonzero link
+  counts but no owning directory entry or cache; iput therefore never evicted
+  them, retaining their device references as well.
+- Add I_EPHEMERAL for generated non-superblock inodes: preserve visible nlink,
+  evict at last iput. Sysfs directory inodes explicitly pin their parent chain
+  until eviction (including cwd/open-directory lifetime); the mount root does
+  not drop attach()'s borrowed parent. Fix partial snew allocation cleanup.
+- New sysfstest regression warms allocators, repeats 2048 deep stat/read pairs,
+  and verifies bounded retained memory plus getcwd/.. after closing a held dir.
+  It FAILS on the unmodified pre-fix kernel, retaining 17504 KiB. Fixed x86
+  sysfs, udevshim, uinput and input focused boot passes 7/7, zero lockdep.
+- Full ordered x86 graphics/persistence/audio suite is running; do NOT yet claim
+  this fixes every graphics failure. Non-x86 validation remains PR CI only.
+- Logs: /data/qtgui-full-memory.out, /data/sysfs-lifetime-baseline.out,
+  /data/sysfs-lifetime-fixed.out, /data/sysfs-fixed-full-ci.log.

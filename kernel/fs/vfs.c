@@ -175,7 +175,8 @@ void iget(struct inode *i) { if (i) __atomic_add_fetch(&i->refcount, 1, __ATOMIC
 void iput(struct inode *i) {
     if (!i) return;
     if (i->sb) { sb_iput(i); return; }
-    if (__atomic_sub_fetch(&i->refcount, 1, __ATOMIC_ACQ_REL) <= 0 && i->nlink == 0) {
+    if (__atomic_sub_fetch(&i->refcount, 1, __ATOMIC_ACQ_REL) <= 0 &&
+        (i->nlink == 0 || (i->i_state & I_EPHEMERAL))) {
         if (i->iops && i->iops->evict) i->iops->evict(i);
         simple_xattrs_free(i);
         acl_forget(i);
