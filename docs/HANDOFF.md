@@ -2330,3 +2330,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   sched_getscheduler wrapper is an ENOSYS stub: oracle uses the real syscall.
 - Physical KMS/keyboard/interactive Konsole validation is running; not yet a
   pass. New PR17 gates must run on the actual fixes, not its older f02 baseline.
+
+### ioctl width and honest desktop acceptance (in progress)
+- Saved WIP713bcb0 on notion/alpine-desktop-abi; PR17 still draft at068e942.
+  Fast38812554465: base ALL3 green; desktop RISC-V17/17, x86/ARM16/17,
+  only strict black-wallpaper capture failed. Source38812554561 still running.
+  Those gates do NOT cover the newer ioctl fix or strengthened PTY check.
+- Linux ioctl request is unsigned32, including64-bit syscall ABIs. Prebuilt
+  musl sign-extended TIOCGPTN and 9os compared all64bits -> ENOTTY. Normalize
+  once in sys_ioctl; ioctlwidthtest30 checks pass Linux and x86 guest root
+  AND UID1000. No target Qt/Mesa/libc compilation.
+- IMPORTANT correction: old Konsole test could accept inherited /dev/console,
+  so previous ALL3 genuine-PTY claims were not established. New check requires
+  /dev/pts/. Physical test after ioctl fix DOES launch a child on /dev/pts/0.
+- Pixel readiness uses real grim PPM with two consecutive wallpaper/panel
+  frames, bounded150s; independent strict host PNG acceptance unchanged.
+  Positive and eight negative host controls pass. KMS3 captures actual1280x800
+  stock wallpaper/panel (41089/3097 distinct background/panel colors), but
+  physical keyboard test FAILS and is NOT counted as complete.
+- KMS3 Sway get_inputs was empty: WLR_BACKENDS=drm omitted libinput entirely.
+  New diagnostic enables drm,libinput and requires enumerated keyboard before
+  shell startup; KMS4 validation running. No fake udev service/rules workaround.
+- M40 remains incomplete; current-head ALL3 regression and actual end-to-end
+  physical keyboard acceptance are required, plus remaining scope review.

@@ -36,7 +36,7 @@ export WLR_RENDERER=pixman
 case ${ALPINE_PLASMA_OUTPUT:-headless} in
  headless) export WLR_BACKENDS=headless WLR_HEADLESS_OUTPUTS=1 ;;
  kms)
-  export WLR_BACKENDS=drm LIBSEAT_BACKEND=seatd SEATD_SOCK=/run/seatd.sock
+  export WLR_BACKENDS=drm,libinput LIBSEAT_BACKEND=seatd SEATD_SOCK=/run/seatd.sock
   unset WLR_HEADLESS_OUTPUTS
   seatd -l debug > "$D/seat.log" 2>&1 & seat=$!
   for i in $(seq 50);do [ ! -S "$SEATD_SOCK" ] || break;sleep .1;done
@@ -67,6 +67,16 @@ for i in $(seq 100); do
 done
 [ -n "$SWAYSOCK" ] || { cat "$D/sway.log";exit 1; }
 export SWAYSOCK
+if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
+ input_ready=0
+ for i in $(seq 100);do
+  swaymsg -t get_inputs > "$D/inputs.json"
+  if jq -e '[.[]|select(.type=="keyboard")]|length>0' "$D/inputs.json" >/dev/null;then input_ready=1;break;fi
+  sleep .1
+ done
+ cat "$D/inputs.json"
+ [ "$input_ready" = 1 ] || { echo 'alpine-plasma: FAIL no physical keyboard';exit 1; }
+fi
 parent=
 for f in "$D"/wayland-*;do [ ! -S "$f" ] || parent="$f";done
 [ -n "$parent" ] || exit 1
