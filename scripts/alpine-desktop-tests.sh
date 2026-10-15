@@ -11,7 +11,7 @@ for test in fallocatetest ptracestoptest;do cp "userland/alpine-root-$ARCH/usr/b
 scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
 python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 180 --log "$L" \
- fallocatetest ptracestoptest \
+ 'grep -q "root=/dev/vda1" /proc/cmdline' fallocatetest ptracestoptest \
  'ALPINE_WAYLAND_RENDERER=opengl alpine-wayland-smoke' \
  'ALPINE_WAYLAND_RENDERER=opengl ALPINE_WAYLAND_USER=user alpine-wayland-smoke' \
  "host:python3 scripts/alpine-wayland-check.py $L --renderer opengl" \

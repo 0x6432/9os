@@ -7,6 +7,13 @@ spec = importlib.util.spec_from_file_location('alpine_builder', p)
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 class TrustTests(unittest.TestCase):
+    def test_account_overlay_preserves_distro_groups_and_locked_accounts(self):
+        original='root:x:0:\naudio:x:29:\nvideo:x:27:\n'
+        overlay='root:x:0:root\nvideo:x:44:root,user\nuser:x:1000:\n'
+        out=m.merge_named_records(original,overlay)
+        self.assertEqual(out,'root:x:0:root\naudio:x:29:\nvideo:x:44:root,user\nuser:x:1000:\n')
+        self.assertEqual(m.merge_named_records(out,overlay),out)
+        self.assertIn('daemon:!:0:0:::::',m.merge_named_records('root:*:0:0:::::\ndaemon:!:0:0:::::\n','root::0:0:::::\n'))
     def entry(self, **kw):
         return dict(url=m.BASE+'/v3.22/main/x86_64/musl-1.2.5-r12.apk', sha256='a'*64, **kw)
     def test_strict_locked_urls(self):

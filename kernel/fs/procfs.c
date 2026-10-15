@@ -4,6 +4,7 @@
 /* procfs: process and system information (enough for BusyBox ps/top/free/mount). */
 #include <kernel/vfs.h>
 #include <kernel/cred.h>
+#include <kernel/boot.h>
 int blk_proc_partitions(char *buf, size_t max);
 int blk_proc_diskstats(char *buf, size_t max);
 int net_proc_file(int which, char *buf, size_t max);
@@ -23,7 +24,7 @@ int net_proc_file(int which, char *buf, size_t max);
 int locks_report(char *buf, int cap);
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR, P_SYSDIR };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS, G_LOCKS,
+             G_MEMINFO, G_UPTIME, G_VERSION, G_BOOT_CMDLINE, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS, G_LOCKS,
              N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP, N_IGMP,
              N_IGMP6, N_IF_INET6, N_IPV6_ROUTE, N_TCP6, N_UDP6, N_RAW6, N_SNMP6, N_NETLINK, N_NETSTAT, S_SYSCTL };
 /* P_SYSDIR: the /proc/sys directory whose path is sysctls[sysi].path[0, syslen) */
@@ -124,7 +125,7 @@ static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum 
 }
 
 static const struct { const char *name; enum pfile f; } global_files[] = {
-    { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cpuinfo", G_CPUINFO },
+    { "meminfo", G_MEMINFO }, { "uptime", G_UPTIME }, { "version", G_VERSION }, { "cmdline", G_BOOT_CMDLINE }, { "cpuinfo", G_CPUINFO },
     { "mounts", G_MOUNTS }, { "loadavg", G_LOADAVG }, { "stat", G_STAT }, { "filesystems", G_FILESYSTEMS }, { "sched", G_SCHED },
     { "vmstat", G_VMSTAT }, { "lockdep", G_LOCKDEP }, { "hardening", G_HARDEN }, { "interrupts", G_INTERRUPTS },
     { "partitions", G_PARTITIONS }, { "diskstats", G_DISKSTATS }, { "locks", G_LOCKS },
@@ -391,6 +392,7 @@ static void gen(struct pinfo *pi, struct buf *b) {
                 totalp * 4, freep * 4, (freep + pagecache_lru_pages) * 4, pagecache_pages * 4);
         break;
     case G_UPTIME: { uint64_t ms = time_ns() / 1000000; bprintf(b, "%lu.%02lu %lu.%02lu\n", ms / 1000, (ms % 1000) / 10, ms / 1000, (ms % 1000) / 10); break; }
+    case G_BOOT_CMDLINE: bprintf(b, "%s\n", boot_cmdline()); break;
     case G_VERSION: bprintf(b, "Linux version 6.1.0-9os (9os hobby kernel) #1\n"); break;
     case G_CPUINFO:
         for (int i = 0; i < ncpus; i++)

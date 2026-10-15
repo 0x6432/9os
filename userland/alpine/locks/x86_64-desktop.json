@@ -629,6 +629,10 @@
       "sha256": "fee7609ceca29e56b45d61e113dd5af05bb039d4c8ee66ec21cd8833e5eac23d"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libcanberra-pulse-0.30-r11.apk",
+      "sha256": "a302ba6719792dc6e1d3df930bdc069ecb9067674da6c9cd289304651f84a30c"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libdbusmenu-glib-16.04.0-r6.apk",
       "sha256": "f1f64a2d468c02198fe6cc0a49aca6c2115c1077c5b83f294c51381568281d1b"
     },
@@ -755,6 +759,10 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libpulse-17.0-r5.apk",
       "sha256": "1fcb8c142f3b1fe5d204770aae6e18af3c58d43c51dd60c949459424f15064e3"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libpulse-mainloop-glib-17.0-r5.apk",
+      "sha256": "31fb729d83838f2a51dd302e29463c6b76afc31dc0564901d77d704f8a7c3052"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/libqaccessibilityclient-0.6.0-r0.apk",
@@ -901,6 +909,10 @@
       "sha256": "83c01422cb609417529a59319ef8601d72b775cd98e477b3b58cd3a803dcbcd5"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/plasma-pa-6.3.6-r0.apk",
+      "sha256": "4aef5a41b91873838c95daef1de4a8c537e03b721e365c7bbe3f791291a19d0f"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/plasma-workspace-6.3.6-r0.apk",
       "sha256": "c104759bf7e1ee63ca9d08b5b2750daf14f8fd57c6dab623c4812718c417461d"
     },
@@ -931,6 +943,22 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/prison-6.13.0-r0.apk",
       "sha256": "58d757e85d3e77bcbb61767c177a9072afaf370b5a391542aec7470236c40007"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/pulseaudio-17.0-r5.apk",
+      "sha256": "3d7cc0f6d98870ff737a0de639894d8df6862af9ef979eeeaaef20d757e47906"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/pulseaudio-alsa-17.0-r5.apk",
+      "sha256": "b4185a884a41a94b466f6ca9f890d1cca056a6f2aeccfed256281410d057d781"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/pulseaudio-qt-1.7.0-r0.apk",
+      "sha256": "f3fd0ab31b4952146079b37bd934e09ce138a992c082ce86b72714bcec101783"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/pulseaudio-wireplumber-17.0-r5.apk",
+      "sha256": "739f003c32b80266c429cb1c26245b1630880dde1b971c955149a2e44e8f7699"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/qqc2-breeze-style-6.3.6-r0.apk",
@@ -1179,6 +1207,10 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/volume_key-0.3.12-r7.apk",
       "sha256": "99575cbd69aba622f5ff5179570c1002160bca94706f86a5a712efd62a3c9e46"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/webrtc-audio-processing-1-1.3-r1.apk",
+      "sha256": "4214d133a0aa112a11024b378aa25e1d34732c6492fcd81c753e63a081b067c3"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/webrtc-audio-processing-2-2.1-r0.apk",
@@ -1431,6 +1463,10 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/eudev-libs-3.2.14-r5.apk",
       "sha256": "b17bd15ff244733c79c4d1fe426c005bf0a47c32227ab2964db3f9333a3e8852"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/fftw-single-libs-3.3.10-r6.apk",
+      "sha256": "6062ae460daf40eec8ce5c4f0458c44646024405f7f962fb3eecbb438f285a02"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/file-5.46-r2.apk",
@@ -2342,7 +2378,7 @@
     }
   ],
   "generated_caches": {
-    "usr/share/glib-2.0/schemas/gschemas.compiled": "2ac97354cf3d8a4cd3258031b8c0bb3ee5452311db4d9acfc7296fe37ab1015c",
+    "usr/share/glib-2.0/schemas/gschemas.compiled": "2a60ccbf7e07c7a3468c117ec788fc1b2eb65722f59248c6fef716316ff414e9",
     "usr/share/mime/mime.cache": "4c7f5d5f02d34d7d7461357e2d9de7437908d59e29379f3ba2ca0475fc340b1a"
   }
 }

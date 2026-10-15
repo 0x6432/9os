@@ -26,5 +26,5 @@ def check(raw):
 
 if __name__=='__main__':
     try: n=check(pathlib.Path(sys.argv[1]).read_bytes())
-    except (ValueError,OSError) as e:raise SystemExit(str(e))
+    except (ValueError,OSError,SyntaxError) as e:raise SystemExit(str(e))
     print(f'PASS: {n} real Plasma 800x600 compositor captures with rendered wallpaper/panel; services/input require separate tests')

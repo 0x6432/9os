@@ -1,7 +1,13 @@
 #!/bin/sh
 # Experimental real Plasma shell nested under Sway for compositor-side evidence.
 set -eu
-if [ "${1:-}" != --session ]; then exec dbus-run-session -- "$0" --session; fi
+if [ "${1:-}" != --session ]; then
+    # Activated helpers inherit the bus stderr. Keep their asynchronous output
+    # out of base64 PNG framing, but replay ALL diagnostics after the session.
+    log=$(mktemp /tmp/alpine-plasma-bus-XXXXXX)
+    if dbus-run-session -- "$0" --session 2> "$log";then r=0;else r=$?;fi
+    cat "$log";rm -f "$log";exit "$r"
+fi
 D=$(mktemp -d /tmp/alpine-plasma-XXXXXX)
 swaypid=;kwin=;plasma=;client=;seat=;SWAYSOCK=
 cleanup() {

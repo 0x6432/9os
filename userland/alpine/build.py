@@ -12,7 +12,7 @@ MINI = {
     'riscv64': '72f7e69f6950c2799137a934fae61513016efa546afcb4a05540a505c4184150',
 }
 PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq', 'strace', 'musl-dev']
-PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['seatd', 'mesa-dri-gallium', 'kwin', 'plasma-workspace', 'plasma-desktop', 'breeze', 'plasma-workspace-wallpapers', 'kquickcharts', 'kpipewire', 'tzdata', 'konsole', 'dolphin']}
+PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['seatd', 'mesa-dri-gallium', 'kwin', 'plasma-workspace', 'plasma-desktop', 'breeze', 'plasma-workspace-wallpapers', 'kquickcharts', 'kpipewire', 'plasma-pa', 'tzdata', 'konsole', 'dolphin']}
 TOP = pathlib.Path(__file__).resolve().parents[2]
 
 def digest(path):
@@ -74,6 +74,15 @@ def mini(arch, cache, offline=False):
 
 def unpack(archive, root):
     subprocess.run(['tar', 'xzf', str(archive), '--no-same-owner', '-C', str(root)], check=True)
+
+def merge_named_records(original, overlay):
+    """Preserve distro account/group names while installing explicit VM users."""
+    replacements = {line.split(':', 1)[0]: line for line in overlay.splitlines() if line}
+    result = []
+    for line in original.splitlines():
+        name = line.split(':', 1)[0]
+        result.append(replacements.pop(name, line))
+    return '\n'.join(result + list(replacements.values())) + '\n'
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
@@ -152,7 +161,12 @@ def main():
             'add'] + files, check=True)
         # Keep Alpine musl/libstdc++/Qt together. Overlay only the 9os test boot,
         # accounts and smoke programs, not any source-built shared libraries.
+        distro_accounts = {name: (stage / 'etc' / name).read_text()
+                           for name in ['passwd', 'group', 'shadow']}
         shutil.copytree(TOP / 'userland/skel', stage, dirs_exist_ok=True, symlinks=True)
+        for name, original in distro_accounts.items():
+            path = stage / 'etc' / name
+            path.write_text(merge_named_records(original, path.read_text()))
         shutil.copytree(TOP / 'userland/alpine/overlay', stage, dirs_exist_ok=True, symlinks=True)
         if args.profile == 'desktop':
             shutil.copytree(TOP / 'userland/alpine/desktop-overlay', stage, dirs_exist_ok=True, symlinks=True)
@@ -181,7 +195,7 @@ def main():
                     'usr/share/mime/mime.cache',
                 ]
             }
-        text = json.dumps(manifest, indent=2) + '\n' 
+        text = json.dumps(manifest, indent=2) + '\n'
         (stage / 'etc/9os-alpine.json').write_text(text)
         (work / f'{image}-{arch}.lock.json').write_text(text)
         # mtime-independent image identity also invalidates the Make initramfs.
