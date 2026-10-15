@@ -1052,7 +1052,7 @@ int vfs_statfs(struct inode *i, struct kstatfs *st) {
     if (i && i->sb && i->sb->ops->statfs) return i->sb->ops->statfs(i->sb, st);
     uint64_t free, total;
     pmm_stats(&free, &total);
-    st->type = i && i->dev == 3 ? 0x9fa0 : 0x01021994;   /* PROC_SUPER_MAGIC / TMPFS_MAGIC */
+    st->type = sysfs_inode(i) ? 0x62656572 : i && i->dev == 3 ? 0x9fa0 : 0x01021994; /* sysfs/proc/tmpfs */
     st->bsize = 4096;
     st->blocks = total; st->bfree = st->bavail = free;
     st->files = 1 << 20; st->ffree = 1 << 19;

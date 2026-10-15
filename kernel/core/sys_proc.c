@@ -838,6 +838,11 @@ int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *
     case 1: case 10:     /* FUTEX_WAKE(_BITSET) */
         if (cmd == 10 && !val3) return -EINVAL;
         { struct futex_key k = futex_key_of(uaddr, shared); return futex_wake_mm(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX)); }
+    /* PI locks are not implemented. Report the unsupported capability rather
+     * than an unknown command: musl exposes this result from setprotocol and
+     * consumers such as PulseAudio fall back only on ENOTSUP. No fake lock. */
+    case 6: case 7: case 8: case 11: case 12: case 13:
+        return -EOPNOTSUPP;
     case 5:    /* FUTEX_WAKE_OP: val2 is passed in the timeout slot, not a pointer */
         /* Linux checks each limit after waking the first waiter: even <= 0 wakes one. */
         return futex_wake_op(uaddr, uaddr2, shared, MAX((int32_t)val, 1),

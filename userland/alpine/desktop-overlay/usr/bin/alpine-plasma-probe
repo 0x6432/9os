@@ -29,9 +29,9 @@ export WLR_RENDERER=pixman
 case ${ALPINE_PLASMA_OUTPUT:-headless} in
  headless) export WLR_BACKENDS=headless WLR_HEADLESS_OUTPUTS=1 ;;
  kms)
-  export WLR_BACKENDS=drm LIBSEAT_BACKEND=seatd SEATD_SOCK="$D/seat.sock"
+  export WLR_BACKENDS=drm LIBSEAT_BACKEND=seatd SEATD_SOCK=/run/seatd.sock
   unset WLR_HEADLESS_OUTPUTS
-  seatd -s "$SEATD_SOCK" > "$D/seat.log" 2>&1 & seat=$!
+  seatd -l debug > "$D/seat.log" 2>&1 & seat=$!
   for i in $(seq 50);do [ ! -S "$SEATD_SOCK" ] || break;sleep .1;done
   [ -S "$SEATD_SOCK" ] || { cat "$D/seat.log";exit 1; } ;;
  *) echo 'Unknown output backend';exit 1 ;;
