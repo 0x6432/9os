@@ -1972,3 +1972,31 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   this fixes every graphics failure. Non-x86 validation remains PR CI only.
 - Logs: /data/qtgui-full-memory.out, /data/sysfs-lifetime-baseline.out,
   /data/sysfs-lifetime-fixed.out, /data/sysfs-fixed-full-ci.log.
+
+### Post-sysfs-fix validation and QtWayland WIP
+- Supersedes earlier pending/failed local raster gates: d7b04e0 passed full x86
+  main 99/99 (both Sway GLES2 renderer smokes), disk-root 20/20 + 6/6, clean
+  shutdown, both e2fsck checks and PCM/no-card 2/2 each. UP/SMP8 focused boots
+  passed 10/10 each; MLFQ SMP2 12/12 and SMP8 9/9. Repeated libinput hotplug
+  twice plus both renderers passed 9/9. Retention per libinput pass was about
+  2.3 MiB, not the earlier 159072 KiB full-workload drop; not a zero-leak claim.
+- Parent PR #8 at bad21b3 uses run 38713520481; #9 at d7b04e0 uses run
+  38713520523. Still require exact-head three-architecture green CI before
+  marking ready/merging in order. PR bodies carry fresher CI state; do not
+  restart them with documentation-only pushes. No branches deleted.
+- New isolated branch notion/m40-qtwayland starts a raster/shm xdg-shell client
+  slice. Qt 6.8.3 source is independently SHA512-pinned to Alpine 3.22's
+  qt6-qtwayland APKBUILD; compositor/EGL/QML/Quick remain disabled.
+- Native qtwaylandscanner builds from the verified upstream source against
+  native Qt Core only. A standard CMake exported tools package prevents running
+  target-architecture generators. Native xdg-shell header generation passed.
+- Target Qt Gui needs FEATURE_wayland=ON (not just the separate module) and
+  xkbcommon. Disabling precompiled headers avoids stale PCH dependencies while
+  reconfiguring the existing raster build; target build is still in progress.
+- qtwaylandtest uses a real raster QWindow/backing store, painted RGB pixels,
+  resize, and explicit wl_surface.frame callbacks on a private event queue.
+  Smoke verifies mapped app_id via Sway IPC and clean compositor exit; an
+  optional UID1000 client gets only its private session socket and a separate
+  owned 0700 runtime directory. These target tests are WIP, NOT yet validated.
+- Local builds/tests remain x86 only. QtWayland is NOT yet declared working;
+  OpenGL GUI, Widgets, QtDeclarative/Quick and KDE/M40 completion remain open.
