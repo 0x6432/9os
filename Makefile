@@ -104,7 +104,7 @@ $(ROOTFS_STAMP): FORCE scripts/rootfs-stamp.py
 
 $(INITRAMFS): $(ROOTFS_STAMP)
 	@mkdir -p $(BUILD) $(ROOTFS)
-	(cd $(ROOTFS) && find . | cpio -o -H newc -R 0:0 --quiet) > $@
+	(cd $(ROOTFS) && find . -print0 | cpio -0 -o -H newc -R 0:0 --quiet) > $@
 
 LIMINE := third_party/limine-bin
 # kernel command line (e.g. CMDLINE="root=/dev/vda1"): appended to limine.conf

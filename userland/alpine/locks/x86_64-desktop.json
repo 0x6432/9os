@@ -1837,6 +1837,10 @@
       "sha256": "aa23ac67f7ba4d0d0330246e9313992c057fe33905072b32f4eb6bf9326cb7a3"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mesa-dri-gallium-25.1.9-r0.apk",
+      "sha256": "2372fc8068a3f2a2029b7284deb3c8f7b57e49fa3de8c708fc008c72744b3fbb"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mesa-egl-25.1.9-r0.apk",
       "sha256": "76ba18b4f3ca231c59f8afd3978caaeb0c6587b7741575bdf868271b1ce81b7b"
     },

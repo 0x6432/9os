@@ -123,8 +123,12 @@ def main():
             passed = bool(m) and m.group(1) == b'0' and not re.search(rb'\bFAIL', body) and not state['panic']
             results.append((cmd, passed))
             if state['panic'] or p.poll() is not None: break
-        send('poweroff\n')
-        pump(time.time() + 20, lambda: False)
+        if p.poll() is None:
+            try:
+                send('poweroff\n')
+                pump(time.time() + 20, lambda: False)
+            except BrokenPipeError:
+                pass  # failed/exited VMs still get a useful test summary below
     try: os.killpg(p.pid, signal.SIGKILL)
     except ProcessLookupError: pass
     if server:

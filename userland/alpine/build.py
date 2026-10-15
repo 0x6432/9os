@@ -12,7 +12,7 @@ MINI = {
     'riscv64': '72f7e69f6950c2799137a934fae61513016efa546afcb4a05540a505c4184150',
 }
 PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq']
-PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['strace', 'seatd', 'kwin', 'plasma-workspace', 'plasma-desktop', 'konsole', 'dolphin']}
+PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['strace', 'seatd', 'mesa-dri-gallium', 'musl-dev', 'kwin', 'plasma-workspace', 'plasma-desktop', 'konsole', 'dolphin']}
 TOP = pathlib.Path(__file__).resolve().parents[2]
 
 def digest(path):
