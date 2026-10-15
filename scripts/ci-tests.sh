@@ -50,7 +50,15 @@ KMS2=; [ -e userland/build/ports-root-$ARCH/usr/bin/kmstest ] && IN="$IN kmstest
 SW1=; SW2=; [ -e userland/build/ports-root-$ARCH/usr/bin/sway ] && SW1="fc-list | grep -q DejaVuSansMono.ttf" && SW2="(mkdir -p /tmp/xdg && chmod 700 /tmp/xdg && export XDG_RUNTIME_DIR=/tmp/xdg LIBSEAT_BACKEND=builtin LANG=C.UTF-8 WLR_RENDERER=pixman && (sway > /tmp/sway.log 2>&1 &) && for i in \$(seq 60); do ls /tmp/xdg/sway-ipc.* >/dev/null 2>&1 && break; sleep 1; done && export SWAYSOCK=\$(ls /tmp/xdg/sway-ipc.*) && swaymsg -q exec 'foot -a smoke' && for i in \$(seq 60); do swaymsg -t get_tree | grep -q '\"app_id\": \"smoke\"' && break; sleep 1; done; swaymsg -t get_tree | grep -q '\"app_id\": \"smoke\"'; r=\$?; swaymsg -q exit; for i in \$(seq 20); do pidof sway >/dev/null || break; sleep 1; done; ! pidof sway >/dev/null && [ \$r = 0 ] || { tail -20 /tmp/sway.log; false; })"
 B=build/ci-$ARCH; mkdir -p "$B"
 INODE_SIZE=256 sh scripts/mkdisk.sh "$B/ext2.img" 128 || exit 1
-sh scripts/mkdisk.sh "$B/root.img" 256 "userland/root-$ARCH" || exit 1
+# Disk-root persistence deliberately keeps a second complete /usr copy. Size its
+# storage from the actual payload plus filesystem/test headroom, not a fixed
+# 256 MiB that can no longer hold both copies once Qt Gui is present.
+ROOT_KIB=$(du -sk "userland/root-$ARCH" | awk '{print $1}')
+USR_KIB=$(du -sk "userland/root-$ARCH/usr" | awk '{print $1}')
+ROOT_MB=$(( (ROOT_KIB + USR_KIB + 1023) / 1024 + 64 ))
+[ "$ROOT_MB" -ge 256 ] || ROOT_MB=256
+echo "Disk-root validation image: $ROOT_MB MiB (root $ROOT_KIB KiB, /usr copy $USR_KIB KiB)"
+sh scripts/mkdisk.sh "$B/root.img" "$ROOT_MB" "userland/root-$ARCH" || exit 1
 rm -f "$B/scratch.img"; truncate -s 16M "$B/scratch.img"
 fsck_img() {   # e2fsck the partition at 1 MiB
     dd if="$1" of="$1.part" bs=1M skip=1 status=none && e2fsck -fn "$1.part" >"$1.fsck" 2>&1

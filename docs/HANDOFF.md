@@ -1919,8 +1919,38 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   and strip unneeded shared-library symbol tables, keeping dynamic symbols and
   unwinding sections. Ports build sysroots retain all development files. The
   trimmed x86 root is 126440 KiB; QPA plugins and DejaVu fonts remain installed.
-  This reduces reserved initramfs backing and guest disk use; RAM stays 512 MiB
-  and the disk-root image stays 256 MiB. A fresh full validation run is pending.
+  This reduces reserved initramfs backing and guest disk use; RAM stays 512 MiB.
+  The old 256 MiB persistence disk still proved too small (see the latest gate below).
 - Default raster font discovery uses /usr/lib/fonts -> ../share/fonts/dejavu;
   no environment override or fontconfig daemon is needed for the offscreen test.
   This is NOT system desktop/fontconfig/Wayland integration.
+
+
+### Latest raster slice validation gates (PR #9)
+- Trimmed runtime: GUI 21/21 repeatedly as root and UID 1000. One-CPU and eight-CPU
+  focused boots each passed 8/8: raster GUI root/user, Qt DBus, futex 128 checks,
+  full C++ runtime, no-EH C++ consumer and zero lockdep violations. Stripping did
+  not break exception unwinding, RTTI or dynamic QPA plugin loading.
+- Full main suite is still NOT green: 98/99; softpipe's Wayland client reached
+  its 60-second alarm before mapping/frame callbacks. llvmpipe passed. After
+  trimming there was no Sway OOM report in that attempt; do not claim the softpipe
+  stall was fixed by trimming or that it is the same root cause as PR #8's failure.
+- Persistence harness must fit the original root AND its deliberate /usr copy.
+  Size from root KiB + /usr KiB + 64 MiB filesystem/test headroom, minimum 256 MiB.
+  The current x86 payload requires 304 MiB. All persistence operations/checks are
+  unchanged. The correctly sized rerun passed 20/20 + 6/6, clean shutdown and
+  e2fsck; fixed PCM/no-card boots passed 2/2 each in the prior trimmed run.
+- Graphics-only EGL/GBM/dmabuf (both renderers) -> pixman/foot -> both Sway GL
+  smoke sequence passed 14/14. VM-pressure + FD stress -> both GL smokes passed
+  9/9. Per-test memory checkpoints through core tests -> both GL smokes passed
+  89/89. The stall has only reproduced in the complete ordered main workload so
+  far; do not infer a kernel fix from these smaller passing runs.
+- PR #8's failed-job RISC-V rerun reached QEMU boot tests; it remains a merge gate.
+  PR #9 must stay draft until its exact-head all-architecture CI and the dependency
+  pass. Update PR bodies for subsequent results instead of docs-only CI restarts.
+- Useful logs if the sandbox survives: /data/qtgui-trim-ci.log (failed full gate),
+  /data/qtgui-disk-final.log, /data/qtgui-up.out, /data/qtgui-smp8.out,
+  /data/qtgui-graphics-isolation.out, /data/qtgui-pressure-isolation.out,
+  /data/qtgui-core-memory.out; guest serial logs are under build/qtgui-*.log.
+- No local non-x86 builds/tests or branch deletions. QtWayland, GL GUI, Widgets,
+  QtDeclarative/Quick and KDE remain unfinished; M40 is NOT complete.
