@@ -24,6 +24,7 @@ cmake --build "$HB" -j"${JOBS:-2}" >> "$HB.log" 2>&1 || { tail -40 "$HB.log"; ex
 cmake --install "$HB" >> "$HB.log" 2>&1 || { tail -40 "$HB.log"; exit 1; }
 B=$PORTS_BUILD/qtwayland
 export PATH="$HOST/bin:$PATH"
+OLD_EGL=$(sed -n 's/^QT_FEATURE_wayland_egl:INTERNAL=//p' "$B/CMakeCache.txt" 2>/dev/null || true)
 cmake -S "$S" -B "$B" -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE="$PREFIX_ROOT/usr/lib/cmake/Qt6/qt.toolchain.cmake" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
@@ -31,7 +32,15 @@ cmake -S "$S" -B "$B" -G Ninja \
     -DWaylandScanner_EXECUTABLE="$HOST/bin/wayland-scanner" \
     -DFEATURE_wayland_client=ON -DFEATURE_wayland_server=OFF \
     -DFEATURE_wayland_egl=ON -DFEATURE_wayland_decoration_adwaita=OFF \
+    -DFEATURE_wayland_drm_egl_server_buffer=OFF -DFEATURE_wayland_dmabuf_server_buffer=OFF \
+    -DFEATURE_wayland_libhybris_egl_server_buffer=OFF -DFEATURE_wayland_shm_emulation_server_buffer=OFF \
+    -DFEATURE_wayland_vulkan_server_buffer=OFF -DFEATURE_wayland_brcm=OFF \
     > "$B.log" 2>&1 || { tail -60 "$B.log"; exit 1; }
+if [ "$OLD_EGL" != ON ] && [ -d "$B/src/client" ]; then
+    rm -rf "$B/src/client/WaylandClient_autogen"
+    rm -f "$B/src/client/CMakeFiles/WaylandClient_autogen.dir/ParseCache.txt" \
+          "$B/src/client/CMakeFiles/WaylandClient_autogen.dir/AutogenUsed.txt"
+fi
 cmake --build "$B" -j"${JOBS:-2}" >> "$B.log" 2>&1 || { tail -50 "$B.log"; exit 1; }
 DESTDIR="$PREFIX_ROOT" cmake --install "$B" >> "$B.log" 2>&1 || { tail -40 "$B.log"; exit 1; }
 # Qt's configure can otherwise succeed while silently skipping this whole repo.

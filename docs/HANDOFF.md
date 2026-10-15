@@ -2022,3 +2022,30 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   Widgets, QtDeclarative/Quick and KDE remain unfinished. M40 is NOT complete.
 - Logs: /data/qtwayland-focused.out, /data/qtwayland-incremental-build.log,
   /data/qtwayland-full-ci.log; build/qtwayland-focused.log.
+
+### Validated integration and isolated EGL/GLES WIP
+- PR #8 merged as fefe880daa35931b75ef9f74d6b4371bd2dd622f after exact-head
+  run 38713520481 passed x86_64/aarch64/riscv64. Both non-x86 main suites passed
+  97/97, including both GL renderers; sysfs lookup retention was 24–32 KiB.
+- PR #9 merged as b52859a31f7755215b598d9ed3660381ae88d926 after exact-head
+  run 38713520523 passed all three architectures. No branches were deleted.
+- PR #10 head 803130f has local x86 full main 101/101, disk 20/20 + 6/6,
+  clean shutdown/e2fsck, audio 2/2 + 2/2, and UP/SMP8 focused 9/9 each. Its
+  exact-head run 38720105985 remains the integration gate; keep draft until
+  it passes. Current PR bodies supersede earlier pending local notes above.
+- Sandbox reset again after these checkpoints; cloned the pushed sources and
+  restored core tools with NO_PORTS=1 ARCHES=x86_64 scripts/sandbox-setup.sh.
+  Runtime restored from successful PR #9's x86 ISO artifact 11967154597; matching
+  Mesa 24.3.4 public EGL/GLES/KHR headers restored for the build SDK. This is a
+  restoration shortcut, not a substitute for fresh full graphics PR CI.
+- Separate branch notion/m40-qtgl prepares Qt Gui EGL/OpenGL ES and QtWayland
+  wayland-egl. Default ports now build LLVM/Mesa before Qt; native host tools
+  remain Core-only and are never target executables. Qt compositor and optional
+  server-buffer backends stay disabled; Qt Quick/KDE are not being claimed.
+- New qtgltest prepares actual GLES shader compilation/link, VBO triangle RGB
+  rendering/readback, swaps, resize and explicit compositor frame callbacks.
+  Shared session harness selects raster or EGL clients explicitly; CI prepares
+  root/UID1000 checks under softpipe and llvmpipe. These GL tests are NOT yet
+  validated; the restored x86 dependency/Qt build is running.
+- Only x86 is built/tested locally. PR #10's head/CI are left unchanged by this
+  new work. Keep committing/pushing WIP, and never delete branches implicitly.
