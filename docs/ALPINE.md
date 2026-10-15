@@ -114,3 +114,13 @@ supportInformation and a Konsole QtWidgets child PTY. Its final shutdown asserti
 is still being debugged. OpenGL Quick creates a llvmpipe context but has not yet
 produced validated frames. The diagnostic `alpine-kwin-probe` is experimental,
 not an acceptance test or a claim of working Plasma, KMS or service compatibility.
+
+The experimental desktop additionally needs host `glib-compile-schemas` and
+`update-mime-database` (Ubuntu packages `libglib2.0-bin shared-mime-info`). Since
+APK install scripts remain disabled, the builder explicitly generates only the
+known schema and MIME caches using these HOST tools on declarative packaged data.
+It never executes a target compiler/tool or arbitrary package hook. Cache hashes
+are recorded in the desktop manifest. Breeze and workspace wallpapers are
+explicit signed dependencies rather than assumed optional runtime files.
+Private sessions update the DBus activation environment when their Wayland
+socket becomes available; otherwise activated Qt helpers incorrectly select X11.

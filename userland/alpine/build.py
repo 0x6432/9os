@@ -12,7 +12,7 @@ MINI = {
     'riscv64': '72f7e69f6950c2799137a934fae61513016efa546afcb4a05540a505c4184150',
 }
 PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq', 'strace', 'musl-dev']
-PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['seatd', 'mesa-dri-gallium', 'kwin', 'plasma-workspace', 'plasma-desktop', 'konsole', 'dolphin']}
+PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['seatd', 'mesa-dri-gallium', 'kwin', 'plasma-workspace', 'plasma-desktop', 'breeze', 'plasma-workspace-wallpapers', 'konsole', 'dolphin']}
 TOP = pathlib.Path(__file__).resolve().parents[2]
 
 def digest(path):
@@ -156,10 +156,29 @@ def main():
         shutil.copytree(TOP / 'userland/alpine/overlay', stage, dirs_exist_ok=True, symlinks=True)
         if args.profile == 'desktop':
             shutil.copytree(TOP / 'userland/alpine/desktop-overlay', stage, dirs_exist_ok=True, symlinks=True)
+        # --no-scripts is intentional. Generate only these known declarative
+        # caches with HOST tools, never arbitrary APK post-install code or a
+        # target executable (including on aarch64/riscv64).
+        if args.profile == 'desktop':
+            for tool, path, options in [
+                ('glib-compile-schemas', 'usr/share/glib-2.0/schemas', ['--strict']),
+                ('update-mime-database', 'usr/share/mime', []),
+            ]:
+                executable = shutil.which(tool)
+                if executable is None:
+                    raise ValueError('Desktop profile requires host tool: ' + tool)
+                subprocess.run([executable, *options, str(stage / path)], check=True)
         os.chmod(stage / 'etc/shadow', 0o640)
         os.chmod(stage / 'bin/busybox', 0o4755)
         manifest = {'profile': args.profile, 'alpine': VERSION, 'arch': arch, 'minirootfs_sha256': MINI[arch], 'packages': entries}
-        text = json.dumps(manifest, indent=2) + '\n'
+        if args.profile == 'desktop':
+            manifest['generated_caches'] = {
+                path: digest(stage / path) for path in [
+                    'usr/share/glib-2.0/schemas/gschemas.compiled',
+                    'usr/share/mime/mime.cache',
+                ]
+            }
+        text = json.dumps(manifest, indent=2) + '\n' 
         (stage / 'etc/9os-alpine.json').write_text(text)
         (work / f'{image}-{arch}.lock.json').write_text(text)
         # mtime-independent image identity also invalidates the Make initramfs.

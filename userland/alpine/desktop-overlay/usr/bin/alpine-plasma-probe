@@ -3,9 +3,9 @@
 set -eu
 if [ "${1:-}" != --session ]; then exec dbus-run-session -- "$0" --session; fi
 D=$(mktemp -d /tmp/alpine-plasma-XXXXXX)
-swaypid=;kwin=;plasma=;client=;SWAYSOCK=
+swaypid=;kwin=;plasma=;client=;seat=;SWAYSOCK=
 cleanup() {
- for p in "$client" "$plasma" "$kwin" "$swaypid"; do
+ for p in "$client" "$plasma" "$kwin" "$swaypid" "$seat"; do
   [ -n "$p" ] || continue
   kill "$p" 2>/dev/null || true
   for i in $(seq 30); do kill -0 "$p" 2>/dev/null || break;sleep .1;done
@@ -17,11 +17,22 @@ trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 unset DISPLAY WAYLAND_DISPLAY QT_QPA_PLATFORM QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH
 export XDG_RUNTIME_DIR="$D" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" XDG_DATA_HOME="$D/data"
-export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=KDE LANG=C.UTF-8
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=KDE XDG_MENU_PREFIX=plasma- LANG=C.UTF-8
 export QT_QUICK_BACKEND=software QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1 KWIN_COMPOSE=Q
-export WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_HEADLESS_OUTPUTS=1
+export WLR_RENDERER=pixman
+case ${ALPINE_PLASMA_OUTPUT:-headless} in
+ headless) export WLR_BACKENDS=headless WLR_HEADLESS_OUTPUTS=1 ;;
+ kms)
+  export WLR_BACKENDS=drm LIBSEAT_BACKEND=seatd SEATD_SOCK="$D/seat.sock"
+  unset WLR_HEADLESS_OUTPUTS
+  seatd -s "$SEATD_SOCK" > "$D/seat.log" 2>&1 & seat=$!
+  for i in $(seq 50);do [ ! -S "$SEATD_SOCK" ] || break;sleep .1;done
+  [ -S "$SEATD_SOCK" ] || { cat "$D/seat.log";exit 1; } ;;
+ *) echo 'Unknown output backend';exit 1 ;;
+esac
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME"
-printf '%s\n' 'output * resolution 800x600' 'default_border none' 'default_floating_border none' 'for_window [app_id="kwin_wayland"] fullscreen enable' > "$D/sway.conf"
+if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = headless ];then echo 'output * resolution 800x600' > "$D/sway.conf";else : > "$D/sway.conf";fi
+printf '%s\n'  'default_border none' 'default_floating_border none' 'for_window [app_id="kwin_wayland"] fullscreen enable' >> "$D/sway.conf"
 sway -d -c "$D/sway.conf" > "$D/sway.log" 2>&1 & swaypid=$!
 for i in $(seq 100); do
  for f in "$D"/sway-ipc.*;do [ ! -S "$f" ] || SWAYSOCK="$f";done
@@ -33,10 +44,15 @@ export SWAYSOCK
 parent=
 for f in "$D"/wayland-*;do [ ! -S "$f" ] || parent="$f";done
 [ -n "$parent" ] || exit 1
+# DBus activation inherits the bus's environment, not a later client's exports.
+# Supply the live outer display before KWin activates portal helpers.
+export WAYLAND_DISPLAY="$parent" QT_QPA_PLATFORM=wayland
+dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QUICK_BACKEND QV4_FORCE_INTERPRETER XDG_RUNTIME_DIR XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_MENU_PREFIX LANG
 kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
 for i in $(seq 300);do [ ! -S "$D/9os-plasma" ] || break;kill -0 "$kwin" 2>/dev/null || break;sleep .1;done
 [ -S "$D/9os-plasma" ] || { cat "$D/kwin.log";exit 1; }
 export WAYLAND_DISPLAY="$D/9os-plasma" QT_QPA_PLATFORM=wayland
+dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM
 plasmashell --replace --no-respawn > "$D/plasma.log" 2>&1 & plasma=$!
 ready=0
 deadline=$(( $(date +%s) + 100 ))
@@ -49,14 +65,22 @@ while [ "$(date +%s)" -lt "$deadline" ];do
 done
 if [ "$ready" != 1 ];then
  if ! kill -0 "$plasma" 2>/dev/null;then if wait "$plasma";then r=0;else r=$?;fi;plasma=;echo "PLASMA_EARLY_EXIT=$r";fi
- cat "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';exit 1
+ cat "$D/desktops" "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';exit 1
 fi
 printf PLASMA_DESKTOPS=;cat "$D/desktops"
 /usr/lib/qt6/bin/qdbus org.kde.KWin /KWin org.kde.KWin.supportInformation
+if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
+ konsole --separate --nofork -e /bin/sh > "$D/konsole.log" 2>&1 & client=$!
+ sleep 3
+fi
 sleep 5
 swaymsg -t get_tree > "$D/tree.json";cat "$D/tree.json"
 cat "$D/plasma.log" "$D/kwin.log"
-WAYLAND_DISPLAY="$parent" grim -o HEADLESS-1 "$D/plasma.png"
+output=$(swaymsg -t get_outputs | jq -r '.[]|select(.active==true)|.name' | head -n1)
+[ -n "$output" ] || exit 1
+WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
 echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
 cat "$D/plasma.log" "$D/kwin.log"
 echo 'alpine-plasma: EXPERIMENT rendered shell; acceptance checks still pending'
+echo ALPINE_PLASMA_INPUT_READY
+sleep "${ALPINE_PLASMA_HOLD:-0}"
