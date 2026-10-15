@@ -284,6 +284,10 @@ void signal_send_internal_chld(struct process *parent, struct process *child) {
     signal_send_chld(parent, child, CLD_STOPPED, child->stop_sig);
 }
 
+void signal_wake_stopped(struct process *p) {
+    if (p && p->stopped) wake_up(&stop_wq);
+}
+
 static void do_stop(struct process *p, int sig) {
     p->stopped = true;
     p->stop_reported = false;
@@ -292,8 +296,24 @@ static void do_stop(struct process *p, int sig) {
         if (!(p->parent->sigactions[SIGCHLD].flags & SA_NOCLDSTOP)) signal_send_internal_chld(p->parent, p);
         wake_up(&p->parent->child_wait);
     }
-    while (p->stopped && !current->killed && !(p->sig_pending & SIGBIT(SIGKILL)))
-        wait_event(&stop_wq);
+    for (;;) {
+        uint64_t f = sched_wait_lock();
+        if (!p->stopped || current->killed ||
+            ((p->sig_pending | current->sig_pending) & SIGBIT(SIGKILL))) {
+            sched_wait_unlock(f);
+            break;
+        }
+        if (current->pt_interrupt) {
+            sched_wait_unlock(f);
+            ptrace_interrupt_stop();
+            continue;
+        }
+        /* Ordinary pending signals must stay queued until SIGCONT. An
+         * interruptible wait would return EINTR forever while holding the BKL,
+         * preventing SIGCONT/the tracer from entering the kernel at all.
+         * SIGCONT/SIGKILL and PTRACE_INTERRUPT explicitly wake stop_wq. */
+        wait_event_uninterruptible_locked(&stop_wq, f);
+    }
 }
 
 /* the syscall interrupted by a signal that runs no handler is restarted transparently */
