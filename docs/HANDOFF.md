@@ -1895,7 +1895,10 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   packaged at /usr/plugins, and qtguitest/qtguismoke. Tests cover pixels, scaling,
   pixmaps, PNG roundtrip, real font glyphs, clipboard, exposed raster windows,
   backing-store flush/grab, resize/hide and font removal. Root and UID 1000 tests
-  are gated on the installed smoke command. Build/local validation is pending.
+  are gated on the installed smoke command. The target x86 build succeeded.
+  Focused SMP4 run passed 12/12 commands; the initial GUI test passed 20 checks
+  twice as root and once as UID 1000. Added automatic DejaVu discovery brings
+  qtguitest to 21 checks; all three sessions passed in the subsequent full suite.
 - Raster configuration requires both INPUT_opengl=no and FEATURE_opengl=OFF;
   FEATURE_opengl alone still trips Qt's explicit OpenGL configuration report.
   Qt's "No QPA platform plugin enabled" warning omits the offscreen/minimal
@@ -1907,3 +1910,17 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   libcxx-headers, libcxx, cxxtest and qtbase. Local builds/tests remain x86 only;
   aarch64/riscv64 must use PR CI. QtWayland, GL GUI, QtDeclarative/Quick and KDE
   remain unfinished; M40 is NOT complete.
+
+- That subsequent full raster suite was NOT green: main 98/99 (softpipe Sway was
+  OOM-killed), disk-root 19/20 (copying /usr exhausted the 256 MiB image). Stopped
+  the follow-on comparison of the incomplete copy instead of collecting binary
+  diff noise. Do not substitute the passing focused tests for the full gate.
+- Trim the runtime copy only: remove static archives/qmake metadata/CMake objects
+  and strip unneeded shared-library symbol tables, keeping dynamic symbols and
+  unwinding sections. Ports build sysroots retain all development files. The
+  trimmed x86 root is 126440 KiB; QPA plugins and DejaVu fonts remain installed.
+  This reduces reserved initramfs backing and guest disk use; RAM stays 512 MiB
+  and the disk-root image stays 256 MiB. A fresh full validation run is pending.
+- Default raster font discovery uses /usr/lib/fonts -> ../share/fonts/dejavu;
+  no environment override or fontconfig daemon is needed for the offscreen test.
+  This is NOT system desktop/fontconfig/Wayland integration.

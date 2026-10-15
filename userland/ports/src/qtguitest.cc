@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
     QImage decoded = QImage::fromData(png, "PNG");
     CHECK(!decoded.isNull() && decoded.size() == image.size() && decoded.pixelColor(48, 8) == QColor(Qt::green));
 
+    CHECK(QFontDatabase::families().contains("DejaVu Sans"));
     int fontId = QFontDatabase::addApplicationFont("/usr/share/fonts/dejavu/DejaVuSans.ttf");
     CHECK(fontId >= 0);
     QStringList families = QFontDatabase::applicationFontFamilies(fontId);
