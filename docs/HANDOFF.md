@@ -2000,3 +2000,25 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   owned 0700 runtime directory. These target tests are WIP, NOT yet validated.
 - Local builds/tests remain x86 only. QtWayland is NOT yet declared working;
   OpenGL GUI, Widgets, QtDeclarative/Quick and KDE/M40 completion remain open.
+
+### QtWayland raster/shm client: local focused validation passed
+- Target QtWayland 6.8.3 client module and libqwayland-generic.so now build for
+  x86. Native qtwaylandscanner's exported executable must be IMPORTED_GLOBAL:
+  Qt imports it in a sibling directory before generating client protocols.
+- On an existing offscreen-only Qt build, native Wayland QObject metadata can
+  remain empty after the feature toggle. qtbase.sh detects the transition and
+  invalidates Gui's moc caches, preserving compiled objects. Native generator
+  execution remains separate from target builds on every architecture.
+- Focused x86 SMP4 boot passed 11/11: real qtwaylandsmoke as root and as UID1000,
+  offscreen GUI, Qt DBus, futex128, full C++/no-EH, both Sway GLES2 renderer
+  smokes and zero lockdep. Each QtWayland client passed 30 checks including
+  RGB shm pixels, resize and three explicit compositor frame callbacks.
+- Non-root client uses only the test session's socket (owned by UID1000, mode
+  0600) and its own owned mode0700 XDG_RUNTIME_DIR; device nodes are unchanged.
+- Incremental rebuild and full ordered x86 main/persistence/audio validation
+  are running. These focused results do not replace the full/all-arch gates.
+- New branch remains separate from #8/#9 so their exact-head CI is untouched.
+  QtWayland raster clients are experimentally working locally; EGL/GL GUI,
+  Widgets, QtDeclarative/Quick and KDE remain unfinished. M40 is NOT complete.
+- Logs: /data/qtwayland-focused.out, /data/qtwayland-incremental-build.log,
+  /data/qtwayland-full-ci.log; build/qtwayland-focused.log.
