@@ -1,0 +1,5 @@
+#!/bin/sh
+# Qt EGL/GLES shader client; explicitly reject raster/offscreen fallback.
+export QTWAYLAND_TEST_CLIENT=qtgltest LIBGL_ALWAYS_SOFTWARE=1
+export GALLIUM_DRIVER=${GALLIUM_DRIVER:-softpipe}
+exec qtwaylandsmoke

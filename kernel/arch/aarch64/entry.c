@@ -166,6 +166,7 @@ void a64_irq(struct trap_frame *f) {
     gic_eoi(iar);
     user_return_work(f);
     bkl_exit();
+    trap_exit_hook_sched();
 }
 
 /* GICv3: this CPU's redistributor (matched by affinity) */

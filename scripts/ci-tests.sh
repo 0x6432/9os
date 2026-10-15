@@ -45,6 +45,15 @@ if [ -e userland/build/ports-root-$ARCH/usr/bin/qtwaylandsmoke ]; then
     QTWAYLAND=qtwaylandsmoke
     QTWAYLANDUSER="QTWAYLAND_CLIENT_USER=user qtwaylandsmoke"
 fi
+QTGL=; QTGLUSER=; QTLLGL=; QTLLGLUSER=
+if [ -e userland/build/ports-root-$ARCH/usr/bin/qtglsmoke ]; then
+    QTGL=qtglsmoke
+    QTGLUSER="QTWAYLAND_CLIENT_USER=user qtglsmoke"
+    if [ -n "$JIT" ]; then
+        QTLLGL="GALLIUM_DRIVER=llvmpipe LP_NUM_THREADS=2 qtglsmoke"
+        QTLLGLUSER="GALLIUM_DRIVER=llvmpipe LP_NUM_THREADS=2 QTWAYLAND_CLIENT_USER=user qtglsmoke"
+    fi
+fi
 CXX=; [ -e userland/build/ports-root-$ARCH/usr/bin/cxxtest ] && CXX=cxxtest
 [ -e userland/build/ports-root-$ARCH/usr/bin/cxxtest-noeh ] && CXX="$CXX cxxtest-noeh"
 WL=; [ -e userland/build/ports-root-$ARCH/usr/bin/wltest ] && WL=wltest
@@ -74,14 +83,14 @@ fsck_img() {   # e2fsck the partition at 1 MiB
 rc=0
 BIGMD5=$(python3 scripts/net-host-server.py --md5)
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext2.img" --disk "$B/scratch.img" --net-test "$@" \
-    libctest cowtest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest futexoptest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest locktest leasetest asynctest xattrtest acltest sigqtest sysfstest "sysfstest -u" uinputtest vttest looptest sndtest \
+    libctest cowtest vforktest orphantest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest futexoptest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest locktest leasetest asynctest xattrtest acltest sigqtest sysfstest "sysfstest -u" uinputtest vttest looptest sndtest \
     "udevshim -c && grep -q E:ID_INPUT_KEYBOARD=1 \$(grep -l ID_INPUT_KEY= /run/udev/data/c13:*) && udevshim -q /dev/input/event0 | grep -qx ID_INPUT=1" \
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     "touch /tmp/fa && setfacl -m u:1000:r,g:2000:rw /tmp/fa && getfacl -n /tmp/fa | grep -q '^user:1000:r--' && getfacl -c /tmp/fa | grep -q '^mask::rw-' && setfacl -x u:1000 /tmp/fa && setfacl -b /tmp/fa && ! getfacl -c /tmp/fa | grep -q mask && mkdir /tmp/fd && setfacl -d -m u:1000:rwx /tmp/fd && getfacl -cdn /tmp/fd | grep -q '^user:1000:rwx' && touch /tmp/fd/x && getfacl -cn /tmp/fd/x | grep -q '^user:1000:rwx' && rm -rf /tmp/fa /tmp/fd" \
     ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${QT:+"$QT"} ${QTUSER:+"$QTUSER"} ${QTCLEAN:+"$QTCLEAN"} ${QTGUI:+"$QTGUI"} ${QTGUIUSER:+"$QTGUIUSER"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
     "T=/usr/libexec/libinput/libinput-test-suite; [ ! -x \$T ] || { udevshim -d; chvt 2; \$T -j1 --filter-group=udev > /tmp/li.log 2>&1; r=\$?; chvt 1; kill \$(cat /run/udev/udevshim.pid); [ \$r = 0 ] || grep -A12 'failed:' /tmp/li.log; [ \$r = 0 ]; }" \
-    drmdemo ${SW1:+"$SW1"} ${SW2:+"$SW2"} ${GLSMOKE:+"$GLSMOKE"} ${LLGLSMOKE:+"$LLGLSMOKE"} ${QTWAYLAND:+"$QTWAYLAND"} ${QTWAYLANDUSER:+"$QTWAYLANDUSER"} \
+    drmdemo ${SW1:+"$SW1"} ${SW2:+"$SW2"} ${GLSMOKE:+"$GLSMOKE"} ${LLGLSMOKE:+"$LLGLSMOKE"} ${QTWAYLAND:+"$QTWAYLAND"} ${QTWAYLANDUSER:+"$QTWAYLANDUSER"} ${QTGL:+"$QTGL"} ${QTGLUSER:+"$QTGLUSER"} ${QTLLGL:+"$QTLLGL"} ${QTLLGLUSER:+"$QTLLGLUSER"} \
     nettest net2test "ping -c 2 -W 2 127.0.0.1" \
     "for i in 1 2 3 4 5 6 7 8 9 10; do ifconfig eth0 | grep -q 'inet addr:10.0.2.15' && break; sleep 1; done; ifconfig eth0 | grep -q 'inet addr:10.0.2.15'" \
     "route -n | grep -q '^0.0.0.0 *10.0.2.2'" "grep -q nameserver /etc/resolv.conf" \

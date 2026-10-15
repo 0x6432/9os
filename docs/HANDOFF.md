@@ -2022,3 +2022,130 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   Widgets, QtDeclarative/Quick and KDE remain unfinished. M40 is NOT complete.
 - Logs: /data/qtwayland-focused.out, /data/qtwayland-incremental-build.log,
   /data/qtwayland-full-ci.log; build/qtwayland-focused.log.
+
+### Validated integration and isolated EGL/GLES WIP
+- PR #8 merged as fefe880daa35931b75ef9f74d6b4371bd2dd622f after exact-head
+  run 38713520481 passed x86_64/aarch64/riscv64. Both non-x86 main suites passed
+  97/97, including both GL renderers; sysfs lookup retention was 24–32 KiB.
+- PR #9 merged as b52859a31f7755215b598d9ed3660381ae88d926 after exact-head
+  run 38713520523 passed all three architectures. No branches were deleted.
+- PR #10 head 803130f has local x86 full main 101/101, disk 20/20 + 6/6,
+  clean shutdown/e2fsck, audio 2/2 + 2/2, and UP/SMP8 focused 9/9 each. Its
+  exact-head run 38720105985 remains the integration gate; keep draft until
+  it passes. Current PR bodies supersede earlier pending local notes above.
+- Sandbox reset again after these checkpoints; cloned the pushed sources and
+  restored core tools with NO_PORTS=1 ARCHES=x86_64 scripts/sandbox-setup.sh.
+  Runtime restored from successful PR #9's x86 ISO artifact 11967154597; matching
+  Mesa 24.3.4 public EGL/GLES/KHR headers restored for the build SDK. This is a
+  restoration shortcut, not a substitute for fresh full graphics PR CI.
+- Separate branch notion/m40-qtgl prepares Qt Gui EGL/OpenGL ES and QtWayland
+  wayland-egl. Default ports now build LLVM/Mesa before Qt; native host tools
+  remain Core-only and are never target executables. Qt compositor and optional
+  server-buffer backends stay disabled; Qt Quick/KDE are not being claimed.
+- New qtgltest prepares actual GLES shader compilation/link, VBO triangle RGB
+  rendering/readback, swaps, resize and explicit compositor frame callbacks.
+  Shared session harness selects raster or EGL clients explicitly; CI prepares
+  root/UID1000 checks under softpipe and llvmpipe. These GL tests are NOT yet
+  validated; the restored x86 dependency/Qt build is running.
+- Only x86 is built/tested locally. PR #10's head/CI are left unchanged by this
+  new work. Keep committing/pushing WIP, and never delete branches implicitly.
+
+### Qt EGL/GLES first local runtime results (integration still gated)
+- Restored x86 Qtbase + QtWayland EGL build succeeded, including compilation of
+  qtgltest and the real wayland-egl platform plugin. No non-x86 local build.
+- Each tested client performs 37 checks: shader compilation/link, RGB VBO draw
+  and pixel readback, resize, swaps, three compositor callbacks and clean exit.
+  Softpipe reports OpenGL ES 3.1; llvmpipe LLVM18.1.8 reports OpenGL ES 3.2.
+- IMPORTANT unresolved observation: the first combined focused run passed
+  softpipe root/UID1000 and llvmpipe root, then stalled on llvmpipe UID1000.
+  The guest stopped producing output despite the client's alarm; stopped the
+  run manually rather than counting it as a pass. Preserve that failure in
+  build/qtgl-focused.log and /data/qtgl-focused.out. Cause is NOT identified.
+- The same llvmpipe UID1000 case then passed on a fresh boot (3/3 including
+  diagnostics). All four renderer/identity cases passed sequentially (5/5)
+  in a diagnostic rerun with a guest watchdog, and all four also passed in
+  the ordered full suite now running. Those reruns do NOT erase the original
+  stall. Broader/stress validation and exact-head PR CI remain required.
+- PR #10's ARM and RISC-V jobs have completed successfully: main101/101,
+  disk20/20+6/6, audio2/2+2/2, UP6/6, MLFQ9/9 each. x86 is now in boot tests;
+  do not merge until the entire exact-head run passes.
+- Logs: /data/qtgl-ports-build.log, /data/qtgl-user-isolated.out,
+  /data/qtgl-sequence.out, /data/qtgl-full-ci.out and matching build/*.log.
+
+### Captured vfork/IRQ preemption regression and fix in progress
+- PR #10 is merged as fff89ec1f48c61dd66fdbfc22da22c3b7e9ac5ed after exact-head
+  run38720105985 passed all three arches (main101/101 each). No branch deletion.
+- EGL head33c5f0f passed local main105/105, disk20/20+6/6, both e2fsck and
+  clean shutdown, audio2/2+2/2. SMP8 focused11/11; SMP4 and UP stress each
+  completed20 EGL clients,37 checks each. Initial focused SMP4/UP stalls remain
+  important evidence; never hide them behind passing retries.
+- Alternating cold boots: four passed6/6, then UP boot5 stalled before login,
+  before any Qt client. Paused QEMU RAM plus DWARF decode found udhcpc blocked
+  on its stack vfork queue with vd.done=1 and no live child. Definite lost wake.
+- Root synchronization violation: user_return_work scheduled unconditionally
+  before checking whether an IRQ interrupted kernel mode, bypassing the
+  existing sched_kernel_preemptible guard. A timer could drop the BKL inside
+  process exit/exec/vfork critical sections, allowing a parent to run/reap while
+  completion publication still used the child. The old guard's !proc exception
+  also wrongly treated an exiting user thread as an exempt kernel thread.
+- Targeted wait-only prototype was insufficient: vforktest blocked with a zombie
+  child, cleared child vfork pointer and parent completion still false. This
+  first regression run was mislabeled 'old' locally: qemu-test's make rebuilt
+  the wait-only prototype despite MAKEFLAGS --old-file. Do NOT cite it as an
+  unchanged-old-kernel A/B test. Its snapshot is still valid prototype evidence.
+- Full candidate: atomic scheduler-lock condition/enqueue for vfork, lifetime-
+  safe uninterruptible wait; respect BKL depth for kernel-mode preemption;
+  reconsider reschedule after IRQ's BKL nesting is dropped on all three archs.
+  Explicit waits/yields and user returns still schedule normally. Only x86 built.
+- New vforktest:2000 shared-mm clone+exit,256 clone+exec,32 delayed children with
+  pending SIGUSR1 and512 real vfork+exit; separate child stacks for clone, checks
+  delayed signal/lifetime and statuses. Same source passed7892 checks on Linux.
+  Added to main/UP/MLFQ/SMP8 CI. Full candidate UP boot passed8/8, including
+  vforktest7892, all four EGL renderer/UID cases37 each, DBus and zero lockdep.
+- Fresh full suite, CPU-count/cold-boot stress and exact-head PR CI are REQUIRED
+  after this kernel change. Earlier105/105 is pre-fix, not candidate validation.
+- Logs: build/vfork-fixed-up.log, /data/vfork-fixed-up.out, /data/vforktest-host.out;
+  snapshots /data/qtgl-boot5-pretimeout and /data/vfork-first-test-snapshot.
+  PR #11 body carries the latest checkpoint; M40/Qt Quick/KDE remain unfinished.
+
+### Orphan adoption regression found by the post-fix full suite
+- Head4b32bbd full x86 main was105/106, NOT green: the first DBus daemon
+  cleanup gate retained PID3900 after10seconds. All new EGL cases and vforktest
+  passed; disk20/20+6/6, both e2fsck, clean shutdown and audio2/2+2/2 passed.
+- reparent_children only woke init's child_wait when adopting a zombie, but
+  BusyBox init sleeps in sigtimedwait(SIGCHLD). Without a new SIGCHLD it could
+  leave that zombie until another unrelated child exit, explaining why the
+  later Qt cleanup gate could pass. Do not weaken/lengthen the cleanup gate.
+- New orphantest creates eight confirmed WNOWAIT zombies, then lets their
+  intermediate parents exit. It polls /proc/PID/stat without spawning helper
+  processes that could mask missed notification. A kill(pid,0) probe was
+  rejected because 9os currently returns ESRCH for zombies too.
+- Actual unchanged-kernel A/B: kernel SHA verified unchanged; proc-aware test
+  failed all8 adoption checks (40checks/8failures). With SIGCHLD notification
+  to init for adopted zombies and adopted-child exit_signal reset to SIGCHLD,
+  it passed40/40. Added to main/UP/MLFQ/SMP8 CI alongside vforktest.
+- Candidate focused UP8/8 passed: orphantest40, vforktest7892, repeated DBus,
+  non-root DBus and ORIGINAL bounded daemon cleanup, llvmpipe UID1000 EGL37,
+  zero lockdep. Final full regression/cold-boot/CPU-count validation still
+  pending; earlier full-suite numbers must not be labeled final-head results.
+- Logs: /data/orphan-before-proc.out (negative control), /data/orphan-fixed-up.out,
+  /data/qtgl-vfork-full-ci.out (105/106), corresponding build/*.log.
+
+### Final runtime suite and corrected native scheduler contract
+- Kernel/runtime at aa0de02 passed full x86 main107/107, disk20/20+6/6,
+  both e2fsck and clean disk shutdown, audio2/2+2/2. Both original bounded
+  DBus cleanup gates passed. All four EGL cases passed37 checks each; vfork7892
+  and orphan40 regressions passed. These are the post-both-fixes results.
+- CI run38736788594 x86 stopped before userland in sched-host: it still asserted
+  that proc=null with BKL held is preemptible, the exact unsafe exception now
+  removed. Do not misclassify this as a Qt compile failure or silently rerun.
+- Updated real scheduler host coverage: BKL-held detached/kernel threads must
+  defer preemption at nesting1/2, IRQ hook leaves reschedule pending without
+  switching/dropping BKL, BKL-free/idle/no-current contexts remain eligible.
+  Failure diagnostics flush before abort so CI does not lose the assertion.
+- Complete native x86 host gate now passed: PMM23622, slab65512082, scheduler
+  RR/MLFQ28548 each, RB tree200000 rounds, network ring480005, sound checks,
+  Linux futex128 and fetch atomicity/retry/poisoned-cache tests.
+- Next source revision changes host tests/docs ONLY, not runtime binaries.
+  Cold-boot and SMP/MLFQ tests still required. Keep PR11 draft until its new
+  exact-head CI is green on all three architectures. No branches deleted.
