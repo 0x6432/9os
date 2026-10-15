@@ -245,8 +245,17 @@ static void reparent_children(struct process *p) {
         struct process *c = list_entry(it, struct process, sibling);
         list_del(&c->sibling);
         c->parent = init_proc;
+        c->exit_signal = SIGCHLD;
         list_add_tail(&init_proc->children, &c->sibling);
-        if (c->state == P_ZOMBIE) wake_up(&init_proc->child_wait);
+        if (c->state == P_ZOMBIE) {
+            /* A signal-waiting init does not sleep on child_wait. Adoption of
+             * an already exited child needs the same notification as a new
+             * exit, or the zombie survives until an unrelated SIGCHLD. */
+            int st = c->exit_status;
+            int code = (st & 0x7f) == 0 ? CLD_EXITED : (st & 0x80) ? CLD_DUMPED : CLD_KILLED;
+            signal_send_chld(init_proc, c, code, code == CLD_EXITED ? (st >> 8) & 0xff : st & 0x7f);
+            wake_up(&init_proc->child_wait);
+        }
     }
 }
 

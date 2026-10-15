@@ -2107,3 +2107,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Logs: build/vfork-fixed-up.log, /data/vfork-fixed-up.out, /data/vforktest-host.out;
   snapshots /data/qtgl-boot5-pretimeout and /data/vfork-first-test-snapshot.
   PR #11 body carries the latest checkpoint; M40/Qt Quick/KDE remain unfinished.
+
+### Orphan adoption regression found by the post-fix full suite
+- Head4b32bbd full x86 main was105/106, NOT green: the first DBus daemon
+  cleanup gate retained PID3900 after10seconds. All new EGL cases and vforktest
+  passed; disk20/20+6/6, both e2fsck, clean shutdown and audio2/2+2/2 passed.
+- reparent_children only woke init's child_wait when adopting a zombie, but
+  BusyBox init sleeps in sigtimedwait(SIGCHLD). Without a new SIGCHLD it could
+  leave that zombie until another unrelated child exit, explaining why the
+  later Qt cleanup gate could pass. Do not weaken/lengthen the cleanup gate.
+- New orphantest creates eight confirmed WNOWAIT zombies, then lets their
+  intermediate parents exit. It polls /proc/PID/stat without spawning helper
+  processes that could mask missed notification. A kill(pid,0) probe was
+  rejected because 9os currently returns ESRCH for zombies too.
+- Actual unchanged-kernel A/B: kernel SHA verified unchanged; proc-aware test
+  failed all8 adoption checks (40checks/8failures). With SIGCHLD notification
+  to init for adopted zombies and adopted-child exit_signal reset to SIGCHLD,
+  it passed40/40. Added to main/UP/MLFQ/SMP8 CI alongside vforktest.
+- Candidate focused UP8/8 passed: orphantest40, vforktest7892, repeated DBus,
+  non-root DBus and ORIGINAL bounded daemon cleanup, llvmpipe UID1000 EGL37,
+  zero lockdep. Final full regression/cold-boot/CPU-count validation still
+  pending; earlier full-suite numbers must not be labeled final-head results.
+- Logs: /data/orphan-before-proc.out (negative control), /data/orphan-fixed-up.out,
+  /data/qtgl-vfork-full-ci.out (105/106), corresponding build/*.log.

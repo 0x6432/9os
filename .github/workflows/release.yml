@@ -101,20 +101,20 @@ jobs:
       - name: Uniprocessor M25 regressions
         run: >-
           python3 scripts/qemu-test.py $ARCH --smp 1 --boot-timeout 300
-          --log build/test-up-$ARCH.log slabtest idletest nicetest pcputest balancetest vforktest
+          --log build/test-up-$ARCH.log slabtest idletest nicetest pcputest balancetest vforktest orphantest
 
       - name: MLFQ M25 regressions
         run: |
           make ARCH=$ARCH SCHED=mlfq iso
           python3 scripts/qemu-test.py $ARCH --smp 2 --sched mlfq --boot-timeout 300 \
             --log build/test-mlfq-$ARCH.log slabtest idletest nicetest afftest \
-            balancetest pcputest smptest timetest vforktest
+            balancetest pcputest smptest timetest vforktest orphantest
 
       - name: Eight-CPU scheduler and allocator stress
         if: matrix.arch == 'x86_64'
         run: >-
           python3 scripts/qemu-test.py $ARCH --smp 8 --sched mlfq --boot-timeout 300
-          --log build/test-smp8-$ARCH.log slabtest idletest pcputest smptest afftest balancetest vforktest
+          --log build/test-smp8-$ARCH.log slabtest idletest pcputest smptest afftest balancetest vforktest orphantest
 
       - name: Upload test log
         if: always()
