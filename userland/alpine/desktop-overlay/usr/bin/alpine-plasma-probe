@@ -105,7 +105,16 @@ printf PLASMA_DESKTOPS=;cat "$D/desktops"
 dbus-send --session --print-reply --reply-timeout=120000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].wallpaperPlugin="org.kde.image";ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];ds[i].writeConfig("Image","file:///usr/share/wallpapers/Next/contents/images/1024x768.png");}print("PLASMA_WALLPAPER_CONFIGURED="+ds.length);'
 /usr/lib/qt6/bin/qdbus org.kde.KWin /KWin org.kde.KWin.supportInformation
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
- konsole --separate --nofork -e /bin/sh > "$D/konsole.log" 2>&1 & client=$!
+ konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty';echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ for i in $(seq 1200);do
+  [ ! -f "$D/interactive-pty" ] || break
+  kill -0 "$client" 2>/dev/null || break
+  sleep .1
+ done
+ if [ ! -f "$D/interactive-pty" ] || ! grep -q /dev/pts/ "$D/interactive-pty";then
+  cat "$D/konsole.log";echo 'alpine-plasma: FAIL interactive Konsole PTY readiness';exit 1
+ fi
+ cat "$D/interactive-pty"
  sleep 3
 fi
 sleep 30
@@ -117,5 +126,10 @@ WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
 echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
 cat "$D/plasma.log" "$D/kwin.log"
 echo 'alpine-plasma: EXPERIMENT rendered shell; acceptance checks still pending'
+if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
+ swaymsg -t get_inputs
+ cat "$D/seat.log" "$D/sway.log"
+fi
+[ ! -f "$D/konsole.log" ] || cat "$D/konsole.log"
 echo ALPINE_PLASMA_INPUT_READY
 sleep "${ALPINE_PLASMA_HOLD:-0}"
