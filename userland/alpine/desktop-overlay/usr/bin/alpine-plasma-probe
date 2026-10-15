@@ -1,0 +1,62 @@
+#!/bin/sh
+# Experimental real Plasma shell nested under Sway for compositor-side evidence.
+set -eu
+if [ "${1:-}" != --session ]; then exec dbus-run-session -- "$0" --session; fi
+D=$(mktemp -d /tmp/alpine-plasma-XXXXXX)
+swaypid=;kwin=;plasma=;client=;SWAYSOCK=
+cleanup() {
+ for p in "$client" "$plasma" "$kwin" "$swaypid"; do
+  [ -n "$p" ] || continue
+  kill "$p" 2>/dev/null || true
+  for i in $(seq 30); do kill -0 "$p" 2>/dev/null || break;sleep .1;done
+  kill -KILL "$p" 2>/dev/null || true;wait "$p" 2>/dev/null || true
+ done
+ rm -rf "$D"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+unset DISPLAY WAYLAND_DISPLAY QT_QPA_PLATFORM QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH
+export XDG_RUNTIME_DIR="$D" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" XDG_DATA_HOME="$D/data"
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=KDE LANG=C.UTF-8
+export QT_QUICK_BACKEND=software QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1 KWIN_COMPOSE=Q
+export WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_HEADLESS_OUTPUTS=1
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME"
+printf '%s\n' 'output * resolution 800x600' 'default_border none' 'default_floating_border none' 'for_window [app_id="kwin_wayland"] fullscreen enable' > "$D/sway.conf"
+sway -d -c "$D/sway.conf" > "$D/sway.log" 2>&1 & swaypid=$!
+for i in $(seq 100); do
+ for f in "$D"/sway-ipc.*;do [ ! -S "$f" ] || SWAYSOCK="$f";done
+ [ -z "$SWAYSOCK" ] || break
+ sleep .1
+done
+[ -n "$SWAYSOCK" ] || { cat "$D/sway.log";exit 1; }
+export SWAYSOCK
+parent=
+for f in "$D"/wayland-*;do [ ! -S "$f" ] || parent="$f";done
+[ -n "$parent" ] || exit 1
+kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
+for i in $(seq 300);do [ ! -S "$D/9os-plasma" ] || break;kill -0 "$kwin" 2>/dev/null || break;sleep .1;done
+[ -S "$D/9os-plasma" ] || { cat "$D/kwin.log";exit 1; }
+export WAYLAND_DISPLAY="$D/9os-plasma" QT_QPA_PLATFORM=wayland
+plasmashell --replace --no-respawn > "$D/plasma.log" 2>&1 & plasma=$!
+ready=0
+deadline=$(( $(date +%s) + 100 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ if timeout -s KILL 2 /usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript  'print("desktops="+desktops().length+" panels="+panels().length)'  > "$D/desktops" 2> "$D/bus.log";then
+  if grep -Eq 'desktops=[1-9][0-9]* panels=[1-9][0-9]*' "$D/desktops";then ready=1;break;fi
+ fi
+ kill -0 "$plasma" 2>/dev/null || break
+ sleep .2
+done
+if [ "$ready" != 1 ];then
+ if ! kill -0 "$plasma" 2>/dev/null;then if wait "$plasma";then r=0;else r=$?;fi;plasma=;echo "PLASMA_EARLY_EXIT=$r";fi
+ cat "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';exit 1
+fi
+printf PLASMA_DESKTOPS=;cat "$D/desktops"
+/usr/lib/qt6/bin/qdbus org.kde.KWin /KWin org.kde.KWin.supportInformation
+sleep 5
+swaymsg -t get_tree > "$D/tree.json";cat "$D/tree.json"
+cat "$D/plasma.log" "$D/kwin.log"
+WAYLAND_DISPLAY="$parent" grim -o HEADLESS-1 "$D/plasma.png"
+echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+cat "$D/plasma.log" "$D/kwin.log"
+echo 'alpine-plasma: EXPERIMENT rendered shell; acceptance checks still pending'

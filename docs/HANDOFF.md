@@ -2261,3 +2261,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   workflow. Follow-up now explicitly includes it between replay and make, checks
   shadow readability/root traversal and restores BusyBox setuid. Local manual
   sudo install/replay + ownership-handoff + unprivileged ISO + suite11/11 passed.
+
+### Signed KDE desktop / real-runtime syscall regressions (in progress)
+- Focused PR15 exact9f09603 fast38792864784 passed ALL3 main13/13, UP8/8;
+  x86 SMP8 8/8. Linux-oracle job-stop/ptrace regression and real prebuilt strace-f
+  expose/fix a BKL-held SIGSTOP/PTRACE_INTERRUPT livelock. Full source gates pending.
+- Focused PR16 exact6b55b24 removes false fallocate success. No filesystem yet
+  guarantees preallocation: return EOPNOTSUPP rather than claim sparse truncate
+  implements it. Mesa was mapping past EOF after musl posix_fallocate accepted
+  that false success. Same-source Linux oracle31 checks; x86 9os27 checks, zero
+  failures. Source/prebuilt CI include this regression; validation gates pending.
+- With patched kernel, DEFAULT Mesa cache settings, real prebuilt QtQuick EGL
+  creates OpenGL4.5 llvmpipeLLVM20.1.8 and completes >=3 Wayland surface frames
+  under Sway. Every128x96 compositor pixel is RGB565-quantized16,170,82,255.
+  Host checker requires renderer/QRhi/RGB565 protocol evidence and exact pixels;
+  software-backend assertions remain unchanged. Eight checker host tests pass.
+  Traced and then untraced x86 root succeeded; UID1000 repeat pending.
+- Real KWin6.3.6 virtual/QPainter supportInformation, KonsoleQtWidgets child PTY
+  and Konsole exit0 passed. KWin normal exit15 after requested SIGTERM matches
+  upstream's signalReceived -> QCoreApplication::exit connection, not a crash.
+- Experimental nested KWin + Plasma probe is still in progress. First bus call
+  returned before desktop readiness, and screenshot targeted the child compositor
+  instead of outer Sway; stronger desktop/panel and capture checks are pending.
+  NO claim of KMS/input, hardware acceleration, complete services or completed M40.
