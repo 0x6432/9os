@@ -52,6 +52,8 @@ client=; echo "KONSOLE_EXIT_STATUS=$r"
 kill -TERM "$kwin"
 if wait "$kwin"; then r=0; else r=$?; fi
 kwin=; echo "KWIN_TERMINATED_STATUS=$r"
-[ "$r" = 0 ] || { cat "$D/client.log" "$D/kwin.log"; exit 1; }
+# Upstream main_wayland.cpp connects KSignalHandler::signalReceived directly
+# to QCoreApplication::exit: our requested SIGTERM yields normal exit(15).
+[ "$r" = 15 ] || { cat "$D/client.log" "$D/kwin.log"; exit 1; }
 cat "$D/client.log" "$D/kwin.log"
 echo 'alpine-kwin: PASSED private-bus KWin virtual/QPainter and real Konsole QtWidgets PTY'
