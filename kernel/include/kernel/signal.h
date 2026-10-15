@@ -89,6 +89,7 @@ struct k_sigaction {          /* layout used by the rt_sigaction syscall */
 struct process;
 struct thread;
 void signal_send(struct process *p, int sig);
+void signal_wake_stopped(struct process *p);   /* ptrace interrupt of a job-control stop */
 void signal_send_info(struct process *p, const struct ksiginfo *ki);
 int signal_thread_info(struct thread *t, const struct ksiginfo *ki);   /* -EAGAIN: queue full */
 void signal_force_info(struct thread *t, int sig, int code, uint64_t addr);

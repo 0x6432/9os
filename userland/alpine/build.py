@@ -11,7 +11,7 @@ MINI = {
     'aarch64': '821565fa8f3953eefd12497b166b4b50add2f7c57fb312e75862f5867e06fefe',
     'riscv64': '72f7e69f6950c2799137a934fae61513016efa546afcb4a05540a505c4184150',
 }
-PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq']
+PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq', 'strace', 'musl-dev']
 TOP = pathlib.Path(__file__).resolve().parents[2]
 
 def digest(path):

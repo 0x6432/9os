@@ -308,6 +308,10 @@
       "sha256": "ca2beab3bf4cc373f2e1e3e24d9897326b6859cdc7dfa747c9278076c1be38da"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libdw-0.193-r0.apk",
+      "sha256": "c0b46c47f501c57e02d3c454fddad9f2ada0bf9d58bca1ccd575c428257e3b35"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libeconf-0.6.3-r0.apk",
       "sha256": "fe4fbf324f84f7c8b475cfc708c5505aa630bced7b5f6289bf5ca36d9b587829"
     },
@@ -536,6 +540,14 @@
       "sha256": "4990a5e0ba312e478f94cfe431a70efef1538004eb361c8ae424516848be45bb"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-dev-1.2.5-r12.apk",
+      "sha256": "1c2068d910cfdbbcb4eb107a5a478f8b48edf3a6311953c8fa5180c5190efab3"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-fts-1.2.7-r6.apk",
+      "sha256": "7e4ed22290aba56fb0f4534164d424e1b7e6d2da576837dd9ef12afee929fd1d"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/nettle-3.10.2-r0.apk",
       "sha256": "e9d950371a0c721e49f5159b3f1304a1677d050d5ab694760e213c5fbea6aaee"
     },
@@ -578,6 +590,10 @@
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ssl_client-1.37.0-r20.apk",
       "sha256": "11b2a5f91caf8eb5daa9a0bc2586f93545de62897f3a704fd49533e1654b7a68"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/strace-6.13-r0.apk",
+      "sha256": "ccda738aa2e679d5732f61adaec8ee6340c3a2eeb4285c6dde50adcc5856f91c"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/tiff-4.7.2-r0.apk",

@@ -9,6 +9,8 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 2048M --boot-tim
     'test "$(cat /etc/alpine-release)" = 3.22.6 && uname -a && test ! -e /usr/lib/libc++.so' \
     'dbus-run-session -- dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames' \
     'dbus-run-session -- sh -c "exit 23"; test $? = 23' \
+    ptracestoptest \
+    'timeout -s KILL 20 strace -f -o /tmp/alpine-strace.log /bin/sh -c "echo native-trace-ok; /bin/true" && grep -q execve /tmp/alpine-strace.log' \
     alpine-qtsmoke 'su user -s /bin/sh -c alpine-qtsmoke' \
     "host:python3 scripts/alpine-pixel-check.py $L" \
     alpine-wayland-smoke 'ALPINE_WAYLAND_USER=user alpine-wayland-smoke' \

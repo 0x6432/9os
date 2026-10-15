@@ -843,6 +843,7 @@ int64_t sys_ptrace(int64_t req, int64_t pid, uint64_t addr, uint64_t data) {
         } else if (!t->pt_stopped) {
             t->pt_interrupt = true;
             thread_interrupt(t);
+            signal_wake_stopped(t->proc);
         }
         return 0;
     }

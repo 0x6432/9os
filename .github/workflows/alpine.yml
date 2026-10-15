@@ -35,6 +35,7 @@ jobs:
       - name: Lock/checksum negative controls
         if: matrix.arch == 'x86_64'
         run: |
+          scripts/ptracestop-host-tests.sh
           python3 scripts/alpine-host-tests.py
           python3 scripts/alpine-wayland-host-tests.py
       - name: Install signed prebuilt runtime
@@ -52,6 +53,8 @@ jobs:
           chmod 4755 "userland/alpine-root-$ARCH/bin/busybox"
           test -r "userland/alpine-root-$ARCH/etc/shadow"
           test -x "userland/alpine-root-$ARCH/root"
+      - name: Compile tiny syscall regression against prebuilt musl (not Qt)
+        run: scripts/alpine-build-tests.sh "$ARCH"
       - name: Build 9os kernel and isolated image
         run: make -j2 ARCH=$ARCH USERLAND=alpine iso
       - name: Prebuilt DBus and Qt Quick offscreen/Wayland, root/non-root pixels
