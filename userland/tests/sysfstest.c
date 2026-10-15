@@ -53,6 +53,53 @@ static int wr(const char *path, const char *s) {
     return n < 0 ? -e : 0;
 }
 static bool ends_with(const char *s, const char *t) { size_t a = strlen(s), b = strlen(t); return a >= b && !strcmp(s + a - b, t); }
+
+static long available_kib(void) {
+    FILE *f = fopen("/proc/meminfo", "r");
+    if (!f) return -1;
+    char line[160];
+    long kib = -1;
+    while (fgets(line, sizeof line, f))
+        if (sscanf(line, "MemAvailable: %ld", &kib) == 1) break;
+    fclose(f);
+    return kib;
+}
+
+/* A generated sysfs inode must not keep its device and every path component
+ * alive forever. Warm the allocator first; a leak costs tens of MiB here. */
+static void test_lookup_lifetime(void) {
+    const char *path = "/sys/devices/system/cpu/online";
+    char b[128];
+    struct stat st;
+    for (int i = 0; i < 32; i++) rd(path, b, sizeof b);
+    long before = available_kib();
+    for (int i = 0; i < 2048; i++) {
+        if (stat(path, &st) || rd(path, b, sizeof b) <= 0) {
+            CHECK(false, "repeated sysfs lookup at %d", i);
+            break;
+        }
+    }
+    long after = available_kib();
+    printf("sysfstest: repeated lookup retained %ld KiB\n", before - after);
+    CHECK(before >= 0 && after >= 0 && before - after < 4096,
+          "sysfs lookup memory: before %ld after %ld KiB", before, after);
+
+    /* Closing ancestors must not invalidate a held directory's parent chain. */
+    int cwd = open(".", O_RDONLY | O_DIRECTORY);
+    int dir = open("/sys/devices/system/cpu", O_RDONLY | O_DIRECTORY);
+    CHECK(cwd >= 0 && dir >= 0, "open saved cwd and generated directory");
+    if (cwd >= 0 && dir >= 0) {
+        CHECK(fchdir(dir) == 0, "fchdir generated directory");
+        close(dir); dir = -1;
+        CHECK(getcwd(b, sizeof b) && !strcmp(b, "/sys/devices/system/cpu"),
+              "generated directory getcwd: %s", b);
+        CHECK(chdir("..") == 0 && getcwd(b, sizeof b) &&
+              !strcmp(b, "/sys/devices/system"), "generated parent getcwd: %s", b);
+        CHECK(fchdir(cwd) == 0, "restore cwd");
+    }
+    if (dir >= 0) close(dir);
+    if (cwd >= 0) close(cwd);
+}
 static const char *link_base(const char *l, char *buf, size_t cap) {
     ssize_t n = readlink(l, buf, cap - 1);
     if (n < 0) return "";
@@ -598,6 +645,7 @@ static void test_udevshim(void) {
 int main(int argc, char **argv) {
     if (argc > 1 && !strcmp(argv[1], "-u")) test_udevshim();
     else {
+        test_lookup_lifetime();
         test_input();
         test_net();
         test_driver();
