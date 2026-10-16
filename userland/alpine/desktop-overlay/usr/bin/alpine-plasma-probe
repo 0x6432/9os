@@ -139,6 +139,10 @@ done
 cat "$D/frame.log"
 if [ "$frame_ready" != 1 ];then
  echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness'
+ echo PLASMA_BLOCKED_THREADS_DIAGNOSTIC
+ grep -E 'plasmashell|QQuick|QQml|QDBus|QThread|QSG|Thread' /proc/sched || true
+ timeout -k 2 -s TERM 8 strace -f -k -p "$plasma" -o "$D/plasma-blocked.trace" 2>&1 || true
+ tail -n 160 "$D/plasma-blocked.trace" 2>/dev/null || true
  # Preserve real failure pixels and configuration, never substitute a background.
  timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];print("WALLPAPER_DIAGNOSTIC id="+ds[i].id+" plugin="+ds[i].wallpaperPlugin+" image="+ds[i].readConfig("Image"));}' || true
  WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/failure.png" || true
@@ -146,7 +150,11 @@ if [ "$frame_ready" != 1 ];then
  exit 1
 fi
 WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
-echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+# Headless gates need the serialized image for their independent host checker.
+# Physical gates already capture the actual QEMU scanout as separate PNGs.
+if [ "${ALPINE_PLASMA_SERIAL_PNG:-1}" = 1 ];then
+ echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+fi
 cat "$D/plasma.log" "$D/kwin.log"
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty';echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!

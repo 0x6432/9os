@@ -2458,3 +2458,16 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Focused UID1000 Plasma/headless + Dolphin now running, log
  build/test-dolphin-plasma.log, output /data/dolphin-plasma.out. No follow-up
  PR opened; do not trigger source CI merely for these diagnostics/notes.
+
+### Failure diagnosis continued (no new acceptance claim)
+- Focused UID1000 Plasma/headless also failed black wallpaper readiness.
+ Actual DBus readback confirmed org.kde.image and the existing signed Next
+ PNG path; failure pixels retained under distinct FAILURE_PNG markers.
+- Now collecting failure-only strace -f -k call stacks for wallpaper or
+ Dolphin initialization, bounded8s+2s grace; /data/plasma-stack.out and
+ build/test-plasma-stack.log. Debug logging is set in guest command, not
+ incorrectly assumed to cross into the VM from host environment.
+- Physical KMS gate now opts out of redundant success PNG base64 over UART;
+ it still requires actual host QEMU before/after/Dolphin PNGs, genuine typed
+ UID1000 PTY files and actual accessible before/after model. Headless default
+ serial PNG and independent checker unchanged. Failure image kept.
