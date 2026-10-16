@@ -75,10 +75,7 @@ const char *sched_policy_name(void) { return "round-robin"; }
 static int policy_quantum_for(struct thread *t) { return SCHED_QUANTUM; }
 static int level_of(struct thread *t) { return 0; }
 static void quantum_expired(struct thread *t) {}
-/* Normal RR peers join the run queue and wait for the current slice. A
- * readiness broadcast must not force every syscall to become a yield. RT
- * priority and idle-CPU wakeups remain handled by wake_preempts/kick_after_wake. */
-static bool policy_wake_preempts(struct thread *woken, struct thread *running) { return false; }
+static bool policy_wake_preempts(struct thread *woken, struct thread *running) { return true; }
 /*
  * Deficit round robin: a slice that overran (ticks are coarse, and may be lost under
  * emulation) leaves t->quantum negative; the debt is paid back from the next refill, and a

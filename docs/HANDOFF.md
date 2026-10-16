@@ -3062,3 +3062,15 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   was performed locally and no non-x86 validation ran locally.
 - Current PR18 full-source38914052546 ARM and RISC-V completed successfully;
   x86 still running. PR18 remains draft at9eb, separate from this WIP branch.
+
+### RR experiment rejected for integration
+- Second candidate SMP4 physical cold boot failed10/16. Readiness passed and
+  genuine before/after scanouts exist, but the actual typed command contains
+  repeated characters and a shell syntax error; required tty/UID markers were
+  absent. No input retry was attempted. Memory pressure/OOM counters stayed0.
+- Therefore restore the original RR wake-preemption policy. Two cold boots
+  (one pass, one fail) and inconclusive benchmark timing do not justify changing
+  global scheduler semantics as a desktop fix. Experimental kernel, hashes,
+  serial logs and genuine screenshots remain outside the repository for review.
+- Retain the portable progress/readiness consumer and CI wiring as independent
+  regression coverage; its timing measurements are explicitly non-gating.
