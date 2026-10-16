@@ -2523,3 +2523,24 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   successful UDisks request. Actual GetManagedObjects failed.
 - Latest physical desktop repeat failed shell readiness before input or Dolphin.
   No new physical acceptance claim; do not mark M40 complete.
+
+### UDisks startup unblocked: permanent procfs EPOLLET regression
+- Trace identified GLib registering `/proc/self/mountinfo` with EPOLLIN|EPOLLET
+  then draining startup events. 9os treated all input ET as level-triggered,
+  so gmain spun forever and main waited on a futex. No KDE workaround applied.
+- Added explicit VFS permanently-asserted readiness bits. epoll latches those
+  bits per registration/rearm, checks the same eligibility during nested peeks,
+  and never acknowledges a candidate beyond maxevents. This is a focused fix:
+  dynamic input retains the existing level approximation until producer-side
+  edge tracking exists. Do NOT claim complete general Linux EPOLLET semantics.
+- Same source Linux oracle passes651 ordinary/3167 private-namespace mutations.
+  Actual unfixed x86 kernel failed12/211 proc edge assertions. Fixed x86 disk
+  root1196/1196, UID1000 273/273; lockdep0. Logs test-epoll-proc-before/after.
+- Actual packaged UDisks GetManagedObjects as UID1000 now succeeds, reporting
+  the VirtIO disk, vda1 partition and mounted root filesystem. Added a read-only
+  smoke gate that requires those real objects, not merely a successful empty
+  service reply. Formatting/removable mounting/privileged authorization are
+  NOT tested or claimed. Current physical KMS follow-up is still pending.
+- Core-only mkroot hit its existing missing usr/lib/find error without graphics
+  ports. Create that normal empty runtime directory unconditionally; this does
+  not restore or pretend to validate the full source graphics stack locally.

@@ -114,6 +114,9 @@ struct file_ops {
     ssize_t (*write)(struct file *f, const void *buf, size_t n, off_t *off);
     int (*ioctl)(struct file *f, uint64_t cmd, uint64_t arg);
     unsigned (*poll)(struct file *f);
+    /* Readiness bits that are permanently asserted (e.g. procfs even at EOF).
+     * EPOLLET reports these once per registration/rearm, not once per scan. */
+    unsigned poll_always;
     void (*release)(struct file *f);
     /* device memory mapping: physical address backing [off, off+len), or -errno */
     int (*mmap)(struct file *f, uint64_t off, size_t len, paddr_t *pa);

@@ -16,6 +16,7 @@ export QEMU_EXTRA="${QEMU_EXTRA:-} -monitor unix:$S,server,nowait"
 python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" \
  alpine-desktop-services \
+ 'su user -s /bin/sh -c alpine-udisks-smoke' \
  '(ALPINE_PLASMA_OUTPUT=kms ALPINE_PLASMA_SERIAL_PNG=0 ALPINE_PLASMA_INTERACTIVE=1 ALPINE_PLASMA_FILEMANAGER=1 ALPINE_PLASMA_INPUT_DONE_FILE=/tmp/kms-input-done ALPINE_DOLPHIN_DONE_FILE=/tmp/dolphin-capture-done alpine-plasma-user-probe >/tmp/plasma-kms.log 2>&1 & echo $! >/tmp/plasma-kms.pid)' \
  'for i in $(seq 700);do grep -q ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -q ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }' \
  'test ! -e /tmp/kms-input-ok && test ! -e /tmp/kms-tty && test ! -e /tmp/kms-uid && test ! -e /tmp/kms-input-done && test ! -e /tmp/dolphin-capture-done' \

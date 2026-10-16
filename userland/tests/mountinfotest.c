@@ -11,6 +11,7 @@
 #include <sys/mount.h>
 #include <sys/wait.h>
 #include <poll.h>
+#include <sys/epoll.h>
 static int checks,fails;
 #define CHECK(x) do{checks++;if(!(x)){fprintf(stderr,"mountinfotest: FAIL line %d: %s\n",__LINE__,#x);fails++;}}while(0)
 struct row { unsigned long long id,parent;unsigned ma,mi;char root[4096],path[4096],type[128],src[4096],opts[512]; };
@@ -46,7 +47,31 @@ static int contains_fd(int fd,const char*needle){
  for(;;){if(len+1024+1>cap){cap*=2;char*p=realloc(b,cap);if(!p){free(b);CHECK(0);return 0;}b=p;}ssize_t n=read(fd,b+len,1024);if(n<0){CHECK(0);free(b);return 0;}if(!n)break;len+=(size_t)n;}
  b[len]=0;int yes=strstr(b,needle)!=NULL;free(b);return yes;
 }
+/* GLib drains EPOLLIN|EPOLLET startup events for these permanently readable
+ * proc files. Repeated level events here make its initialization loop forever. */
+static void epoll_proc(const char *path){
+ int fd=open(path,O_RDONLY),ep=epoll_create1(EPOLL_CLOEXEC),outer=epoll_create1(EPOLL_CLOEXEC);
+ CHECK(fd>=0&&ep>=0&&outer>=0);if(fd<0||ep<0||outer<0)goto done;
+ struct epoll_event ev={.events=EPOLLIN,.data.u64=123},out;
+ CHECK(epoll_ctl(ep,EPOLL_CTL_ADD,fd,&ev)==0);
+ CHECK(epoll_wait(ep,&out,1,0)==1&&(out.events&EPOLLIN));
+ CHECK(epoll_wait(ep,&out,1,0)==1); /* level trigger stays ready */
+ ev.events=EPOLLIN|EPOLLET;CHECK(epoll_ctl(ep,EPOLL_CTL_MOD,fd,&ev)==0);
+ ev.events=EPOLLIN;CHECK(epoll_ctl(outer,EPOLL_CTL_ADD,ep,&ev)==0);
+ CHECK(epoll_wait(outer,&out,1,0)==1);CHECK(epoll_wait(outer,&out,1,0)==1); /* peeking must not consume inner event */
+ CHECK(epoll_wait(ep,&out,1,0)==1&&out.data.u64==123&&(out.events&EPOLLIN));
+ CHECK(epoll_wait(ep,&out,1,0)==0);CHECK(epoll_wait(outer,&out,1,0)==0);
+ char c;CHECK(read(fd,&c,1)==1);CHECK(epoll_wait(ep,&out,1,0)==0);
+ CHECK(lseek(fd,0,SEEK_SET)==0);CHECK(epoll_wait(ep,&out,1,0)==0);
+ ev.events=EPOLLIN|EPOLLET|EPOLLONESHOT;ev.data.u64=456;CHECK(epoll_ctl(ep,EPOLL_CTL_MOD,fd,&ev)==0);
+ CHECK(epoll_wait(outer,&out,1,0)==1);CHECK(epoll_wait(ep,&out,1,0)==1&&out.data.u64==456);
+ CHECK(epoll_wait(outer,&out,1,0)==0);CHECK(epoll_wait(ep,&out,1,0)==0);
+ CHECK(epoll_ctl(ep,EPOLL_CTL_MOD,fd,&ev)==0);CHECK(epoll_wait(ep,&out,1,0)==1);
+ CHECK(epoll_ctl(ep,EPOLL_CTL_DEL,fd,NULL)==0);CHECK(epoll_wait(ep,&out,1,0)==0);
+ done: if(fd>=0)CHECK(close(fd)==0);if(ep>=0)CHECK(close(ep)==0);if(outer>=0)CHECK(close(outer)==0);
+}
 int main(int argc,char**argv){
+ epoll_proc("/proc/self/mountinfo");epoll_proc("/proc/self/mounts");epoll_proc("/proc/mounts");
  load("/proc/self/mountinfo");device("/");device("/proc");struct row*r=find("/");unsigned long long rootid=r?r->id:0;
  char path[128];snprintf(path,sizeof path,"/proc/%d/mountinfo",getpid());load(path);r=find("/");CHECK(r&&r->id==rootid);
  int f=open("/proc/self/mountinfo",O_RDONLY);CHECK(f>=0);if(f>=0){char a[113],b[113];ssize_t n=read(f,a,sizeof a);CHECK(n>0);CHECK(lseek(f,0,SEEK_SET)==0);CHECK(n>0&&read(f,b,sizeof b)==n&&memcmp(a,b,(size_t)n)==0);CHECK(close(f)==0);}

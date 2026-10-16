@@ -651,8 +651,8 @@ static int pl_follow(struct inode *i, struct inode **o) { return PBKL(p_follow(i
 static const struct inode_ops proc_iops = {
     .lookup = pl_lookup, .readlink = pl_readlink, .iterate = pl_iterate, .evict = p_evict, .follow_link = pl_follow,
 };
-static const struct file_ops proc_file_fops = { .open = pf_open, .read = pf_read, .write = pf_write, .release = pf_release, .poll = pf_poll };
-static const struct file_ops proc_dir_fops = { .poll = pf_poll };
+static const struct file_ops proc_file_fops = { .open = pf_open, .read = pf_read, .write = pf_write, .release = pf_release, .poll = pf_poll, .poll_always = POLLIN | POLLRDNORM };
+static const struct file_ops proc_dir_fops = { .poll = pf_poll, .poll_always = POLLIN | POLLRDNORM };
 
 struct inode *procfs_create_root(void) {
     proc_root_inode = pnew(S_IFDIR | 0555, P_ROOT, 0, 0, 0);
