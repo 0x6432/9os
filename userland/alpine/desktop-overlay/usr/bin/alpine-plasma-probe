@@ -48,6 +48,10 @@ unset DISPLAY WAYLAND_DISPLAY QT_QPA_PLATFORM QT_PLUGIN_PATH QT_QPA_PLATFORM_PLU
 export XDG_RUNTIME_DIR="$D" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" XDG_DATA_HOME="$D/data"
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=KDE XDG_MENU_PREFIX=plasma- LANG=C.UTF-8
 export QT_QUICK_BACKEND=software QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1 KWIN_COMPOSE=Q
+# Incidental GL/effect work may still create llvmpipe workers with a software
+# scene graph. Bound oversubscription on small TCG hosts; keep an explicit user
+# override. This resource policy does not change any readiness/pixel deadline.
+export LP_NUM_THREADS="${LP_NUM_THREADS:-1}"
 export WLR_RENDERER=pixman
 case ${ALPINE_PLASMA_OUTPUT:-headless} in
  headless) export WLR_BACKENDS=headless WLR_HEADLESS_OUTPUTS=1 ;;

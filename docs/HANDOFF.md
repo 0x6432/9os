@@ -2951,3 +2951,12 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - PR18 head remains971, draft/open. Source CI is finished without cancellation;
   hold integration while local cold-start reliability remains unresolved. Do not
   promote full-source green or a single positive control into M40 completion.
+- Private LP1+QMP second cold run also finishes16/16; third is in progress.
+  Propose an overridable LP_NUM_THREADS default1 scoped only to this experimental
+  desktop session, bounding incidental llvmpipe oversubscription on small TCG
+  hosts while retaining unchanged pixels, services and deadlines. Three actual
+  shell-policy host controls preserve explicit overrides. This is a resource
+  policy supported by two positive controls, not a proven kernel-race fix.
+- Carry WIP FD parser, real failure diagnostics, isolated Linux comparison and
+  QMP input into PR18 for new current-head ALL3 CI. Prior971 full-source and
+  432 fast ALL3 results remain historical evidence, not current-head passes.
