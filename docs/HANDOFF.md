@@ -3039,3 +3039,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Full available x86 core/disk regression is running after rebuilding only small
   consumers. PR18 remains draft at9eb; its full-source38914052546 is still building.
   WIP b516 fast success is not a source Quick rendering or complete-M40 claim.
+
+### RR wakeup experiment (not a completed desktop fix)
+- Available b516 x86 core run completed84/84, disk24/24+7/7, both fsck checks,
+  clean shutdown and PCM/no-card2/2 each. Local UP physical control passed16/16
+  with real focused terminal, typed tty/UID and independently checked Dolphin
+  pixels. Neither result makes the failing production SMP4 cold boot a pass.
+- Baseline second SMP4 cold boot fails7/16: PTY was published but no genuine
+  Terminal accessible object was found (application present, models0). Failure
+  scanout timed out and produced no PNG; do not invent image evidence.
+- Experimental default RR change queues normal peers until the current slice
+  ends, retaining idle-CPU wakeups, RT priority rules and unchanged MLFQ policy.
+  First experimental SMP4 physical boot passed16/16; second is still running.
+  This is a hypothesis under validation, not an established cold-start fix.
+- Original small eventfd benchmark: baseline49/67ms, producer21/83 switches;
+  candidate50/56ms, producer1 switch but MORE waiter switches. There is no
+  demonstrated wall-time improvement. Candidate focused poll/timer/fairness/
+  affinity/PI tests passed11/11; full core/disk/UP/SMP8 policy regression is pending.
+- Add exact portable pollwakebench consumer plus Linux and ALL3 CI wiring.
+  Current Linux consumer passes; timings/switch counts are informational only.
+  Current revised consumer still needs guest execution. No target-library build
+  was performed locally and no non-x86 validation ran locally.
+- Current PR18 full-source38914052546 ARM and RISC-V completed successfully;
+  x86 still running. PR18 remains draft at9eb, separate from this WIP branch.
