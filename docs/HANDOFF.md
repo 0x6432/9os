@@ -2621,3 +2621,36 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   consumer. Host-only private copies alpine-plasma-konsole-stress and
   alpine-konsole-stress-user invoke it in real stock Plasma; these wrappers
   are not acceptance/CI claims. No full GUI pass until actual execution.
+
+### Real thread visibility and debugger groundwork (reliability branch)
+- Actual atomic-witness physical repeat FAILED7/16 before rendered Plasma
+  readiness; /data/kms-atomic-witness.out, frozen evidence-atomic-plasma-failed.
+  This is not a validated desktop fix. PR18 remains draft; M40 remains open.
+- Genuine Konsole lifecycle stress previously passed8/8 actual UID1000 PTYs;
+  exact prebuilt kmimetypefinder content detection passed3 root +3 user runs.
+  Neither reproduces or resolves the intermittent cold-start blocker.
+- Packaged elfutils requires /proc/PID/task; add actual TID enumeration,
+  /proc/TID and task/TID identity/status/stat/comm/maps, owner credentials,
+  departed-thread checks, genuine task CPU/fault/start accounting. Root proc
+  enumeration still lists leaders only. No full Linux procfs completeness claim.
+- New .. traversal regression exposed dynamic proc directory parent UAF: raw
+  parent pointers could outlive their inode and corrupt subsequent allocations
+  (reproducible su/socket cleanup SMAP panic). Pin dynamic directory parents,
+  release the pin on eviction; proc mount root retains borrowed parent semantics.
+  Fixed x86 root/user,10 repeated real pthread lifecycles, procinfo/ptrace8/8,
+  clean shutdown and lockdep0. Earlier file named proctask-before.out actually
+  rebuilt the new kernel via make run; do NOT describe it as old-kernel evidence.
+- Correct frozen old08b3e90 source-profile kernel in /data/baseline08/kernel.elf
+  rejects the new consumer (88 checks,59 failures root/user), without panic.
+  Freeze via make -o: overriding KERNEL alone rebuilds it. Original temporary
+  /data/kernel-before-proctask.elf was accidentally rebuilt, not a valid baseline.
+- /proc task enumeration alone lets packaged strace attach all3 threads, but
+  elfutils then rejects live worker TIDs via kill(tid,0). Implement Linux positive
+  non-leader TID lookup for kill, preserving process-directed delivery/permission
+  checks. Same-source oracle includes worker-blocked/main-unblocked SIGUSR1
+  delivery to distinguish kill(TID) from tgkill, plus departed ESRCH checks.
+- Linux oracle105/105. Earlier x8698/98 root/user includes kill0 but precedes
+  added SIGUSR1 oracle. Actual packaged strace -f -k validation and SMP8 run
+  logs: /data/proctask-trace-fixed.out, /data/proctask-smp8.out. Read final results.
+- CI includes same-source host oracle, source core and prebuilt base/desktop
+  consumers. Non-x86 validation must come from PR CI; none built locally.
