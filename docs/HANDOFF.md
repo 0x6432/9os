@@ -2707,3 +2707,14 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   injection. Fake HMP controls reject the old driver and accept corrected one;
   actual guest input still needs fresh ALL3 validation. A local concurrent cold
   repeat also failed typed-input acceptance; keep its failure, not a green rerun.
+- Fresh strict84fd758 local boot FAILED7/16 at stock Plasma wallpaper readiness
+  before Konsole/Dolphin. Outer grim showed a black desktop plus panel, matching
+  physical rejection; this occurrence is NOT merely stale physical DRM scanout.
+  Keep /data/evidence-84fd758-plasma-readiness-failed and strict-plasma-failed.png.
+  Failure-only strace -k attached17 actual threads but was too slow for a useful
+  broad syscall snapshot. Switch failure-only diagnostics to -f -tt -T without
+  unwinding; readiness deadlines and acceptance remain unchanged. No failure is
+  rescued after attaching. Actual root cause remains unproven.
+- Fast84fd758 ALL3 base27/27 +UP8/8 and x86SMP8 8/8 passed; actual three-thread
+  packaged strace/elfutils attach/module-frame/detach root/user reviewed in logs.
+  Desktop jobs and older PR18 full-source x86/RISC remain pending at this point.

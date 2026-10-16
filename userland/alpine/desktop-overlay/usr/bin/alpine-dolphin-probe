@@ -73,7 +73,7 @@ done
  ls -l "/proc/$client/fd" 2>/dev/null || true
  # Failure-only attach: instrumentation can change timing, so this can never
  # turn an already failed gate into a pass. Preserve the last syscall activity.
- timeout -k 2 -s TERM 8 strace -f -k -p "$client" -o "$D/blocked.trace" 2>&1 || true
+ timeout -k 2 -s TERM 8 strace -f -tt -T -p "$client" -o "$D/blocked.trace" 2>&1 || true
  tail -n 60 "$D/blocked.trace" 2>/dev/null || true
  cat "$D/readback.out" "$D/readback.err" 2>/dev/null || true
  timeout -s KILL 10 "$Q" 'org.kde.dolphin*' > "$D/services" 2>&1 || true
