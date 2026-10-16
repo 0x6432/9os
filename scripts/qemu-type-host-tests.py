@@ -33,4 +33,4 @@ with tempfile.TemporaryDirectory() as d:
             assert r.returncode == 0, r.stderr
             assert [c for c, _ in commands] == ['sendkey t 20', 'sendkey t 20', 'sendkey y 20', 'sendkey ret 20']
             assert all(b[1] - a[1] >= .020 for a, b in zip(commands, commands[1:]))
-print('PASS: explicit non-overlapping repeated physical keys and rejected monitor command controls')
+print('PASS: legacy HMP request spacing and rejection controls (not proof of virtual key release)')

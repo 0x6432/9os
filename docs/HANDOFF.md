@@ -2907,3 +2907,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - PR18 full-source x86 job116959705154 is now SUCCESS; ARM/RISC remain building.
   Separate FD-hardening fast ALL3 run38906037936 has base jobs green, desktop
   physical jobs still running. Neither replaces the unresolved local failure.
+
+### Cold startup persists before FD hardening; ARM physical key timer isolated
+- Failure-only WIP reproduction again7/16 at shell readiness. Pre-attach snapshot
+  has Plasma running in mmap, not a demonstrated permanently sleeping deadlock;
+  trace shows ongoing futex/worker and compositor buffer traffic. No causal fix
+  inferred just from attaching (which itself alters timing).
+- Preserved pre-FD-fix kernel, same desktop and failure-only diagnostics, ALSO
+  fails7/16 at shell readiness. Verified kernel hash unchanged before/after;
+  frozen executable has the functional971 code (built during the early WIP
+  fixture/test-only commits). Thus FD hardening is NOT required to reproduce
+  this cold-start failure. Root cause remains unresolved; no timeout increases.
+- FD hardening fast38906037936: base28/UP8 ALL3 and x86SMP8 green;
+  desktop28/physical16 pass x86+RISC. ARM desktop28 passes, physical15/16
+  fails tty witness. Actual ARM after.png independently OCRs `ty`, not `tty`,
+  while uid/marker and later real Dolphin pixels succeed. Not a filename-gate
+  waiver and not proof that all physical input succeeded.
+- HMP sendkey release uses QEMU VIRTUAL time; a120ms host gap cannot guarantee
+  a20ms virtual timer expires during slow TCG. Replace physical driver's input
+  with explicit QMP input-send-event key-down/key-up, preserving the emulated
+  keyboard/libinput/compositor/real PTY path. No guest injection or retries.
+  Keep HMP only as legacy CLI mode. Three explicit mock QMP controls verify
+  distinct repeated t transitions, reverse modifier release and rejected-command
+  failure;7 lifecycle and old HMP protocol controls pass. Real validation pending.
