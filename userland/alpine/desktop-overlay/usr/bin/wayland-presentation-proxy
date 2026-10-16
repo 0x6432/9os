@@ -1,0 +1,174 @@
+#!/usr/bin/python3
+"""Select KWin's frame-callback fallback for nested wlroots 0.18 sessions.
+
+This is a compatibility transport, not a security boundary. Only the optional
+wp_presentation registry advertisement is hidden. All other wire messages and
+SCM_RIGHTS descriptors remain ordered and unchanged; pixels are never inspected.
+The packaged Qt/KDE libraries and the inner KWin application protocol are intact.
+"""
+import array
+import os
+import signal
+import socket
+import struct
+import subprocess
+import sys
+import threading
+
+
+class RegistryFilter:
+    def __init__(self, hide=True):
+        self.registries = set()
+        self.hidden_globals = {}
+        self.lock = threading.Lock()
+        self.hidden = 0
+        self.hide = hide
+
+    def drop(self, message, client):
+        obj, header = struct.unpack_from('=II', message)
+        opcode, size = header & 65535, header >> 16
+        with self.lock:
+            if client and obj == 1 and opcode == 1 and size == 12:
+                self.registries.add(struct.unpack_from('=I', message, 8)[0])
+            if not client and obj == 1 and opcode == 1 and size == 12:
+                removed = struct.unpack_from('=I', message, 8)[0]
+                self.registries.discard(removed)
+                self.hidden_globals.pop(removed, None)
+            if not client and obj in self.registries and opcode == 0 and size >= 20:
+                length = struct.unpack_from('=I', message, 12)[0]
+                if (self.hide and 1 <= length <= size - 20
+                        and message[16:16 + length] == b'wp_presentation\0'):
+                    self.hidden += 1
+                    name = struct.unpack_from('=I', message, 8)[0]
+                    self.hidden_globals.setdefault(obj, set()).add(name)
+                    return True
+            if not client and obj in self.registries and opcode == 1 and size == 12:
+                name = struct.unpack_from('=I', message, 8)[0]
+                hidden = self.hidden_globals.get(obj, set())
+                if name in hidden:
+                    hidden.remove(name)
+                    return True
+        return False
+
+
+def relay(src, dst, state, client, fail):
+    pending = bytearray()
+    fds = []
+    try:
+        while True:
+            data, ancillary, flags, _ = src.recvmsg(65536, socket.CMSG_SPACE(256 * 4))
+            for level, kind, raw in ancillary:
+                if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS:
+                    received = array.array('i')
+                    received.frombytes(raw[:len(raw) // received.itemsize * received.itemsize])
+                    fds.extend(received)
+            if len(fds) > 512:
+                raise RuntimeError('too many pending descriptors')
+            if flags & socket.MSG_CTRUNC:
+                raise RuntimeError('truncated SCM_RIGHTS data')
+            if not data:
+                if pending or fds:
+                    raise RuntimeError('incomplete message or unforwarded descriptors at EOF')
+                break
+            pending.extend(data)
+            while len(pending) >= 8:
+                _, header = struct.unpack_from('=II', pending)
+                size = header >> 16
+                if size < 8 or size % 4:
+                    raise RuntimeError('invalid Wayland message size')
+                if len(pending) < size:
+                    break
+                message = bytes(pending[:size])
+                del pending[:size]
+                if state.drop(message, client):
+                    continue
+                control = [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', fds))] if fds else []
+                sent = dst.sendmsg([message], control)
+                if sent <= 0:
+                    raise RuntimeError('zero-length send')
+                # Rights were transferred by the first successful write only.
+                for fd in fds:
+                    os.close(fd)
+                fds.clear()
+                while sent < len(message):
+                    count = dst.send(message[sent:])
+                    if count <= 0:
+                        raise RuntimeError('zero-length continuation')
+                    sent += count
+    except Exception as error:
+        fail(error)
+    finally:
+        for fd in fds:
+            os.close(fd)
+        try:
+            dst.shutdown(socket.SHUT_WR)
+        except OSError:
+            pass
+
+
+def main(args):
+    hide = True
+    if args and args[0] == '--passthrough':
+        hide = False
+        args = args[1:]
+    if args and args[0] == '--':
+        args = args[1:]
+    if not args:
+        print('usage: wayland-presentation-proxy [--passthrough] -- command [args...]', file=sys.stderr)
+        return 2
+    display = os.environ.get('WAYLAND_DISPLAY', 'wayland-0')
+    if not os.path.isabs(display):
+        display = os.path.join(os.environ['XDG_RUNTIME_DIR'], display)
+    upstream = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    upstream.connect(display)
+    local, child = socket.socketpair()
+    try:
+        process = subprocess.Popen(args, env=dict(os.environ, WAYLAND_SOCKET=str(child.fileno())),
+                                   pass_fds=(child.fileno(),))
+    except BaseException:
+        upstream.close()
+        local.close()
+        child.close()
+        raise
+    child.close()
+    # Failure diagnostics must attach to KWin, not only this transport process.
+    print('wayland-presentation-proxy: child_pid=%d' % process.pid, file=sys.stderr, flush=True)
+    state = RegistryFilter(hide)
+    errors = []
+
+    def fail(error):
+        if process.poll() is None:
+            errors.append(str(error))
+            process.terminate()
+
+    def forward_signal(signum, frame):
+        if process.poll() is None:
+            process.send_signal(signum)
+
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(sig, forward_signal)
+    threads = []
+    for src, dst, client in ((local, upstream, True), (upstream, local, False)):
+        thread = threading.Thread(target=relay, args=(src, dst, state, client, fail), daemon=True)
+        thread.start()
+        threads.append(thread)
+    result = process.wait()
+    for stream in (local, upstream):
+        try:
+            stream.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+    for thread in threads:
+        thread.join(2)
+    local.close()
+    upstream.close()
+    print('wayland-presentation-proxy: hidden=%d child=%d' % (state.hidden, result), file=sys.stderr)
+    for error in errors:
+        print('wayland-presentation-proxy: ' + error, file=sys.stderr)
+    if errors and result == 0:
+        return 1
+    return result if result >= 0 else 128 - result
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

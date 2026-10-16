@@ -530,7 +530,13 @@ static void kill_fn(struct process *p, void *c) {
 
 int64_t sys_kill(int pid, int sig) {
     if (sig < 0 || sig >= NSIG) return -EINVAL;
-    if (pid > 0) return kill_one(process_find(pid), sig);
+    if (pid > 0) {
+        /* Linux accepts a non-leader TID here, but still sends a process-directed
+         * signal. elfutils also uses kill(tid, 0) to validate enumerated threads. */
+        struct process *p = process_find(pid);
+        if (!p) { struct thread *t = process_find_thread(pid); if (t) p = t->proc; }
+        return kill_one(p, sig);
+    }
     struct kill_ctx k = { pid == 0 ? curproc->pgid : -pid, sig, 0, 0, curproc, pid == -1 };
     process_list(kill_fn, &k);
     return k.count ? 0 : k.denied ? -EPERM : -ESRCH;

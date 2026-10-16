@@ -37,7 +37,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M34–M37 sysfs/input/DRM/Sway | ✅ sysfs + udev shim, libinput/seatd, atomic KMS + PRIME, Sway + foot; see later milestone sections |
 | M38 Mesa LLVM | ✅ native llvmpipe JIT + PRIME/EGL-image sharing; all-architecture CI |
 | M39 audio | ✅ validated minimal virtio-snd PCM playback; no mixer/capture/mmap |
-| M40 KDE groundwork | ◐ DBus session bus, full C++ runtime and Qt Core/DBus slices; CI pending, GUI/Wayland/Quick not yet ported |
+| M40 KDE groundwork | ◐ Source DBus/C++/Qt Core/DBus/raster GUI/QtWayland and headless QtDeclarative merged; signed prebuilt Quick/Plasma functional gates pass ALL3, but strict physical app-visibility/cold-start acceptance fails intermittently; source Quick rendering and service scope unfinished |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -2353,3 +2353,610 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   shell startup; KMS4 validation running. No fake udev service/rules workaround.
 - M40 remains incomplete; current-head ALL3 regression and actual end-to-end
   physical keyboard acceptance are required, plus remaining scope review.
+
+### Physical input acceptance checkpoint
+- KMS4 x86 diagnostic11/11 passed untraced: actual QEMU keyboard -> libinput ->
+  Sway DRM -> nested KWin -> Konsole /dev/pts/0. Typed file creation and
+  physical1280x800 screenshot visually reviewed; zero lockdep, clean halt.
+- Permanent root repeat also reported11/11 for guest/host checks, including
+  fresh physical screenshot helper and keyboard/PTY proof. Its outer shell
+  exited2 because its host driver was edited while still executing; do NOT
+  count that invocation as a successful script exit. Never edit an active
+  driver, guest runtime tree, ISO or disk. A fresh immutable run is required.
+- Saved75e3d01 adds real root seatd -g video broker + UID1000 desktop extension,
+  typed id -u proof and ALL3 KMS CI. Local normal-user run and full desktop
+  suite are running in sequence at /data/kms-user.out, /data/desktop-full.out;
+  status /data/desktop-validation-status. Do NOT edit their active scripts.
+- CI75e3d01: fast38817891542, source38817891502. Previous068 source canceled
+  by substantive code push, not documentation. Current-head gates still needed.
+- Follow-up review keeps sys_ioctl's raw64 dispatcher signature and explicitly
+  masks cmd=(uint32_t)cmd inside it. This avoids relying on narrow C-argument
+  canonicalization conventions. This is portability hardening, not an observed
+  RISC-V failure: the earlier ioctl oracle already passed fast ALL3 at75.
+  Only x86 builds/tests locally; further non-x86 results must come from CI.
+
+### ALL3 fast desktop gates at75e3d01 (complete; source gate pending)
+- Fast38817891542 passed all six jobs: ALL3 base19/19 + UP8/8; x86SMP8 8/8;
+  ALL3 desktop18/18 + physical KMS UID1000 keyboard11/11, actual /dev/pts/
+  typed-file/id proof, real physical screenshots and lockdep0. Completed logs
+  /data/ci-75-116707032*.log. This supersedes the old weak Konsole assertion.
+- Source38817891502 is still building ports at75e3d01. PR17 remains draft and
+  unmerged pending that gate and final review; do not restart it for notes.
+- Local explicit-mask follow-up full desktop18/18 passed, /data/desktop-full.out.
+  Local first UID1000 physical repeat failed unchanged180s Plasma readiness
+  deadline despite real seatd/keyboard/DRM success; NOT counted as a pass.
+- Follow-up uses direct bounded libdbus evaluateScript polling instead of
+  repeatedly cold-starting Qt qdbus + introspection. Same180s deadline, same
+  genuine desktop/panel conditions; clear inherited root XDG/bus environment
+  before su user creates its private bus. Local untraced validation is running.
+- Follow-up branch notion/alpine-desktop-acceptance keeps these refinements
+  separate from PR17's in-flight full-source gate. Exploratory real Dolphin
+  probe checks actual URL/KIO listing, rename/create notifications, stale-file
+  removal and clean quit through Dolphin's packaged25.04.2 DBus API. It is NOT
+  validated yet. Current run /data/kms-dolphin.out, driver /data/run-dolphin.sh.
+  Do NOT edit active drivers, ISO/disk or installed runtime scripts.
+- M40 still not marked complete: updated follow-up and full-source validation
+  plus remaining source-port/service limitations must stay explicit.
+
+### PR17 integration and sandbox restoration
+- PR17 exact75e3d01f3b2b78808b702993a25caa1e56175d8d reviewed and merged as
+  1d2a11d8a823e0601968704994ac8aaa24a7f4bc. All branches retained.
+- Fast38817891542 ALL3: base19/19, UP8/8, desktop18/18, physical UID1000
+  keyboard/PTY11/11; x86SMP8 8/8. Source38817891502 ALL3: main115/115,
+  disk20+6, both fscks and clean root halt, audio2+2, UP9, MLFQ12; x86SMP8 10.
+  Reviewed full logs before ready/expected-SHA merge commit.
+- Sandbox reset after the exploratory Dolphin run started; its final result
+  and all local build/log artifacts were lost. Do NOT claim Dolphin passed.
+  All code through b58d35d was pushed and restored cleanly from branch
+  notion/alpine-desktop-acceptance, separate from integrated PR17.
+- Restoring NO_PORTS=1 ARCHES=x86_64 core tools at /data/x86-restore.log;
+  signed base+593-APK desktop assembly completed at /data/alpine-restore.log.
+  New private GitHub helper /tmp/9os-gh.py must be removed at eventual end,
+  including matching pycache; remind user to rotate the exposed credential.
+- Current follow-up also rejects preexisting messagebus root groups, login
+  shells, unlocked passwords, duplicates and id collisions. Ten host trust
+  tests pass; the current actual distro identity validates unchanged.
+- Recreate a fresh immutable /data/run-dolphin.sh driver from the permanent
+  scripts/alpine-kms-tests.sh, enabling ALPINE_PLASMA_FILEMANAGER=1 and
+  waiting for DOLPHIN_MODEL_READY before physical screenshot. Revalidate x86,
+  then add actual Dolphin acceptance to PR CI for non-x86. M40 remains open.
+
+### Follow-up Dolphin diagnosis (not a pass)
+- Restored base explicit-ioctl-mask regression passed19/19, lockdep0. Both
+  physical KMS follow-up attempts proved real UID1000 typed Konsole PTY input,
+  but Dolphin phase failed; do not count the new15-check driver as passing.
+- Isolated real UID1000 KWin virtual session reaches Dolphin isUrlOpen=true.
+  Direct libdbus queries avoid repeated Qt CLI introspection overhead.
+- Crucial oracle correction: upstream Dolphin25.04.2 viewShowingItem deliberately
+  checks the containing open folder, NOT item existence. Its isItemVisibleInAnyView
+  returns true even for nonexistent children; it cannot prove rename/delete or
+  a loaded KIO listing. Existing exploratory assertion must be replaced before
+  any acceptance claim. Investigating the packaged real AT-SPI file model.
+- No kernel notification regression established by this failed assertion.
+
+### Real Dolphin accessible model, local isolated acceptance
+- Corrected observer now uses packaged libatspi via tiny desktopa11y consumer.
+  Real UID1000 KWin virtual/QPainter4/4 passed: actual Dolphin PID335 tree
+ 330 nodes had before.txt=1, after/new=0; after rename/create,331 nodes had
+ after/new=1, before=0. Actual active window and DBus clean quit passed, lockdep0.
+ Log build/test-dolphin-model.log. No synthetic model or Qt/KDE rebuild.
+- Host observer unit controls10/10 explicitly use mocks (not GUI evidence),
+ builder trust10/10, PNG negative6/6 and frame readiness+8negatives pass.
+- Physical KMS+new model driver now running /data/kms-dolphin-model.out.
+ Do not edit active host driver, disk, ISO or copied VM runtime. No follow-up
+ PR yet; keep heavy source CI untriggered until local acceptance is sound.
+
+### Physical follow-up failures retained (not acceptance)
+- First corrected-model physical repeat failed stock wallpaper readiness:
+ panel colors632 but wallpaper colors1 at unchanged150s deadline. No pass.
+- Next physical repeat passed wallpaper/input again (UID1000 typed real PTY),
+ but Dolphin did not register its DBus service within90s; client log only
+ showed fstab watch warning. Isolated KWin Dolphin model had passed4/4.
+- Added failure-only live process/fd/8s strace capture; attaching cannot change
+ an already failed result to a pass. Added distinct FAILURE_PNG framing and
+ real wallpaper config readback on frame failure (strict checker unchanged).
+- Focused UID1000 Plasma/headless + Dolphin now running, log
+ build/test-dolphin-plasma.log, output /data/dolphin-plasma.out. No follow-up
+ PR opened; do not trigger source CI merely for these diagnostics/notes.
+
+### Failure diagnosis continued (no new acceptance claim)
+- Focused UID1000 Plasma/headless also failed black wallpaper readiness.
+ Actual DBus readback confirmed org.kde.image and the existing signed Next
+ PNG path; failure pixels retained under distinct FAILURE_PNG markers.
+- Now collecting failure-only strace -f -k call stacks for wallpaper or
+ Dolphin initialization, bounded8s+2s grace; /data/plasma-stack.out and
+ build/test-plasma-stack.log. Debug logging is set in guest command, not
+ incorrectly assumed to cross into the VM from host environment.
+- Physical KMS gate now opts out of redundant success PNG base64 over UART;
+ it still requires actual host QEMU before/after/Dolphin PNGs, genuine typed
+ UID1000 PTY files and actual accessible before/after model. Headless default
+ serial PNG and independent checker unchanged. Failure image kept.
+
+### Integrated main green; real helper ownership bug found
+- Main run38859198398 at1d2a11d8 completed success ALL3. Reviewed downloaded
+ main-1d2-116837427{885,915},116837428000 logs: each main115, disk20+6,
+ audio2+2, UP9, MLFQ12; x86SMP8 10. This is integrated PR17, not follow-up.
+- Image normalizes all host owners to0:0. Signed launch-helper APK metadata
+ requires root:messagebus4750; actual helper root:root4750 was inaccessible
+ to real messagebus81, causing UDisks Spawn.ExecFailed Permission denied.
+ Guest services now explicitly restore ONLY that signed file to0:81:4750,
+ rejecting symlinks and wrong daemon identity. No world-exec broadening.
+- x86 helper mode and non-user executable checks pass. Actual UID1000 UDisks
+ activation now gets ChildSignaled5 instead of EACCES: real service remains
+ unimplemented/unvalidated; no UDisks success claim. Capturing foreground error
+ /data/udisks-diagnostic.out, build/test-udisks-diagnostic.log.
+- Dolphin discovery replaced recursive qdbus over dozens of QAction objects
+ with bounded direct Introspect parent traversal,32nodes/3levels, actual
+ interface matching. Mock controls5/5 (not GUI evidence).
+- Observer now has per-call1500/3000ms deadlines and line-buffered progress;
+ global45s alarm unchanged. Full Plasma observer previously hit45s alarm,
+ not a passing model check. Next actual full desktop repeat is pending.
+
+### Real mount reporting and volatile runtime state (follow-up, x86 only)
+- UDisks now executes after the signed helper ownership repair, but its actual
+  startup trapped because `/proc/self/mountinfo` was missing. Added records
+  derived from real VFS mount IDs, inode topology, device numbers, flags and
+  escaped sources/paths, plus `/proc/PID/mounts`. Complete per-open snapshots
+  replace no data with fabricated Linux mounts. Bind mounts, propagation and
+  private namespaces are not implemented; mount-change polling remains next.
+- New same-source `mountinfotest`: Linux host 563 checks; 9os x86 disk root
+  723 checks with real nested mount/unmount and 185 checks as UID1000, all pass.
+  Kernel lockdep stays zero. Actual UDisks D-Bus activation still times out;
+  this is NOT a UDisks or full desktop acceptance pass.
+- rcS mounts fresh tmpfs on `/run` before runtime directories: disk-root reboot
+  must not inherit stale sockets/PID files. Actual x86 boot verified fresh /run.
+- These changes have not yet received ARM/RISC-V PR CI. M40 remains open.
+
+### Mount monitoring oracle and current UDisks stall
+- Linux6.12 proc_namespace.c mounts_poll reference: report PRI|ERR once per
+  namespace event per open file; poll acknowledges, read does not. Implemented
+  mount/remount/unmount notifications and refresh on rewind for both mounts
+  and mountinfo, with escaped live paths and no fixed8192-byte truncation.
+- Same C test now passes isolated Linux user+mount namespace mutations3086/3086
+  and ordinary host570/570. Linux CAN reuse an unmounted mount ID; corrected
+  that test assumption instead of imposing 9os's non-reuse policy on Linux.
+- Actual x86 disk root: mutation/poll/rewind/ancestor-rename1115 checks; UID1000
+  192 checks, all pass; lockdep0. Log build/test-mount-watch.log. ARM/RISC pending.
+- Traced real UDisks still times out: gmain repeatedly gets EPOLLIN from its
+  internal epoll at timeout0 while the main thread waits on futex. Investigating
+  watched FDs and nested epoll; diagnostic exit0 means trace collected, NOT a
+  successful UDisks request. Actual GetManagedObjects failed.
+- Latest physical desktop repeat failed shell readiness before input or Dolphin.
+  No new physical acceptance claim; do not mark M40 complete.
+
+### UDisks startup unblocked: permanent procfs EPOLLET regression
+- Trace identified GLib registering `/proc/self/mountinfo` with EPOLLIN|EPOLLET
+  then draining startup events. 9os treated all input ET as level-triggered,
+  so gmain spun forever and main waited on a futex. No KDE workaround applied.
+- Added explicit VFS permanently-asserted readiness bits. epoll latches those
+  bits per registration/rearm, checks the same eligibility during nested peeks,
+  and never acknowledges a candidate beyond maxevents. This is a focused fix:
+  dynamic input retains the existing level approximation until producer-side
+  edge tracking exists. Do NOT claim complete general Linux EPOLLET semantics.
+- Same source Linux oracle passes651 ordinary/3167 private-namespace mutations.
+  Actual unfixed x86 kernel failed12/211 proc edge assertions. Fixed x86 disk
+  root1196/1196, UID1000 273/273; lockdep0. Logs test-epoll-proc-before/after.
+- Actual packaged UDisks GetManagedObjects as UID1000 now succeeds, reporting
+  the VirtIO disk, vda1 partition and mounted root filesystem. Added a read-only
+  smoke gate that requires those real objects, not merely a successful empty
+  service reply. Formatting/removable mounting/privileged authorization are
+  NOT tested or claimed. Current physical KMS follow-up is still pending.
+- Core-only mkroot hit its existing missing usr/lib/find error without graphics
+  ports. Create that normal empty runtime directory unconditionally; this does
+  not restore or pretend to validate the full source graphics stack locally.
+
+### Directory-scoped real Dolphin observer; core regressions green
+- Physical x86 repeat after UDisks fix passed real services, wallpaper/panel,
+  actual UID1000 typed Konsole PTY and before/after QEMU screenshots. Dolphin
+  registered the correct real window, but old exhaustive AT-SPI walk hit45s
+  after64 nodes. Rejected12/16; no physical Dolphin pass was claimed.
+- Verified Dolphin25.04.2 accessibility sources: KItemListViewAccessible is
+  List, Name=directory basename, Description ends with real directory URL,
+  direct childCount=model()->count(); delegates are ListItem. Observer now
+  locates that exact process/role/directory and enumerates EVERY model row,
+  rather than scanning hundreds of unrelated menu widgets. Names elsewhere
+  cannot satisfy checks. Same45s alarm,1500/3000ms call bounds remain.
+- Explicit mock controls17/17 include menu decoy, wrong role, wrong row role,
+  wrong directory/prefix/suffix, remote errors, oversize, cycles and stale names.
+- Actual isolated UID1000 KWin/QPainter5/5 passed, including UDisks: Dolphin372
+  model found after25 visited nodes;1 row before.txt, then2 rows after.txt/new.txt
+  with before.txt absent; actual active window, DBus quit and lockdep0.
+  Logs build/test-dolphin-model-scoped.log, /data/dolphin-model-scoped.out.
+- Available source-profile x86 core81/81, disk23/23 + reboot7/7, both e2fsck,
+  clean shutdown, audio2/2 + absent2/2 all pass. UP focused poll/IPC/inotify/
+  mount/futex7/7 passes. Source graphics/Qt ports were NOT restored locally;
+  this is not the full source graphics regression suite. Non-x86 remains CI-only.
+- Combined physical16-gate repeat with the scoped observer is next. M40 open.
+
+### Combined physical Dolphin acceptance passed (7857039)
+- Actual x86 physical KMS16/16: root service broker, genuine UID1000 UDisks
+  disk/partition/root filesystem enumeration, stock wallpaper/panel, physical
+  typed Konsole PTY and id1000, exact Dolphin model before/after rename/create,
+  actual QEMU screenshot and clean application exit/shutdown; lockdep0.
+- Visually reviewed build/test-alpine-kms-x86_64-dolphin.png: genuine Dolphin
+  has after.txt/new.txt and root device entry, atop stock Plasma and Konsole.
+  Frozen first-run evidence in /data/evidence-7857039; /data/kms-scoped-model.out.
+- Removed four known untracked diagnostic helpers from host desktop root, not
+  repository files. Full Alpine base/desktop and second cold physical repeat
+  run sequentially in /data/alpine-785-{base,desktop,kms-repeat}.out.
+- Kernel review clarified snapshot ownership comment; no runtime change.
+  Non-x86 validation remains PR CI-only. M40 remains open, not complete.
+
+### Physical background-exit gate hardened
+- Review found the final KMS shell gate checked background PID absence, not
+  the session's successful status. The first16/16 run's actual log independently
+  confirms Dolphin PASSED and clean exit; it is not evidence of this stronger
+  future-failure gate. Now a parent status witness must be0 AND the exact real
+  Dolphin clean-exit marker must exist. The repeat consumes this revised driver.
+- Actual driver shell logic passes5 host MOCK controls: success, nonzero even
+  with success marker, zero without marker, missing witness, signalled status.
+  These rejection controls are not real GUI evidence. New control added to CI.
+
+### Konsole cold-start reliability blocker (PR18 remains draft)
+- PR18 head0c03230: local Alpine base23/23 and desktop21/21 pass; ALL3 CI
+  base23/23 + UP8/8 and x86SMP8 8/8 reviewed successful. Full source and
+  physical desktop CI still running (38875303955 / 38875303917).
+- Stronger cold physical repeat FAILED before Dolphin: actual wallpaper/panel
+  rendered, but Konsole never produced its PTY marker within the existing120s
+  gate. QLayout null-widget warning alone is not a root-cause diagnosis.
+  /data/alpine-785-kms-repeat.out; frozen /data/evidence-0c03230-repeat-failed.
+- Added bounded failure-only Konsole fd/status/scheduler +8s strace stacks to
+  diagnose without changing startup timing. An already failed gate stays failed.
+- Work on separate notion/m40-konsole-reliability so frequent WIP pushes do not
+  restart PR18's expensive checks. Draft must not merge until investigated.
+- Diagnostic physical repeat /data/kms-konsole-diagnostic.out is running; active
+  disk/ISO/driver must not be edited. M40 remains incomplete.
+
+### Atomic exit witness / broader startup diagnosis
+- All three fast desktop CI21/21 pass and actual physical input plus both exact
+  Dolphin model states pass. New final witness gate fails15/16 ALL3: redirection
+  created an EMPTY status file at START, so existence was not completion.
+- Added real asynchronous mock controls: old driver fails1/7, atomic rename of
+  status.tmp only after session returns passes7/7. No weakened acceptance.
+- Diagnostic physical repeat did NOT reproduce Konsole failure, but Dolphin URL
+  readiness failed. Failure trace shows main thread actively parsing MIME data,
+  repeated mmap/munmap/statx, not a proven futex deadlock. Do not guess a cause.
+  /data/kms-konsole-diagnostic.out (12/16); retain this failure.
+- Added an eight-launch genuine UID1000 Konsole QtWidgets/PTY lifecycle stress
+  consumer. Host-only private copies alpine-plasma-konsole-stress and
+  alpine-konsole-stress-user invoke it in real stock Plasma; these wrappers
+  are not acceptance/CI claims. No full GUI pass until actual execution.
+
+### Real thread visibility and debugger groundwork (reliability branch)
+- Actual atomic-witness physical repeat FAILED7/16 before rendered Plasma
+  readiness; /data/kms-atomic-witness.out, frozen evidence-atomic-plasma-failed.
+  This is not a validated desktop fix. PR18 remains draft; M40 remains open.
+- Genuine Konsole lifecycle stress previously passed8/8 actual UID1000 PTYs;
+  exact prebuilt kmimetypefinder content detection passed3 root +3 user runs.
+  Neither reproduces or resolves the intermittent cold-start blocker.
+- Packaged elfutils requires /proc/PID/task; add actual TID enumeration,
+  /proc/TID and task/TID identity/status/stat/comm/maps, owner credentials,
+  departed-thread checks, genuine task CPU/fault/start accounting. Root proc
+  enumeration still lists leaders only. No full Linux procfs completeness claim.
+- New .. traversal regression exposed dynamic proc directory parent UAF: raw
+  parent pointers could outlive their inode and corrupt subsequent allocations
+  (reproducible su/socket cleanup SMAP panic). Pin dynamic directory parents,
+  release the pin on eviction; proc mount root retains borrowed parent semantics.
+  Fixed x86 root/user,10 repeated real pthread lifecycles, procinfo/ptrace8/8,
+  clean shutdown and lockdep0. Earlier file named proctask-before.out actually
+  rebuilt the new kernel via make run; do NOT describe it as old-kernel evidence.
+- Correct frozen old08b3e90 source-profile kernel in /data/baseline08/kernel.elf
+  rejects the new consumer (88 checks,59 failures root/user), without panic.
+  Freeze via make -o: overriding KERNEL alone rebuilds it. Original temporary
+  /data/kernel-before-proctask.elf was accidentally rebuilt, not a valid baseline.
+- /proc task enumeration alone lets packaged strace attach all3 threads, but
+  elfutils then rejects live worker TIDs via kill(tid,0). Implement Linux positive
+  non-leader TID lookup for kill, preserving process-directed delivery/permission
+  checks. Same-source oracle includes worker-blocked/main-unblocked SIGUSR1
+  delivery to distinguish kill(TID) from tgkill, plus departed ESRCH checks.
+- Linux oracle105/105. Earlier x8698/98 root/user includes kill0 but precedes
+  added SIGUSR1 oracle. Actual packaged strace -f -k validation and SMP8 run
+  logs: /data/proctask-trace-fixed.out, /data/proctask-smp8.out. Read final results.
+- CI includes same-source host oracle, source core and prebuilt base/desktop
+  consumers. Non-x86 validation must come from PR CI; none built locally.
+
+### PTY witness publication race reproduced, not a Konsole deadlock claim
+- Thread visibility + kill(TID,0) now allow genuine packaged strace -f -k to
+  attach all3 real threads, produce real musl module frames and cleanly detach.
+  Stripped musl lacks DWARF CFI; do not claim complete call-chain unwinding.
+  Optional process_vm_readv is ENOSYS and elfutils successfully falls back.
+- x86 SMP8 strengthened105-check oracle root/user plus10 repeats all pass7/7;
+  actual full prebuilt base27/27 includes new alpine-proctask-smoke root/user,
+  plus existing Quick/Wayland pixels, ABI tests, mount mutation, lockdep0.
+- Frozen old baseline was88 checks/56 failures root,59 user, no panic.
+- Physical retry with thread-aware diagnostics still FAILED7/16 at Konsole
+  readiness; /data/kms-proctask.out, evidence-proctask-konsole-failed. Snapshot
+  already has real /dev/ptmx + /dev/pts/0, child sh and14 Konsole threads.
+- Found another readiness-publication race: tty > interactive-pty creates an
+  empty file BEFORE tty writes it, but old loop broke on existence then immediately
+  grepped contents. Mock delayed tty reproduces old false rejection1/5. New actual
+  producer writes temporary file, appends shell marker and atomically renames;
+  loop requires actual PTY path AND exact shell marker. All5 host MOCK controls
+  pass (delayed/immediate success; failed tty/wrong device/missing marker rejected).
+  Physical typed-input completion uses the same atomic publication discipline.
+- This strengthens readiness, does not extend deadlines or rescue failed gates.
+  Actual physical rerun /data/kms-atomic-pty.out is pending; do not claim fixed
+  cold-start reliability or M40 completion until repeated real gates pass.
+
+### Physical presentation gate (follow-up to 948cbd4; not M40 completion)
+- Full available local source x86 suite passed:82/82, disk23/23+7/7,
+  both e2fsck and clean disk-root halt, audio2/2+absent2/2.
+  This is NOT a full source Mesa/Qt graphics regression.
+- 948cbd4 physical run passed16/16 functional gates: real UID1000 keyboard/PTY,
+  exact-PID Dolphin AT-SPI initial and renamed/created file models, clean exit.
+  BUT its actual QEMU screenshots showed only wallpaper/panel, not the apps.
+  Therefore those16 gates are insufficient proof of visible application frames;
+  no reliable full desktop or M40 completion claim is justified.
+- Add conservative host Tesseract OCR of fresh physical QEMU captures, above the
+  taskbar: require separate exact after.txt/new.txt tokens and no before.txt.
+  Bounded fresh capture polling supplements—not replaces—physical input and
+  exact application model checks. Inconclusive OCR fails rather than being waived.
+- Verified against ORIGINAL actual screenshots: CI948 x86 and earlier local785
+  visible Dolphin frames PASS; wallpaper-only948 physical frame FAILS.
+  Host text/image controls are explicitly synthetic controls, NOT GUI evidence.
+- Separate outer Sway grim image is diagnostic only, never substituted for physical
+  scanout. Comparing both can locate nested-compositor versus DRM presentation
+  failure. Root cause and repeated cold-start reliability remain unproven.
+- Fast948 CI: all3 base27+UP8 (x86SMP8), all3 desktop22, x86/RISC
+  physical16 passed. ARM physical15/16 failed typed-PTY gate: actual screenshot
+  shows `ty`, `/bin/sh: ty: not found`, rather than intended `tty` (artifact
+  12039061029). Later completion marker does NOT rescue that failed gate.
+- Host injector used implicit QEMU100ms sendkey hold but80ms spacing, allowing
+  repeated-key overlap. Make hold20ms explicit, leave120ms spacing, consume each
+  complete monitor prompt and reject errors. No command retries or serial/PTY
+  injection. Fake HMP controls reject the old driver and accept corrected one;
+  actual guest input still needs fresh ALL3 validation. A local concurrent cold
+  repeat also failed typed-input acceptance; keep its failure, not a green rerun.
+- Fresh strict84fd758 local boot FAILED7/16 at stock Plasma wallpaper readiness
+  before Konsole/Dolphin. Outer grim showed a black desktop plus panel, matching
+  physical rejection; this occurrence is NOT merely stale physical DRM scanout.
+  Keep /data/evidence-84fd758-plasma-readiness-failed and strict-plasma-failed.png.
+  Failure-only strace -k attached17 actual threads but was too slow for a useful
+  broad syscall snapshot. Switch failure-only diagnostics to -f -tt -T without
+  unwinding; readiness deadlines and acceptance remain unchanged. No failure is
+  rescued after attaching. Actual root cause remains unproven.
+- Fast84fd758 ALL3 base27/27 +UP8/8 and x86SMP8 8/8 passed; actual three-thread
+  packaged strace/elfutils attach/module-frame/detach root/user reviewed in logs.
+  Desktop jobs and older PR18 full-source x86/RISC remain pending at this point.
+
+### Strict visual failures and focused async image isolation
+- PR18 old head0c03230 source run38875303917 completed ALL3 successfully:
+  116/116 main, disk23+7, both e2fsck/halt, audio2+absent2, UP9, MLFQ12,
+  plus x86SMP8. Logs reviewed. This does NOT validate later kernel WIP or waive
+  the failed physical desktop gates. No merge occurred; branches retained.
+- Strict84fd758 fast run38884696996 completed failure: ALL3 base27+UP8,
+  x86SMP8, and ALL3 desktop22 PASS. Physical x86/ARM15/16 failed ONLY the new
+  visible-Dolphin gate despite actual typed UID1000 PTY/model/exit success.
+  RISC physical7/16 failed at stock Plasma wallpaper readiness. Keep failures.
+- CI x86 actual outer grim also shows only wallpaper/panel (artifact12038554590,
+  /data/ci84-desktop-x86/outer-dolphin.png), matching physical missing windows.
+  Therefore that occurrence is not solely physical DRM copying/scanout.
+- Local863e469 functional keyboard is now correctly typed `tty`, UID1000 actual
+  /dev/pts/0. Dolphin URL readiness FAILED12/16; fast failure trace shows active
+  KIO plugin metadata statx/readlink/mmap work, NOT proof of a futex deadlock.
+  Separate post-capture compositor diagnostic later failed wallpaper readiness;
+  compositors had already exited before the post-capture trace. Move those
+  failure-only compositor traces inside the already-failed readiness branch.
+- Added focused async-image smoke: exact stock Next PNG, actual packaged Qt Quick
+  asynchronous=true/cache=false,32 reload/Ready callbacks and real software grab.
+  Same QML passes on host Linux and 9os x86 root/user; each guest image320x240,
+  27140 colors, mean per-channel difference <=0.504 against the actual asset.
+  QEMU4/4 and independent image checker pass. This narrows generic PNG/async
+  decoding but does NOT validate Plasma or explain the intermittent compositor.
+  Initial host oracle invocation through VM setuid BusyBox was correctly refused
+  by Qt; successful host run executes qmlscene directly with host-set environment.
+- Desktop suite adds root/user image tests plus independent actual-asset pixel
+  check (now25 gates). Synthetic comparison controls are NOT guest GUI evidence.
+  Non-x86 runs remain GitHub-only. No Qt/Mesa libraries compiled locally.
+
+### Green strict CI, then deterministic zombie-cwd panic fix
+- Fast4984f34 run38888302631 passed ALL3: base27+UP8, x86SMP8,
+  desktop25 and strict physical16. Actual x86/RISC Dolphin PNGs visually reviewed:
+  after.txt/new.txt are visible. ARM fresh-capture OCR also passed. This does not
+  erase earlier strict failures or prove cold-start reliability/M40 completion.
+- Same-head local stock wallpaper readiness failed7/16 (black desktop + panel).
+  Private Wayland-debug reproduction reached genuine Konsole readiness, then
+  panicked in vfs_path_from_l via procfs P_CWD readlink, NULL cwd at address0x80.
+  This is a concrete independent kernel defect, not proof it caused rendering.
+- process_exit drops cwd before the zombie is reaped; /proc/PID remains visible.
+  P_CWD follow already handled NULL, but readlink did not. Return ENOENT under
+  the existing namespace/BKL protection, matching Linux; no blanket path masking.
+- Expanded same-source procinfotest: live child cwd, waitid(WNOWAIT) retained
+  zombie, symlink lstat, readlink/open ENOENT and post-reap disappearance.
+  Linux61/61; exact unfixed x86 kernel reliably reproduces the SAME panic.
+  Fixed x86SMP8 7/7: root/user61 checks,32 repeats each, proctask105, lockdep0.
+  Earlier private repeat command had a shell-quoting error; corrected fresh driver
+  passed, not a waiver. New UID1000 coverage makes base28 and desktop26 gates.
+- Prepared a separate source-regression ISO from trusted old-source CI x86
+  artifact12039913387, current fixed kernel and current static proc consumers.
+  Qt/Mesa/LLVM are reused binaries, not recompiled. Broader validation pending.
+
+### Source-built graphics restored; async probe ordering corrected
+- Fixed73e254f x86 kernel + trusted CI0c03230 source-built runtime passed117/117
+  main, disk23+7, both e2fsck/clean shutdown, audio2+no-card2. Includes actual
+  softpipe/llvmpipe, EGL/GBM/DMA-BUF, Sway/foot, source Qt raster/Wayland/EGL
+  root/user frames. Logs /data/source-ci-0c03230/corrected-kernel-regression.out.
+  Current static proc consumers were added; Qt/Mesa/LLVM were NOT rebuilt.
+  Initial private ISO packaging had a wrong kernel basename and frozen cmdline;
+  stopped that unbootable driver and corrected separate initramfs/disk-root ISOs.
+  Those harness errors are not kernel failures or passing validation evidence.
+- Fast73e254f run38891473315: ALL3 base28+UP8 and x86SMP8 passed; source-proc
+  zombie61 root/user passes ALL3. x86 desktop26+strict16 pass. RISC desktop26
+  passes but strict15/16 fails actual visible Dolphin; ARM desktop24/26 fails
+  async-image root startup and dependent root/user pixel check (user image passes).
+- Exact failing async QML and packaged Qt6.8.3 on REAL HOST LINUX reproduces
+  OpenGL/RHI abort29/64 starts, despite explicit software environment. Thus this
+  new probe failure is not specific to the 9os kernel. Qt factory initialization
+  may start on the image reader before qmlscene creates a view for a bare Item.
+- Use an explicit real Quick Window, constructed before Component.onCompleted
+  starts the same32 uncached async image loads. Host128/128 starts pass across
+  two runs; all64 captures in the second run independently match the actual
+  wallpaper via the unchanged pixel checker. No application/library rebuild,
+  decoded image substitution, timeout increase or acceptance waiver.
+- This probe ordering fix is NOT claimed to solve stock Plasma/Dolphin missing
+  windows. Private protocol reproduction with the fixed kernel remains running.
+
+### Optional presentation feedback isolated against Linux
+-30937ca fast38893183305: ALL3 base28+UP8, x86SMP8 and desktop26 pass;
+  explicit Window probe now passes root/user actual-image checks ALL3. x86/ARM
+  strict16 pass; RISC strict15/16 still fails visible Dolphin. Do not merge.
+- Fixed-kernel Wayland-debug run fails8/17 at wallpaper readiness, lockdep0,
+  no panic. Actual protocol shows final no-damage KWin commit requesting
+  wp_presentation_feedback#28 without a later presented/discarded reply;
+  Qt inner surfaces subsequently time out on frame callbacks. Evidence saved
+  /data/evidence-73-protocol-failure (actual black-wallpaper PNG and logs).
+- Explicit QSG_RENDER_LOOP=basic alone is NOT a fix: local12/16; genuine typed
+  UID1000 tty passes but later Dolphin readiness/presentation fail.
+- Ran exact packaged Sway/KWin/Plasma against REAL HOST LINUX in isolated
+  PID/mount namespaces with actual proc/dev/devpts, normal UID1000, no library
+  rebuild. A fresh stock run fails unchanged150-second wallpaper gate with
+  black desktop/panel, matching 9os. Previous Linux run's immediate outer
+  Dolphin image was Konsole-only; not a complete35-second negative control.
+- Private optional-global filter selects KWin's built-in frame-callback fallback
+  without modifying libraries/QML. Linux real wallpaper/Konsole/Dolphin passes;
+  a fresh capture passes unchanged actual-file OCR immediately. Not repeated
+  cold-start reliability proof. Logs /data/host-plasma-no-presentation-control.out
+  and actual PNG /data/host-linux-filter-fresh-captures/capture-0.png.
+- Add explicit portable compatibility transport and native diagnostic mode to
+  Plasma harness, plus15 same-source wire/FD/process controls (host passes).
+  Desktop28 + strict physical16 run on x86 now; ALL3 CI dispatch pending.
+  This does NOT finish source Qt Quick/service scope or M40.
+- Review follow-up: also hide global_remove for the hidden optional global,
+  and clear that state when a registry ID is deleted/reused. Added a16th Linux
+  control; all16 pass. Frozen local/CI runs at65791fe still have15 controls;
+  final follow-up validation must include this small lifecycle hardening.
+
+### Current-head ALL3 desktop green; sandbox reset and recovery
+- PR18 was fast-forwarded (NOT merged) to9712733. Branches retained. Full-source
+  PR run38896975226 is building all architectures; do not restart for notes.
+- Current-head fast38896975429 finished ALL3 SUCCESS: base28+UP8, x86SMP8,
+  desktop28 (16 proxy controls ROOT+USER each), strict physical16. Independently
+  re-downloaded all three actual physical Dolphin PNGs and ran the unchanged
+  host OCR: all three recognize Dolphin/after.txt/new.txt, not before.txt.
+  Image-display helper failed, so do NOT call this fresh manual visual review.
+- Prior65791fe fast38895836392 also finished ALL3 SUCCESS. Exact production657
+  transport passed3/3 real Linux cold starts, each real wallpaper/Konsole PTY,
+  genuine Dolphin models,32 fresh captures over35sec, actual OCR and clean exit.
+- Local657 desktop28/28 passed; additional physical run was INTERRUPTED by a
+  sandbox wipe, neither an OS failure nor a completed local physical pass.
+- Restored checkout at9712733, private API helper and completed CI logs/images.
+  x86-only NO_PORTS tool/core restore and signed Alpine desktop assembly run
+  detached. No Qt/Mesa/LLVM libraries compiled locally. Old private local logs
+  were wiped; GitHub CI artifacts remain independent evidence.
+- Preserve Linux comparison as scripts/alpine-linux-oracle{.sh,-check.py} on WIP
+  branch WITHOUT updating PR18/restarting full source CI. New read-only-root
+  wrapper has syntax/empty-evidence controls; actual execution pending restored
+  signed desktop. Prior private Linux results are not proof of this new wrapper.
+
+### Restored fixture guard and read-only Linux comparison
+- Fresh desktop assembly omitted the ten tiny consumers normally copied by
+  alpine-desktop-tests.sh. First restored Linux/physical attempts reported
+  `desktopframecheck: not found`; these are INVALID FIXTURES, not evidence of
+  an OS rendering regression. Stopped the invalid physical batch and restored
+  the consumers from the signed-base build. No Qt/Mesa/library compilation.
+- Both direct physical and Linux runners now fail early for missing frame/model
+  consumers. Linux incomplete-fixture negative control exits2 before namespaces.
+  Linux comparison also creates a private UID1000 home on tmpfs; the packaged
+  root remains read-only (the VM init normally creates the home).
+- Checked-in read-only Linux wrapper now genuinely validates: callback mode
+  passes wallpaper, Konsole PTY, Dolphin file-model/rename/create, actual pixels
+  and clean exit, with33 fresh captures over the normal35-second window.
+  Native mode reaches the real Dolphin model and exits cleanly but FAILS actual
+  Dolphin filename visibility across26 fresh captures. This is Linux/headless
+  comparison evidence, NOT 9os or physical-input acceptance. Further callback
+  repetitions and restored x86 physical cold runs are still in progress.
+- Review found the existing proc FD decimal parser still uses signed unchecked
+  multiplication. Added same-source malformed/canonical FD-name coverage to
+  procinfotest: Linux183/183 passes, including /proc/self/fd, task/TID/fd and
+  /proc/TID/fd. A bounded --fd-wrap-control checks only the safe positive alias
+  2^32+live-fd for an old-kernel negative control. No kernel fix or guest result
+  claimed yet; isolated x86 image built for that control.
+- Restored current971 physical x86 cold boot finishes strict16/16, including
+  actual UID1000 physical key->Konsole tty witness, fresh actual Dolphin OCR,
+  clean application/session exit and lockdep0. Independently rechecked the
+  captured Dolphin PNG. Linux read-only callback repetitions also pass:3/3
+  cold sessions,33/31/31 fresh captures respectively. Native file-model success
+  still does not waive its failed actual visibility check.
+
+### Proc FD-name overflow: exact negative control and focused fix
+- Exact old x86 kernel admits 2^32+live-fd as that live fd under all three proc
+  FD paths; both root/user report14 checks/3 failures. The negative-control
+  QEMU harness correctly remains red because it detects the intentional FAIL
+  lines, even though a surrounding shell expected exit1. No negative indexing
+  inputs were exercised against the old kernel. Same-source Linux control14/14.
+- Reuse strict bounded proc_number for FD names, with explicit canonical "0"
+  exception and a negative bound check before any fd-table indexing. Rejects
+  leading zeroes and decimal overflow, not just out-of-range positive values.
+- Fixed x86 UP and SMP8 each8/8 gates: procinfotest183/183 ROOT+USER,
+  wrap control14/14 ROOT+USER,16 repeated full runs ROOT+USER, lockdep0.
+  This is separate WIP hardening; PR18 head971 and its expensive full-source
+  run are not changed/restarted. Non-x86 validation must run in GitHub CI.
+- Next scheduled physical cold boot uses the current WIP kernel (FD-name fix),
+  not frozen971, because the prior boot fully finished before rebuilding.
+- Subsequent WIP physical cold boot is a REAL failure,7/16: Plasma shell
+  readiness times out, downstream physical frames/PTY/model are absent, lockdep0.
+  Unlike the invalid initial fixture, helpers exist. This run includes only the
+  proc FD parser kernel change over971; causation is NOT established. Preserve
+  /data/physical-971-valid-2 logs; do not claim cold reliability solved or merge
+  solely because previous ALL3 fast sets were green.
+- Add failure-only bounded process diagnostics to shell readiness as well as
+  frame readiness. The transport logs its real child PID; tracing now targets
+  KWin rather than only the Python wrapper. Five explicit host mock controls
+  verify PID selection, malformed-line rejection, bounded tracing and no gate
+  rescue;16 actual proxy controls still pass. No readiness deadlines increased.
+- PR18 full-source x86 job116959705154 is now SUCCESS; ARM/RISC remain building.
+  Separate FD-hardening fast ALL3 run38906037936 has base jobs green, desktop
+  physical jobs still running. Neither replaces the unresolved local failure.
+
+### Cold startup persists before FD hardening; ARM physical key timer isolated
+- Failure-only WIP reproduction again7/16 at shell readiness. Pre-attach snapshot
+  has Plasma running in mmap, not a demonstrated permanently sleeping deadlock;
+  trace shows ongoing futex/worker and compositor buffer traffic. No causal fix
+  inferred just from attaching (which itself alters timing).
+- Preserved pre-FD-fix kernel, same desktop and failure-only diagnostics, ALSO
+  fails7/16 at shell readiness. Verified kernel hash unchanged before/after;
+  frozen executable has the functional971 code (built during the early WIP
+  fixture/test-only commits). Thus FD hardening is NOT required to reproduce
+  this cold-start failure. Root cause remains unresolved; no timeout increases.
+- FD hardening fast38906037936: base28/UP8 ALL3 and x86SMP8 green;
+  desktop28/physical16 pass x86+RISC. ARM desktop28 passes, physical15/16
+  fails tty witness. Actual ARM after.png independently OCRs `ty`, not `tty`,
+  while uid/marker and later real Dolphin pixels succeed. Not a filename-gate
+  waiver and not proof that all physical input succeeded.
+- HMP sendkey release uses QEMU VIRTUAL time; a120ms host gap cannot guarantee
+  a20ms virtual timer expires during slow TCG. Replace physical driver's input
+  with explicit QMP input-send-event key-down/key-up, preserving the emulated
+  keyboard/libinput/compositor/real PTY path. No guest injection or retries.
+  Keep HMP only as legacy CLI mode. Three explicit mock QMP controls verify
+  distinct repeated t transitions, reverse modifier release and rejected-command
+  failure;7 lifecycle and old HMP protocol controls pass. Real validation pending.
+
+### Full-source ALL3 complete; explicit QMP physical input validated ALL3
+- PR18 head971 full-source38896975226 ALL3 SUCCESS, reviewed completed logs:
+  main117/117; disk23/23+7/7 with both fsck checks; PCM/no-card2/2 each;
+  MLFQ9/9 and UP12/12; x86 SMP8 adds10/10. Source Qt GUI21, Wayland30,
+  GL37 and QML41 ROOT+USER, actual LLVM/Mesa/Sway consumers included.
+  This validates current971 source scope, NOT source Qt Quick rendering.
+- WIP432 QMP fast38909665904 ALL3 SUCCESS: base28+UP8 (x86 SMP8),
+  desktop28, strict physical16 each. procinfotest183 ROOT+USER ALL3.
+  Re-downloaded all three actual Dolphin PNGs; independent unchanged host OCR
+  passes after.txt/new.txt, not before.txt. ARM after.png independently OCRs
+  actual `tty`, correcting prior2fb run's `ty` (which remained a failed gate).
+  Real keyboard path retained; explicit QMP edges do not use HMP release timers.
+- Local private LP_NUM_THREADS=1 control, default unmodified deadlines/pixels,
+  current FD-hardened kernel + QMP input: first cold boot16/16, genuine tty/UID
+  witness, actual Dolphin pixels, clean exit, lockdep0. Repeating two further
+  cold boots before drawing conclusions. This is a private renderer-thread
+  resource control, NOT yet a proven fix or a production session-default change.
+- PR18 head remains971, draft/open. Source CI is finished without cancellation;
+  hold integration while local cold-start reliability remains unresolved. Do not
+  promote full-source green or a single positive control into M40 completion.
+- Private LP1+QMP second cold run also finishes16/16; third is in progress.
+  Propose an overridable LP_NUM_THREADS default1 scoped only to this experimental
+  desktop session, bounding incidental llvmpipe oversubscription on small TCG
+  hosts while retaining unchanged pixels, services and deadlines. Three actual
+  shell-policy host controls preserve explicit overrides. This is a resource
+  policy supported by two positive controls, not a proven kernel-race fix.
+- Carry WIP FD parser, real failure diagnostics, isolated Linux comparison and
+  QMP input into PR18 for new current-head ALL3 CI. Prior971 full-source and
+  432 fast ALL3 results remain historical evidence, not current-head passes.

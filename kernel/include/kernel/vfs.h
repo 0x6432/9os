@@ -114,6 +114,9 @@ struct file_ops {
     ssize_t (*write)(struct file *f, const void *buf, size_t n, off_t *off);
     int (*ioctl)(struct file *f, uint64_t cmd, uint64_t arg);
     unsigned (*poll)(struct file *f);
+    /* Readiness bits that are permanently asserted (e.g. procfs even at EOF).
+     * EPOLLET reports these once per registration/rearm, not once per scan. */
+    unsigned poll_always;
     void (*release)(struct file *f);
     /* device memory mapping: physical address backing [off, off+len), or -errno */
     int (*mmap)(struct file *f, uint64_t off, size_t len, paddr_t *pa);
@@ -214,7 +217,9 @@ void fs_register(const struct fs_type *t);
 int vfs_do_mount(const char *source, const char *target, const char *type, uint64_t flags, const char *data);
 int vfs_do_umount(const char *target, int flags);
 int vfs_mount_root(const char *source, const char *type);   /* root=: switch / to a disk */
-int vfs_proc_mounts(char *buf, size_t max);
+/* Allocated complete snapshot; caller kfree. */
+char *vfs_proc_mount_snapshot(size_t *len, uint64_t *event, bool info);
+uint64_t vfs_mount_event(void);
 int vfs_proc_filesystems(char *buf, size_t max);
 void ext2_init(void);
 

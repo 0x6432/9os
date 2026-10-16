@@ -23,7 +23,7 @@ jobs:
       - name: Host tools only (no Qt compiler/toolchain build)
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio python3-pil
+          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio python3-pil tesseract-ocr tesseract-ocr-eng
           scripts/install-qemu-alpine.sh
           echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
           scripts/fetch-deps.sh
@@ -39,6 +39,8 @@ jobs:
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh
           scripts/procinfo-host-tests.sh
+          scripts/proctask-host-tests.sh
+          sudo env MOUNTINFO_HOST_MUTATE=1 scripts/mountinfo-host-tests.sh
           scripts/pimutex-host-tests.sh
           scripts/ioctlwidth-host-tests.sh
           python3 scripts/rootfs-stamp-host-tests.py
@@ -46,6 +48,16 @@ jobs:
           python3 scripts/alpine-wayland-host-tests.py
           python3 scripts/alpine-plasma-host-tests.py
           python3 scripts/desktopframe-host-tests.py
+          python3 scripts/desktopa11y-host-tests.py
+          python3 scripts/dolphin-discovery-host-tests.py
+          python3 scripts/desktop-lifecycle-host-tests.py
+          python3 scripts/plasma-failure-diagnostics-host-tests.py
+          python3 scripts/plasma-renderer-thread-host-tests.py
+          python3 scripts/desktop-pty-host-tests.py
+          python3 scripts/desktop-visible-host-tests.py
+          python3 scripts/qemu-type-host-tests.py
+          python3 scripts/qemu-qmp-type-host-tests.py
+          python3 scripts/alpine-async-image-host-tests.py
       - name: Install signed prebuilt runtime
         # apk2 applies Sway's signed security.capability xattr. The runner needs
         # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
@@ -110,7 +122,7 @@ jobs:
       - name: Host tools only; signed prebuilt desktop dependencies
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio python3-pil e2fsprogs fdisk libglib2.0-bin shared-mime-info
+          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio python3-pil tesseract-ocr tesseract-ocr-eng e2fsprogs fdisk libglib2.0-bin shared-mime-info
           scripts/install-qemu-alpine.sh
           echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
           scripts/fetch-deps.sh
@@ -134,7 +146,7 @@ jobs:
           make -j2 ARCH=$ARCH USERLAND=alpine iso
       - name: Real EGL Quick pixels, KWin, Konsole and Plasma on disk root
         run: scripts/alpine-desktop-tests.sh "$ARCH"
-      - name: Physical KMS keyboard to real Konsole PTY, then clean shutdown
+      - name: Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model
         run: scripts/alpine-kms-tests.sh "$ARCH"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -144,5 +156,6 @@ jobs:
             build/test-alpine-desktop-*.log
             build/test-alpine-kms-*.log
             build/test-alpine-kms-*.png
+            build/test-alpine-kms-*.ocr.txt
             userland/build/alpine-desktop-${{ matrix.arch }}.lock.json
           if-no-files-found: warn

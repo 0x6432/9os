@@ -1,0 +1,142 @@
+#!/bin/sh
+# Run inside a real non-root Wayland/DBus session. Read the actual AT-SPI file model.
+set -eu
+[ "$(id -u)" = 1000 ] || { echo 'Dolphin probe requires the normal VM user';exit 1; }
+[ -n "${WAYLAND_DISPLAY:-}" ] && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]
+D=$(mktemp -d /tmp/alpine-dolphin-XXXXXX)
+client=
+cleanup() {
+ r=$?
+ if [ -n "$client" ];then
+  kill "$client" 2>/dev/null || true
+  for i in $(seq 30);do kill -0 "$client" 2>/dev/null || break;sleep .1;done
+  kill -KILL "$client" 2>/dev/null || true;wait "$client" 2>/dev/null || true
+ fi
+ cat "$D/client.log" 2>/dev/null || true
+ rm -rf "$D"
+ exit "$r"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+mkdir "$D/files"
+printf 'real KDE directory model\n' > "$D/files/before.txt"
+# Activate the packaged accessibility bus before launching Qt. This enables a
+# genuine read-only accessibility observation, not an injected model/test hook.
+export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 QT_ACCESSIBILITY=1
+timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.a11y.Bus /org/a11y/bus org.a11y.Bus.GetAddress > "$D/a11y-bus"
+dolphin --new-window "$D/files" > "$D/client.log" 2>&1 & client=$!
+printf 'DOLPHIN_CLIENT_PID=%s uid=%s\n' "$client" "$(id -u)"
+Q=/usr/lib/qt6/bin/qdbus
+# Direct typed calls avoid Qt CLI introspection on every model query.
+# qdbus is needed only to enumerate the real application object path.
+call_bool() {
+ timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest="$1" "$2" "org.kde.dolphin.MainWindow.$3" ${4:+string:$4} > "$D/reply" 2> "$D/readback.err" || return 1
+ sed -n 's/^[[:space:]]*boolean \(true\|false\)$/\1/p' "$D/reply"
+}
+# Do not recursively enumerate every QAction with qdbus: that can consume the
+# entire deadline and lose buffered path output when killed. Inspect bounded
+# real parent nodes, stopping as soon as the MainWindow interface is exported.
+find_window() {
+ pending=/;visited=0
+ for depth in 0 1 2;do
+  next=
+  for path in $pending;do
+   visited=$((visited+1));[ "$visited" -le 32 ] || return 1
+   if timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest="$1" "$path" org.freedesktop.DBus.Introspectable.Introspect > "$D/introspect" 2> "$D/introspect.err";then
+    if grep -Fq '<interface name="org.kde.dolphin.MainWindow">' "$D/introspect";then printf '%s\n' "$path";return 0;fi
+    for node in $(sed -n 's/.*<node name="\([A-Za-z0-9_]*\)".*/\1/p' "$D/introspect");do
+     [ -n "$node" ] || continue
+     next="$next ${path%/}/$node"
+    done
+   fi
+  done
+  pending=$next
+ done
+ return 1
+}
+service=;object=;deadline=$(( $(date +%s) + 90 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ # Read actual bus names without spawning Qt/introspection for every poll.
+ for name in $(timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames | sed -n 's/^[[:space:]]*string "\(org\.kde\.dolphin[^" ]*\)"$/\1/p');do
+  path=$(find_window "$name" || true)
+  if [ -n "$path" ] && call_bool "$name" "$path" isUrlOpen "file://$D/files" | tee "$D/readback.out" | grep -qx true;then
+   service=$name;object=$path;break
+  fi
+  [ -z "$object" ] || break
+ done
+ [ -z "$object" ] || break
+ kill -0 "$client" 2>/dev/null || break;sleep .2
+done
+[ -n "$object" ] || {
+ echo 'alpine-dolphin: FAIL real directory URL readback'
+ echo DOLPHIN_BLOCKED_PROCESS_DIAGNOSTIC
+ ls -l "/proc/$client/fd" 2>/dev/null || true
+ # Failure-only attach: instrumentation can change timing, so this can never
+ # turn an already failed gate into a pass. Preserve the last syscall activity.
+ timeout -k 2 -s TERM 8 strace -f -tt -T -p "$client" -o "$D/blocked.trace" 2>&1 || true
+ tail -n 60 "$D/blocked.trace" 2>/dev/null || true
+ cat "$D/readback.out" "$D/readback.err" 2>/dev/null || true
+ timeout -s KILL 10 "$Q" 'org.kde.dolphin*' > "$D/services" 2>&1 || true
+ cat "$D/services"
+ for name in $(grep '^org.kde.dolphin' "$D/services" | head -n 3);do
+  echo "DOLPHIN_DIAGNOSTIC_SERVICE=$name"
+  timeout -s KILL 10 "$Q" "$name" > "$D/objects" 2>&1 || true
+  cat "$D/objects"
+  for path in $(grep '^/' "$D/objects" | head -n 12);do
+   echo "DOLPHIN_DIAGNOSTIC_OBJECT=$path"
+   timeout -s KILL 10 "$Q" "$name" "$path" org.kde.dolphin.MainWindow.isUrlOpen "file://$D/files" 2>&1 || true
+  done
+ done
+ exit 1
+}
+printf 'DOLPHIN_URL_READY service=%s object=%s\n' "$service" "$object"
+# isItemVisibleInAnyView only tests the containing folder (upstream deliberately
+# allows unloaded/nonexistent children); it is NOT a file-existence oracle.
+ready=0;deadline=$(( $(date +%s) + 90 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ if desktopa11y "$client" "$D/files" +before.txt -after.txt -new.txt > "$D/model" 2>&1;then ready=1;break;fi
+ kill -0 "$client" 2>/dev/null || break;sleep 1
+done
+cat "$D/model"
+[ "$ready" = 1 ] || { echo 'alpine-dolphin: FAIL initial accessible file model';exit 1; }
+mv "$D/files/before.txt" "$D/files/after.txt"
+printf 'created after the GUI directory loaded\n' > "$D/files/new.txt"
+ready=0;deadline=$(( $(date +%s) + 90 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ if desktopa11y "$client" "$D/files" +after.txt +new.txt -before.txt > "$D/model" 2>&1;then ready=1;break;fi
+ kill -0 "$client" 2>/dev/null || break;sleep 1
+done
+cat "$D/model"
+[ "$ready" = 1 ] || { echo 'alpine-dolphin: FAIL live accessible KIO directory changes';exit 1; }
+active=0;deadline=$(( $(date +%s) + 30 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ if call_bool "$service" "$object" isActiveWindow | grep -qx true;then active=1;break;fi
+ sleep .2
+done
+[ "$active" = 1 ] || { echo 'alpine-dolphin: FAIL mapped active GUI window';exit 1; }
+echo DOLPHIN_WINDOW_ACTIVE=1
+# Independent outer-compositor pixels distinguish a nested presentation stall
+# from a physical DRM scanout stall. Never substitute these for QEMU evidence.
+if [ -n "${ALPINE_DOLPHIN_CAPTURE_DISPLAY:-}" ];then
+ if WAYLAND_DISPLAY="$ALPINE_DOLPHIN_CAPTURE_DISPLAY" timeout -s KILL 8 grim -o "$ALPINE_DOLPHIN_CAPTURE_OUTPUT" "$D/outer.png";then
+  echo ALPINE_DOLPHIN_OUTER_PNG_BEGIN;base64 "$D/outer.png";echo ALPINE_DOLPHIN_OUTER_PNG_END
+ else
+  echo DOLPHIN_OUTER_CAPTURE_FAILED
+ fi
+ cat /sys/class/drm/card0/scanout 2>/dev/null || true
+fi
+printf 'DOLPHIN_MODEL_READY uid=%s service=%s object=%s\n' "$(id -u)" "$service" "$object"
+if [ -n "${ALPINE_DOLPHIN_DONE_FILE:-}" ];then
+ deadline=$(( $(date +%s) + 120 ))
+ while [ ! -f "$ALPINE_DOLPHIN_DONE_FILE" ] && [ "$(date +%s)" -lt "$deadline" ];do sleep .2;done
+ [ -f "$ALPINE_DOLPHIN_DONE_FILE" ] || { echo 'alpine-dolphin: FAIL capture acknowledgement timeout';exit 1; }
+else
+ sleep "${ALPINE_DOLPHIN_HOLD:-0}"
+fi
+timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest="$service" "$object" org.kde.dolphin.MainWindow.quit
+for i in $(seq 200);do kill -0 "$client" 2>/dev/null || break;sleep .1;done
+if kill -0 "$client" 2>/dev/null;then echo 'alpine-dolphin: FAIL graceful application quit';exit 1;fi
+if wait "$client";then r=0;else r=$?;fi
+client=
+[ "$r" = 0 ] || { echo "alpine-dolphin: FAIL application exit=$r";exit 1; }
+echo 'alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit'

@@ -1,6 +1,11 @@
 #!/bin/sh
 # Experimental real Plasma shell nested under Sway for compositor-side evidence.
 set -eu
+# Incidental GL/effect work may still create llvmpipe workers with a software
+# scene graph. Bound oversubscription on small TCG hosts; keep an explicit user
+# override. This resource policy does not change any readiness/pixel deadline.
+export LP_NUM_THREADS="${LP_NUM_THREADS:-1}"
+# Set before the bus starts so activated helpers inherit the same policy.
 if [ "${1:-}" != --session ]; then
     # Activated helpers inherit the bus stderr. Keep their asynchronous output
     # out of base64 PNG framing, but replay ALL diagnostics after the session.
@@ -18,6 +23,22 @@ cleanup() {
   kill -KILL "$p" 2>/dev/null || true;wait "$p" 2>/dev/null || true
  done
  rm -rf "$D"
+}
+# Run only AFTER a gate has irrevocably failed. Attaching may alter timing;
+# diagnostics can never rescue or reclassify that attempt as successful.
+blocked_diagnostics() {
+ real_kwin=$(sed -n 's/^wayland-presentation-proxy: child_pid=\([0-9][0-9]*\)$/\1/p' "$D/kwin.log" | tail -n 1)
+ [ -n "$real_kwin" ] || real_kwin=$kwin
+ grep -E 'plasmashell|QQuick|QQml|QDBus|QThread|QSG|Thread' /proc/sched || true
+ for entry in "plasma:$plasma" "kwin:$real_kwin" "sway:$swaypid";do
+  role=${entry%%:*};p=${entry#*:}
+  [ -n "$p" ] || continue
+  echo "PLASMA_BLOCKED_PROCESS_DIAGNOSTIC role=$role pid=$p"
+  cat "/proc/$p/status" 2>/dev/null || true
+  ls -l "/proc/$p/fd" 2>/dev/null || true
+  timeout -k 2 -s TERM 8 strace -f -tt -T -p "$p" -o "$D/$role-blocked.trace" 2>&1 || true
+  tail -n 160 "$D/$role-blocked.trace" 2>/dev/null || true
+ done
 }
 finish() {
  r=$?
@@ -88,7 +109,17 @@ for f in "$D"/wayland-*;do [ ! -S "$f" ] || parent="$f";done
 # Supply the live outer display before KWin activates portal helpers.
 export WAYLAND_DISPLAY="$parent" QT_QPA_PLATFORM=wayland
 dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QUICK_BACKEND QV4_FORCE_INTERPRETER XDG_RUNTIME_DIR XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_MENU_PREFIX LANG
-kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
+# KWin6.3.6 + wlroots0.18.2 can leave a no-damage presentation request
+# pending forever (also reproduced on Linux). Select KWin's existing frame
+# callback fallback on THIS outer connection only, without library/QML patches.
+# Keep native mode for upstream/kernel comparison; neither mode waives pixels.
+case ${ALPINE_PLASMA_PRESENTATION:-callback} in
+ callback) set -- wayland-presentation-proxy -- ;;
+ native) set -- ;;
+ *) echo 'Unknown presentation mode';exit 1 ;;
+esac
+echo "PLASMA_PRESENTATION_MODE=${ALPINE_PLASMA_PRESENTATION:-callback}"
+"$@" kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
 for i in $(seq 300);do [ ! -S "$D/9os-plasma" ] || break;kill -0 "$kwin" 2>/dev/null || break;sleep .1;done
 [ -S "$D/9os-plasma" ] || { cat "$D/kwin.log";exit 1; }
 export WAYLAND_DISPLAY="$D/9os-plasma" QT_QPA_PLATFORM=wayland
@@ -103,17 +134,21 @@ if [ "${ALPINE_PLASMA_RENDERER:-software}" = opengl ];then
 fi
 plasmashell --replace --no-respawn > "$D/plasma.log" 2>&1 & plasma=$!
 ready=0
+: > "$D/desktops"
 deadline=$(( $(date +%s) + 180 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- if timeout -s KILL 5 /usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript  'print("desktops="+desktops().length+" panels="+panels().length)'  > "$D/desktops" 2> "$D/bus.log";then
-  if grep -Eq 'desktops=[1-9][0-9]* panels=[1-9][0-9]*' "$D/desktops";then ready=1;break;fi
+ # Avoid loading Qt and performing introspection in a new qdbus process on
+ # every poll. Ask the same real method directly with bounded libdbus tooling.
+ if timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'print("desktops="+desktops().length+" panels="+panels().length)' > "$D/reply" 2> "$D/bus.log";then
+  sed -n 's/.*string "\(desktops=[0-9]* panels=[0-9]*\)".*/\1/p' "$D/reply" > "$D/desktops"
+  if grep -Eq '^desktops=[1-9][0-9]* panels=[1-9][0-9]*$' "$D/desktops";then ready=1;break;fi
  fi
  kill -0 "$plasma" 2>/dev/null || break
- sleep .2
+ sleep .5
 done
 if [ "$ready" != 1 ];then
  if ! kill -0 "$plasma" 2>/dev/null;then if wait "$plasma";then r=0;else r=$?;fi;plasma=;echo "PLASMA_EARLY_EXIT=$r";fi
- cat "$D/desktops" "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';exit 1
+ cat "$D/desktops" "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';blocked_diagnostics;exit 1
 fi
 printf PLASMA_DESKTOPS=;cat "$D/desktops"
 dbus-send --session --print-reply --reply-timeout=120000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].wallpaperPlugin="org.kde.image";ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];ds[i].writeConfig("Image","file:///usr/share/wallpapers/Next/contents/images/1024x768.png");}print("PLASMA_WALLPAPER_CONFIGURED="+ds.length);'
@@ -133,19 +168,41 @@ while [ "$(date +%s)" -lt "$deadline" ];do
  sleep 3
 done
 cat "$D/frame.log"
-[ "$frame_ready" = 1 ] || { echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness';exit 1; }
+if [ "$frame_ready" != 1 ];then
+ echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness'
+ blocked_diagnostics
+ # Preserve real failure pixels and configuration, never substitute a background.
+ timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];print("WALLPAPER_DIAGNOSTIC id="+ds[i].id+" plugin="+ds[i].wallpaperPlugin+" image="+ds[i].readConfig("Image"));}' || true
+ WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/failure.png" || true
+ if [ -f "$D/failure.png" ];then echo ALPINE_PLASMA_FAILURE_PNG_BEGIN;base64 "$D/failure.png";echo ALPINE_PLASMA_FAILURE_PNG_END;fi
+ exit 1
+fi
 WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
-echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+# Headless gates need the serialized image for their independent host checker.
+# Physical gates already capture the actual QEMU scanout as separate PNGs.
+if [ "${ALPINE_PLASMA_SERIAL_PNG:-1}" = 1 ];then
+ echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+fi
 cat "$D/plasma.log" "$D/kwin.log"
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
- konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty';echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ pty_ready=0
  for i in $(seq 1200);do
-  [ ! -f "$D/interactive-pty" ] || break
+  if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then pty_ready=1;break;fi
   kill -0 "$client" 2>/dev/null || break
   sleep .1
  done
- if [ ! -f "$D/interactive-pty" ] || ! grep -q /dev/pts/ "$D/interactive-pty";then
-  cat "$D/konsole.log";echo 'alpine-plasma: FAIL interactive Konsole PTY readiness';exit 1
+ if [ "$pty_ready" != 1 ];then
+  echo 'alpine-plasma: FAIL interactive Konsole PTY readiness'
+  echo "KONSOLE_BLOCKED_PROCESS_DIAGNOSTIC pid=$client"
+  cat "$D/konsole.log"
+  ls -l "/proc/$client/fd" 2>/dev/null || true
+  cat "/proc/$client/status" 2>/dev/null || true
+  cat /proc/sched || true
+  # Failure is already decided; attaching may change timing and NEVER rescues it.
+  timeout -k 2 -s TERM 8 strace -f -tt -T -p "$client" -o "$D/konsole-blocked.trace" 2>&1 || true
+  tail -n 120 "$D/konsole-blocked.trace" 2>/dev/null || true
+  exit 1
  fi
  cat "$D/interactive-pty"
  sleep 3
@@ -157,4 +214,14 @@ if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
 fi
 [ ! -f "$D/konsole.log" ] || cat "$D/konsole.log"
 echo ALPINE_PLASMA_INPUT_READY
-sleep "${ALPINE_PLASMA_HOLD:-0}"
+if [ -n "${ALPINE_PLASMA_INPUT_DONE_FILE:-}" ];then
+ deadline=$(( $(date +%s) + 180 ))
+ while [ ! -f "$ALPINE_PLASMA_INPUT_DONE_FILE" ] && [ "$(date +%s)" -lt "$deadline" ];do sleep .2;done
+ [ -f "$ALPINE_PLASMA_INPUT_DONE_FILE" ] || { echo 'alpine-plasma: FAIL input acknowledgement timeout';exit 1; }
+else
+ sleep "${ALPINE_PLASMA_HOLD:-0}"
+fi
+if [ "${ALPINE_PLASMA_FILEMANAGER:-0}" = 1 ];then
+ ALPINE_DOLPHIN_CAPTURE_DISPLAY="$parent" ALPINE_DOLPHIN_CAPTURE_OUTPUT="$output" \
+ ALPINE_DOLPHIN_HOLD="${ALPINE_DOLPHIN_HOLD:-30}" alpine-dolphin-probe
+fi

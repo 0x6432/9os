@@ -1,0 +1,18 @@
+#!/bin/sh
+# Focused real Qt Quick asynchronous decoding; no Plasma/compositor substitute.
+set -eu
+D=$(mktemp -d /tmp/alpine-async-image-XXXXXX)
+trap 'rm -rf "$D"' EXIT HUP INT TERM
+export XDG_RUNTIME_DIR="$D" QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software
+export QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1
+unset QML_IMPORT_PATH QML2_IMPORT_PATH QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH
+cd "$D"
+timeout -s KILL 75 /usr/lib/qt6/bin/qmlscene /usr/share/9os/alpine-async-image.qml >client.log 2>&1 || { cat client.log;exit 1; }
+cat client.log
+grep -qx 'qml: ASYNC_IMAGE_PASS loads=32' client.log
+[ "$(grep -c '^qml: ASYNC_IMAGE_READY ' client.log)" = 32 ]
+test -s capture.png
+printf 'ALPINE_ASYNC_IMAGE_PNG_BEGIN uid=%s\n' "$(id -u)"
+base64 capture.png
+echo ALPINE_ASYNC_IMAGE_PNG_END
+echo 'alpine-async-image: PASSED 32 uncached asynchronous stock wallpaper loads and real software grab'

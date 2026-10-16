@@ -84,6 +84,7 @@ struct thread {
     int nice, policy, rt_prio;     /* SCHED_OTHER(0)/FIFO(1)/RR(2)/BATCH(3)/IDLE(5) */
     int rq_cpu;                    /* run queue it is (or was last) queued on */
     uint64_t utime_ns, stime_ns, sum_exec_ns, exec_start_ns, acct_ns, nvcsw, nivcsw;
+    uint64_t start_ticks, min_flt; /* genuine per-task /proc stat, not leader aliases */
     struct rusage_k reaped_ru;     /* last child reaped by do_wait (wait4 rusage) */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
     int handoff_refs;              /* pins saved contexts until all finish-switch readers retire */

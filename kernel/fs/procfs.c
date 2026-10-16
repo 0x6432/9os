@@ -22,13 +22,13 @@ int net_proc_file(int which, char *buf, size_t max);
 #include <arch/syscall.h>
 
 int locks_report(char *buf, int cap);
-enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR, P_SYSDIR };
+enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR, P_SYSDIR, P_TASKDIR, P_TIDDIR };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_BOOT_CMDLINE, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS, G_LOCKS,
+             G_MEMINFO, G_UPTIME, G_VERSION, G_BOOT_CMDLINE, G_CPUINFO, G_MOUNTS, G_MOUNTINFO, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS, G_LOCKS,
              N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP, N_IGMP,
              N_IGMP6, N_IF_INET6, N_IPV6_ROUTE, N_TCP6, N_UDP6, N_RAW6, N_SNMP6, N_NETLINK, N_NETSTAT, S_SYSCTL };
 /* P_SYSDIR: the /proc/sys directory whose path is sysctls[sysi].path[0, syslen) */
-struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; int sysi, syslen; };
+struct pinfo { enum pkind kind; int pid; int fd; enum pfile file; int sysi, syslen, tid; bool owns_parent; };
 
 /* ---- /proc/sys (M32b): integer and string knobs from one table; directories are implied by
  * the paths. Writes need write permission on the 0644 root-owned file (DAC) as on Linux. */
@@ -89,9 +89,7 @@ static int sys_child(int sysi, int len, const char *name, size_t nlen, bool *dir
 static struct thread *main_thread(struct process *p) {
     return list_empty(&p->threads) ? nullptr : list_first(&p->threads, struct thread, proc_node);
 }
-static int main_nice(struct process *p) { struct thread *t = main_thread(p); return t ? t->nice : 0; }
-static int main_prio(struct process *p) {      /* /proc stat 'priority': 20+nice, or -1-rt_prio */
-    struct thread *t = main_thread(p);
+static int thread_prio(struct thread *t) { /* /proc stat priority: 20+nice, or -1-rt_prio */
     if (!t) return 20;
     return t->policy == 1 || t->policy == 2 ? -1 - t->rt_prio : 20 + t->nice;
 }
@@ -108,7 +106,7 @@ static struct inode *proc_root_inode;
 static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum pfile file) {
     struct inode *i = inode_alloc(mode);
     struct pinfo *pi = kmalloc(sizeof *pi);
-    *pi = (struct pinfo){ kind, pid, fd, file, 0, 0 };
+    *pi = (struct pinfo){ kind, pid, fd, file, 0, 0, 0, false };
     i->priv = pi;
     i->iops = &proc_iops;
     i->fops = S_ISDIR(mode) ? &proc_dir_fops : &proc_file_fops;
@@ -122,6 +120,36 @@ static struct inode *pnew(uint32_t mode, enum pkind kind, int pid, int fd, enum 
         cred_put(c);
     }
     return i;
+}
+
+/* Dynamic proc directories are not cached. Pin their parent for VFS .. walks.
+ * The proc mount root itself has a borrowed mountpoint parent, not this pin. */
+static void proc_parent(struct inode *i, struct inode *dir) {
+    iget(dir); i->parent = dir; ((struct pinfo *)i->priv)->owns_parent = true;
+}
+
+/* Real task identities, never process-leader aliases. Caller holds the BKL. */
+static struct inode *for_thread(struct inode *i, int tid) {
+    if (tid) {
+        struct pinfo *pi = i->priv;
+        pi->tid = tid;
+        i->ino = (1UL << 63) | ((uint64_t)tid << 24) |
+                 ((uint64_t)pi->kind << 16) | (uint64_t)(pi->file + pi->fd + 1);
+    }
+    return i;
+}
+static int proc_number(const char *name) {
+    if (*name < '1' || *name > '9') return -1;
+    unsigned n = 0;
+    for (; *name; name++) {
+        if (*name < '0' || *name > '9' || n > (2147483647U - (*name - '0')) / 10) return -1;
+        n = n * 10 + (*name - '0');
+    }
+    return (int)n;
+}
+static struct thread *proc_task(struct pinfo *pi) {
+    struct thread *t = pi->tid ? process_find_thread(pi->tid) : nullptr;
+    return t && t->proc && t->proc->pid == pi->pid ? t : nullptr;
 }
 
 static const struct { const char *name; enum pfile f; } global_files[] = {
@@ -140,34 +168,50 @@ static const struct { const char *name; enum pfile f; } net_files[] = {
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
     { "environ", F_ENVIRON }, { "maps", F_MAPS },
+    { "mounts", G_MOUNTS }, { "mountinfo", G_MOUNTINFO },
 };
 
 static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
     struct pinfo *pi = dir->priv;
     if (pi->kind == P_ROOT) {
         if (!strcmp(name, "self")) { *out = pnew(S_IFLNK | 0777, P_SELF, 0, 0, 0); return 0; }
-        if (!strcmp(name, "net")) { struct inode *i = pnew(S_IFDIR | 0555, P_NETDIR, 0, 0, 0); i->parent = dir; *out = i; return 0; }
+        if (!strcmp(name, "net")) { struct inode *i = pnew(S_IFDIR | 0555, P_NETDIR, 0, 0, 0); proc_parent(i, dir); *out = i; return 0; }
         if (!strcmp(name, "sys")) {
             struct inode *i = pnew(S_IFDIR | 0555, P_SYSDIR, 0, 0, 0);
-            i->ino = 0x7000000; i->parent = dir; *out = i; return 0;
+            i->ino = 0x7000000; proc_parent(i, dir); *out = i; return 0;
         }
         for (size_t k = 0; k < ARRAY_SIZE(global_files); k++)
             if (!strcmp(name, global_files[k].name)) { *out = pnew(S_IFREG | 0444, P_FILE, 0, 0, global_files[k].f); return 0; }
-        int pid = 0;
-        for (const char *c = name; *c; c++) { if (*c < '0' || *c > '9') return -ENOENT; pid = pid * 10 + (*c - '0'); }
-        if (!process_find(pid)) return -ENOENT;
-        struct inode *i = pnew(S_IFDIR | 0555, P_PIDDIR, pid, 0, 0);
-        i->parent = dir;
+        int pid = proc_number(name), tid = 0;
+        struct process *p = process_find(pid);
+        if (!p) {
+            struct thread *t = process_find_thread(pid);
+            if (!t || !t->proc) return -ENOENT;
+            tid = pid; p = t->proc;
+        }
+        struct inode *i = for_thread(pnew(S_IFDIR | 0555, P_PIDDIR, p->pid, 0, 0), tid);
+        proc_parent(i, dir);
         *out = i;
         return 0;
     }
-    if (pi->kind == P_PIDDIR) {
-        if (!process_find(pi->pid)) return -ENOENT;
-        if (!strcmp(name, "fd")) { struct inode *i = pnew(S_IFDIR | 0500, P_FDDIR, pi->pid, 0, 0); i->parent = dir; *out = i; return 0; }
-        if (!strcmp(name, "cwd")) { *out = pnew(S_IFLNK | 0777, P_CWD, pi->pid, 0, 0); return 0; }
-        if (!strcmp(name, "exe")) { *out = pnew(S_IFLNK | 0777, P_EXE, pi->pid, 0, 0); return 0; }
+    if (pi->kind == P_TASKDIR) {
+        int tid = proc_number(name);
+        struct thread *t = process_find_thread(tid);
+        if (!t || !t->proc || t->proc->pid != pi->pid) return -ENOENT;
+        struct inode *i = for_thread(pnew(S_IFDIR | 0555, P_TIDDIR, pi->pid, 0, 0), tid);
+        proc_parent(i, dir); *out = i; return 0;
+    }
+    if (pi->kind == P_PIDDIR || pi->kind == P_TIDDIR) {
+        if (!process_find(pi->pid) || (pi->tid && !proc_task(pi))) return -ENOENT;
+        if (pi->kind == P_PIDDIR && !strcmp(name, "task")) {
+            struct inode *i = pnew(S_IFDIR | 0555, P_TASKDIR, pi->pid, 0, 0);
+            proc_parent(i, dir); *out = i; return 0;
+        }
+        if (!strcmp(name, "fd")) { struct inode *i = for_thread(pnew(S_IFDIR | 0500, P_FDDIR, pi->pid, 0, 0), pi->tid); proc_parent(i, dir); *out = i; return 0; }
+        if (!strcmp(name, "cwd")) { *out = for_thread(pnew(S_IFLNK | 0777, P_CWD, pi->pid, 0, 0), pi->tid); return 0; }
+        if (!strcmp(name, "exe")) { *out = for_thread(pnew(S_IFLNK | 0777, P_EXE, pi->pid, 0, 0), pi->tid); return 0; }
         for (size_t k = 0; k < ARRAY_SIZE(pid_files); k++)
-            if (!strcmp(name, pid_files[k].name)) { *out = pnew(S_IFREG | (pid_files[k].f == F_ENVIRON ? 0400 : 0444), P_FILE, pi->pid, 0, pid_files[k].f); return 0; }
+            if (!strcmp(name, pid_files[k].name)) { *out = for_thread(pnew(S_IFREG | (pid_files[k].f == F_ENVIRON ? 0400 : 0444), P_FILE, pi->pid, 0, pid_files[k].f), pi->tid); return 0; }
         return -ENOENT;
     }
     if (pi->kind == P_NETDIR) {
@@ -185,7 +229,7 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
             ((struct pinfo *)i->priv)->sysi = k;
             ((struct pinfo *)i->priv)->syslen = pi->syslen + (int)strlen(name) + 1;
             i->ino = 0x7000000 + (uint64_t)k * 128 + (uint64_t)pi->syslen + strlen(name) + 1;
-            i->parent = dir;
+            proc_parent(i, dir);
         } else {
             bool rw = sysctls[k].var || sysctls[k].sset;
             i = pnew(S_IFREG | (rw ? 0644 : 0444), P_FILE, 0, k, S_SYSCTL);
@@ -196,10 +240,11 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
     }
     if (pi->kind == P_FDDIR) {
         struct process *p = process_find(pi->pid);
-        int fd = 0;
-        for (const char *c = name; *c; c++) { if (*c < '0' || *c > '9') return -ENOENT; fd = fd * 10 + (*c - '0'); }
-        if (!p || fd >= MAX_FDS || !p->fds[fd]) return -ENOENT;
-        *out = pnew(S_IFLNK | 0700, P_FD, pi->pid, fd, 0);
+        /* Like PID/TID names, FD components must not overflow or have leading
+         * zeroes. FD zero is the one canonical exception to proc_number(). */
+        int fd = !strcmp(name, "0") ? 0 : proc_number(name);
+        if (!p || (pi->tid && !proc_task(pi)) || fd < 0 || fd >= MAX_FDS || !p->fds[fd]) return -ENOENT;
+        *out = for_thread(pnew(S_IFLNK | 0700, P_FD, pi->pid, fd, 0), pi->tid);
         return 0;
     }
     return -ENOTDIR;
@@ -234,7 +279,7 @@ static int p_follow(struct inode *i, struct inode **out) {
         return p_lookup(proc_root_inode, n, out);
     }
     struct process *p = process_find(pi->pid);
-    if (!p) return -ENOENT;
+    if (!p || (pi->tid && !proc_task(pi))) return -ENOENT;
     if (!proc_may_peek(p)) return -EACCES;
     if (pi->kind == P_FD) {
         struct file *f = proc_fd_ref(p, pi->fd);
@@ -255,7 +300,7 @@ static int p_readlink(struct inode *i, char *buf, size_t size) {
     if (pi->kind == P_SELF) snprintf(tmp, sizeof tmp, "%d", curproc ? curproc->pid : 1);
     else {
         struct process *p = process_find(pi->pid);
-        if (!p) return -ENOENT;
+        if (!p || (pi->tid && !proc_task(pi))) return -ENOENT;
         if (!proc_may_peek(p)) return -EACCES;
         if (pi->kind == P_FD) {
             struct file *f = proc_fd_ref(p, pi->fd);
@@ -264,6 +309,9 @@ static int p_readlink(struct inode *i, char *buf, size_t size) {
             else snprintf(tmp, sizeof tmp, "%s", f->path ? f->path : "anon_inode:[unknown]");
             vfs_close(f);
         } else if (pi->kind == P_CWD) {
+            /* Exit drops the fs context before the zombie is reaped. The PID
+             * remains enumerable, but Linux readlink(/proc/PID/cwd) is ENOENT. */
+            if (!p->cwd) return -ENOENT;
             int r = vfs_getcwd(p->cwd, tmp, sizeof tmp);
             if (r < 0) return r;
         } else snprintf(tmp, sizeof tmp, "%s", p->exe ? p->exe : "");
@@ -298,7 +346,17 @@ static int p_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
         emit(&c, "sys", 0x7000000, 4);
         for (size_t k = 0; k < ARRAY_SIZE(global_files); k++) emit(&c, global_files[k].name, 100 + k, 8);
         process_list(emit_pid, &c);
-    } else if (pi->kind == P_PIDDIR) {
+    } else if (pi->kind == P_TASKDIR) {
+        struct process *p = process_find(pi->pid);
+        if (!p) return -ENOENT;
+        list_for_each(it, &p->threads) {
+            struct thread *t = list_entry(it, struct thread, proc_node);
+            char name[16]; snprintf(name, sizeof name, "%d", t->tid);
+            emit(&c, name, (1UL << 63) | ((uint64_t)t->tid << 24) | ((uint64_t)P_TIDDIR << 16) | 1, 4);
+        }
+    } else if (pi->kind == P_PIDDIR || pi->kind == P_TIDDIR) {
+        if (pi->tid && !proc_task(pi)) return -ENOENT;
+        if (pi->kind == P_PIDDIR) emit(&c, "task", ((uint64_t)pi->pid << 16) | (P_TASKDIR << 8) | 1, 4);
         emit(&c, "fd", 3, 4); emit(&c, "cwd", 4, 10); emit(&c, "exe", 5, 10);
         for (size_t k = 0; k < ARRAY_SIZE(pid_files); k++) emit(&c, pid_files[k].name, 10 + k, 8);
     } else if (pi->kind == P_NETDIR) {
@@ -328,10 +386,14 @@ static int p_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
     return 0;
 }
 
-static void p_evict(struct inode *i) { kfree(i->priv); }
+static void p_evict(struct inode *i) {
+    struct pinfo *pi = i->priv;
+    if (pi->owns_parent) iput(i->parent);
+    kfree(pi);
+}
 
 /* ---- file contents ---- */
-struct buf { char *data; size_t len, cap; };
+struct buf { char *data; size_t len, cap; uint64_t mount_snapshot, poll_event; bool mount_watch, mount_info; };
 static void bprintf(struct buf *b, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 static void bprintf(struct buf *b, const char *fmt, ...) {
     va_list ap;
@@ -349,6 +411,12 @@ static int tracer_pid(struct process *p) {
     if (list_empty(&p->threads)) return 0;
     struct process *tr = list_entry(p->threads.next, struct thread, proc_node)->ptracer;
     return tr ? tr->pid : 0;
+}
+static char tstate(struct process *p, struct thread *t) {
+    if (p->state == P_ZOMBIE || t->state == T_ZOMBIE) return 'Z';
+    if (t->pt_stopped) return 't';
+    if (p->stopped) return 'T';
+    return t->state == T_RUNNING || t->state == T_RUNNABLE ? 'R' : 'S';
 }
 static char pstate(struct process *p) {
     if (p->state == P_ZOMBIE) return 'Z';
@@ -385,6 +453,8 @@ static void gen(struct pinfo *pi, struct buf *b) {
     if (pi->kind != P_FILE) return;
     struct process *p = pi->pid ? process_find(pi->pid) : nullptr;
     if (pi->pid && !p) return;
+    struct thread *task = pi->tid ? proc_task(pi) : nullptr;
+    if (pi->tid && !task) return;
     switch (pi->file) {
     case G_MEMINFO:
         bprintf(b, "MemTotal:       %8lu kB\nMemFree:        %8lu kB\nMemAvailable:   %8lu kB\n"
@@ -399,10 +469,11 @@ static void gen(struct pinfo *pi, struct buf *b) {
             bprintf(b, "processor\t: %d\nvendor_id\t: 9os\nmodel name\t: 9os virtual CPU (%s)\nhwid\t\t: 0x%lx\nflags\t\t: fpu sse sse2\n\n",
                     i, ARCH_PLATFORM, cpus[i].hwid);
         break;
-    case G_MOUNTS: case G_FILESYSTEMS: case G_PARTITIONS: case G_DISKSTATS: case G_LOCKS: {
+    case G_MOUNTS: case G_MOUNTINFO: break; /* dynamic snapshots handled by pf_open */
+    case G_FILESYSTEMS: case G_PARTITIONS: case G_DISKSTATS: case G_LOCKS: {
         char *t = kmalloc(8192);
         if (t) {
-            int n = pi->file == G_MOUNTS ? vfs_proc_mounts(t, 8192) : pi->file == G_FILESYSTEMS ? vfs_proc_filesystems(t, 8192)
+            int n = pi->file == G_FILESYSTEMS ? vfs_proc_filesystems(t, 8192)
                   : pi->file == G_PARTITIONS ? blk_proc_partitions(t, 8192) : pi->file == G_LOCKS ? locks_report(t, 8192)
                   : blk_proc_diskstats(t, 8192);
             if (b->len + n + 1 > b->cap) { b->cap = b->len + n + 1; b->data = krealloc(b->data, b->cap); }
@@ -500,12 +571,13 @@ static void gen(struct pinfo *pi, struct buf *b) {
         sched_for_each_thread(sched_thread_line, b);
         break;
     case F_STAT: {
-        struct thread *t = main_thread(p);
+        struct thread *t = task ? task : main_thread(p);
         bprintf(b, "%d (%s) %c %d %d %d %d %d 4194304 %lu %lu 0 0 %lu %lu %lu %lu %d %d %d 0 %lu %lu %lu",
-                p->pid, t ? t->name : p->name, pstate(p), p->parent ? p->parent->pid : 0, p->pgid, p->sid,
-                p->ctty ? 0x0501 : 0, p->ctty ? p->ctty->pgrp : -1, p->min_flt, p->cmin_flt,
-                p->utime_ns / 10000000, p->stime_ns / 10000000, p->cutime_ns / 10000000, p->cstime_ns / 10000000,
-                main_prio(p), main_nice(p), nthreads(p), p->start_ticks / 10, vm_size(p), vm_rss(p));
+                pi->tid ? pi->tid : p->pid, t ? t->name : p->name, task ? tstate(p, task) : pstate(p), p->parent ? p->parent->pid : 0, p->pgid, p->sid,
+                p->ctty ? 0x0501 : 0, p->ctty ? p->ctty->pgrp : -1, task ? task->min_flt : p->min_flt, p->cmin_flt,
+                (task ? task->utime_ns : p->utime_ns) / 10000000,
+                (task ? task->stime_ns : p->stime_ns) / 10000000, p->cutime_ns / 10000000, p->cstime_ns / 10000000,
+                thread_prio(t), t ? t->nice : 0, nthreads(p), (task ? task->start_ticks : p->start_ticks) / 10, vm_size(p), vm_rss(p));
         /* Fields25..52 are part of the ABI, even when zero. Alpine BusyBox's
          * fast procps parser skips through processor(39) without an EOF check.
          * No swap/guest/blkio accounting; code/data/argv addresses are redacted.
@@ -522,14 +594,15 @@ static void gen(struct pinfo *pi, struct buf *b) {
         break;
     }
     case F_STATUS: {
-        struct thread *t = main_thread(p);
+        struct thread *t = task ? task : main_thread(p);
         char credbuf[1024];
         cred_proc_status(p, credbuf, sizeof credbuf);
         bprintf(b, "Name:\t%s\nState:\t%c\nTgid:\t%d\nPid:\t%d\nPPid:\t%d\nTracerPid:\t%d\n%sVmSize:\t%8lu kB\nVmLck:\t%8lu kB\nVmRSS:\t%8lu kB\nThreads:\t%d\n"
                    "voluntary_ctxt_switches:\t%lu\nnonvoluntary_ctxt_switches:\t%lu\n",
-                t ? t->name : p->name, pstate(p), p->pid, p->pid, p->parent ? p->parent->pid : 0, tracer_pid(p),
+                t ? t->name : p->name, task ? tstate(p, task) : pstate(p), p->pid, pi->tid ? pi->tid : p->pid,
+                p->parent ? p->parent->pid : 0, task ? (task->ptracer ? task->ptracer->pid : 0) : tracer_pid(p),
                 credbuf, vm_size(p) >> 10, p->mm ? p->mm->locked_vm >> 10 : 0, vm_rss(p) * (PAGE_SIZE / 1024),
-                nthreads(p), p->nvcsw, p->nivcsw);
+                nthreads(p), task ? task->nvcsw : p->nvcsw, task ? task->nivcsw : p->nivcsw);
         break;
     }
     case F_CMDLINE:
@@ -539,7 +612,7 @@ static void gen(struct pinfo *pi, struct buf *b) {
             b->len = b->cap = p->cmdline_len;
         }
         break;
-    case F_COMM: { struct thread *t = main_thread(p); bprintf(b, "%s\n", t ? t->name : p->name); break; }
+    case F_COMM: { struct thread *t = task ? task : main_thread(p); bprintf(b, "%s\n", t ? t->name : p->name); break; }
     case F_ENVIRON: break;
     case F_MAPS:
         if (p->mm) {
@@ -561,16 +634,39 @@ static void gen(struct pinfo *pi, struct buf *b) {
 
 static int pf_open(struct inode *i, struct file *f) {
     struct buf *b = kzalloc(sizeof *b);
-    gen(i->priv, b);
+    if (!b) return -ENOMEM;
+    struct pinfo *pi = i->priv;
+    if (pi->file == G_MOUNTINFO || pi->file == G_MOUNTS) {
+        b->mount_watch = true; b->mount_info = pi->file == G_MOUNTINFO;
+        b->data = vfs_proc_mount_snapshot(&b->len, &b->mount_snapshot, b->mount_info);
+        b->poll_event = b->mount_snapshot;
+        if (!b->data) { kfree(b); return -ENOMEM; }
+        b->cap = b->len + 1;
+    } else gen(pi, b);
     f->priv = b;
     return 0;
 }
 static ssize_t pf_read(struct file *f, void *buf, size_t n, off_t *off) {
     struct buf *b = f->priv;
-    if (!b || *off >= (off_t)b->len) return 0;
-    n = MIN(n, b->len - *off);
-    memcpy(buf, b->data + *off, n);
-    *off += n;
+    if (!b) return 0;
+    /* Serialize refresh and copying against another reader of this open file.
+     * A rewind regenerates real data, including renamed mount ancestors.
+     * Reading does not acknowledge poll events: Linux does that in mounts_poll. */
+    if (b->mount_watch) vfs_ns_lock();
+    if (b->mount_watch && *off == 0) {
+        size_t len; uint64_t event;
+        char *data = vfs_proc_mount_snapshot(&len, &event, b->mount_info);
+        if (!data) { vfs_ns_unlock(); return -ENOMEM; }
+        kfree(b->data); b->data = data; b->len = len; b->cap = len + 1;
+        b->mount_snapshot = event;
+    }
+    if (*off >= (off_t)b->len) n = 0;
+    else {
+        n = MIN(n, b->len - *off);
+        memcpy(buf, b->data + *off, n);
+        *off += n;
+    }
+    if (b->mount_watch) vfs_ns_unlock();
     return n;
 }
 static ssize_t pf_write(struct file *f, const void *buf, size_t n, off_t *off) {
@@ -603,7 +699,18 @@ static void pf_release(struct file *f) {
     struct buf *b = f->priv;
     if (b) { kfree(b->data); kfree(b); }
 }
-static unsigned pf_poll(struct file *f) { return POLLIN | POLLRDNORM; }
+static unsigned pf_poll(struct file *f) {
+    unsigned res = POLLIN | POLLRDNORM;
+    /* Directory files have no private snapshot. */
+    if (S_ISDIR(f->inode->mode)) return res;
+    struct buf *b = f->priv;
+    if (b && b->mount_watch) {
+        uint64_t event = vfs_mount_event();
+        if (__atomic_exchange_n(&b->poll_event, event, __ATOMIC_ACQ_REL) != event)
+            res |= POLLPRI | POLLERR;
+    }
+    return res;
+}
 
 /* process lists and fields are still BKL-protected: procfs takes it itself, so the VFS can
  * walk into /proc from lock-free path syscalls (under the namespace mutex: BKL inside is ok) */
@@ -615,8 +722,8 @@ static int pl_follow(struct inode *i, struct inode **o) { return PBKL(p_follow(i
 static const struct inode_ops proc_iops = {
     .lookup = pl_lookup, .readlink = pl_readlink, .iterate = pl_iterate, .evict = p_evict, .follow_link = pl_follow,
 };
-static const struct file_ops proc_file_fops = { .open = pf_open, .read = pf_read, .write = pf_write, .release = pf_release, .poll = pf_poll };
-static const struct file_ops proc_dir_fops = { .poll = pf_poll };
+static const struct file_ops proc_file_fops = { .open = pf_open, .read = pf_read, .write = pf_write, .release = pf_release, .poll = pf_poll, .poll_always = POLLIN | POLLRDNORM };
+static const struct file_ops proc_dir_fops = { .poll = pf_poll, .poll_always = POLLIN | POLLRDNORM };
 
 struct inode *procfs_create_root(void) {
     proc_root_inode = pnew(S_IFDIR | 0555, P_ROOT, 0, 0, 0);

@@ -1,0 +1,16 @@
+#!/bin/sh
+# Genuine packaged UDisks enumeration; never modify, format or mount a device.
+set -eu
+D=$(mktemp -d /tmp/alpine-udisks-XXXXXX)
+trap 'rm -rf "$D"' EXIT HUP INT TERM
+timeout -s KILL 40 dbus-send --system --print-reply --reply-timeout=30000 \
+ --dest=org.freedesktop.UDisks2 /org/freedesktop/UDisks2 \
+ org.freedesktop.DBus.ObjectManager.GetManagedObjects > "$D/reply"
+# This probe is for the real virtio disk-root desktop boot, not an empty daemon.
+grep -Fq 'object path "/org/freedesktop/UDisks2/Manager"' "$D/reply"
+grep -Fq 'object path "/org/freedesktop/UDisks2/block_devices/vda"' "$D/reply"
+grep -Fq 'object path "/org/freedesktop/UDisks2/block_devices/vda1"' "$D/reply"
+grep -Fq 'string "org.freedesktop.UDisks2.Filesystem"' "$D/reply"
+grep -Fq 'array of bytes "/dev/vda1"' "$D/reply"
+grep -Fq 'array of bytes "/"' "$D/reply"
+printf 'alpine-udisks: real disk/partition/root filesystem enumerated uid=%s\n' "$(id -u)"

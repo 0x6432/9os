@@ -7,7 +7,7 @@ R=$TOP/root-$ARCH
 export ARCH
 rm -rf "$R" && mkdir -p "$R"
 cd "$R"
-mkdir -p bin sbin usr/bin usr/sbin etc root tmp proc sys dev home var/log
+mkdir -p bin sbin usr/bin usr/sbin usr/lib etc root tmp proc sys dev home var/log
 cp "$TOP/build/busybox-$ARCH/busybox" bin/busybox
 llvm-strip bin/busybox
 # applet links (list obtained from the binary itself when it can run on the host)

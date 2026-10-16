@@ -405,6 +405,7 @@ struct thread *thread_alloc(const char *name) {
     if (!stk) { kmem_cache_free(thread_cache, t); return nullptr; }
     t->kstack = PHYS_TO_VIRT(page_to_phys(stk));
     t->tid = next_tid++;
+    t->start_ticks = jiffies;
     strlcpy(t->name, name, sizeof t->name);
     t->level = 0;
     t->bkl_depth = 0;

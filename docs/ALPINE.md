@@ -123,8 +123,8 @@ eudev trigger/settle, stock Plasma desktop/panel readiness and strict compositor
 capture including the genuine packaged wallpaper. Cold initialization and image
 loading are bounded, not replaced with a test background. `alpine-desktop-services`
 starts the real system bus as a locked messagebus identity and real eudev; it is
-not a logind/udisks/FUSE/PipeWire implementation. Physical KMS/input and updated
-three-architecture validation remain pending. **M40 is not complete.**
+not a logind/udisks/FUSE/PipeWire implementation. Physical UID1000 KMS/input and ALL3 fast/full-source validation subsequently
+passed at PR17 (see integrated checkpoint below). **M40 is not complete.**
 
 The experimental desktop additionally needs host `glib-compile-schemas` and
 `update-mime-database` (Ubuntu packages `libglib2.0-bin shared-mime-info`). Since
@@ -152,4 +152,118 @@ and its black-background negative controls remain mandatory and unchanged.
 Physical KMS diagnostics now require wlroots' actual `drm,libinput` backends
 and an enumerated keyboard. A real PTY and rendered physical display alone
 do NOT prove that keyboard input reaches Konsole; that end-to-end test remains
-a separate gate. M40 is NOT complete.
+a separate gate, now passed at PR17. M40 is NOT complete.
+
+Local x86 physical KMS input now passes the diagnostic11/11 gate: real QEMU
+key events enter Konsole on `/dev/pts/0`, create the expected file, and appear
+in a visually reviewed1280x800 physical screenshot. This is Sway DRM scanout
+with nested KWin/QPainter and stock Plasma, not direct KWin DRM or accelerated
+GPU rendering. The permanent gate additionally requires UID1000: a genuine
+root `seatd -g video` broker grants device access to the existing video group;
+KWin, Plasma and Konsole run as the normal VM user. That stronger test and
+ALL3 validation passed at PR17; no complete-M40 claim.
+
+At75e3d01, fast CI38817891542 passes all three architectures: base19/19,
+UP8/8 (x86SMP8 8/8), desktop18/18 and physical UID1000 KMS/keyboard11/11.
+These updated results include the strengthened genuine-PTY check, real stock
+wallpaper/panel captures and typed `id -u == 1000` proof. Full source-regression
+CI38817891502 also passed ALL3: main115/115, disk20+6, clean fscks/shutdown,
+audio2+2, UP9 and MLFQ12 (x86SMP8 10). PR17 was reviewed and merged at
+1d2a11d8a823e0601968704994ac8aaa24a7f4bc, retaining its branch.
+One local normal-user repeat timed out during Plasma initialization; follow-up
+work removes repeated heavyweight Qt bus-query processes while preserving the
+same deadline/acceptance, and isolates the normal user's bus environment.
+
+### Real Dolphin file-model follow-up (not yet integrated)
+
+The normal user's genuine Dolphin window is queried through its packaged
+AT-SPI accessibility bridge, using a tiny `desktopa11y` C consumer and the
+existing signed libatspi binary. No Qt, KDE or accessibility library is rebuilt.
+The observer matches the real application's PID and exact directory List
+role/name/description, then enumerates every direct ListItem model row. It
+prunes unrelated menus and fails on remote errors, oversized/cyclic trees,
+missing required names or present forbidden names. Seventeen host mock controls
+validate rejection logic only; they are explicitly NOT desktop evidence.
+
+An isolated x86 UID1000 KWin/QPainter session passed the real before/after
+model check: before.txt present initially, after.txt/new.txt absent; after
+rename/create, after.txt/new.txt present and before.txt absent. Dolphin's real
+window is active and exits cleanly through its public DBus quit method. The first combined physical KMS run passed16/16 at7857039, including the
+actual UID1000 keyboard/Konsole PTY, genuine UDisks disk/partition/root
+filesystem enumeration, both model states, a visually reviewed QEMU screenshot
+showing after.txt/new.txt, clean application exit/shutdown and lockdep0. A
+second cold-boot repeat and broader updated suites are in progress. Non-x86
+validation of this follow-up remains pending PR CI. `isItemVisibleInAnyView` is not used
+as a file-existence oracle: upstream intentionally checks the containing
+folder even when a child is nonexistent or not loaded.
+
+### Mountinfo and GLib epoll compatibility
+
+Real packaged UDisks exposed two kernel gaps rather than a KDE build problem:
+missing /proc/self/mountinfo caused its fatal startup error, then repeatedly
+delivered procfs EPOLLIN|EPOLLET caused GLib's initial-event drain to spin.
+Mount snapshots now report actual mount topology, IDs, paths, devices, rw/ro
+flags and filesystem sources without fixed-buffer truncation. Mount changes
+wake poll with Linux's per-open POLLPRI|POLLERR acknowledgment behavior. A
+fresh tmpfs /run prevents stale service sockets/PIDs across disk-root reboots.
+
+Epoll now latches permanently readable procfs bits for ET registrations and
+uses the same eligibility for nested peeks. This is NOT complete dynamic-input
+EPOLLET parity: that historical level approximation still needs producer-side
+edge tracking. Mountinfo describes the current single global namespace, not
+bind mounts, private namespaces or a chroot-relative view. The same C test
+runs on Linux and 9os, including real mount mutations in an isolated host
+namespace; guest root and UID1000 checks plus source disk reboot tests pass.
+UDisks acceptance is read-only enumeration, not privileged mounting, formatting
+or authorization. Direct KWin DRM, hardware acceleration, logind and the
+remaining source Qt Quick rendering scope are not claimed. M40 remains open.
+
+### Nested presentation-feedback compatibility (validation in progress)
+
+The packaged KWin6.3.6 / wlroots0.18.2 nested stack can stop rendering after
+KWin commits a buffer with no damage and requests `wp_presentation` feedback.
+A real failing 9os protocol trace has an outstanding feedback request, idle
+compositors and Qt frame-callback timeouts. The same unmodified packaged stack
+also failed the unchanged150-second wallpaper/panel gate on REAL HOST LINUX
+(headless Sway); it is not evidence of a new 9os syscall failure. An earlier
+Linux run reached the actual Dolphin model but its immediate outer capture
+still showed only Konsole; that immediate image alone is not a full35-second
+presentation-deadline negative control.
+
+The Plasma harness now explicitly defaults to `ALPINE_PLASMA_PRESENTATION=callback`.
+`wayland-presentation-proxy` hides only the optional presentation-time registry
+advertisement on KWin's OUTER connection, selecting KWin's existing standard
+`wl_surface.frame` fallback. It does not patch packaged libraries/QML, change
+images, alter the inner KWin application connection or weaken any readiness,
+model, physical typing, fresh-image/OCR or cleanup gate. Native protocol mode
+remains available as `ALPINE_PLASMA_PRESENTATION=native` for comparisons.
+This is a userland compatibility workaround, NOT a claim that the upstream
+presentation implementation or all kernel ABIs are fixed.
+
+The proxy preserves ordered Wayland byte messages and SCM_RIGHTS, handles
+fragmentation/short writes, closes transferred rights and propagates signals
+and child status. It is NOT a security boundary. `--passthrough` is a transport
+control. Same-source `python3 /usr/share/9os/wayland-proxy-selftest.py` runs16
+wire/FD/process controls; these are NOT GUI proof. Root and UID1000 controls
+are added to the desktop suite (28 gates). A private Linux protocol-filter
+control passed actual wallpaper/Konsole/Dolphin and the unchanged independent
+fresh-image OCR immediately, but 9os and non-x86 compatibility validation is
+still pending. M40 remains open.
+
+For a reproducible Linux comparison in a disposable x86_64 sandbox:
+
+```sh
+sudo scripts/alpine-linux-oracle.sh userland/alpine-desktop-root-x86_64 native > linux-native.log 2>&1
+python3 scripts/alpine-linux-oracle-check.py linux-native.log
+sudo scripts/alpine-linux-oracle.sh userland/alpine-desktop-root-x86_64 callback > linux-callback.log 2>&1
+python3 scripts/alpine-linux-oracle-check.py linux-callback.log
+```
+
+The harness uses private PID/mount namespaces, a read-only packaged root, fresh
+runtime directories and a real UID1000 session on the HOST LINUX KERNEL. It
+captures fresh outer-compositor frames for35 seconds after the genuine Dolphin
+model is ready. The checker reuses the unchanged wallpaper and filename/OCR
+oracles, and requires real Konsole PTY/model/clean-exit markers. It cannot prove
+9os syscall correctness or physical input. These checked-in wrappers preserve
+the earlier private experiment; execute them before treating their new
+read-only-root variant as validated. Do not replace the 9os QEMU gates with it.

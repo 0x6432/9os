@@ -336,29 +336,32 @@ static struct file *item_get(struct epitem *it) {
     return f;
 }
 
-/* Collect ready events. Edge-triggered items are level-triggered for input (consumers drain
- * to EAGAIN anyway) but only report EPOLLOUT on a not-writable -> writable transition.
- * out == nullptr: peek only (no edge/oneshot state change), stop at the first ready item. */
+/* Collect ready events. Permanently asserted readiness must be latched for ET:
+ * GLib drains initial procfs EPOLLIN edges and otherwise loops forever. Dynamic
+ * input still uses the historical level approximation; it needs producer-side
+ * edge tracking before it can safely suppress drain/refill events between scans.
+ * out == nullptr: peek only (no edge/oneshot state change), using the SAME edge
+ * eligibility as delivery so a consumed inner ET event cannot keep an outer
+ * epoll readable forever. */
 static int ep_scan_locked(struct epoll *ep, struct epoll_event_u *out, int max, struct ep_scan_ctx *x) {
     int n = 0;
     list_for_each_safe(i, tmp, &ep->items) {
+        if (out && n >= max) break; /* never acknowledge an undeliverable event */
         struct epitem *it = list_entry(i, struct epitem, node);
         struct file *f = item_get(it);
         if (!f) { list_del(&it->node); kfree(it); continue; }
         if (it->disabled) { vfs_close(f); continue; }
-        unsigned ready = ep_file_poll(f, x) & (it->events | EPOLLERR | EPOLLHUP);
+        unsigned raw = ep_file_poll(f, x) & (it->events | EPOLLERR | EPOLLHUP);
+        unsigned latch = EPOLLOUT | (f->fops ? f->fops->poll_always : 0);
         vfs_close(f);
+        unsigned ready = raw;
+        if (it->events & EPOLLET) ready &= ~(it->last & latch);
         if (!out) {
-            if (ready & ~EPOLLET) { n = 1; break; }
+            if (ready) { n = 1; break; }
             continue;
         }
-        if (it->events & EPOLLET) {
-            unsigned prev = it->last;
-            it->last = ready;
-            if ((ready & EPOLLOUT) && (prev & EPOLLOUT)) ready &= ~EPOLLOUT;
-        }
+        if (it->events & EPOLLET) it->last = raw;
         if (!ready) continue;
-        if (n >= max) break;
         out[n] = (struct epoll_event_u){ ready, it->data };
         if (it->events & EPOLLONESHOT) it->disabled = true;
         n++;

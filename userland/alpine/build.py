@@ -96,12 +96,20 @@ def install_desktop_accounts(stage):
         path = stage / 'etc' / name
         original = path.read_text()
         lines = [line.split(':') for line in original.splitlines() if line]
-        if any(line[0] == 'messagebus' for line in lines):
-            if name in ('passwd', 'group') and any(line[0] == 'messagebus' and int(line[2]) == 0 for line in lines):
-                raise ValueError('messagebus must not be privileged')
-            continue
-        if name in ('passwd', 'group') and any(line[2] == '81' for line in lines):
+        existing = [line for line in lines if line[0] == 'messagebus']
+        if name in ('passwd', 'group') and any(line[0] != 'messagebus' and line[2] == '81' for line in lines):
             raise ValueError('VM messagebus id81 already in use')
+        if existing:
+            if len(existing) != 1:
+                raise ValueError('Duplicate VM messagebus identity')
+            row = existing[0]
+            if name == 'passwd' and (len(row) != 7 or row[2:4] != ['81', '81'] or row[6] not in ('/sbin/nologin', '/bin/false')):
+                raise ValueError('messagebus must use the unprivileged nologin VM identity')
+            if name == 'group' and (len(row) != 4 or row[2] != '81'):
+                raise ValueError('messagebus must use the unprivileged VM group')
+            if name == 'shadow' and (len(row) != 9 or not row[1].startswith(('!', '*'))):
+                raise ValueError('messagebus password must be locked')
+            continue
         path.write_text(original.rstrip('\n') + '\n' + record + '\n')
 
 def main():

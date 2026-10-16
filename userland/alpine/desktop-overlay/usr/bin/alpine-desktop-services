@@ -2,6 +2,15 @@
 # Minimal genuine desktop prerequisites, not a logind/udisks/portal substitute.
 set -eu
 [ "$(id -u)" = 0 ] || { echo 'Desktop service startup requires root' >&2;exit 1; }
+# Image construction intentionally normalizes host file owners to root:root.
+# Restore this ONE signed privileged helper's Alpine policy inside the guest:
+# root:messagebus 4750, never world-executable or writable by the daemon.
+helper=/usr/libexec/dbus-daemon-launch-helper
+[ -f "$helper" ] && [ ! -L "$helper" ]
+[ "$(id -u messagebus)" = 81 ] && [ "$(id -g messagebus)" = 81 ]
+chown 0:81 "$helper"
+chmod 4750 "$helper"
+[ "$(stat -c '%u:%g:%a' "$helper")" = 0:81:4750 ]
 mkdir -p /run/dbus /var/lib/dbus
 dbus-uuidgen --ensure
 if [ ! -S /run/dbus/system_bus_socket ];then dbus-daemon --system --fork;fi
