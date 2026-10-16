@@ -32,10 +32,10 @@ class CrossTools(unittest.TestCase):
                'set(QT_FEATURE_commandlineparser ON)\nset(QT_FEATURE_thread ON)\n'
                'set(QT_FEATURE_process ON)\nset(QT_FEATURE_regularexpression ON)\n'
                'set(QT_BUILD_SHARED_LIBS ON)\n'
-               + ('add_library(Qt::Quick INTERFACE IMPORTED)\n' if quick else '') +
+               + ('add_library(Qt::Quick INTERFACE IMPORTED)\nadd_library(Qt::QuickTest INTERFACE IMPORTED)\n' if quick else '') +
                'function(add_subdirectory name)\n'
                'file(APPEND "${CMAKE_BINARY_DIR}/entered.txt" "${name}\\n")\n'
-               'if(CMAKE_CROSSCOMPILING AND (name STREQUAL "qmltime" OR name STREQUAL "qmlplugindump"))\n'
+               'if(CMAKE_CROSSCOMPILING AND (name STREQUAL "qmltime" OR name STREQUAL "qmlplugindump" OR name STREQUAL "qmltestrunner"))\n'
                'message(FATAL_ERROR "Missing headless host GUI tool: ${name}")\n'
                'endif()\nendfunction()\ninclude("${CMAKE_SOURCE_DIR}/tools.cmake")\n')
         (self.root / 'CMakeLists.txt').write_text(src)
@@ -48,7 +48,7 @@ class CrossTools(unittest.TestCase):
     def test_cross_quick_omits_only_optional_host_gui_tools(self):
         r, entered = self.run_cmake(True, True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        for name in ('qmltime', 'qmlplugindump'):
+        for name in ('qmltime', 'qmlplugindump', 'qmltestrunner'):
             self.assertNotIn(name, entered)
         for name in ('qmlscene', 'qml', 'qmltyperegistrar', 'qmlimportscanner', 'qmllint', 'qmltc'):
             self.assertIn(name, entered)
@@ -58,11 +58,12 @@ class CrossTools(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn('Missing headless host GUI tool: qmltime', r.stderr)
 
-    def test_native_quick_retains_both_tools(self):
+    def test_native_quick_retains_all_tools(self):
         r, entered = self.run_cmake(False, True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn('qmltime', entered)
         self.assertIn('qmlplugindump', entered)
+        self.assertIn('qmltestrunner', entered)
 
     def test_headless_native_generators_unchanged(self):
         r, entered = self.run_cmake(False, False)
@@ -70,6 +71,20 @@ class CrossTools(unittest.TestCase):
         self.assertNotIn('qmltime', entered)
         self.assertIn('qmltyperegistrar', entered)
         self.assertIn('qmlimportscanner', entered)
+
+    def test_legacy_patch_reproduces_missing_qmltestrunner(self):
+        self.file.write_text(PATCH.patched(FIXTURE, PATCH.LEGACY_TOOLS))
+        r, _ = self.run_cmake(True, True, False)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('Missing headless host GUI tool: qmltestrunner', r.stderr)
+
+    def test_legacy_patch_upgrades_and_is_idempotent(self):
+        self.file.write_text(PATCH.patched(FIXTURE, PATCH.LEGACY_TOOLS))
+        PATCH.apply(self.file)
+        expected = PATCH.patched(FIXTURE)
+        self.assertEqual(self.file.read_text(), expected)
+        PATCH.apply(self.file)
+        self.assertEqual(self.file.read_text(), expected)
 
     def test_idempotence_and_changed_source_rejection(self):
         PATCH.apply(self.file)
