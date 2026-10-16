@@ -2506,3 +2506,20 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - rcS mounts fresh tmpfs on `/run` before runtime directories: disk-root reboot
   must not inherit stale sockets/PID files. Actual x86 boot verified fresh /run.
 - These changes have not yet received ARM/RISC-V PR CI. M40 remains open.
+
+### Mount monitoring oracle and current UDisks stall
+- Linux6.12 proc_namespace.c mounts_poll reference: report PRI|ERR once per
+  namespace event per open file; poll acknowledges, read does not. Implemented
+  mount/remount/unmount notifications and refresh on rewind for both mounts
+  and mountinfo, with escaped live paths and no fixed8192-byte truncation.
+- Same C test now passes isolated Linux user+mount namespace mutations3086/3086
+  and ordinary host570/570. Linux CAN reuse an unmounted mount ID; corrected
+  that test assumption instead of imposing 9os's non-reuse policy on Linux.
+- Actual x86 disk root: mutation/poll/rewind/ancestor-rename1115 checks; UID1000
+  192 checks, all pass; lockdep0. Log build/test-mount-watch.log. ARM/RISC pending.
+- Traced real UDisks still times out: gmain repeatedly gets EPOLLIN from its
+  internal epoll at timeout0 while the main thread waits on futex. Investigating
+  watched FDs and nested epoll; diagnostic exit0 means trace collected, NOT a
+  successful UDisks request. Actual GetManagedObjects failed.
+- Latest physical desktop repeat failed shell readiness before input or Dolphin.
+  No new physical acceptance claim; do not mark M40 complete.

@@ -332,7 +332,7 @@ static int p_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
 static void p_evict(struct inode *i) { kfree(i->priv); }
 
 /* ---- file contents ---- */
-struct buf { char *data; size_t len, cap; };
+struct buf { char *data; size_t len, cap; uint64_t mount_snapshot, poll_event; bool mount_watch, mount_info; };
 static void bprintf(struct buf *b, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 static void bprintf(struct buf *b, const char *fmt, ...) {
     va_list ap;
@@ -400,10 +400,11 @@ static void gen(struct pinfo *pi, struct buf *b) {
             bprintf(b, "processor\t: %d\nvendor_id\t: 9os\nmodel name\t: 9os virtual CPU (%s)\nhwid\t\t: 0x%lx\nflags\t\t: fpu sse sse2\n\n",
                     i, ARCH_PLATFORM, cpus[i].hwid);
         break;
-    case G_MOUNTS: case G_FILESYSTEMS: case G_PARTITIONS: case G_DISKSTATS: case G_LOCKS: {
+    case G_MOUNTS: case G_MOUNTINFO: break; /* dynamic snapshots handled by pf_open */
+    case G_FILESYSTEMS: case G_PARTITIONS: case G_DISKSTATS: case G_LOCKS: {
         char *t = kmalloc(8192);
         if (t) {
-            int n = pi->file == G_MOUNTS ? vfs_proc_mounts(t, 8192) : pi->file == G_FILESYSTEMS ? vfs_proc_filesystems(t, 8192)
+            int n = pi->file == G_FILESYSTEMS ? vfs_proc_filesystems(t, 8192)
                   : pi->file == G_PARTITIONS ? blk_proc_partitions(t, 8192) : pi->file == G_LOCKS ? locks_report(t, 8192)
                   : blk_proc_diskstats(t, 8192);
             if (b->len + n + 1 > b->cap) { b->cap = b->len + n + 1; b->data = krealloc(b->data, b->cap); }
@@ -564,8 +565,10 @@ static int pf_open(struct inode *i, struct file *f) {
     struct buf *b = kzalloc(sizeof *b);
     if (!b) return -ENOMEM;
     struct pinfo *pi = i->priv;
-    if (pi->file == G_MOUNTINFO) {
-        b->data = vfs_proc_mountinfo(&b->len);
+    if (pi->file == G_MOUNTINFO || pi->file == G_MOUNTS) {
+        b->mount_watch = true; b->mount_info = pi->file == G_MOUNTINFO;
+        b->data = vfs_proc_mount_snapshot(&b->len, &b->mount_snapshot, b->mount_info);
+        b->poll_event = b->mount_snapshot;
         if (!b->data) { kfree(b); return -ENOMEM; }
         b->cap = b->len + 1;
     } else gen(pi, b);
@@ -574,10 +577,25 @@ static int pf_open(struct inode *i, struct file *f) {
 }
 static ssize_t pf_read(struct file *f, void *buf, size_t n, off_t *off) {
     struct buf *b = f->priv;
-    if (!b || *off >= (off_t)b->len) return 0;
-    n = MIN(n, b->len - *off);
-    memcpy(buf, b->data + *off, n);
-    *off += n;
+    if (!b) return 0;
+    /* Serialize refresh and copying against another reader of this open file.
+     * A rewind regenerates real data, including renamed mount ancestors.
+     * Reading does not acknowledge poll events: Linux does that in mounts_poll. */
+    if (b->mount_watch) vfs_ns_lock();
+    if (b->mount_watch && *off == 0) {
+        size_t len; uint64_t event;
+        char *data = vfs_proc_mount_snapshot(&len, &event, b->mount_info);
+        if (!data) { vfs_ns_unlock(); return -ENOMEM; }
+        kfree(b->data); b->data = data; b->len = len; b->cap = len + 1;
+        b->mount_snapshot = event;
+    }
+    if (*off >= (off_t)b->len) n = 0;
+    else {
+        n = MIN(n, b->len - *off);
+        memcpy(buf, b->data + *off, n);
+        *off += n;
+    }
+    if (b->mount_watch) vfs_ns_unlock();
     return n;
 }
 static ssize_t pf_write(struct file *f, const void *buf, size_t n, off_t *off) {
@@ -610,7 +628,18 @@ static void pf_release(struct file *f) {
     struct buf *b = f->priv;
     if (b) { kfree(b->data); kfree(b); }
 }
-static unsigned pf_poll(struct file *f) { return POLLIN | POLLRDNORM; }
+static unsigned pf_poll(struct file *f) {
+    unsigned res = POLLIN | POLLRDNORM;
+    /* Directory files have no private snapshot. */
+    if (S_ISDIR(f->inode->mode)) return res;
+    struct buf *b = f->priv;
+    if (b && b->mount_watch) {
+        uint64_t event = vfs_mount_event();
+        if (__atomic_exchange_n(&b->poll_event, event, __ATOMIC_ACQ_REL) != event)
+            res |= POLLPRI | POLLERR;
+    }
+    return res;
+}
 
 /* process lists and fields are still BKL-protected: procfs takes it itself, so the VFS can
  * walk into /proc from lock-free path syscalls (under the namespace mutex: BKL inside is ok) */

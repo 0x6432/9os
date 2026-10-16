@@ -784,6 +784,7 @@ static struct list_node mounts = LIST_INIT(mounts);
 #define MNT_DETACH 2
 
 static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size);
+static void mount_changed(void);
 static void mount_record(struct inode *root, struct inode *mp, struct super_block *sb, const char *src,
                          const char *path, const char *type, uint64_t flags) {
     struct mount *m = kzalloc(sizeof *m);
@@ -795,6 +796,7 @@ static void mount_record(struct inode *root, struct inode *mp, struct super_bloc
     else m->path = strdup(path);
     kfree(buf);
     list_add_tail(&mounts, &m->node);
+    mount_changed();
 }
 
 static int attach(struct inode *mp, struct inode *root) {
@@ -826,17 +828,12 @@ int vfs_proc_filesystems(char *buf, size_t max) {
         n += snprintf(buf + n, max - n, "%s\t%s\n", fs_types[k]->needs_dev ? "" : "nodev", fs_types[k]->name);
     return (int)MIN(n, max);
 }
-int vfs_proc_mounts(char *buf, size_t max) {
-    size_t n = 0;
-    vfs_ns_lock();
-    list_for_each(it, &mounts) {
-        struct mount *m = list_entry(it, struct mount, node);
-        if (n >= max) break;
-        bool ro = m->sb ? (m->sb->flags & SB_RDONLY) : (m->flags & MS_RDONLY);
-        n += snprintf(buf + n, max - n, "%s %s %s %s 0 0\n", m->src, m->path, m->type, ro ? "ro" : "rw");
-    }
-    vfs_ns_unlock();
-    return (int)MIN(n, max);
+/* Readers observe mount changes with Linux's POLLPRI|POLLERR semantics. */
+static uint64_t mount_event;
+uint64_t vfs_mount_event(void) { return __atomic_load_n(&mount_event, __ATOMIC_ACQUIRE); }
+static void mount_changed(void) {
+    __atomic_add_fetch(&mount_event, 1, __ATOMIC_RELEASE);
+    poll_notify();
 }
 
 /* Linux mountinfo for 9os's single global mount namespace. No bind mounts,
@@ -866,7 +863,7 @@ static size_t mount_escape(char *buf, const char *s) {
     }
     return n;
 }
-char *vfs_proc_mountinfo(size_t *len) {
+char *vfs_proc_mount_snapshot(size_t *len, uint64_t *event, bool info) {
     *len = 0;
     vfs_ns_lock();
     /* Worst-case octal escaping of PATH_MAX plus the actual source string.
@@ -888,14 +885,21 @@ char *vfs_proc_mountinfo(size_t *len) {
         }
         uint64_t dev = m->root->dev ? m->root->dev : 1; /* same as stat.st_dev */
         bool ro = m->sb ? (m->sb->flags & SB_RDONLY) : (m->flags & MS_RDONLY);
-        n += snprintf(buf + n, cap - n, "%lu %lu %u:%u / ", m->id,
-                      mount_parent_id(m), (unsigned)MAJOR(dev), (unsigned)MINOR(dev));
-        n += mount_escape(buf + n, path);
-        n += snprintf(buf + n, cap - n, " %s - %s ", ro ? "ro" : "rw", m->type);
-        n += mount_escape(buf + n, m->src);
-        n += snprintf(buf + n, cap - n, " %s\n", ro ? "ro" : "rw");
+        if (info) {
+            n += snprintf(buf + n, cap - n, "%lu %lu %u:%u / ", m->id,
+                          mount_parent_id(m), (unsigned)MAJOR(dev), (unsigned)MINOR(dev));
+            n += mount_escape(buf + n, path);
+            n += snprintf(buf + n, cap - n, " %s - %s ", ro ? "ro" : "rw", m->type);
+            n += mount_escape(buf + n, m->src);
+            n += snprintf(buf + n, cap - n, " %s\n", ro ? "ro" : "rw");
+        } else {
+            n += mount_escape(buf + n, m->src);
+            buf[n++] = ' ';
+            n += mount_escape(buf + n, path);
+            n += snprintf(buf + n, cap - n, " %s %s 0 0\n", m->type, ro ? "ro" : "rw");
+        }
     }
-    buf[n] = 0; *len = n;
+    buf[n] = 0; *len = n; *event = vfs_mount_event();
     kfree(path); vfs_ns_unlock(); return buf;
 }
 
@@ -933,6 +937,7 @@ static int vfs_do_mount_l(const char *source, const char *target, const char *ty
         r = -EINVAL;
         if (m && m->sb && m->sb->ops->remount) r = m->sb->ops->remount(m->sb, flags & MS_RDONLY ? SB_RDONLY : 0);
         else if (m) { m->flags = flags; r = 0; }
+        if (!r) mount_changed();
         iput(mp);
         return r;
     }
@@ -1023,6 +1028,7 @@ static int vfs_do_umount_l(const char *target, int flags) {
         sb->ops->put_super(sb);
     }
     kfree(m->src); kfree(m->path); kfree(m);
+    mount_changed();
     return 0;
 }
 
@@ -1068,6 +1074,7 @@ int vfs_mount_root(const char *source, const char *type) {
         struct mount *o = list_entry(it, struct mount, node);
         if (o != m && !strcmp(o->path, "/")) { list_del(&o->node); kfree(o->src); kfree(o->path); kfree(o); break; }
     }
+    mount_changed();
     vfs_ns_unlock();
     pr_info("vfs: root is %s (%s)\n", source, sb->type);
     return 0;

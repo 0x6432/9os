@@ -16,5 +16,6 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 2048M --boot-tim
     "host:python3 scripts/alpine-pixel-check.py $L" \
     alpine-wayland-smoke 'ALPINE_WAYLAND_USER=user alpine-wayland-smoke' \
     "host:python3 scripts/alpine-wayland-check.py $L" \
+    'grep -q " /run tmpfs " /proc/mounts' \
     'mountinfotest --mutate' 'su user -s /bin/sh -c mountinfotest' \
     'grep -q "^violations 0" /proc/lockdep'
