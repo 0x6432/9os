@@ -3469,3 +3469,29 @@ accepted physical result for this candidate, nor current-head ALL3 CI yet.
 Keep the prior focus/URL deadline failures and all planned samples. Do not mark
 M40 complete or merge based only on a microbenchmark. Subsequent test totals can
 be recorded in the PR body without restarting expensive CI for documentation.
+
+
+### Readiness witness correction WIP (separate from poll filtering)
+
+Fixed original-fixture physical P1/C1 trials failed12/16 and9/16 respectively.
+P1 had genuine terminal focus and delivered UID1000 PTY keys but Dolphin URL
+readiness failed. C1 froze genuine terminal focus0, yet the outer readiness
+command returned0: failure-only ps output included the polling grep command
+containing ALPINE_PLASMA_INPUT_READY. Its unanchored grep matched that diagnostic.
+The RC-only private guard then sent keys; actual typed-file proof failed. This
+is a harness false positive, NOT a successful producer or a poll-filter cold-
+start fix. Stopped the plan without editing active fixtures: P2 aborted before
+any key action; C2 not run. Keep every result and the abort. Earlier overall
+CI16/16 passes are retained, but the unanchored intermediate focus-deadline
+witness must not be treated as authoritative until this correction is validated.
+
+An isolated follow-up tightens the existing marker checks to full-line producer
+records. The terminal step emits both genuine terminal and input-ready records;
+a host gate requires exactly one of each in order BEFORE its one successful
+step status, refuses explicit failure snapshots, and only then calls unchanged
+physical QMP typing. Dolphin/Linux-oracle records require anchored UID1000,
+service and object fields. No deadlines, focus states, GUI binaries or kernel
+policy change. New host controls execute the actual production shell commands
+with real grep, reproduce the old ps false positive, reject embedded/wrong UID/
+malformed records, and prove a rejected guard never calls its mock sender.
+These mocks are not GUI/input proof. Fresh strict local and ALL3 CI are pending.
