@@ -40,6 +40,9 @@ struct thread {
     struct cred *cred;             /* subjective credentials (M31, kernel/cred.h) */
     bool interrupted;              /* woken by signal */
     void *wait_chan;
+    /* Valid while linked on poll_wq, protected by the scheduler wait lock. */
+    bool poll_filtered;
+    uint64_t poll_filter;
     int *clear_child_tid;
     /* signals */
     uint64_t sig_mask, sig_pending, saved_mask;
@@ -140,6 +143,7 @@ int wait_event(struct wait_queue *q);
 /* 0 on wakeup, -ETIMEDOUT on timeout, -EINTR on signal. ns == UINT64_MAX means no timeout. */
 int wait_event_timeout(struct wait_queue *q, uint64_t ns);
 void wake_up(struct wait_queue *q);
+void wake_up_poll(struct wait_queue *q, uint64_t key);
 void wake_up_one(struct wait_queue *q);
 
 /* Lost-wakeup-free waits for waiters/wakers that do not share the BKL: take sched_lock,

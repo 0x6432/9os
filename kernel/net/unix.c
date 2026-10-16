@@ -882,4 +882,4 @@ static void u_release(struct file *f) {
     struct usock *s = f->priv;
     if (s) usock_destroy(s);
 }
-const struct file_ops unix_fops = { .nobkl = true, .read = u_read, .write = u_write, .poll = u_poll, .ioctl = u_ioctl, .release = u_release };
+const struct file_ops unix_fops = { .nobkl = true, .poll_leaf = true, .read = u_read, .write = u_write, .poll = u_poll, .ioctl = u_ioctl, .release = u_release };

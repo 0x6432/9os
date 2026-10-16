@@ -964,7 +964,8 @@ struct pollfd { int fd; int16_t events, revents; };
  * the BKL; the first fd whose poll still needs it takes the BKL for the rest of this scan.
  * Callers sleep on poll_seq, which every wake-up source bumps.
  */
-static int poll_once(struct pollfd *pf, size_t n) {
+static int poll_once(struct pollfd *pf, size_t n, uint64_t *filter) {
+    if (filter) *filter = 0;
     int count = 0;
     bool took = false;
     for (size_t i = 0; i < n; i++) {
@@ -972,6 +973,10 @@ static int poll_once(struct pollfd *pf, size_t n) {
         if (pf[i].fd < 0) continue;
         struct file *f = fd_get_ref(pf[i].fd);
         if (!f) { pf[i].revents = POLLNVAL; count++; continue; }
+        if (filter) {
+            if (f->fops && f->fops->poll_leaf) *filter |= poll_file_key(f);
+            else *filter = UINT64_MAX;
+        }
         unsigned ev = POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM;
         if (f->fops && f->fops->poll) {
             if (!f->fops->nobkl && !took && !bkl_held()) { bkl_enter(); took = true; }
@@ -1000,11 +1005,12 @@ static int64_t do_poll(struct pollfd *upf, size_t n, int64_t timeout_ns) {
     int64_t r;
     for (;;) {
         uint64_t pseq = poll_seq_read();
-        r = poll_once(pf, n);
+        uint64_t filter;
+        r = poll_once(pf, n, &filter);
         if (r || timeout_ns == 0) break;
         uint64_t now = time_ns();
         if (now >= deadline) { r = 0; break; }
-        int w = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        int w = poll_wait_seq_masked(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now, filter);
         if (w == -EINTR) { r = -EINTR; break; }
     }
     if (r >= 0 && copy_to_user(upf, pf, sizeof(*pf) * n)) r = -EFAULT;
@@ -1057,7 +1063,7 @@ static int64_t do_select(int nfds, uint64_t *ur, uint64_t *uw, uint64_t *ue, int
     int64_t res;
     for (;;) {
         uint64_t pseq = poll_seq_read();
-        res = poll_once(pf, n);
+        res = poll_once(pf, n, nullptr);
         if (res || timeout_ns == 0) break;
         uint64_t now = time_ns();
         if (now >= deadline) { res = 0; break; }
