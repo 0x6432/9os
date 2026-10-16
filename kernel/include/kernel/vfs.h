@@ -110,6 +110,9 @@ struct inode_ops {
 
 struct file_ops {
     bool nobkl;             /* read/write are safe without the BKL (see pipe.c) */
+    /* Opt-in: no readiness dependency on another inode's eventfd. Wrappers
+     * (notably nested epoll) and unknown implementations stay conservative. */
+    bool poll_leaf;
     int (*open)(struct inode *ino, struct file *f);
     ssize_t (*read)(struct file *f, void *buf, size_t n, off_t *off);
     ssize_t (*write)(struct file *f, const void *buf, size_t n, off_t *off);
@@ -252,8 +255,13 @@ extern struct inode *vfs_root;
 /* global wait queue for poll/select: woken on any I/O readiness change */
 extern struct wait_queue poll_wq;
 void poll_notify(void);
+/* Targeted notifications currently belong only to eventfd. Notify every
+ * affected inode, or use the conservative global poll_notify(). */
+void poll_notify_file(struct file *f);
+uint64_t poll_file_key(struct file *f);
 extern uint64_t poll_seq;
 int poll_wait_seq(uint64_t seq, uint64_t ns);
+int poll_wait_seq_masked(uint64_t seq, uint64_t ns, uint64_t filter);
 #define poll_seq_read() __atomic_load_n(&poll_seq, __ATOMIC_SEQ_CST)
 
 /* inotify hooks (kernel/fs/anonfd.c); free while nobody watches anything */

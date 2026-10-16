@@ -3413,3 +3413,26 @@ despite genuine terminal focus and delivered UID1000 keyboard input; its later
 failure-only isUrlOpen=true observation is not a passing readiness result.
 Keep that failure and all earlier fixed cold samples. M40 remains incomplete.
 No Qt/Mesa/LLVM libraries are compiled locally; ARM/RISC validation requires PR CI.
+
+### 2026-10-16: WIP conservative poll wake filtering (NOT validated)
+
+PR25's restored original-fixture physical control failed9/16 at genuine Konsole
+focus (PTY present, terminal focused0). No keyboard input was sent through the
+failed guard. A separate failure-only read-only accessibility traversal later
+observed the real terminal focused/showing/visible1. This is post-deadline
+progress, NOT a rescue or a passing boot. Qt's accessible tab button synthesizes
+focused from currentIndex; a hidden tab's focused1 is NOT focus-ownership proof.
+
+An isolated WIP now filters ONLY direct poll/ppoll waiters whose entire scanned
+set explicitly opts into leaf readiness. Its inode-key Bloom mask can only add
+false-positive wakeups; descriptor aliases share the inode identity. A source
+always advances the existing global generation; the epoch check, filter
+publication and wait enrollment share the scheduler wait lock. Targeted eventfd
+notifications retain all select/epoll/blocking-file waiters as unfiltered, and
+unknown/wrapper descriptors force conservative broadcast eligibility. All
+non-eventfd notifications still broadcast. No unlocked queue/count shortcut,
+scheduler-policy change, focus setting, observer relaxation or claimed desktop
+fix. Current existing eventfd host controls pass, but the new routing algorithm
+still REQUIRES exact-function negative controls, x86 kernel/guest validation,
+actual poll benchmark controls and eventually current-head ALL3 PR CI. Do not
+merge or count this WIP as validated. No Qt/Mesa/LLVM libraries are built locally.

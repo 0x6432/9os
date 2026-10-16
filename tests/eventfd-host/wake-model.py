@@ -39,6 +39,7 @@ static void wake_up(struct wait_queue *q) { pthread_mutex_lock(&lock); pthread_c
 static void poll_notify(void) { __atomic_add_fetch(&notifications,1,__ATOMIC_RELAXED); wake_up(&poll_wq); }
 #define wait_until_sl(q,predicate) ({ pthread_mutex_lock(&lock); while(!(predicate)) { (q)->waiting++; pthread_cond_broadcast(&enrolled); pthread_cond_wait(&(q)->cond,&lock); (q)->waiting--; } pthread_mutex_unlock(&lock); 0; })
 struct file { void *priv; int flags; };
+static void poll_notify_file(struct file *f) { (void)f; poll_notify(); }
 static int copy_to_user(void *a,const void *b,size_t n) { memcpy(a,b,n); return 0; }
 static int copy_from_user(void *a,const void *b,size_t n) { memcpy(a,b,n); return 0; }
 '''
@@ -84,8 +85,8 @@ with tempfile.TemporaryDirectory(prefix='9os-eventfd-model-') as temp:
         'normal':body,
         'missing-private-wake':body.replace('wake_up(&e->writers);','/* missing private wake */',1),
         'only-saturated-writer-wake':body.replace('wake_up(&e->writers);','if (c == UINT64_MAX - 1) wake_up(&e->writers);',1),
-        'missing-pollout-wake':body.replace('if (c == UINT64_MAX - 1) poll_notify();','/* missing POLLOUT wake */',1),
-        'unconditional-global-drain':body.replace('if (c == UINT64_MAX - 1) poll_notify();','poll_notify();',1),
+        'missing-pollout-wake':body.replace('if (c == UINT64_MAX - 1) poll_notify_file(f);','/* missing POLLOUT wake */',1),
+        'unconditional-global-drain':body.replace('if (c == UINT64_MAX - 1) poll_notify_file(f);','poll_notify_file(f);',1),
     }
     for name,code in mutations.items():
         if name!='normal' and code==body:

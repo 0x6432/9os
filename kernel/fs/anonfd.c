@@ -70,7 +70,7 @@ static ssize_t efd_read(struct file *f, void *buf, size_t n, off_t *off) {
             uint64_t v = e->semaphore ? 1 : c;
             if (!__atomic_compare_exchange_n(&e->count, &c, c - v, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) continue;
             wake_up(&e->writers);
-            if (c == UINT64_MAX - 1) poll_notify();
+            if (c == UINT64_MAX - 1) poll_notify_file(f);
             return efd_copy_out(buf, &v) ?: 8;
         }
         if (f->flags & O_NONBLOCK) return -EAGAIN;
@@ -88,7 +88,7 @@ static ssize_t efd_write(struct file *f, const void *buf, size_t n, off_t *off) 
         uint64_t c = efd_count(e);
         if (UINT64_MAX - 1 - c >= v) {
             if (!__atomic_compare_exchange_n(&e->count, &c, c + v, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) continue;
-            if (v) poll_notify();
+            if (v) poll_notify_file(f);
             return 8;
         }
         if (f->flags & O_NONBLOCK) return -EAGAIN;
@@ -102,7 +102,7 @@ static unsigned efd_poll(struct file *f) {
     return (c ? POLLIN | POLLRDNORM : 0) | (c < UINT64_MAX - 1 ? POLLOUT | POLLWRNORM : 0);
 }
 static void priv_release(struct file *f) { kfree(f->priv); f->priv = nullptr; }
-static const struct file_ops eventfd_fops = { .nobkl = true, .read = efd_read, .write = efd_write, .poll = efd_poll, .release = priv_release };
+static const struct file_ops eventfd_fops = { .nobkl = true, .poll_leaf = true, .read = efd_read, .write = efd_write, .poll = efd_poll, .release = priv_release };
 
 #define EFD_SEMAPHORE 1
 int64_t sys_eventfd2(unsigned initval, int flags) {
@@ -180,7 +180,7 @@ static void tfd_release(struct file *f) {
     arch_irq_restore(fl);
     kfree(t);
 }
-static const struct file_ops timerfd_fops = { .read = tfd_read, .poll = tfd_poll, .release = tfd_release };
+static const struct file_ops timerfd_fops = { .poll_leaf = true, .read = tfd_read, .poll = tfd_poll, .release = tfd_release };
 
 int64_t sys_timerfd_create(int clock, int flags) {
     if (clock != 0 && clock != 1 && clock != 7 && clock != 8 && clock != 9) return -EINVAL;
@@ -274,7 +274,7 @@ static ssize_t sfd_read(struct file *f, void *buf, size_t n, off_t *off) {
     return done;
 }
 static unsigned sfd_poll(struct file *f) { return sfd_pending(f->priv) ? POLLIN | POLLRDNORM : 0; }
-static const struct file_ops signalfd_fops = { .read = sfd_read, .poll = sfd_poll, .release = priv_release };
+static const struct file_ops signalfd_fops = { .poll_leaf = true, .read = sfd_read, .poll = sfd_poll, .release = priv_release };
 
 int64_t sys_signalfd4(int fd, const uint64_t *umask, size_t sz, int flags) {
     uint64_t mask;

@@ -38,11 +38,33 @@ void vfs_ns_unlock(void) {
 uint64_t poll_seq;
 void poll_notify(void) { __atomic_add_fetch(&poll_seq, 1, __ATOMIC_SEQ_CST); wake_up(&poll_wq); }
 
-/* sleep on poll_wq unless poll_notify() ran since 'seq' was sampled (before the readiness scan) */
-int poll_wait_seq(uint64_t seq, uint64_t ns) {
+/* A Bloom bit, not an identity comparison: collisions only add wakeups. Using
+ * the inode also preserves aliases through dup/fork/descriptor transfer. No
+ * pointer is retained or dereferenced by a sleeping waiter's filter. */
+uint64_t poll_file_key(struct file *f) {
+    uint64_t x = (vaddr_t)f->inode;
+    x ^= x >> 33; x *= 0xff51afd7ed558ccdULL; x ^= x >> 33;
+    return 1ULL << (x & 63);
+}
+void poll_notify_file(struct file *f) {
+    __atomic_add_fetch(&poll_seq, 1, __ATOMIC_SEQ_CST);
+    wake_up_poll(&poll_wq, poll_file_key(f));
+}
+
+/* Epoch check, filter publication and enrollment share the wait lock. A source
+ * updating after the check must take that lock to wake the enrolled waiter. */
+int poll_wait_seq_masked(uint64_t seq, uint64_t ns, uint64_t filter) {
     uint64_t f = sched_wait_lock();
     if (__atomic_load_n(&poll_seq, __ATOMIC_SEQ_CST) != seq) { sched_wait_unlock(f); return 0; }
-    return wait_event_timeout_locked(&poll_wq, ns, f);
+    current->poll_filter = filter;
+    current->poll_filtered = filter != UINT64_MAX;
+    int r = wait_event_timeout_locked(&poll_wq, ns, f);
+    /* The thread is no longer linked on poll_wq after wake/timeout/signal. */
+    current->poll_filtered = false;
+    return r;
+}
+int poll_wait_seq(uint64_t seq, uint64_t ns) {
+    return poll_wait_seq_masked(seq, ns, UINT64_MAX);
 }
 
 struct timespec now_timespec(void) {
