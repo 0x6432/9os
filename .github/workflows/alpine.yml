@@ -46,6 +46,7 @@ jobs:
           python3 scripts/alpine-wayland-host-tests.py
           python3 scripts/alpine-plasma-host-tests.py
           python3 scripts/desktopframe-host-tests.py
+          python3 scripts/desktopa11y-host-tests.py
       - name: Install signed prebuilt runtime
         # apk2 applies Sway's signed security.capability xattr. The runner needs
         # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
@@ -134,7 +135,7 @@ jobs:
           make -j2 ARCH=$ARCH USERLAND=alpine iso
       - name: Real EGL Quick pixels, KWin, Konsole and Plasma on disk root
         run: scripts/alpine-desktop-tests.sh "$ARCH"
-      - name: Physical KMS keyboard to real Konsole PTY, then clean shutdown
+      - name: Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model
         run: scripts/alpine-kms-tests.sh "$ARCH"
       - uses: actions/upload-artifact@v4
         if: always()

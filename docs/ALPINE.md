@@ -123,8 +123,8 @@ eudev trigger/settle, stock Plasma desktop/panel readiness and strict compositor
 capture including the genuine packaged wallpaper. Cold initialization and image
 loading are bounded, not replaced with a test background. `alpine-desktop-services`
 starts the real system bus as a locked messagebus identity and real eudev; it is
-not a logind/udisks/FUSE/PipeWire implementation. Physical KMS/input and updated
-three-architecture validation remain pending. **M40 is not complete.**
+not a logind/udisks/FUSE/PipeWire implementation. Physical UID1000 KMS/input and ALL3 fast/full-source validation subsequently
+passed at PR17 (see integrated checkpoint below). **M40 is not complete.**
 
 The experimental desktop additionally needs host `glib-compile-schemas` and
 `update-mime-database` (Ubuntu packages `libglib2.0-bin shared-mime-info`). Since
@@ -152,7 +152,7 @@ and its black-background negative controls remain mandatory and unchanged.
 Physical KMS diagnostics now require wlroots' actual `drm,libinput` backends
 and an enumerated keyboard. A real PTY and rendered physical display alone
 do NOT prove that keyboard input reaches Konsole; that end-to-end test remains
-a separate gate. M40 is NOT complete.
+a separate gate, now passed at PR17. M40 is NOT complete.
 
 Local x86 physical KMS input now passes the diagnostic11/11 gate: real QEMU
 key events enter Konsole on `/dev/pts/0`, create the expected file, and appear
@@ -161,13 +161,33 @@ with nested KWin/QPainter and stock Plasma, not direct KWin DRM or accelerated
 GPU rendering. The permanent gate additionally requires UID1000: a genuine
 root `seatd -g video` broker grants device access to the existing video group;
 KWin, Plasma and Konsole run as the normal VM user. That stronger test and
-updated ALL3 validation are still pending; no complete-M40 claim.
+ALL3 validation passed at PR17; no complete-M40 claim.
 
 At75e3d01, fast CI38817891542 passes all three architectures: base19/19,
 UP8/8 (x86SMP8 8/8), desktop18/18 and physical UID1000 KMS/keyboard11/11.
 These updated results include the strengthened genuine-PTY check, real stock
 wallpaper/panel captures and typed `id -u == 1000` proof. Full source-regression
-CI38817891502 remains pending, so this is not an integrated/released milestone.
+CI38817891502 also passed ALL3: main115/115, disk20+6, clean fscks/shutdown,
+audio2+2, UP9 and MLFQ12 (x86SMP8 10). PR17 was reviewed and merged at
+1d2a11d8a823e0601968704994ac8aaa24a7f4bc, retaining its branch.
 One local normal-user repeat timed out during Plasma initialization; follow-up
 work removes repeated heavyweight Qt bus-query processes while preserving the
 same deadline/acceptance, and isolates the normal user's bus environment.
+
+### Real Dolphin file-model follow-up (not yet integrated)
+
+The normal user's genuine Dolphin window is queried through its packaged
+AT-SPI accessibility bridge, using a tiny `desktopa11y` C consumer and the
+existing signed libatspi binary. No Qt, KDE or accessibility library is rebuilt.
+The observer matches the real application's PID, traverses a bounded complete
+accessible tree, and fails on remote errors, oversized/cyclic trees, missing
+required names or present forbidden names. Ten host mock controls validate
+rejection logic only; they are explicitly NOT desktop evidence.
+
+An isolated x86 UID1000 KWin/QPainter session passed the real before/after
+model check: before.txt present initially, after.txt/new.txt absent; after
+rename/create, after.txt/new.txt present and before.txt absent. Dolphin's real
+window is active and exits cleanly through its public DBus quit method. The
+full physical KMS repeat is still pending. `isItemVisibleInAnyView` is not used
+as a file-existence oracle: upstream intentionally checks the containing
+folder even when a child is nonexistent or not loaded.

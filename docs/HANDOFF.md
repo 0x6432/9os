@@ -2433,3 +2433,15 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   a loaded KIO listing. Existing exploratory assertion must be replaced before
   any acceptance claim. Investigating the packaged real AT-SPI file model.
 - No kernel notification regression established by this failed assertion.
+
+### Real Dolphin accessible model, local isolated acceptance
+- Corrected observer now uses packaged libatspi via tiny desktopa11y consumer.
+  Real UID1000 KWin virtual/QPainter4/4 passed: actual Dolphin PID335 tree
+ 330 nodes had before.txt=1, after/new=0; after rename/create,331 nodes had
+ after/new=1, before=0. Actual active window and DBus clean quit passed, lockdep0.
+ Log build/test-dolphin-model.log. No synthetic model or Qt/KDE rebuild.
+- Host observer unit controls10/10 explicitly use mocks (not GUI evidence),
+ builder trust10/10, PNG negative6/6 and frame readiness+8negatives pass.
+- Physical KMS+new model driver now running /data/kms-dolphin-model.out.
+ Do not edit active host driver, disk, ISO or copied VM runtime. No follow-up
+ PR yet; keep heavy source CI untriggered until local acceptance is sound.
