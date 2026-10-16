@@ -179,15 +179,41 @@ same deadline/acceptance, and isolates the normal user's bus environment.
 The normal user's genuine Dolphin window is queried through its packaged
 AT-SPI accessibility bridge, using a tiny `desktopa11y` C consumer and the
 existing signed libatspi binary. No Qt, KDE or accessibility library is rebuilt.
-The observer matches the real application's PID, traverses a bounded complete
-accessible tree, and fails on remote errors, oversized/cyclic trees, missing
-required names or present forbidden names. Ten host mock controls validate
-rejection logic only; they are explicitly NOT desktop evidence.
+The observer matches the real application's PID and exact directory List
+role/name/description, then enumerates every direct ListItem model row. It
+prunes unrelated menus and fails on remote errors, oversized/cyclic trees,
+missing required names or present forbidden names. Seventeen host mock controls
+validate rejection logic only; they are explicitly NOT desktop evidence.
 
 An isolated x86 UID1000 KWin/QPainter session passed the real before/after
 model check: before.txt present initially, after.txt/new.txt absent; after
 rename/create, after.txt/new.txt present and before.txt absent. Dolphin's real
-window is active and exits cleanly through its public DBus quit method. The
-full physical KMS repeat is still pending. `isItemVisibleInAnyView` is not used
+window is active and exits cleanly through its public DBus quit method. The first combined physical KMS run passed16/16 at7857039, including the
+actual UID1000 keyboard/Konsole PTY, genuine UDisks disk/partition/root
+filesystem enumeration, both model states, a visually reviewed QEMU screenshot
+showing after.txt/new.txt, clean application exit/shutdown and lockdep0. A
+second cold-boot repeat and broader updated suites are in progress. Non-x86
+validation of this follow-up remains pending PR CI. `isItemVisibleInAnyView` is not used
 as a file-existence oracle: upstream intentionally checks the containing
 folder even when a child is nonexistent or not loaded.
+
+### Mountinfo and GLib epoll compatibility
+
+Real packaged UDisks exposed two kernel gaps rather than a KDE build problem:
+missing /proc/self/mountinfo caused its fatal startup error, then repeatedly
+delivered procfs EPOLLIN|EPOLLET caused GLib's initial-event drain to spin.
+Mount snapshots now report actual mount topology, IDs, paths, devices, rw/ro
+flags and filesystem sources without fixed-buffer truncation. Mount changes
+wake poll with Linux's per-open POLLPRI|POLLERR acknowledgment behavior. A
+fresh tmpfs /run prevents stale service sockets/PIDs across disk-root reboots.
+
+Epoll now latches permanently readable procfs bits for ET registrations and
+uses the same eligibility for nested peeks. This is NOT complete dynamic-input
+EPOLLET parity: that historical level approximation still needs producer-side
+edge tracking. Mountinfo describes the current single global namespace, not
+bind mounts, private namespaces or a chroot-relative view. The same C test
+runs on Linux and 9os, including real mount mutations in an isolated host
+namespace; guest root and UID1000 checks plus source disk reboot tests pass.
+UDisks acceptance is read-only enumeration, not privileged mounting, formatting
+or authorization. Direct KWin DRM, hardware acceleration, logind and the
+remaining source Qt Quick rendering scope are not claimed. M40 remains open.

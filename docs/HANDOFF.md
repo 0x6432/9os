@@ -2567,3 +2567,17 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   mount/futex7/7 passes. Source graphics/Qt ports were NOT restored locally;
   this is not the full source graphics regression suite. Non-x86 remains CI-only.
 - Combined physical16-gate repeat with the scoped observer is next. M40 open.
+
+### Combined physical Dolphin acceptance passed (7857039)
+- Actual x86 physical KMS16/16: root service broker, genuine UID1000 UDisks
+  disk/partition/root filesystem enumeration, stock wallpaper/panel, physical
+  typed Konsole PTY and id1000, exact Dolphin model before/after rename/create,
+  actual QEMU screenshot and clean application exit/shutdown; lockdep0.
+- Visually reviewed build/test-alpine-kms-x86_64-dolphin.png: genuine Dolphin
+  has after.txt/new.txt and root device entry, atop stock Plasma and Konsole.
+  Frozen first-run evidence in /data/evidence-7857039; /data/kms-scoped-model.out.
+- Removed four known untracked diagnostic helpers from host desktop root, not
+  repository files. Full Alpine base/desktop and second cold physical repeat
+  run sequentially in /data/alpine-785-{base,desktop,kms-repeat}.out.
+- Kernel review clarified snapshot ownership comment; no runtime change.
+  Non-x86 validation remains PR CI-only. M40 remains open, not complete.
