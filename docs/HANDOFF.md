@@ -3118,3 +3118,27 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   groups pass. Genuine CMake import/shader and invalid-shader controls also pass.
   Add explicit eight-CPU RR progress gates to source and prebuilt CI, rather
   than omitting the local failing scenario. No deadline or assertion relaxed.
+
+### Batched physical-key tap candidate (stacked after PR19)
+- PR19 fortified host fix8135a59 consumes diagnostic write results and explicitly
+  compiles the exact Linux poll consumer with FORTIFY_SOURCE=2. Exact consumer,
+  shader installer7 groups, Quick parser4 groups and failure/focus/lifecycle
+  controls6+3+7 pass. Private handler controls preserve exit124 in all four
+  phases, including when stderr is closed. No timeout extension or retry.
+- Restored x86 SMP8 MTTCG still fails ROOT+UID1000 poll progress at join, each
+  with24 created/24 ready, lockdep0 (2/4). Current-head CI x86 base32/32, UP8/8,
+  SMP8 10/10 pass including those progress gates. Difference remains unresolved.
+- Batch one tap's down edges and reverse-order up edges in ONE QMP
+  input-send-event request. Host descheduling between requests can no longer
+  turn a20ms intended press into a long held key/autorepeat. Keep120ms inter-tap
+  gap, real emulated keyboard/libinput/compositor/PTY path, no clipboard or
+  injected guest commands. Keep legacy HMP behavior unchanged.
+- Three QMP negative/protocol groups and legacy HMP controls pass. An isolated
+  x86 SMP4 cold boot with this exact keyboard candidate passes16/16 unchanged
+  physical gates: genuine focused/showing/visible Terminal, typed /dev/pts/0
+  and UID1000, genuine Dolphin rename/create model, independent screenshot OCR,
+  clean application exit and lockdep0. Actual Konsole and Dolphin scanouts were
+  also viewed. Logs: build/test-alpine-kms-batch-x86_64.log, /data/kms-batch-trial.out.
+- This is ONE successful candidate cold boot, not proof of general cold-start
+  reliability, a kernel input fix, non-x86 validation or M40 completion. Source
+  Quick PR19 CI is still running. No active VM fixtures were rewritten.
