@@ -249,3 +249,21 @@ are added to the desktop suite (28 gates). A private Linux protocol-filter
 control passed actual wallpaper/Konsole/Dolphin and the unchanged independent
 fresh-image OCR immediately, but 9os and non-x86 compatibility validation is
 still pending. M40 remains open.
+
+For a reproducible Linux comparison in a disposable x86_64 sandbox:
+
+```sh
+sudo scripts/alpine-linux-oracle.sh userland/alpine-desktop-root-x86_64 native > linux-native.log 2>&1
+python3 scripts/alpine-linux-oracle-check.py linux-native.log
+sudo scripts/alpine-linux-oracle.sh userland/alpine-desktop-root-x86_64 callback > linux-callback.log 2>&1
+python3 scripts/alpine-linux-oracle-check.py linux-callback.log
+```
+
+The harness uses private PID/mount namespaces, a read-only packaged root, fresh
+runtime directories and a real UID1000 session on the HOST LINUX KERNEL. It
+captures fresh outer-compositor frames for35 seconds after the genuine Dolphin
+model is ready. The checker reuses the unchanged wallpaper and filename/OCR
+oracles, and requires real Konsole PTY/model/clean-exit markers. It cannot prove
+9os syscall correctness or physical input. These checked-in wrappers preserve
+the earlier private experiment; execute them before treating their new
+read-only-root variant as validated. Do not replace the 9os QEMU gates with it.

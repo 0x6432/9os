@@ -2825,3 +2825,25 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   and clear that state when a registry ID is deleted/reused. Added a16th Linux
   control; all16 pass. Frozen local/CI runs at65791fe still have15 controls;
   final follow-up validation must include this small lifecycle hardening.
+
+### Current-head ALL3 desktop green; sandbox reset and recovery
+- PR18 was fast-forwarded (NOT merged) to9712733. Branches retained. Full-source
+  PR run38896975226 is building all architectures; do not restart for notes.
+- Current-head fast38896975429 finished ALL3 SUCCESS: base28+UP8, x86SMP8,
+  desktop28 (16 proxy controls ROOT+USER each), strict physical16. Independently
+  re-downloaded all three actual physical Dolphin PNGs and ran the unchanged
+  host OCR: all three recognize Dolphin/after.txt/new.txt, not before.txt.
+  Image-display helper failed, so do NOT call this fresh manual visual review.
+- Prior65791fe fast38895836392 also finished ALL3 SUCCESS. Exact production657
+  transport passed3/3 real Linux cold starts, each real wallpaper/Konsole PTY,
+  genuine Dolphin models,32 fresh captures over35sec, actual OCR and clean exit.
+- Local657 desktop28/28 passed; additional physical run was INTERRUPTED by a
+  sandbox wipe, neither an OS failure nor a completed local physical pass.
+- Restored checkout at9712733, private API helper and completed CI logs/images.
+  x86-only NO_PORTS tool/core restore and signed Alpine desktop assembly run
+  detached. No Qt/Mesa/LLVM libraries compiled locally. Old private local logs
+  were wiped; GitHub CI artifacts remain independent evidence.
+- Preserve Linux comparison as scripts/alpine-linux-oracle{.sh,-check.py} on WIP
+  branch WITHOUT updating PR18/restarting full source CI. New read-only-root
+  wrapper has syntax/empty-evidence controls; actual execution pending restored
+  signed desktop. Prior private Linux results are not proof of this new wrapper.
