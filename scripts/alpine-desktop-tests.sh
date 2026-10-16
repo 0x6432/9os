@@ -11,7 +11,7 @@ for test in fallocatetest ptracestoptest unixcredtest procinfotest proctasktest 
 scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
 python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 480 --log "$L" \
- 'grep -q "root=/dev/vda1" /proc/cmdline' fallocatetest ptracestoptest unixcredtest procinfotest proctasktest "mountinfotest --mutate" 'su user -s /bin/sh -c mountinfotest' pimutextest ioctlwidthtest \
+ 'grep -q "root=/dev/vda1" /proc/cmdline' fallocatetest ptracestoptest unixcredtest procinfotest 'su user -s /bin/sh -c procinfotest' proctasktest "mountinfotest --mutate" 'su user -s /bin/sh -c mountinfotest' pimutextest ioctlwidthtest \
  'ALPINE_WAYLAND_RENDERER=opengl alpine-wayland-smoke' \
  'ALPINE_WAYLAND_RENDERER=opengl ALPINE_WAYLAND_USER=user alpine-wayland-smoke' \
  "host:python3 scripts/alpine-wayland-check.py $L --renderer opengl" \

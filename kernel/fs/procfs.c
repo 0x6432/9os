@@ -308,6 +308,9 @@ static int p_readlink(struct inode *i, char *buf, size_t size) {
             else snprintf(tmp, sizeof tmp, "%s", f->path ? f->path : "anon_inode:[unknown]");
             vfs_close(f);
         } else if (pi->kind == P_CWD) {
+            /* Exit drops the fs context before the zombie is reaped. The PID
+             * remains enumerable, but Linux readlink(/proc/PID/cwd) is ENOENT. */
+            if (!p->cwd) return -ENOENT;
             int r = vfs_getcwd(p->cwd, tmp, sizeof tmp);
             if (r < 0) return r;
         } else snprintf(tmp, sizeof tmp, "%s", p->exe ? p->exe : "");

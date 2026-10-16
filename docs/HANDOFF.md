@@ -2748,3 +2748,25 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Desktop suite adds root/user image tests plus independent actual-asset pixel
   check (now25 gates). Synthetic comparison controls are NOT guest GUI evidence.
   Non-x86 runs remain GitHub-only. No Qt/Mesa libraries compiled locally.
+
+### Green strict CI, then deterministic zombie-cwd panic fix
+- Fast4984f34 run38888302631 passed ALL3: base27+UP8, x86SMP8,
+  desktop25 and strict physical16. Actual x86/RISC Dolphin PNGs visually reviewed:
+  after.txt/new.txt are visible. ARM fresh-capture OCR also passed. This does not
+  erase earlier strict failures or prove cold-start reliability/M40 completion.
+- Same-head local stock wallpaper readiness failed7/16 (black desktop + panel).
+  Private Wayland-debug reproduction reached genuine Konsole readiness, then
+  panicked in vfs_path_from_l via procfs P_CWD readlink, NULL cwd at address0x80.
+  This is a concrete independent kernel defect, not proof it caused rendering.
+- process_exit drops cwd before the zombie is reaped; /proc/PID remains visible.
+  P_CWD follow already handled NULL, but readlink did not. Return ENOENT under
+  the existing namespace/BKL protection, matching Linux; no blanket path masking.
+- Expanded same-source procinfotest: live child cwd, waitid(WNOWAIT) retained
+  zombie, symlink lstat, readlink/open ENOENT and post-reap disappearance.
+  Linux61/61; exact unfixed x86 kernel reliably reproduces the SAME panic.
+  Fixed x86SMP8 7/7: root/user61 checks,32 repeats each, proctask105, lockdep0.
+  Earlier private repeat command had a shell-quoting error; corrected fresh driver
+  passed, not a waiver. New UID1000 coverage makes base28 and desktop26 gates.
+- Prepared a separate source-regression ISO from trusted old-source CI x86
+  artifact12039913387, current fixed kernel and current static proc consumers.
+  Qt/Mesa/LLVM are reused binaries, not recompiled. Broader validation pending.

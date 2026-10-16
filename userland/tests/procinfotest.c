@@ -9,6 +9,9 @@
 #include <sched.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <errno.h>
 static int checks,fails;
 #define CHECK(x) do{checks++;if(!(x)){fprintf(stderr,"procinfotest: FAIL line %d: %s\n",__LINE__,#x);fails++;}}while(0)
 static void fs(const char *path,long magic){struct statfs s;CHECK(statfs(path,&s)==0);CHECK((unsigned long)s.f_type==(unsigned long)magic);int f=open(path,O_RDONLY|O_DIRECTORY);CHECK(f>=0);CHECK(fstatfs(f,&s)==0);CHECK((unsigned long)s.f_type==(unsigned long)magic);CHECK(close(f)==0);}
@@ -23,4 +26,26 @@ static void procstat(void){
  }
  CHECK(prctl(PR_SET_NAME,old)==0);
 }
-int main(void){procstat();fs("/proc",0x9fa0);fs("/sys",0x62656572);fs("/sys/class",0x62656572);char a[16384],b[16384];int f=open("/proc/cmdline",O_RDONLY);CHECK(f>=0);ssize_t n=read(f,a,sizeof a);CHECK(n>0&&n<(ssize_t)sizeof a);if(n>0){CHECK(a[n-1]=='\n');CHECK(memchr(a,0,n)==0);CHECK(read(f,b,sizeof b)==0);CHECK(lseek(f,0,SEEK_SET)==0);CHECK(read(f,b,sizeof b)==n);CHECK(memcmp(a,b,n)==0);}CHECK(close(f)==0);printf("procinfotest: %d checks, %d failures\n",checks,fails);return fails?1:0;}
+/* Keep the exited child unreaped: /proc/PID still exists but its fs context
+ * has gone away. A process enumerator must get ENOENT, not dereference NULL. */
+static void zombie_cwd(void){
+ int gate[2];int r=pipe(gate);CHECK(r==0);if(r)return;
+ pid_t child=fork();CHECK(child>=0);
+ if(child==0){close(gate[1]);char c;while(read(gate[0],&c,1)<0&&errno==EINTR){}close(gate[0]);_exit(17);}
+ close(gate[0]);if(child<0){close(gate[1]);return;}
+ char path[100],cwd[4096],link[4096];struct stat st;
+ snprintf(path,sizeof path,"/proc/%d/cwd",child);
+ CHECK(getcwd(cwd,sizeof cwd)!=NULL);
+ ssize_t n=readlink(path,link,sizeof link-1);CHECK(n>0);
+ if(n>0){link[n]=0;CHECK(!strcmp(link,cwd));}
+ CHECK(close(gate[1])==0);
+ siginfo_t info={0};CHECK(waitid(P_PID,child,&info,WEXITED|WNOWAIT)==0);
+ CHECK(info.si_pid==child&&info.si_code==CLD_EXITED&&info.si_status==17);
+ CHECK(lstat(path,&st)==0&&S_ISLNK(st.st_mode));
+ errno=0;CHECK(readlink(path,link,sizeof link)==-1&&errno==ENOENT);
+ errno=0;CHECK(open(path,O_RDONLY|O_DIRECTORY)==-1&&errno==ENOENT);
+ int status;CHECK(waitpid(child,&status,0)==child);
+ CHECK(WIFEXITED(status)&&WEXITSTATUS(status)==17);
+ errno=0;CHECK(lstat(path,&st)==-1&&errno==ENOENT);
+}
+int main(void){alarm(30);procstat();zombie_cwd();fs("/proc",0x9fa0);fs("/sys",0x62656572);fs("/sys/class",0x62656572);char a[16384],b[16384];int f=open("/proc/cmdline",O_RDONLY);CHECK(f>=0);ssize_t n=read(f,a,sizeof a);CHECK(n>0&&n<(ssize_t)sizeof a);if(n>0){CHECK(a[n-1]=='\n');CHECK(memchr(a,0,n)==0);CHECK(read(f,b,sizeof b)==0);CHECK(lseek(f,0,SEEK_SET)==0);CHECK(read(f,b,sizeof b)==n);CHECK(memcmp(a,b,n)==0);}CHECK(close(f)==0);printf("procinfotest: %d checks, %d failures\n",checks,fails);return fails?1:0;}
