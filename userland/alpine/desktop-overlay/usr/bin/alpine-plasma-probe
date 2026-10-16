@@ -164,7 +164,16 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
   sleep .1
  done
  if [ ! -f "$D/interactive-pty" ] || ! grep -q /dev/pts/ "$D/interactive-pty";then
-  cat "$D/konsole.log";echo 'alpine-plasma: FAIL interactive Konsole PTY readiness';exit 1
+  echo 'alpine-plasma: FAIL interactive Konsole PTY readiness'
+  echo "KONSOLE_BLOCKED_PROCESS_DIAGNOSTIC pid=$client"
+  cat "$D/konsole.log"
+  ls -l "/proc/$client/fd" 2>/dev/null || true
+  cat "/proc/$client/status" 2>/dev/null || true
+  cat /proc/sched || true
+  # Failure is already decided; attaching may change timing and NEVER rescues it.
+  timeout -k 2 -s TERM 8 strace -f -tt -T -k -p "$client" -o "$D/konsole-blocked.trace" 2>&1 || true
+  tail -n 120 "$D/konsole-blocked.trace" 2>/dev/null || true
+  exit 1
  fi
  cat "$D/interactive-pty"
  sleep 3

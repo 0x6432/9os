@@ -2591,3 +2591,18 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Actual driver shell logic passes5 host MOCK controls: success, nonzero even
   with success marker, zero without marker, missing witness, signalled status.
   These rejection controls are not real GUI evidence. New control added to CI.
+
+### Konsole cold-start reliability blocker (PR18 remains draft)
+- PR18 head0c03230: local Alpine base23/23 and desktop21/21 pass; ALL3 CI
+  base23/23 + UP8/8 and x86SMP8 8/8 reviewed successful. Full source and
+  physical desktop CI still running (38875303955 / 38875303917).
+- Stronger cold physical repeat FAILED before Dolphin: actual wallpaper/panel
+  rendered, but Konsole never produced its PTY marker within the existing120s
+  gate. QLayout null-widget warning alone is not a root-cause diagnosis.
+  /data/alpine-785-kms-repeat.out; frozen /data/evidence-0c03230-repeat-failed.
+- Added bounded failure-only Konsole fd/status/scheduler +8s strace stacks to
+  diagnose without changing startup timing. An already failed gate stays failed.
+- Work on separate notion/m40-konsole-reliability so frequent WIP pushes do not
+  restart PR18's expensive checks. Draft must not merge until investigated.
+- Diagnostic physical repeat /data/kms-konsole-diagnostic.out is running; active
+  disk/ISO/driver must not be edited. M40 remains incomplete.
