@@ -3074,3 +3074,20 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   serial logs and genuine screenshots remain outside the repository for review.
 - Retain the portable progress/readiness consumer and CI wiring as independent
   regression coverage; its timing measurements are explicitly non-gating.
+
+### Native qsb groundwork and newly exposed SMP8 probe failure
+- Signed qsb6.8.3 BUILD-HOST generator validated through genuine, byte-unchanged
+  Qt6ShaderToolsTools CMake metadata. Real upstream Quick fragment shader output
+  is byte-identical to the full signed SDK control; invalid shader is rejected.
+  Runtime-only134-APK closure+separately signed tool metadata occupies498MiB,
+  avoiding the unrelated962MiB SDK dependency set. Offline cache replay passes.
+  This generates shader assets only: no Qt/Mesa/LLVM libraries compiled locally.
+  Target source Quick is NOT enabled or validated by this groundwork yet.
+- Exact pollwakebench passes x86 UP11/11 including UID1000 and existing poll,
+  timers, fairness, affinity, PI and lockdep0. SMP8 gives9/11: the new probe times
+  out as ROOT and UID1000; existing tests pass. A second diagnostic boot confirms
+  timeout during setup/private-worker startup, BEFORE unrelated transfer phase.
+  Therefore do not label this as a proved poll notification loss or wake storm.
+- Add failure-only phase/count diagnostics with unchanged45-second alarm, no
+  measured-path progress printing, and no performance threshold. Linux passes.
+  Further guest startup-state diagnosis is running. This remains unvalidated WIP.
