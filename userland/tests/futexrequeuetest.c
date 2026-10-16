@@ -27,7 +27,7 @@ static void *waiter(void *arg) {
     if(v)__atomic_add_fetch(&r->errors,1,__ATOMIC_RELAXED);
     __atomic_add_fetch(&r->done,1,__ATOMIC_RELEASE);return NULL;
 }
-static void sample(uint32_t *a,uint32_t *same,uint32_t *other,int flags) {
+static void sample(uint32_t *a,uint32_t *same,uint32_t *other,int flags,int distinct) {
     struct run r={a,flags,0,0};pthread_t t[3];int made=0;
     for(int i=0;i<3;i++){if(pthread_create(&t[i],NULL,waiter,&r))break;made++;}
     CHECK(made==3);long moved=0;long long end=ns()+4000000000LL;
@@ -41,8 +41,18 @@ static void sample(uint32_t *a,uint32_t *same,uint32_t *other,int flags) {
         CHECK(fx(a,FUTEX_CMP_REQUEUE|flags,0,100,same,0)==3);
         CHECK(fx(a,FUTEX_CMP_REQUEUE|flags,0,100,same,1)==-EAGAIN);
         CHECK(__atomic_load_n(&r.done,__ATOMIC_ACQUIRE)==0);
-        CHECK(fx(a,FUTEX_CMP_REQUEUE|flags,1,100,same,0)==3);
-        CHECK(fx(same,FUTEX_WAKE|flags,INT_MAX,0,NULL,0)==2);
+        if(distinct) {
+            /* A mismatching comparison must neither wake nor move anyone. */
+            CHECK(fx(a,FUTEX_CMP_REQUEUE|flags,1,100,other,1)==-EAGAIN);
+            CHECK(fx(other,FUTEX_WAKE|flags,INT_MAX,0,NULL,0)==0);
+            CHECK(fx(a,FUTEX_REQUEUE|flags,0,100,same,0)==3);
+            CHECK(fx(a,FUTEX_CMP_REQUEUE|flags,1,100,other,0)==3);
+            CHECK(fx(a,FUTEX_WAKE|flags,INT_MAX,0,NULL,0)==0);
+            CHECK(fx(other,FUTEX_WAKE|flags,INT_MAX,0,NULL,0)==2);
+        } else {
+            CHECK(fx(a,FUTEX_CMP_REQUEUE|flags,1,100,same,0)==3);
+            CHECK(fx(same,FUTEX_WAKE|flags,INT_MAX,0,NULL,0)==2);
+        }
     }
     /* Always release both possible queues after any failed setup. */
     fx(a,FUTEX_WAKE|flags,INT_MAX,0,NULL,0);fx(other,FUTEX_WAKE|flags,INT_MAX,0,NULL,0);
@@ -50,13 +60,13 @@ static void sample(uint32_t *a,uint32_t *same,uint32_t *other,int flags) {
     CHECK(r.done==made && r.errors==0);
 }
 int main(void) {
-    alarm(30);setvbuf(stdout,NULL,_IONBF,0);uint32_t words[2]={0};
-    sample(words,words,words+1,FUTEX_PRIVATE_FLAG);
+    alarm(60);setvbuf(stdout,NULL,_IONBF,0);uint32_t words[2]={0};
+    for(int distinct=0;distinct<2;distinct++)sample(words,words,words+1,FUTEX_PRIVATE_FLAG,distinct);
     int fd=memfd_create("requeue-alias",MFD_CLOEXEC);CHECK(fd>=0);if(fd<0)return 2;
     CHECK(ftruncate(fd,4096)==0);
     uint32_t *a=mmap(NULL,4096,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);
     uint32_t *alias=mmap(NULL,4096,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);
     CHECK(a!=MAP_FAILED && alias!=MAP_FAILED && a!=alias);
-    if(a!=MAP_FAILED && alias!=MAP_FAILED){sample(a,alias,a+1,0);munmap(a,4096);munmap(alias,4096);}
+    if(a!=MAP_FAILED && alias!=MAP_FAILED){for(int distinct=0;distinct<2;distinct++)sample(a,alias,a+1,0,distinct);munmap(a,4096);munmap(alias,4096);}
     close(fd);alarm(0);printf("futexrequeuetest: %s (%d checks, %d failures)\n",failed?"FAILED":"PASSED",checks,failed);return failed!=0;
 }
