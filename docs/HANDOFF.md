@@ -3436,3 +3436,36 @@ fix. Current existing eventfd host controls pass, but the new routing algorithm
 still REQUIRES exact-function negative controls, x86 kernel/guest validation,
 actual poll benchmark controls and eventually current-head ALL3 PR CI. Do not
 merge or count this WIP as validated. No Qt/Mesa/LLVM libraries are built locally.
+
+
+#### Poll-filter WIP: initial x86 regression and fixed comparison evidence
+
+The exact Linux consumer passes64 checks. The new exact-function mock model
+passes14 groups and rejects7 compiled negative mutations; this is not a real
+SMP proof. Both tiny-consumer installer entries have actual-script x86 fake-
+compiler controls rejecting missing/duplicate entries. Existing eventfd Linux51
+and4 model groups/4 negative mutations pass. Actual scheduler queue tests under
+UBSan pass28,555 checks each for RR and MLFQ. The kernel builds without warnings.
+
+Fixed sequential x86 SMP4 P1/C1/P2/C2 boots each pass5/5 (root/UID1000 benchmark,
+polltest, lockdep0). For1000 unrelated eventfd transfers with24 private idle pollers:
+
+| Sample | Root: wall ms / producer switches / waiter switches | UID1000: same |
+|---|---|---|
+| Parent1 | 47 / 250 / 3297 | 17 / 0 / 1470 |
+| Candidate1 | 4 / 0 / 25 | 3 / 0 / 28 |
+| Parent2 | 27 / 2 / 773 | 89 / 1001 / 11756 |
+| Candidate2 | 7 / 0 / 28 | 4 / 0 / 29 |
+
+These measurements are informational, not correctness thresholds or desktop-
+readiness evidence. No competing local VM or heavy build ran during these boots.
+Candidate x86 UP and SMP8 focused suites each pass11/11: new consumer64 and
+existing eventfd51 as root/UID1000, futex/poll controls and lockdep0. The available
+source-profile main suite passes95/95; disk/fsck/audio gates and signed Alpine
+validation are still running at this checkpoint. No full source-built graphics
+regression is claimed. Physical original-fixture fixed P1/C1/P2/C2 trials are
+prepared but gated on successful preceding local validation. There is still no
+accepted physical result for this candidate, nor current-head ALL3 CI yet.
+Keep the prior focus/URL deadline failures and all planned samples. Do not mark
+M40 complete or merge based only on a microbenchmark. Subsequent test totals can
+be recorded in the PR body without restarting expensive CI for documentation.
