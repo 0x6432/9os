@@ -3512,3 +3512,31 @@ with no timing/context-switch pass thresholds. This WIP still requires exact
 host controls, x86 kernel/guest/regression and fixed mixed-set measurements,
 stricter-witness physical boots and current-head ALL3 PR CI. No libraries are
 compiled locally and no completed physical failure is erased.
+
+
+#### Initial inotify-leaf host and fixed mixed-set evidence
+
+Exact Linux consumer75 passes, including a real delayed IN_CREATE producer,
+queued watch/name readback, and subsequent teardown. Inode-mask model14 groups/
+7 negative mutations, eventfd51 +4 model groups/4 mutations, both installer
+controls and strict witness9 groups pass. Both exact benchmark modes pass on
+Linux. Fixed sequential x86 SMP4 P1/C1/P2/C2 boots each pass9/9, including root/
+UID1000 consumer75, actual inotify tests, polltest and lockdep0. Both kernels use
+byte-identical newly compiled benchmark and consumer binaries. No competing VM
+or heavy build during controlled boots; times/context switches remain purely
+informational. Every sample retained:
+
+| Sample | Root wall ms / producer switches / waiter switches | UID1000 same |
+|---|---|---|
+| parent1 | 1087 / 435 / 5881 | 12 / 0 / 794 |
+| candidate1 | 12 / 0 / 283 | 8 / 0 / 31 |
+| parent2 | 50 / 103 / 1262 | 1493 / 255 / 3691 |
+| candidate2 | 14 / 0 / 163 | 8 / 0 / 232 |
+
+The preceding fresh strict-witness trial on the parent inode-mask kernel failed
+12/16 at actual Dolphin URL readback, after genuine full-line terminal/input
+readiness and successful physical UID1000 PTY keys. Fixture hashes all matched.
+The stricter witness correction is PR27; it is not a kernel startup fix. No
+physical cold result yet exists for this inotify-leaf candidate. Full x86 core/
+disk/audio/UP/SMP8 and signed Alpine suites are running, not claimed complete.
+All non-x86 and eventual current-head CI remain required. M40 stays open.

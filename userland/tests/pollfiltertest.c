@@ -80,7 +80,7 @@ static void inotify_leaf(void) {
   union {struct inotify_event event;char bytes[512];} b;
   ssize_t n=read(in,b.bytes,sizeof b.bytes);
   CHECK(n>=(ssize_t)sizeof b.event&&b.event.wd==wd&&(b.event.mask&IN_CREATE));
-  CHECK(n>(ssize_t)sizeof b.event&&b.event.len>=10&&!strcmp(b.event.name,"watch.txt"));
+  CHECK(n>(ssize_t)sizeof b.event&&b.event.len>=10&&b.event.len<=sizeof b.bytes-sizeof b.event&&n>=(ssize_t)sizeof b.event+b.event.len&&!strcmp(b.event.name,"watch.txt"));
   CHECK(unlink(c.path)==0);
  }
  CHECK(inotify_rm_watch(in,wd)==0);
