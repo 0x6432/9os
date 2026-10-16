@@ -2445,3 +2445,16 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Physical KMS+new model driver now running /data/kms-dolphin-model.out.
  Do not edit active host driver, disk, ISO or copied VM runtime. No follow-up
  PR yet; keep heavy source CI untriggered until local acceptance is sound.
+
+### Physical follow-up failures retained (not acceptance)
+- First corrected-model physical repeat failed stock wallpaper readiness:
+ panel colors632 but wallpaper colors1 at unchanged150s deadline. No pass.
+- Next physical repeat passed wallpaper/input again (UID1000 typed real PTY),
+ but Dolphin did not register its DBus service within90s; client log only
+ showed fstab watch warning. Isolated KWin Dolphin model had passed4/4.
+- Added failure-only live process/fd/8s strace capture; attaching cannot change
+ an already failed result to a pass. Added distinct FAILURE_PNG framing and
+ real wallpaper config readback on frame failure (strict checker unchanged).
+- Focused UID1000 Plasma/headless + Dolphin now running, log
+ build/test-dolphin-plasma.log, output /data/dolphin-plasma.out. No follow-up
+ PR opened; do not trigger source CI merely for these diagnostics/notes.

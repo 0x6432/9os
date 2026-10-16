@@ -137,7 +137,14 @@ while [ "$(date +%s)" -lt "$deadline" ];do
  sleep 3
 done
 cat "$D/frame.log"
-[ "$frame_ready" = 1 ] || { echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness';exit 1; }
+if [ "$frame_ready" != 1 ];then
+ echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness'
+ # Preserve real failure pixels and configuration, never substitute a background.
+ timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];print("WALLPAPER_DIAGNOSTIC id="+ds[i].id+" plugin="+ds[i].wallpaperPlugin+" image="+ds[i].readConfig("Image"));}' || true
+ WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/failure.png" || true
+ if [ -f "$D/failure.png" ];then echo ALPINE_PLASMA_FAILURE_PNG_BEGIN;base64 "$D/failure.png";echo ALPINE_PLASMA_FAILURE_PNG_END;fi
+ exit 1
+fi
 WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
 echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
 cat "$D/plasma.log" "$D/kwin.log"

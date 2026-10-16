@@ -49,6 +49,12 @@ while [ "$(date +%s)" -lt "$deadline" ];do
 done
 [ -n "$object" ] || {
  echo 'alpine-dolphin: FAIL real directory URL readback'
+ echo DOLPHIN_BLOCKED_PROCESS_DIAGNOSTIC
+ ls -l "/proc/$client/fd" 2>/dev/null || true
+ # Failure-only attach: instrumentation can change timing, so this can never
+ # turn an already failed gate into a pass. Preserve the last syscall activity.
+ timeout -s TERM 8 strace -f -p "$client" -o "$D/blocked.trace" 2>&1 || true
+ tail -n 60 "$D/blocked.trace" 2>/dev/null || true
  cat "$D/readback.out" "$D/readback.err" 2>/dev/null || true
  timeout -s KILL 10 "$Q" 'org.kde.dolphin*' > "$D/services" 2>&1 || true
  cat "$D/services"
