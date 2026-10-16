@@ -3380,3 +3380,36 @@ Fresh x86 UP/SMP8 and available-core/disk/audio validation are running. No
 local Qt/Mesa/LLVM library build or ARM/RISC execution is performed. No
 Plasma cold-start fix or M40 completion is claimed; ALL3 current-head PR CI
 will still be required before integration.
+
+### 2026-10-16: isolated eventfd read-side broadcast candidate
+
+An eventfd drain previously broadcast on the global poll queue even when it
+only removed readability and POLLOUT was already true. Overflow writers now
+wait on a per-eventfd queue, rechecking their requested amount under the
+scheduler wait lock. Every successful read wakes that private queue, including
+non-saturated and semaphore drains; only a saturated counter becoming writable
+also broadcasts globally. Positive writes retain the original global readiness
+notification. No unsynchronized waiter-count shortcut is used.
+
+The exact new eventfdwaketest consumer passes51 checks on Linux, including a
+large blocked writer while POLLOUT was already true, partial semaphore drains,
+saturated poll/epoll/select writability and an inherited descriptor writer.
+The host model compiles the production operation bodies with mocked scheduler
+queues and checks4 routing/enrollment groups. It rejects4 regression mutations:
+missing writer wake, saturated-only writer wake, missing POLLOUT wake and an
+unconditional global drain broadcast. This model does not prove real SMP
+scheduler behavior or complete Linux epoll edge-trigger semantics.
+
+Local x86-only UP and SMP8 suites each pass12/12 (root/UID1000 consumer51
+each). Available core93/93, disk24/24+7/7, both fsck/clean halts and PCM/no-card
+audio2/2 each passed. Initial PR25 fast CI correctly failed because the new
+consumer was absent from Alpine's explicit tiny-consumer installer. It is now
+installed, with a fake-compiler x86 install-path control rejecting missing and
+duplicate entries. That control builds no target binary; real ALL3 installer
+and consumer validation remains required in current-head PR CI.
+The candidate has not demonstrated any physical-desktop reliability improvement.
+PR24's one strict SMP4 physical control failed12/16 at Dolphin URL readiness,
+despite genuine terminal focus and delivered UID1000 keyboard input; its later
+failure-only isUrlOpen=true observation is not a passing readiness result.
+Keep that failure and all earlier fixed cold samples. M40 remains incomplete.
+No Qt/Mesa/LLVM libraries are compiled locally; ARM/RISC validation requires PR CI.
