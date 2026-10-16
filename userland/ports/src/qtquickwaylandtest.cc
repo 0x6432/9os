@@ -14,6 +14,8 @@
 #include <qpa/qplatformnativeinterface.h>
 #include <wayland-client.h>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 
 static int checks, fails;
@@ -35,6 +37,9 @@ static const wl_callback_listener listener={done};
 int main(int argc,char **argv) {
     alarm(60);setvbuf(stdout,nullptr,_IONBF,0);
     QGuiApplication app(argc,argv);app.setDesktopFileName("qtwaylandsmoke");
+    const char *user=std::getenv("QTWAYLAND_CLIENT_USER");
+    CHECK(getuid()==(user && !std::strcmp(user,"user") ? 1000u:0u));
+    std::printf("qtquickwaylandtest: uid=%lu\n",static_cast<unsigned long>(getuid()));
     CHECK(QGuiApplication::platformName()=="wayland");
     auto *native=app.nativeInterface<QNativeInterface::QWaylandApplication>();
     CHECK(native && native->display());if(!native || !native->display())return 1;
