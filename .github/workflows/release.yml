@@ -89,6 +89,7 @@ jobs:
           scripts/procinfo-host-tests.sh
           scripts/dircookie-host-tests.sh
           scripts/poll-wake-host-tests.sh
+          scripts/alarm-cpu-host-tests.sh
           python3 scripts/host-qsb-host-tests.py
           python3 scripts/quick-pixel-host-tests.py
           scripts/proctask-host-tests.sh
@@ -129,7 +130,8 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: >-
           python3 scripts/qemu-test.py $ARCH --smp 8 --boot-timeout 300
-          --log build/test-pollwake-smp8-$ARCH.log pollwakebench
+          --log build/test-pollwake-smp8-$ARCH.log "timeout 10 alarmcputest"
+          'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
           "su user -s /bin/sh -c pollwakebench" polltest timetest
           "grep -q '^violations 0' /proc/lockdep"
       - name: Eight-CPU scheduler and allocator stress

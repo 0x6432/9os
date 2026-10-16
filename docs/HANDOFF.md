@@ -3142,3 +3142,24 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - This is ONE successful candidate cold boot, not proof of general cold-start
   reliability, a kernel input fix, non-x86 validation or M40 completion. Source
   Quick PR19 CI is still running. No active VM fixtures were rewritten.
+
+### Secondary-CPU future-alarm fast-path WIP
+- Passive QMP register samples of an unchanged failing SMP8 boot repeatedly
+  locate all8 vCPUs in bkl_lock; separately sampled ticket counters keep advancing
+  (not an atomic all-CPU snapshot or proof of a permanently stuck ticket).
+- sched_tick_fast previously forced every AP user tick through the global BKL
+  merely because process alarm_ns was nonzero, even far before expiry. Check
+  whether the deadline is actually due; keep real rescheduling, pending signals,
+  CPU0 timer work and expired-alarm slow paths unchanged. No RR/MLFQ policy change.
+- Add deterministic future/exact-expiry/kernel-mode/reschedule/CPU0 checks:
+  actual scheduler host RR+MLFQ each28555 pass. Original code fails the new future
+  alarm assertion. Original-kernel fresh SMP8 comparison again2/4: ROOT+UID
+  poll probes timeout. First candidate SMP8 passes4/4 (17/35ms transfer phase).
+- Add alarmcputest: pin allowed endpoint CPUs, alarm1, then pure busy-user loop
+  without clock/yield/sleep/syscalls until SIGALRM. Exact Linux consumer passes.
+  Expanded candidate SMP8 delivers real alarms on CPU0+CPU7 as ROOT and UID1000;
+  ROOT+UID poll probes pass (160/122ms), poll/eventfd/futex/time/nice/balance/PI
+  and lockdep pass, BUT afftest fails: CPU6 saw no spinner in its400ms window.
+  Expanded result13/14, NOT a full pass. Baseline affinity comparison is pending;
+  do not dismiss or hide this failure. Further UP/SMP4/MLFQ/physical validation
+  and all non-x86 PR CI remain required. No merge or M40-complete claim.
