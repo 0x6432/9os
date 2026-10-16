@@ -3215,3 +3215,31 @@ Only shell syntax and diff checks have run so far; no compile/runtime pass is
 claimed and no Qt libraries were compiled locally. This branch is not merge-ready.
 Source PR20 RISC-V CI now exposes another optional GUI host import,
 qmltestrunner, which must be corrected in the parent configuration first.
+
+### Source Quick cross configuration: optional qmltestrunner follow-up
+
+PR20 current-source RISC-V job 117115014357 (run 38942880209) reached target
+QtDeclarative configure and failed importing Qt6::qmltestrunner from the
+headless native QmlTools package. QT_BUILD_TESTS=OFF does not remove this tool:
+it is entered when the target exports QuickTest. Like qmltime/qmlplugindump,
+this is a GUI/test runner, not a required library-build generator.
+
+The pinned tools-list patch now guards all three optional host GUI imports only
+when cross compiling. Native builds retain all three; target qmlscene and real
+QML generators remain enabled. Existing exact two-tool patches upgrade safely;
+unexpected or partial edits still fail closed. Eight executed CMake control-flow
+tests pass, including a negative legacy two-tool case that now reproduces the
+actual missing qmltestrunner failure. Host-qsb seven groups and pixel four groups
+also pass. This is configuration evidence, not a completed source Quick build or
+render result. Full current-head source CI remains required before integration.
+
+### Bitset candidate: exploratory physical regression
+
+At head592cd19, the unchanged x86 SMP4 physical desktop gate passed 16/16 once:
+genuine focused/showing/visible Terminal, physical input to UID1000 pts/0, real
+Dolphin rename/create model and fresh visible files, clean exit, zero lockdep.
+Actual Konsole and Dolphin PNGs were inspected. This is not evidence that masks
+fix the intermittent cold-start issue; a fixed parent/candidate sample is running.
+Prebuilt CI at that head passed all three architectures, including desktop jobs.
+The optional qmltestrunner parent correction changes configuration, so all current
+head CI must pass again before integration; earlier green runs are not current.
