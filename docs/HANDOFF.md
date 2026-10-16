@@ -3095,7 +3095,7 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 ### Source Quick candidate submitted for PR validation
 - PR18 head9eb full-source38914052546 ALL3 SUCCESS: each main117/117,
   disk23/23+7/7 with both fsck checks and clean shutdown, PCM/no-card2/2 each,
-  UP12/12, MLFQ12/12 (x869/9 MLFQ and10/10 SMP8). These gates do NOT cover
+  UP9/9, MLFQ12/12 and x86 MLFQ SMP8 10/10. These gates do NOT cover
   source Quick rendering or the newer cookie/focus changes. PR18 still draft.
 - Restored-policy WIP1d997d1 fast38926362160 ALL3 SUCCESS; logs must be read
   before quoting finer-grained counts. This is not the current Quick head gate.

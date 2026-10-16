@@ -25,10 +25,14 @@ static atomic_int phase, created;
 
 /* No progress-printing syscalls in the measured path. On a real stall, preserve
  * which blocking phase failed; never retry or convert the timeout to success. */
+static void diagnostic_write(const char *text, size_t length) {
+    ssize_t result = write(2, text, length);
+    (void)result; /* Best effort; a diagnostic failure must not mask exit 124. */
+}
 static void timeout_handler(int sig) {
     (void)sig;
     switch (atomic_load_explicit(&phase, memory_order_relaxed)) {
-#define STALLED(n, text) case n: (void)write(2, text, sizeof(text) - 1); break
+#define STALLED(n, text) case n: diagnostic_write(text, sizeof(text) - 1); break
         STALLED(0, "pollwakebench: TIMEOUT waiting for private pollers to start\n");
         STALLED(1, "pollwakebench: TIMEOUT in unrelated eventfd transfers\n");
         STALLED(2, "pollwakebench: TIMEOUT waking private pollers\n");
@@ -40,7 +44,7 @@ static void timeout_handler(int sig) {
     int r = __atomic_load_n(&ready, __ATOMIC_RELAXED);
     counts[23] = '0' + c / 10; counts[24] = '0' + c % 10;
     counts[32] = '0' + r / 10; counts[33] = '0' + r % 10;
-    (void)write(2, counts, sizeof(counts) - 1);
+    diagnostic_write(counts, sizeof(counts) - 1);
     _exit(124);
 }
 static void fail(void) { __atomic_add_fetch(&failed, 1, __ATOMIC_RELAXED); }
