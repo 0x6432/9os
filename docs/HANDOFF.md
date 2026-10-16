@@ -3179,3 +3179,18 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   omits only the two tools, native Quick keeps both, headless native generators
   remain, repeat application is idempotent and modified source is rejected.
   This is configuration proof, NOT successful source Quick compilation/rendering.
+
+### WIP: FUTEX_WAIT_BITSET / WAKE_BITSET mask matching
+
+An independent ABI audit found that the kernel checked nonzero bitsets but did
+not store or filter their masks. This is not an established Plasma failure cause.
+The candidate stores each waiter's mask, preserves it through requeue and filters
+WAKE_BITSET by nonempty intersection under the existing bucket lock. Ordinary
+WAIT/WAKE, robust-owner wake and WAKE_OP use MATCH_ANY.
+
+The exact new `futexbitsettest.c` passes 44 checks on host Linux, including selective
+low/high-bit wakes, ordinary wait/wake interoperability, mask-preserving requeue,
+shared inode aliases across fork, zero masks and past absolute deadlines. Requeue
+move counts establish waiter enrollment; no fixed settling sleep is assumed.
+Guest negative-control and candidate validation are still pending at this WIP
+checkpoint. No desktop readiness claim or M40 completion claim follows from it.
