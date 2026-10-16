@@ -49,6 +49,19 @@ class Controls(unittest.TestCase):
         for name in (b'wl_shm\0', b'wp_presentation_extra\0', b'xp_presentation\0'):
             self.assertFalse(state.drop(global_event(name=name), False))
 
+    def test_hidden_global_removal_and_registry_lifetime(self):
+        state = self.state()
+        hidden_remove = message(7, 1, struct.pack('=I', 42))
+        other_remove = message(7, 1, struct.pack('=I', 99))
+        self.assertTrue(state.drop(global_event(), False))
+        self.assertFalse(state.drop(other_remove, False))
+        self.assertTrue(state.drop(hidden_remove, False))
+        self.assertFalse(state.drop(hidden_remove, False))
+        self.assertTrue(state.drop(global_event(), False))
+        state.drop(message(1, 1, struct.pack('=I', 7)), False)
+        state.drop(message(1, 1, struct.pack('=I', 7)), True)
+        self.assertFalse(state.drop(hidden_remove, False))
+
     def test_client_payload_never_filtered(self):
         self.assertFalse(self.state().drop(global_event(), True))
 

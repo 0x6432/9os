@@ -2821,3 +2821,7 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   Plasma harness, plus15 same-source wire/FD/process controls (host passes).
   Desktop28 + strict physical16 run on x86 now; ALL3 CI dispatch pending.
   This does NOT finish source Qt Quick/service scope or M40.
+- Review follow-up: also hide global_remove for the hidden optional global,
+  and clear that state when a registry ID is deleted/reused. Added a16th Linux
+  control; all16 pass. Frozen local/CI runs at65791fe still have15 controls;
+  final follow-up validation must include this small lifecycle hardening.

@@ -243,7 +243,7 @@ presentation implementation or all kernel ABIs are fixed.
 The proxy preserves ordered Wayland byte messages and SCM_RIGHTS, handles
 fragmentation/short writes, closes transferred rights and propagates signals
 and child status. It is NOT a security boundary. `--passthrough` is a transport
-control. Same-source `python3 /usr/share/9os/wayland-proxy-selftest.py` runs15
+control. Same-source `python3 /usr/share/9os/wayland-proxy-selftest.py` runs16
 wire/FD/process controls; these are NOT GUI proof. Root and UID1000 controls
 are added to the desktop suite (28 gates). A private Linux protocol-filter
 control passed actual wallpaper/Konsole/Dolphin and the unchanged independent

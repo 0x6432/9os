@@ -19,6 +19,7 @@ import threading
 class RegistryFilter:
     def __init__(self, hide=True):
         self.registries = set()
+        self.hidden_globals = {}
         self.lock = threading.Lock()
         self.hidden = 0
         self.hide = hide
@@ -30,12 +31,22 @@ class RegistryFilter:
             if client and obj == 1 and opcode == 1 and size == 12:
                 self.registries.add(struct.unpack_from('=I', message, 8)[0])
             if not client and obj == 1 and opcode == 1 and size == 12:
-                self.registries.discard(struct.unpack_from('=I', message, 8)[0])
+                removed = struct.unpack_from('=I', message, 8)[0]
+                self.registries.discard(removed)
+                self.hidden_globals.pop(removed, None)
             if not client and obj in self.registries and opcode == 0 and size >= 20:
                 length = struct.unpack_from('=I', message, 12)[0]
                 if (self.hide and 1 <= length <= size - 20
                         and message[16:16 + length] == b'wp_presentation\0'):
                     self.hidden += 1
+                    name = struct.unpack_from('=I', message, 8)[0]
+                    self.hidden_globals.setdefault(obj, set()).add(name)
+                    return True
+            if not client and obj in self.registries and opcode == 1 and size == 12:
+                name = struct.unpack_from('=I', message, 8)[0]
+                hidden = self.hidden_globals.get(obj, set())
+                if name in hidden:
+                    hidden.remove(name)
                     return True
         return False
 
