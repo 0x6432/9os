@@ -3118,3 +3118,19 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   groups pass. Genuine CMake import/shader and invalid-shader controls also pass.
   Add explicit eight-CPU RR progress gates to source and prebuilt CI, rather
   than omitting the local failing scenario. No deadline or assertion relaxed.
+
+### Source Quick cross-tools configuration correction
+- PR19 head8135a59 source CI reached QtDeclarative target configuration, then
+  failed on x86_64 and riscv64: headless native QmlTools lacks Qt6::qmltime.
+  Upstream also unconditionally enters qmlplugindump when target Quick exists;
+  both require native GUI/Quick, neither is a target-library build generator.
+- Apply a fail-closed, exact-source SHA256-checked Qt6.8.3 CMake adjustment:
+  omit those two optional tool subdirectories only when cross-compiling.
+  Preserve native behavior, genuine QML generators/import scanner/cachegen,
+  signed host qsb, target Quick, qml and qmlscene. No dummy imported targets,
+  host GUI library rebuild or target-tool execution is substituted.
+- Six local configuration controls execute the actual pinned upstream tools list
+  under CMake: unpatched cross-Quick reproduces missing qmltime; patched cross
+  omits only the two tools, native Quick keeps both, headless native generators
+  remain, repeat application is idempotent and modified source is rejected.
+  This is configuration proof, NOT successful source Quick compilation/rendering.
