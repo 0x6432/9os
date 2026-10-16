@@ -157,13 +157,14 @@ if [ "${ALPINE_PLASMA_SERIAL_PNG:-1}" = 1 ];then
 fi
 cat "$D/plasma.log" "$D/kwin.log"
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
- konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty';echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ pty_ready=0
  for i in $(seq 1200);do
-  [ ! -f "$D/interactive-pty" ] || break
+  if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then pty_ready=1;break;fi
   kill -0 "$client" 2>/dev/null || break
   sleep .1
  done
- if [ ! -f "$D/interactive-pty" ] || ! grep -q /dev/pts/ "$D/interactive-pty";then
+ if [ "$pty_ready" != 1 ];then
   echo 'alpine-plasma: FAIL interactive Konsole PTY readiness'
   echo "KONSOLE_BLOCKED_PROCESS_DIAGNOSTIC pid=$client"
   cat "$D/konsole.log"

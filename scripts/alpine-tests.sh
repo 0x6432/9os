@@ -10,7 +10,7 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 2048M --boot-tim
     'dbus-run-session -- dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames' \
     'dbus-run-session -- sh -c "exit 23"; test $? = 23' \
     fallocatetest ptracestoptest unixcredtest procinfotest proctasktest mountinfotest pimutextest ioctlwidthtest \
-    'su user -s /bin/sh -c proctasktest' \
+    'su user -s /bin/sh -c proctasktest' alpine-proctask-smoke 'su user -s /bin/sh -c alpine-proctask-smoke' \
     'pidof init && ps -o pid,ppid,comm && top -b -n 1 >/tmp/top.out && grep -q init /tmp/top.out' \
     'timeout -s KILL 20 strace -f -o /tmp/alpine-strace.log /bin/sh -c "echo native-trace-ok; /bin/true" && grep -q execve /tmp/alpine-strace.log' \
     alpine-qtsmoke 'su user -s /bin/sh -c alpine-qtsmoke' \

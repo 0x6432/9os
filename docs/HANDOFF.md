@@ -2654,3 +2654,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   logs: /data/proctask-trace-fixed.out, /data/proctask-smp8.out. Read final results.
 - CI includes same-source host oracle, source core and prebuilt base/desktop
   consumers. Non-x86 validation must come from PR CI; none built locally.
+
+### PTY witness publication race reproduced, not a Konsole deadlock claim
+- Thread visibility + kill(TID,0) now allow genuine packaged strace -f -k to
+  attach all3 real threads, produce real musl module frames and cleanly detach.
+  Stripped musl lacks DWARF CFI; do not claim complete call-chain unwinding.
+  Optional process_vm_readv is ENOSYS and elfutils successfully falls back.
+- x86 SMP8 strengthened105-check oracle root/user plus10 repeats all pass7/7;
+  actual full prebuilt base27/27 includes new alpine-proctask-smoke root/user,
+  plus existing Quick/Wayland pixels, ABI tests, mount mutation, lockdep0.
+- Frozen old baseline was88 checks/56 failures root,59 user, no panic.
+- Physical retry with thread-aware diagnostics still FAILED7/16 at Konsole
+  readiness; /data/kms-proctask.out, evidence-proctask-konsole-failed. Snapshot
+  already has real /dev/ptmx + /dev/pts/0, child sh and14 Konsole threads.
+- Found another readiness-publication race: tty > interactive-pty creates an
+  empty file BEFORE tty writes it, but old loop broke on existence then immediately
+  grepped contents. Mock delayed tty reproduces old false rejection1/5. New actual
+  producer writes temporary file, appends shell marker and atomically renames;
+  loop requires actual PTY path AND exact shell marker. All5 host MOCK controls
+  pass (delayed/immediate success; failed tty/wrong device/missing marker rejected).
+  Physical typed-input completion uses the same atomic publication discipline.
+- This strengthens readiness, does not extend deadlines or rescue failed gates.
+  Actual physical rerun /data/kms-atomic-pty.out is pending; do not claim fixed
+  cold-start reliability or M40 completion until repeated real gates pass.

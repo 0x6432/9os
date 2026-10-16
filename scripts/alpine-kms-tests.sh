@@ -21,7 +21,7 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  'for i in $(seq 700);do grep -q ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -q ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }' \
  'test ! -e /tmp/kms-input-ok && test ! -e /tmp/kms-tty && test ! -e /tmp/kms-uid && test ! -e /tmp/kms-input-done && test ! -e /tmp/dolphin-capture-done' \
  "host:python3 scripts/qemu-screenshot.py $S $P-before.png" \
- "host:python3 scripts/qemu-type.py $S 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok\n'" \
+ "host:python3 scripts/qemu-type.py $S 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\n'" \
  'for i in $(seq 20);do test ! -e /tmp/kms-input-ok || break;sleep 1;done;cat /tmp/kms-tty;test "$(cat /tmp/kms-input-ok)" = kms-input-ok && grep -q "^/dev/pts/" /tmp/kms-tty && test "$(cat /tmp/kms-uid)" = 1000' \
  "host:python3 scripts/qemu-screenshot.py $S $P-after.png" \
  'test "$(cat /tmp/kms-input-ok)" = kms-input-ok && test "$(cat /tmp/kms-uid)" = 1000 && touch /tmp/kms-input-done' \
