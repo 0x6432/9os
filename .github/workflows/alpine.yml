@@ -41,6 +41,8 @@ jobs:
           scripts/procinfo-host-tests.sh
           scripts/dircookie-host-tests.sh
           scripts/poll-wake-host-tests.sh
+          python3 scripts/host-qsb-host-tests.py
+          python3 scripts/quick-pixel-host-tests.py
           scripts/proctask-host-tests.sh
           sudo env MOUNTINFO_HOST_MUTATE=1 scripts/mountinfo-host-tests.sh
           scripts/pimutex-host-tests.sh
@@ -95,7 +97,8 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: >-
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
-          --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log alpine-qtsmoke
+          --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log pollwakebench
+          "su user -s /bin/sh -c pollwakebench" alpine-qtsmoke
           "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-smp8-$ARCH.log"
           alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"

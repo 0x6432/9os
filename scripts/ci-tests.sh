@@ -40,6 +40,12 @@ if [ -e userland/build/ports-root-$ARCH/usr/bin/qmlsmoke ]; then
     QML="qmlsmoke && qmlsmoke"
     QMLUSER="su user -s /bin/sh -c qmlsmoke"
 fi
+QTQUICK=; QTQUICKUSER=; QTQUICKPIXELS=
+if [ -e userland/build/ports-root-$ARCH/usr/bin/qtquicksmoke ]; then
+    QTQUICK=qtquicksmoke
+    QTQUICKUSER="su user -s /bin/sh -c qtquicksmoke"
+    QTQUICKPIXELS="host:python3 scripts/alpine-pixel-check.py build/test-$ARCH.log --prefix SOURCE_QUICK --expected-count 2"
+fi
 QTGUI=; QTGUIUSER=
 if [ -e userland/build/ports-root-$ARCH/usr/bin/qtguismoke ]; then
     QTGUI="qtguismoke && qtguismoke"
@@ -93,7 +99,7 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     "touch /tmp/fa && setfacl -m u:1000:r,g:2000:rw /tmp/fa && getfacl -n /tmp/fa | grep -q '^user:1000:r--' && getfacl -c /tmp/fa | grep -q '^mask::rw-' && setfacl -x u:1000 /tmp/fa && setfacl -b /tmp/fa && ! getfacl -c /tmp/fa | grep -q mask && mkdir /tmp/fd && setfacl -d -m u:1000:rwx /tmp/fd && getfacl -cdn /tmp/fd | grep -q '^user:1000:rwx' && touch /tmp/fd/x && getfacl -cn /tmp/fd/x | grep -q '^user:1000:rwx' && rm -rf /tmp/fa /tmp/fd" \
-    ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${QT:+"$QT"} ${QTUSER:+"$QTUSER"} ${QTCLEAN:+"$QTCLEAN"} ${QML:+"$QML"} ${QMLUSER:+"$QMLUSER"} ${QTGUI:+"$QTGUI"} ${QTGUIUSER:+"$QTGUIUSER"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
+    ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${QT:+"$QT"} ${QTUSER:+"$QTUSER"} ${QTCLEAN:+"$QTCLEAN"} ${QML:+"$QML"} ${QMLUSER:+"$QMLUSER"} ${QTQUICK:+"$QTQUICK"} ${QTQUICKUSER:+"$QTQUICKUSER"} ${QTQUICKPIXELS:+"$QTQUICKPIXELS"} ${QTGUI:+"$QTGUI"} ${QTGUIUSER:+"$QTGUIUSER"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
     "T=/usr/libexec/libinput/libinput-test-suite; [ ! -x \$T ] || { udevshim -d; chvt 2; \$T -j1 --filter-group=udev > /tmp/li.log 2>&1; r=\$?; chvt 1; kill \$(cat /run/udev/udevshim.pid); [ \$r = 0 ] || grep -A12 'failed:' /tmp/li.log; [ \$r = 0 ]; }" \
     drmdemo ${SW1:+"$SW1"} ${SW2:+"$SW2"} ${GLSMOKE:+"$GLSMOKE"} ${LLGLSMOKE:+"$LLGLSMOKE"} ${QTWAYLAND:+"$QTWAYLAND"} ${QTWAYLANDUSER:+"$QTWAYLANDUSER"} ${QTGL:+"$QTGL"} ${QTGLUSER:+"$QTGLUSER"} ${QTLLGL:+"$QTLLGL"} ${QTLLGLUSER:+"$QTLLGLUSER"} \
     nettest net2test "ping -c 2 -W 2 127.0.0.1" \

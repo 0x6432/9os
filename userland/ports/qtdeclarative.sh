@@ -1,5 +1,5 @@
 #!/bin/sh
-# M40 QML prerequisite: portable interpreter + native generators, NOT Qt Quick.
+# M40 source QML/Quick candidate: native generators + signed build-host qsb.
 . "$(dirname "$0")/common.sh"
 V=6.8.3
 T=$DL/qtdeclarative-everywhere-src-$V.tar.xz
@@ -28,13 +28,17 @@ if [ ! -x "$H/libexec/qmltyperegistrar" ] || [ ! -x "$H/libexec/qmlcachegen" ] |
     cmake --build "$HB" -j"${JOBS:-2}" >> "$HB.log" 2>&1 || { tail -50 "$HB.log"; exit 1; }
     cmake --install "$HB" >> "$HB.log" 2>&1 || { tail -40 "$HB.log"; exit 1; }
 fi
+# qsb runs on the BUILD HOST only. Its isolated signed Qt libraries are never
+# added to the target or source-native Qt search prefixes.
+QSB_CMAKE=$(python3 "$UL/ports/host-qsb.py")
 B=$PORTS_BUILD/qtdeclarative
 cmake -S "$S" -B "$B" -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE="$PREFIX_ROOT/usr/lib/cmake/Qt6/qt.toolchain.cmake" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib \
-    -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_DISABLE_FIND_PACKAGE_Qt6ShaderToolsTools=ON \
+    -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_DISABLE_FIND_PACKAGE_Qt6ShaderToolsTools=OFF \
+    -DQt6ShaderToolsTools_DIR="$QSB_CMAKE" \
     -DQT_HOST_PATH="$H" -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF \
-    -DFEATURE_qml_jit=OFF -DFEATURE_qml_network=OFF -DFEATURE_qml_debug=OFF \
+    -DFEATURE_qml_animation=ON -DFEATURE_qml_jit=OFF -DFEATURE_qml_network=OFF -DFEATURE_qml_debug=OFF \
     -DFEATURE_qml_python=ON -DFEATURE_qml_xmllistmodel=OFF \
     > "$B.log" 2>&1 || { tail -60 "$B.log"; exit 1; }
 # This must be the portable interpreter on all targets, including RISC-V.
@@ -42,6 +46,9 @@ grep -qx 'QT_FEATURE_qml_jit:INTERNAL=OFF' "$B/CMakeCache.txt"
 cmake --build "$B" -j"${JOBS:-2}" >> "$B.log" 2>&1 || { tail -60 "$B.log"; exit 1; }
 DESTDIR="$PREFIX_ROOT" cmake --install "$B" >> "$B.log" 2>&1 || { tail -40 "$B.log"; exit 1; }
 test -f "$PREFIX_ROOT/usr/lib/libQt6Qml.so"
+test -f "$PREFIX_ROOT/usr/lib/libQt6Quick.so"
+test -f "$PREFIX_ROOT/usr/qml/QtQuick/qmldir"
+test -x "$PREFIX_ROOT/usr/bin/qmlscene"
 test -f "$PREFIX_ROOT/usr/qml/QtQml/qmldir"
 test -f "$PREFIX_ROOT/usr/qml/QtQml/Models/qmldir"
 test -f "$PREFIX_ROOT/usr/qml/QtQml/WorkerScript/qmldir"
@@ -52,4 +59,7 @@ test -f "$PREFIX_ROOT/usr/qml/QtQml/WorkerScript/qmldir"
     -I"$PORTS_BUILD" "$UL/ports/src/qmltest.cc" -L"$PREFIX_ROOT/usr/lib" \
     -lQt6Qml -lQt6Core -o "$PREFIX_ROOT/usr/bin/qmltest"
 install -m755 "$UL/ports/scripts/qmlsmoke" "$PREFIX_ROOT/usr/bin/qmlsmoke"
-echo "Qt $V QML interpreter/models/WorkerScript installed (no Quick, JS JIT, network or KDE)"
+mkdir -p "$PREFIX_ROOT/usr/qml/9os-tests"
+install -m644 "$UL/ports/src/qtquick.qml" "$PREFIX_ROOT/usr/qml/9os-tests/qtquick.qml"
+install -m755 "$UL/ports/scripts/qtquicksmoke" "$PREFIX_ROOT/usr/bin/qtquicksmoke"
+echo "Qt $V source QML/Quick candidate installed (interpreter, no JS JIT/network/KDE claim)"

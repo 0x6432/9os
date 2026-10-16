@@ -1,0 +1,18 @@
+#!/bin/sh
+# Source Qt Quick software rendering, QML binding, and a real item PNG capture.
+set -eu
+unset QML_IMPORT_PATH QML2_IMPORT_PATH QT_PLUGIN_PATH
+export QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_DISABLE_DISK_CACHE=1
+export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/plugins/platforms QV4_FORCE_INTERPRETER=1
+D=$(mktemp -d /tmp/qtquick-XXXXXX)
+trap 'rm -rf "$D"' EXIT HUP INT TERM
+chmod 700 "$D"
+export XDG_RUNTIME_DIR="$D"
+cd "$D"
+/usr/bin/qmlscene /usr/qml/9os-tests/qtquick.qml > "$D/client.log" 2>&1 || { cat "$D/client.log"; exit 1; }
+cat "$D/client.log"
+grep -q 'qtquick: PASSED rendered frames' "$D/client.log"
+test -s "$D/capture.png"
+echo SOURCE_QUICK_PNG_BEGIN
+base64 "$D/capture.png"
+echo SOURCE_QUICK_PNG_END

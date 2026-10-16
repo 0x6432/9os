@@ -3091,3 +3091,30 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Add failure-only phase/count diagnostics with unchanged45-second alarm, no
   measured-path progress printing, and no performance threshold. Linux passes.
   Further guest startup-state diagnosis is running. This remains unvalidated WIP.
+
+### Source Quick candidate submitted for PR validation
+- PR18 head9eb full-source38914052546 ALL3 SUCCESS: each main117/117,
+  disk23/23+7/7 with both fsck checks and clean shutdown, PCM/no-card2/2 each,
+  UP12/12, MLFQ12/12 (x869/9 MLFQ and10/10 SMP8). These gates do NOT cover
+  source Quick rendering or the newer cookie/focus changes. PR18 still draft.
+- Restored-policy WIP1d997d1 fast38926362160 ALL3 SUCCESS; logs must be read
+  before quoting finer-grained counts. This is not the current Quick head gate.
+- Current exact static musl pollwakebench also passes on Linux. Baseline SMP4
+  passes4/4, but local SMP8 remains failing. Failure-only diagnostics vary:
+  setup/private-worker startup in one run, join with24 created/24 ready in a
+  background diagnostic run. Syscall tracing also fails (in transfer phase).
+  The preserved RR suppression experiment fails ROOT join but passes UID1000
+  on SMP8 (10/11 total); therefore keep original policy, not a scheduler fix.
+- Enable target Quick discovery with genuine signed host qsb, while keeping
+  native QML generators headless and source target libraries isolated. Require
+  real libQt6Quick, QtQuick import metadata and qmlscene after installation.
+  Target library build/validation is delegated to ALL3 PR CI, never local.
+- New qtquicksmoke tests QML binding/JSON, real swapped frames and item capture
+  as ROOT+UID1000. Host checker requires exactly2 captures and verifies EVERY
+  RGBA pixel. New consumer passes5/5 locally using signed prebuilt Qt libraries;
+  only path/plugin locations adapted for Alpine. This does NOT prove source
+  Quick renders; only the upcoming source CI can establish that.
+- Seven negative signed-tool installer controls and four synthetic frame-parser
+  groups pass. Genuine CMake import/shader and invalid-shader controls also pass.
+  Add explicit eight-CPU RR progress gates to source and prebuilt CI, rather
+  than omitting the local failing scenario. No deadline or assertion relaxed.
