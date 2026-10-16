@@ -202,8 +202,20 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  cat "$D/konsole-focus" 2>/dev/null || true
  if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then
   echo 'alpine-plasma: FAIL interactive Konsole PTY/focused terminal readiness'
+  # Freeze the reason before any observer/trace can alter scheduling. Missing
+  # PTY publication is different from a published but unfocused terminal.
+  echo "KONSOLE_READINESS pty=$pty_ready terminal=$terminal_ready pid=$client"
+  for f in interactive-pty interactive-pty.tmp konsole-focus;do
+   [ ! -f "$D/$f" ] || { echo "KONSOLE_READINESS_FILE=$f";head -n 20 "$D/$f"; }
+  done
+  # Genuine failure pixels only, taken AFTER failure is irrevocable and before
+  # cleanup destroys the window. They can never satisfy an acceptance gate.
+  if WAYLAND_DISPLAY="$parent" timeout -k 2 -s TERM 8 grim -o "$output" "$D/konsole-failure.png";then
+   echo ALPINE_PLASMA_FAILURE_PNG_BEGIN;base64 "$D/konsole-failure.png";echo ALPINE_PLASMA_FAILURE_PNG_END
+  fi
   echo "KONSOLE_BLOCKED_PROCESS_DIAGNOSTIC pid=$client"
   cat "$D/konsole.log"
+  ps -o pid,ppid,stat,args | head -n 120 || true
   ls -l "/proc/$client/fd" 2>/dev/null || true
   cat "/proc/$client/status" 2>/dev/null || true
   cat /proc/sched || true

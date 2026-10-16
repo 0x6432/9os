@@ -3019,3 +3019,23 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Current9eb fast38914052540 ALL3 SUCCESS: each desktop28/28 + physical16/16,
   base runtime28/28 + UP8/8, x86 SMP8 8/8. Actual physical Dolphin PNGs independently
   pass unchanged filename OCR for all3. Full-source38914052546 still in progress.
+
+### Current cookie/focus WIP ALL3 evidence and local limitation
+- WIP b51694e fast prebuilt38917793392 ALL3 SUCCESS: runtime30/30 + UP8/8
+  each, x86 SMP8 8/8; desktop29/29 + strict physical16/16 each. All3 observe
+  genuine Konsole Terminal focused/showing/visible. Downloaded actual all3
+  physical PNGs independently pass unchanged Dolphin filename OCR; terminal
+  after PNGs show actual typed tty commands. No non-x86 build/test ran locally.
+- Local production-default b516 cold boot `/data/physical-dircookie-focus-1`
+  fails7/16. It DID reach real wallpaper/panel and then failed the combined
+  Konsole PTY/focus120s gate; no focus-observer output was produced. This is
+  not the earlier shell-readiness failure and not proof of a focused-but-hidden
+  terminal. Failure-only trace shows continuing allocation/Wayland activity.
+  The cookie fix therefore does NOT establish general cold-start reliability.
+- Add failure-only PTY/terminal readiness flags, bounded atomic-publication file
+  snapshots and genuine failure scanout before cleanup/strace. These diagnostics
+  never retry input, set focus, enlarge deadlines or rescue a failed attempt.
+  Six diagnostic, seven PTY and three observer host-control groups pass.
+- Full available x86 core/disk regression is running after rebuilding only small
+  consumers. PR18 remains draft at9eb; its full-source38914052546 is still building.
+  WIP b516 fast success is not a source Quick rendering or complete-M40 claim.
