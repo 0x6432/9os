@@ -21,10 +21,13 @@ trap 'exit 1' HUP INT TERM
 mkdir "$D/files"
 printf 'real KDE directory model\n' > "$D/files/before.txt"
 dolphin --new-window "$D/files" > "$D/client.log" 2>&1 & client=$!
+printf 'DOLPHIN_CLIENT_PID=%s uid=%s\n' "$client" "$(id -u)"
 Q=/usr/lib/qt6/bin/qdbus
 service=;object=;deadline=$(( $(date +%s) + 90 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- for name in $(timeout -s KILL 5 "$Q" | grep '^org.kde.dolphin' || true);do
+ # qdbus's ordinary service list indents aliases after their unique owner.
+ # Its explicit glob mode returns one unindented real service name per line.
+ for name in $(timeout -s KILL 5 "$Q" 'org.kde.dolphin*' | grep '^org.kde.dolphin' || true);do
   for path in $(timeout -s KILL 5 "$Q" "$name" | grep '^/' || true);do
    if timeout -s KILL 5 "$Q" "$name" "$path" org.kde.dolphin.MainWindow.isUrlOpen "file://$D/files" 2>/dev/null | grep -qx true;then
     service=$name;object=$path;break
@@ -36,6 +39,7 @@ while [ "$(date +%s)" -lt "$deadline" ];do
  kill -0 "$client" 2>/dev/null || break;sleep .2
 done
 [ -n "$object" ] || { echo 'alpine-dolphin: FAIL real directory URL readback';exit 1; }
+printf 'DOLPHIN_URL_READY service=%s object=%s\n' "$service" "$object"
 visible() { timeout -s KILL 5 "$Q" "$service" "$object" org.kde.dolphin.MainWindow.isItemVisibleInAnyView "file://$D/files/$1"; }
 ready=0;deadline=$(( $(date +%s) + 60 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
@@ -51,8 +55,21 @@ while [ "$(date +%s)" -lt "$deadline" ];do
  sleep .2
 done
 [ "$ready" = 1 ] || { echo 'alpine-dolphin: FAIL live KIO directory changes';exit 1; }
+active=0;deadline=$(( $(date +%s) + 30 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ if timeout -s KILL 5 "$Q" "$service" "$object" org.kde.dolphin.MainWindow.isActiveWindow | grep -qx true;then active=1;break;fi
+ sleep .2
+done
+[ "$active" = 1 ] || { echo 'alpine-dolphin: FAIL mapped active GUI window';exit 1; }
+echo DOLPHIN_WINDOW_ACTIVE=1
 printf 'DOLPHIN_MODEL_READY uid=%s service=%s object=%s\n' "$(id -u)" "$service" "$object"
-sleep "${ALPINE_DOLPHIN_HOLD:-0}"
+if [ -n "${ALPINE_DOLPHIN_DONE_FILE:-}" ];then
+ deadline=$(( $(date +%s) + 120 ))
+ while [ ! -f "$ALPINE_DOLPHIN_DONE_FILE" ] && [ "$(date +%s)" -lt "$deadline" ];do sleep .2;done
+ [ -f "$ALPINE_DOLPHIN_DONE_FILE" ] || { echo 'alpine-dolphin: FAIL capture acknowledgement timeout';exit 1; }
+else
+ sleep "${ALPINE_DOLPHIN_HOLD:-0}"
+fi
 timeout -s KILL 5 "$Q" "$service" "$object" org.kde.dolphin.MainWindow.quit
 for i in $(seq 200);do kill -0 "$client" 2>/dev/null || break;sleep .1;done
 if kill -0 "$client" 2>/dev/null;then echo 'alpine-dolphin: FAIL graceful application quit';exit 1;fi
