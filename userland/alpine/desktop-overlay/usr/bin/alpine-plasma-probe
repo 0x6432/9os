@@ -194,7 +194,13 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  while [ "$(date +%s)" -lt "$deadline" ];do
   if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then
    pty_ready=1
-   if timeout -k 2 -s TERM 8 desktopa11y --terminal "$client" > "$D/konsole-focus" 2>&1;then terminal_ready=1;break;fi
+   # A complete remote accessibility walk may exceed eight seconds on TCG.
+   # Do not repeatedly kill it mid-walk and restart from the root. Give this
+   # read-only observation only the REMAINING original 120-second budget;
+   # the genuine focused/showing/visible criterion and deadline do not change.
+   remaining=$(( deadline - $(date +%s) ))
+   [ "$remaining" -gt 0 ] || break
+   if timeout -k 2 -s TERM "$remaining" desktopa11y --terminal "$client" > "$D/konsole-focus" 2>&1;then terminal_ready=1;break;fi
   fi
   kill -0 "$client" 2>/dev/null || break
   sleep .1

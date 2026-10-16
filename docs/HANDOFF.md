@@ -3357,3 +3357,29 @@ The real607698-byte archive passed the actual Meson cache verifier, without
 configuration, extraction or compilation. This is download-path validation,
 not a fresh full-source guest result. The corrected current head still needs
 ALL3 source and prebuilt CI; earlier-head green gates are not substituted.
+
+### 2026-10-16: terminal observer budget candidate (not a reliability fix yet)
+
+A corrected private accessibility-wire capture retained another failed x86
+cold boot (5/7, no physical input/Dolphin). Real Konsole GetRole replies reached
+the bus, including one after6.358seconds; the read-only tree walk was later
+terminated by its separate8-second command cap. One observed genuine terminal
+state was showing/visible but NOT focused and was correctly rejected. Initial
+PTY publication in this heavily instrumented boot occurred very late in the
+original120-second window. This does not prove every cold failure has this
+cause, nor does it justify accepting a PTY/window without genuine focus.
+
+This candidate gives a desktopa11y invocation only the REMAINING time in the
+same original120-second window instead of repeatedly killing a potentially
+slow traversal after8seconds and restarting it. The existing observer's45s
+alarm remains. The PTY plus focused/showing/visible criterion, failure capture,
+keyboard/UID1000 proof and Dolphin model gate are unchanged. No UI actions,
+synthetic state, longer overall deadline, Qt/library patch or kernel change.
+
+Six executable shell-budget controls pass, including the literal old-loop
+negative, slow traversal, original total-budget exhaustion, decreasing retry
+budget, rejected observation and missing PTY. Existing focus3, lifecycle7,
+Plasma6 and failure-diagnostic6 host groups pass. These are mocks, not guest
+proof. A fixed two-boot physical candidate sample is running, with all outcomes
+retained and a stronger private input guard refusing keys after failed genuine
+terminal readiness. No repeat-until-pass or desktop reliability claim.
