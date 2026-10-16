@@ -3495,3 +3495,20 @@ policy change. New host controls execute the actual production shell commands
 with real grep, reproduce the old ps false positive, reject embedded/wrong UID/
 malformed records, and prove a rejected guard never calls its mock sender.
 These mocks are not GUI/input proof. Fresh strict local and ALL3 CI are pending.
+
+
+### Inotify leaf follow-up WIP (not validated or a desktop fix)
+
+The first inode-mask candidate left inotify explicitly conservative/unknown.
+A Qt/KDE poll set containing an inotify file therefore still falls back to
+broadcast eligibility. This is a workload coverage gap, not proof of the
+observed focus/URL failure's cause: retained fd links are anon_inode:[unknown]
+and do not identify those live file types. Inotify's actual poll function only
+reads its own queued-record count; its producers still globally poll_notify.
+An isolated follow-up opts only this known leaf into the existing mask, leaving
+epoll/other unknown wrappers conservative. The same Linux/guest benchmark gains
+an optional --inotify mode (24 idle eventfd+private empty-inotify poll sets),
+with no timing/context-switch pass thresholds. This WIP still requires exact
+host controls, x86 kernel/guest/regression and fixed mixed-set measurements,
+stricter-witness physical boots and current-head ALL3 PR CI. No libraries are
+compiled locally and no completed physical failure is erased.

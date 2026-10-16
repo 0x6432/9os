@@ -1,10 +1,13 @@
-/* Targeted poll wakeups must retain aliases and conservative nested/unknown
- * descriptors. Exact source also runs on Linux. Timings are not perf gates. */
+/* Targeted poll wakeups must retain aliases, conservative nested epoll, and
+ * mixed inotify leaves. Exact source runs on Linux. Timings are not perf gates. */
 #define _GNU_SOURCE
 #include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
 #include <poll.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdio.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
@@ -56,5 +59,35 @@ static void sample(int mode) {
  if(sv[1]>=0)close(sv[1]);
  close(alias);close(e);
 }
-int main(void){alarm(30);setvbuf(stdout,NULL,_IONBF,0);for(int i=0;i<4;i++)sample(i);alarm(0);
+struct create_file { char path[256]; int result; };
+static void *create_later(void *arg) {
+ struct create_file *c=arg;usleep(30000);
+ int fd=open(c->path,O_WRONLY|O_CREAT|O_EXCL,0600);
+ c->result=fd<0?-errno:close(fd);return NULL;
+}
+static void inotify_leaf(void) {
+ char dir[]="/tmp/pollfilter-inotify-XXXXXX";
+ CHECK(mkdtemp(dir)!=NULL);
+ int in=inotify_init1(IN_NONBLOCK|IN_CLOEXEC),e=eventfd(0,EFD_NONBLOCK);
+ CHECK(in>=0&&e>=0);if(in<0||e<0)goto done;
+ int wd=inotify_add_watch(in,dir,IN_CREATE);CHECK(wd>=0);if(wd<0)goto done;
+ struct create_file c={.result=-1};snprintf(c.path,sizeof c.path,"%s/watch.txt",dir);
+ pthread_t t;int made=pthread_create(&t,NULL,create_later,&c)==0;CHECK(made);
+ if(made){
+  struct pollfd p[2]={{in,POLLIN,0},{e,POLLIN,0}};
+  CHECK(poll(p,2,2000)==1&&(p[0].revents&POLLIN)&&!p[1].revents);
+  CHECK(pthread_join(t,NULL)==0&&c.result==0);
+  union {struct inotify_event event;char bytes[512];} b;
+  ssize_t n=read(in,b.bytes,sizeof b.bytes);
+  CHECK(n>=(ssize_t)sizeof b.event&&b.event.wd==wd&&(b.event.mask&IN_CREATE));
+  CHECK(n>(ssize_t)sizeof b.event&&b.event.len>=10&&!strcmp(b.event.name,"watch.txt"));
+  CHECK(unlink(c.path)==0);
+ }
+ CHECK(inotify_rm_watch(in,wd)==0);
+ done:
+ if(in>=0)close(in);
+ if(e>=0)close(e);
+ CHECK(rmdir(dir)==0);
+}
+int main(void){alarm(30);setvbuf(stdout,NULL,_IONBF,0);for(int i=0;i<4;i++)sample(i);inotify_leaf();alarm(0);
  printf("pollfiltertest: %s (%d checks, %d failures)\n",failed?"FAILED":"PASSED",checks,failed);return failed!=0;}
