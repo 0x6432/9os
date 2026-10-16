@@ -2581,3 +2581,13 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   run sequentially in /data/alpine-785-{base,desktop,kms-repeat}.out.
 - Kernel review clarified snapshot ownership comment; no runtime change.
   Non-x86 validation remains PR CI-only. M40 remains open, not complete.
+
+### Physical background-exit gate hardened
+- Review found the final KMS shell gate checked background PID absence, not
+  the session's successful status. The first16/16 run's actual log independently
+  confirms Dolphin PASSED and clean exit; it is not evidence of this stronger
+  future-failure gate. Now a parent status witness must be0 AND the exact real
+  Dolphin clean-exit marker must exist. The repeat consumes this revised driver.
+- Actual driver shell logic passes5 host MOCK controls: success, nonzero even
+  with success marker, zero without marker, missing witness, signalled status.
+  These rejection controls are not real GUI evidence. New control added to CI.

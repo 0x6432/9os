@@ -17,7 +17,7 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" \
  alpine-desktop-services \
  'su user -s /bin/sh -c alpine-udisks-smoke' \
- '(ALPINE_PLASMA_OUTPUT=kms ALPINE_PLASMA_SERIAL_PNG=0 ALPINE_PLASMA_INTERACTIVE=1 ALPINE_PLASMA_FILEMANAGER=1 ALPINE_PLASMA_INPUT_DONE_FILE=/tmp/kms-input-done ALPINE_DOLPHIN_DONE_FILE=/tmp/dolphin-capture-done alpine-plasma-user-probe >/tmp/plasma-kms.log 2>&1 & echo $! >/tmp/plasma-kms.pid)' \
+ '(if ALPINE_PLASMA_OUTPUT=kms ALPINE_PLASMA_SERIAL_PNG=0 ALPINE_PLASMA_INTERACTIVE=1 ALPINE_PLASMA_FILEMANAGER=1 ALPINE_PLASMA_INPUT_DONE_FILE=/tmp/kms-input-done ALPINE_DOLPHIN_DONE_FILE=/tmp/dolphin-capture-done alpine-plasma-user-probe >/tmp/plasma-kms.log 2>&1;then echo 0;else echo $?;fi >/tmp/plasma-kms.status) & echo $! >/tmp/plasma-kms.pid' \
  'for i in $(seq 700);do grep -q ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -q ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }' \
  'test ! -e /tmp/kms-input-ok && test ! -e /tmp/kms-tty && test ! -e /tmp/kms-uid && test ! -e /tmp/kms-input-done && test ! -e /tmp/dolphin-capture-done' \
  "host:python3 scripts/qemu-screenshot.py $S $P-before.png" \
@@ -28,5 +28,5 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  'for i in $(seq 300);do grep -q DOLPHIN_MODEL_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -q "DOLPHIN_MODEL_READY uid=1000" /tmp/plasma-kms.log || { tail -n 100 /tmp/plasma-kms.log;false; }' \
  "host:python3 scripts/qemu-screenshot.py $S $P-dolphin.png" \
  'grep -q "DOLPHIN_MODEL_READY uid=1000" /tmp/plasma-kms.log && touch /tmp/dolphin-capture-done' \
- 'for i in $(seq 150);do kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;cat /tmp/plasma-kms.log;! kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null' \
+ 'for i in $(seq 150);do test ! -f /tmp/plasma-kms.status || break;sleep 1;done;cat /tmp/plasma-kms.log;test "$(cat /tmp/plasma-kms.status)" = 0 && grep -qx "alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit" /tmp/plasma-kms.log' \
  'grep -q "^violations 0" /proc/lockdep'
