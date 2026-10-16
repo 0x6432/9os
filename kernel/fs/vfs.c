@@ -1131,7 +1131,8 @@ int vfs_statfs(struct inode *i, struct kstatfs *st) {
 }
 
 struct find_ctx { uint64_t ino; char *name; bool found; };
-static int find_fill(void *c, const char *name, size_t len, uint64_t ino, unsigned type) {
+static int find_fill(void *c, const char *name, size_t len, uint64_t ino, unsigned type, uint64_t next_cookie) {
+    (void)next_cookie;
     struct find_ctx *fc = c;
     if (ino == fc->ino && strcmp(name, ".") && strcmp(name, "..")) {
         memcpy(fc->name, name, MIN(len, 255)); fc->name[MIN(len, 255)] = 0;

@@ -88,7 +88,7 @@ fsck_img() {   # e2fsck the partition at 1 MiB
 rc=0
 BIGMD5=$(python3 scripts/net-host-server.py --md5)
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext2.img" --disk "$B/scratch.img" --net-test "$@" \
-    libctest cowtest vforktest orphantest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest futexoptest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest fallocatetest ptracestoptest unixcredtest procinfotest proctasktest "mountinfotest --mutate" pimutextest ioctlwidthtest locktest leasetest asynctest xattrtest acltest sigqtest sysfstest "sysfstest -u" uinputtest vttest looptest sndtest \
+    libctest cowtest vforktest orphantest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest futexoptest efdtest socktest polltest fdtest filetest vfstest "dircookietest /proc/self /proc/self/fd /proc/self/task /sys/class" 'su user -s /bin/sh -c "dircookietest /proc/self /sys/class"' vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest fallocatetest ptracestoptest unixcredtest procinfotest proctasktest "mountinfotest --mutate" pimutextest ioctlwidthtest locktest leasetest asynctest xattrtest acltest sigqtest sysfstest "sysfstest -u" uinputtest vttest looptest sndtest \
     "udevshim -c && grep -q E:ID_INPUT_KEYBOARD=1 \$(grep -l ID_INPUT_KEY= /run/udev/data/c13:*) && udevshim -q /dev/input/event0 | grep -qx ID_INPUT=1" \
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
@@ -115,7 +115,7 @@ python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot-$ARCH.log" --dis
     --cmdline "root=/dev/vda1" "$@" \
     "grep -q '^/dev/vda1 / ext2 rw' /proc/mounts" "blktest -v /dev/vdb 77" \
     "mountinfotest --mutate" "su user -s /bin/sh -c mountinfotest" "grep -q ' /run tmpfs ' /proc/mounts && touch /run/9os-runtime-stale" \
-    libctest dyntest mapprivtest filetest vfstest vmtest sysfstest "permtest /tmp" logintest "mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2" \
+    libctest dyntest mapprivtest filetest vfstest "TMPDIR=/root dircookietest /proc/self /sys/class" vmtest sysfstest "permtest /tmp" logintest "mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2" \
     "xattrtest /root" "mkdir -p -m 755 /aclt && acltest /aclt" "locktest /root/lockf" "xattrtest -w /root" "acltest -w /aclt" "cp -a /usr /root/usr2 && echo persist > /root/keep && sync" \
     "grep -q '^violations 0' /proc/lockdep" || rc=1
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot2-$ARCH.log" --disk "$B/root.img" \

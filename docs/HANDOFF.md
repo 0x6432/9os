@@ -2991,3 +2991,31 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Current9eb fast x86 desktop28/28 + physical16/16 passed. Downloaded actual
   artifact12051134732: independent unchanged Dolphin OCR passes; after PNG has
   actual `tty`. Other desktop and full-source gates remain in progress.
+
+### Directory-cookie ABI fix (separate from unproven desktop causation)
+
+- Production-default cold boot with terminal-focus WIP failed7/16 at the earlier
+  Plasma shell gate, BEFORE Konsole/focus observation ran. Preserve
+  `/data/physical-focus-default-1`. Failure-only traces show real timezone-file
+  enumeration and normal compositor traffic. This does NOT establish a deadlock
+  or that changing timezone configuration would fix it; no such change was made.
+- Auditing directory iteration exposed a concrete independent bug: getdents
+  d_off was an output-buffer byte offset, not a usable next-entry filesystem
+  cookie. Raw lseek/replay and libc telldir/seekdir were therefore broken.
+- Same-source bounded dircookietest passes Linux. Preserved pre-fix9os kernel
+  fails68 checks (285 evaluated) with the initial test, while boot/lockdep pass;
+  the red harness is2/3, NOT a successful regression run.
+- Fix carries the filesystem's next cookie through filldir: tmpfs entry cookies
+  (including deleted gaps), proc/sys iteration positions, ext2 directory offsets.
+  Internal getcwd enumeration ignores that new field. No guessed cookie values
+  are exposed as Linux-matching constants: callers must treat them as opaque.
+- Expanded test passes x86 UP7/7 and SMP8 7/7 harnesses: directory486 checks each
+  ROOT+UID1000, vfstest, available procinfo/proctask consumers and lockdep0. Ext2
+  disk-root6/6 passes with443 directory checks each ROOT+UID1000, clean shutdown
+  and e2fsck exit0. Linux current complete consumer687 checks,0 failures.
+- Wired exact consumer into source/fast ALL3 CI and Linux host checks. Those new
+  gates have NOT run on non-x86 yet; PR18 head9eb remains unchanged while its
+  full-source gate finishes. No claim this ABI fix solves Plasma cold starts.
+- Current9eb fast38914052540 ALL3 SUCCESS: each desktop28/28 + physical16/16,
+  base runtime28/28 + UP8/8, x86 SMP8 8/8. Actual physical Dolphin PNGs independently
+  pass unchanged filename OCR for all3. Full-source38914052546 still in progress.

@@ -325,7 +325,7 @@ struct iter_ctx { uint64_t idx; uint64_t *pos; filldir_t fill; void *ctx; bool s
 static bool emit(struct iter_ctx *c, const char *name, uint64_t ino, unsigned type) {
     if (c->stop) return false;
     if (c->idx++ < *c->pos) return true;
-    if (c->fill(c->ctx, name, strlen(name), ino, type)) { c->stop = true; return false; }
+    if (c->fill(c->ctx, name, strlen(name), ino, type, c->idx)) { c->stop = true; return false; }
     (*c->pos)++;
     return true;
 }

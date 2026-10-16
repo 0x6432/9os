@@ -231,17 +231,17 @@ static int t_truncate_locked(struct inode *i, uint64_t size) {
 
 static int t_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx) {
     struct tdir *d = dir->priv;
-    if (*pos == 0) { if (fill(ctx, ".", 1, dir->ino, 4)) return 0; (*pos)++; }
+    if (*pos == 0) { if (fill(ctx, ".", 1, dir->ino, 4, 1)) return 0; (*pos)++; }
     if (*pos == 1) {
         struct inode *p = dir->parent ? dir->parent : dir;
-        if (fill(ctx, "..", 2, p->ino, 4)) return 0;
+        if (fill(ctx, "..", 2, p->ino, 4, 2)) return 0;
         (*pos)++;
     }
     list_for_each(it, &d->entries) {
         struct dirent_t *e = list_entry(it, struct dirent_t, node);
         if (e->cookie < *pos - 2) continue;
         unsigned type = (e->ino->mode & S_IFMT) >> 12;
-        if (fill(ctx, e->name, strlen(e->name), e->ino->ino, type)) return 0;
+        if (fill(ctx, e->name, strlen(e->name), e->ino->ino, type, e->cookie + 3)) return 0;
         *pos = e->cookie + 3;
     }
     return 0;

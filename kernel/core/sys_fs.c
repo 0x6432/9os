@@ -401,14 +401,15 @@ int64_t sys_statx(int dirfd, const char *upath, int flags, unsigned mask, void *
 }
 
 struct gd_ctx { uint8_t *buf; size_t size, used; bool full; bool old; };
-static int gd_fill(void *c, const char *name, size_t len, uint64_t ino, unsigned type) {
+static int gd_fill(void *c, const char *name, size_t len, uint64_t ino, unsigned type, uint64_t next_cookie) {
     struct gd_ctx *g = c;
     size_t reclen = ALIGN_UP((g->old ? 18 + 2 : 19) + len + 1, 8);
     if (g->used + reclen > g->size) { g->full = true; return 1; }
     uint8_t rec[512];
     memset(rec, 0, reclen);
     *(uint64_t *)rec = ino;
-    *(int64_t *)(rec + 8) = g->used + reclen;
+    /* telldir/seekdir must resume in the filesystem, not in this batch buffer. */
+    *(int64_t *)(rec + 8) = (int64_t)next_cookie;
     *(uint16_t *)(rec + 16) = reclen;
     if (g->old) { memcpy(rec + 18, name, len); rec[reclen - 1] = type; }
     else { rec[18] = type; memcpy(rec + 19, name, len); }
