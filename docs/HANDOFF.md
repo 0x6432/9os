@@ -3232,3 +3232,20 @@ fix the intermittent cold-start issue; a fixed parent/candidate sample is runnin
 Prebuilt CI at that head passed all three architectures, including desktop jobs.
 The optional qmltestrunner parent correction changes configuration, so all current
 head CI must pass again before integration; earlier green runs are not current.
+
+### WIP: same-key futex requeue list accounting
+
+A separate audit found that requeuing onto the same key rotates list nodes and
+counts them repeatedly up to the requested limit, rather than counting each
+original waiter once. Different virtual aliases of one shared inode key have
+the same issue. Linux returns three for three waiters even with move limit 100;
+the candidate leaves equal-key nodes in place and counts each once. Different-key
+movement and bitset preservation remain unchanged. This is independent of the
+intermittent Plasma startup issue; no desktop-fix claim follows.
+
+The new exact portable guest consumer passes 29 checks on host Linux. Eleven
+exact-kernel-function list controls pass with mock locks, while the original
+function fails the same-key negative control. These are not real-kernel SMP
+validation: guest negative/candidate runs and all-architecture PR CI are still
+pending. The branch is not merge-ready. The compare-versus-requeue atomicity
+of CMP_REQUEUE remains a separate audit concern, not fixed by this small change.
