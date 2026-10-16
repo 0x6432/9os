@@ -3204,3 +3204,14 @@ ARM/RISC-V and full source/prebuilt regressions remain PR-CI gates. One initial
 isolated build lacked the optional uACPI dependency and could not log in; it was
 stopped, the dependency restored, and the kernel rebuilt before these results.
 No desktop readiness claim or M40 completion claim follows from this ABI fix.
+
+### WIP: source Quick on QtWayland consumer (not yet compiled)
+
+A separate tiny QQuickView consumer and QML Rectangle are drafted for source
+Quick/Wayland: binding 42->48, software renderer identity, three private-queue
+wl_surface.frame callbacks, resize and every-pixel RGB checks via grabWindow.
+It reuses the existing mapped-app/clean-exit Sway harness under root and UID1000.
+Only shell syntax and diff checks have run so far; no compile/runtime pass is
+claimed and no Qt libraries were compiled locally. This branch is not merge-ready.
+Source PR20 RISC-V CI now exposes another optional GUI host import,
+qmltestrunner, which must be corrected in the parent configuration first.

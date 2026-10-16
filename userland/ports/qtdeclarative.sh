@@ -65,4 +65,16 @@ install -m755 "$UL/ports/scripts/qmlsmoke" "$PREFIX_ROOT/usr/bin/qmlsmoke"
 mkdir -p "$PREFIX_ROOT/usr/qml/9os-tests"
 install -m644 "$UL/ports/src/qtquick.qml" "$PREFIX_ROOT/usr/qml/9os-tests/qtquick.qml"
 install -m755 "$UL/ports/scripts/qtquicksmoke" "$PREFIX_ROOT/usr/bin/qtquicksmoke"
+# Tiny target consumer only; the scene and real compositor callbacks are checked
+# independently of qmlscene's offscreen item capture.
+"$UL/musl-dcxx" -std=c++17 -O2 -fPIC -fexceptions -frtti \
+    -I"$PREFIX_ROOT/usr/include" -I"$PREFIX_ROOT/usr/include/QtCore" \
+    -I"$PREFIX_ROOT/usr/include/QtGui" -I"$PREFIX_ROOT/usr/include/QtQuick" \
+    -I"$PREFIX_ROOT/usr/include/QtQml" -I"$PREFIX_ROOT/usr/include/QtQmlIntegration" \
+    -I"$PREFIX_ROOT/usr/include/QtGui/$V" -I"$PREFIX_ROOT/usr/include/QtGui/$V/QtGui" \
+    "$UL/ports/src/qtquickwaylandtest.cc" -L"$PREFIX_ROOT/usr/lib" \
+    -lQt6Quick -lQt6Qml -lQt6Gui -lQt6Core -lwayland-client \
+    -o "$PREFIX_ROOT/usr/bin/qtquickwaylandtest"
+install -m644 "$UL/ports/src/qtquick-wayland.qml" "$PREFIX_ROOT/usr/qml/9os-tests/qtquick-wayland.qml"
+install -m755 "$UL/ports/scripts/qtquickwaylandsmoke" "$PREFIX_ROOT/usr/bin/qtquickwaylandsmoke"
 echo "Qt $V source QML/Quick candidate installed (interpreter, no JS JIT/network/KDE claim)"
