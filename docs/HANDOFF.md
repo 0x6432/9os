@@ -3383,3 +3383,15 @@ Plasma6 and failure-diagnostic6 host groups pass. These are mocks, not guest
 proof. A fixed two-boot physical candidate sample is running, with all outcomes
 retained and a stronger private input guard refusing keys after failed genuine
 terminal readiness. No repeat-until-pass or desktop reliability claim.
+
+
+The fixed two-boot candidate sample has now completed: both boots FAILED6/16,
+with actual PTY publication but no successful focused-terminal observation
+(pid908 and993). No physical keys were sent and Dolphin was not reached.
+The first retained failure image shows the real Konsole window, so this is
+not proof of an absent window or a diagnosed kernel deadlock. The budget
+candidate is NOT a cold-start fix and is not proposed for integration. The
+original production probe/helper were restored byte-for-byte afterwards.
+The private input guard was corrected between boots to use the actual
+readiness command status (__RC3=0); both real readiness commands returned1,
+so neither failure is an artefact of the guard. No active VM fixture changed.
