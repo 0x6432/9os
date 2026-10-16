@@ -37,7 +37,7 @@ _Updated after every milestone. Read this first when picking up the project._
 | M34–M37 sysfs/input/DRM/Sway | ✅ sysfs + udev shim, libinput/seatd, atomic KMS + PRIME, Sway + foot; see later milestone sections |
 | M38 Mesa LLVM | ✅ native llvmpipe JIT + PRIME/EGL-image sharing; all-architecture CI |
 | M39 audio | ✅ validated minimal virtio-snd PCM playback; no mixer/capture/mmap |
-| M40 KDE groundwork | ◐ DBus session bus, full C++ runtime and Qt Core/DBus slices; CI pending, GUI/Wayland/Quick not yet ported |
+| M40 KDE groundwork | ◐ Source DBus/C++/Qt Core/DBus/raster GUI/QtWayland and headless QtDeclarative merged; signed prebuilt Quick/Plasma functional gates pass ALL3, but strict physical app-visibility/cold-start acceptance fails intermittently; source Quick rendering and service scope unfinished |
 
 ## Build environment used
 - clang 15.0.7 / ld.lld (Amazon Linux 2023). clang 15 has no `-std=c23`, so the Makefile
@@ -2718,3 +2718,33 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Fast84fd758 ALL3 base27/27 +UP8/8 and x86SMP8 8/8 passed; actual three-thread
   packaged strace/elfutils attach/module-frame/detach root/user reviewed in logs.
   Desktop jobs and older PR18 full-source x86/RISC remain pending at this point.
+
+### Strict visual failures and focused async image isolation
+- PR18 old head0c03230 source run38875303917 completed ALL3 successfully:
+  116/116 main, disk23+7, both e2fsck/halt, audio2+absent2, UP9, MLFQ12,
+  plus x86SMP8. Logs reviewed. This does NOT validate later kernel WIP or waive
+  the failed physical desktop gates. No merge occurred; branches retained.
+- Strict84fd758 fast run38884696996 completed failure: ALL3 base27+UP8,
+  x86SMP8, and ALL3 desktop22 PASS. Physical x86/ARM15/16 failed ONLY the new
+  visible-Dolphin gate despite actual typed UID1000 PTY/model/exit success.
+  RISC physical7/16 failed at stock Plasma wallpaper readiness. Keep failures.
+- CI x86 actual outer grim also shows only wallpaper/panel (artifact12038554590,
+  /data/ci84-desktop-x86/outer-dolphin.png), matching physical missing windows.
+  Therefore that occurrence is not solely physical DRM copying/scanout.
+- Local863e469 functional keyboard is now correctly typed `tty`, UID1000 actual
+  /dev/pts/0. Dolphin URL readiness FAILED12/16; fast failure trace shows active
+  KIO plugin metadata statx/readlink/mmap work, NOT proof of a futex deadlock.
+  Separate post-capture compositor diagnostic later failed wallpaper readiness;
+  compositors had already exited before the post-capture trace. Move those
+  failure-only compositor traces inside the already-failed readiness branch.
+- Added focused async-image smoke: exact stock Next PNG, actual packaged Qt Quick
+  asynchronous=true/cache=false,32 reload/Ready callbacks and real software grab.
+  Same QML passes on host Linux and 9os x86 root/user; each guest image320x240,
+  27140 colors, mean per-channel difference <=0.504 against the actual asset.
+  QEMU4/4 and independent image checker pass. This narrows generic PNG/async
+  decoding but does NOT validate Plasma or explain the intermittent compositor.
+  Initial host oracle invocation through VM setuid BusyBox was correctly refused
+  by Qt; successful host run executes qmlscene directly with host-set environment.
+- Desktop suite adds root/user image tests plus independent actual-asset pixel
+  check (now25 gates). Synthetic comparison controls are NOT guest GUI evidence.
+  Non-x86 runs remain GitHub-only. No Qt/Mesa libraries compiled locally.

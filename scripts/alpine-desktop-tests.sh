@@ -16,6 +16,8 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  'ALPINE_WAYLAND_RENDERER=opengl ALPINE_WAYLAND_USER=user alpine-wayland-smoke' \
  "host:python3 scripts/alpine-wayland-check.py $L --renderer opengl" \
  'pidof init && ps -o pid,ppid,comm && top -b -n 1 >/tmp/top.out && grep -q init /tmp/top.out' \
+ alpine-async-image-smoke 'su user -s /bin/sh -c alpine-async-image-smoke' \
+ "host:python3 scripts/alpine-async-image-check.py $L $ROOT/usr/share/wallpapers/Next/contents/images/1024x768.png" \
  alpine-desktop-services \
  'su user -s /bin/sh -c alpine-udisks-smoke' \
  'su user -s /bin/sh -c "dbus-send --system --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.GetId"' \

@@ -144,6 +144,16 @@ if [ "$frame_ready" != 1 ];then
  grep -E 'plasmashell|QQuick|QQml|QDBus|QThread|QSG|Thread' /proc/sched || true
  timeout -k 2 -s TERM 8 strace -f -tt -T -p "$plasma" -o "$D/plasma-blocked.trace" 2>&1 || true
  tail -n 160 "$D/plasma-blocked.trace" 2>/dev/null || true
+ # The application can be idle while a compositor is waiting for a lost frame.
+ # Failure is irrevocably recorded above; tracing cannot rescue this attempt.
+ for role in kwin sway;do
+  case "$role" in kwin) p=$kwin ;; sway) p=$swaypid ;; esac
+  [ -n "$p" ] || continue
+  echo "PLASMA_COMPOSITOR_DIAGNOSTIC role=$role pid=$p"
+  ls -l "/proc/$p/fd" 2>/dev/null || true
+  timeout -k 2 -s TERM 8 strace -f -tt -T -p "$p" -o "$D/$role-blocked.trace" 2>&1 || true
+  tail -n 140 "$D/$role-blocked.trace" 2>/dev/null || true
+ done
  # Preserve real failure pixels and configuration, never substitute a background.
  timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];print("WALLPAPER_DIAGNOSTIC id="+ds[i].id+" plugin="+ds[i].wallpaperPlugin+" image="+ds[i].readConfig("Image"));}' || true
  WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/failure.png" || true

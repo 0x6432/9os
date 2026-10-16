@@ -54,6 +54,7 @@ jobs:
           python3 scripts/desktop-pty-host-tests.py
           python3 scripts/desktop-visible-host-tests.py
           python3 scripts/qemu-type-host-tests.py
+          python3 scripts/alpine-async-image-host-tests.py
       - name: Install signed prebuilt runtime
         # apk2 applies Sway's signed security.capability xattr. The runner needs
         # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
