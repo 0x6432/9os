@@ -2847,3 +2847,27 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   branch WITHOUT updating PR18/restarting full source CI. New read-only-root
   wrapper has syntax/empty-evidence controls; actual execution pending restored
   signed desktop. Prior private Linux results are not proof of this new wrapper.
+
+### Restored fixture guard and read-only Linux comparison
+- Fresh desktop assembly omitted the ten tiny consumers normally copied by
+  alpine-desktop-tests.sh. First restored Linux/physical attempts reported
+  `desktopframecheck: not found`; these are INVALID FIXTURES, not evidence of
+  an OS rendering regression. Stopped the invalid physical batch and restored
+  the consumers from the signed-base build. No Qt/Mesa/library compilation.
+- Both direct physical and Linux runners now fail early for missing frame/model
+  consumers. Linux incomplete-fixture negative control exits2 before namespaces.
+  Linux comparison also creates a private UID1000 home on tmpfs; the packaged
+  root remains read-only (the VM init normally creates the home).
+- Checked-in read-only Linux wrapper now genuinely validates: callback mode
+  passes wallpaper, Konsole PTY, Dolphin file-model/rename/create, actual pixels
+  and clean exit, with33 fresh captures over the normal35-second window.
+  Native mode reaches the real Dolphin model and exits cleanly but FAILS actual
+  Dolphin filename visibility across26 fresh captures. This is Linux/headless
+  comparison evidence, NOT 9os or physical-input acceptance. Further callback
+  repetitions and restored x86 physical cold runs are still in progress.
+- Review found the existing proc FD decimal parser still uses signed unchecked
+  multiplication. Added same-source malformed/canonical FD-name coverage to
+  procinfotest: Linux183/183 passes, including /proc/self/fd, task/TID/fd and
+  /proc/TID/fd. A bounded --fd-wrap-control checks only the safe positive alias
+  2^32+live-fd for an old-kernel negative control. No kernel fix or guest result
+  claimed yet; isolated x86 image built for that control.
