@@ -18,6 +18,9 @@ class RendererThreads(unittest.TestCase):
         r = subprocess.run(['/bin/sh', '-c', LINE+'\nprintf "%s" "$LP_NUM_THREADS"'], env=env, capture_output=True, text=True, check=True)
         self.assertEqual(r.stdout, expected)
 
+    def test_bus_inherits_policy_before_activation(self):
+        self.assertLess(TEXT.index(LINE), TEXT.index('if dbus-run-session'))
+
     def test_default(self):
         self.check(None, '1')
 
