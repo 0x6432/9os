@@ -7,3 +7,4 @@ trap 'rm -rf "$b"' EXIT HUP INT TERM
 ${CC:-cc} -O2 -Wall -Wextra -Werror -pthread userland/tests/eventfdwaketest.c -o "$b/eventfdwaketest"
 "$b/eventfdwaketest"
 python3 tests/eventfd-host/wake-model.py
+python3 tests/eventfd-host/install-model.py

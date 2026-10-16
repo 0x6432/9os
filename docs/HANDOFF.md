@@ -3395,12 +3395,18 @@ The exact new eventfdwaketest consumer passes51 checks on Linux, including a
 large blocked writer while POLLOUT was already true, partial semaphore drains,
 saturated poll/epoll/select writability and an inherited descriptor writer.
 The host model compiles the production operation bodies with mocked scheduler
-queues and checks4 routing/enrollment groups. It rejects4 unsafe mutations:
+queues and checks4 routing/enrollment groups. It rejects4 regression mutations:
 missing writer wake, saturated-only writer wake, missing POLLOUT wake and an
 unconditional global drain broadcast. This model does not prove real SMP
 scheduler behavior or complete Linux epoll edge-trigger semantics.
 
-Local x86-only UP/SMP8 and available-core/disk/audio validation is underway.
+Local x86-only UP and SMP8 suites each pass12/12 (root/UID1000 consumer51
+each). Available core93/93, disk24/24+7/7, both fsck/clean halts and PCM/no-card
+audio2/2 each passed. Initial PR25 fast CI correctly failed because the new
+consumer was absent from Alpine's explicit tiny-consumer installer. It is now
+installed, with a fake-compiler x86 install-path control rejecting missing and
+duplicate entries. That control builds no target binary; real ALL3 installer
+and consumer validation remains required in current-head PR CI.
 The candidate has not demonstrated any physical-desktop reliability improvement.
 PR24's one strict SMP4 physical control failed12/16 at Dolphin URL readiness,
 despite genuine terminal focus and delivered UID1000 keyboard input; its later
