@@ -23,6 +23,7 @@ static void check_error(Error *e) {
 }
 static void walk(Accessible *a, unsigned depth) {
     if (!a || depth>24 || ++nodes>2048) { failed=1;return; }
+    if(nodes%64==0)printf("A11Y_VISITED=%d depth=%u\n",nodes,depth);
     Error *e=NULL;char *n=get_name(a,&e);check_error(e);
     if(n) for(int i=2;i<argc_;i++) if(!strcmp(n,argv_[i]+1)) seen[i]++;
     free_text(n);e=NULL;int c=get_count(a,&e);check_error(e);
@@ -40,22 +41,25 @@ int main(int argc,char **argv) {
     char *end;errno=0;unsigned long target=strtoul(argv[1],&end,10);
     if(errno || *end || !target || target>2147483647) return 2;
     for(int i=2;i<argc;i++)if((argv[i][0]!='+' && argv[i][0]!='-') || !argv[i][1])return 2;
-    alarm(45);argc_=argc;argv_=argv;
+    setvbuf(stdout,NULL,_IOLBF,0);alarm(45);argc_=argc;argv_=argv;
     void *h=dlopen("libatspi.so.0",RTLD_NOW);
     if(!h){fprintf(stderr,"desktopa11y: %s\n",dlerror());return 2;}
-    int (*init)(void),(*finish)(void);
-    LOAD(init,"atspi_init");LOAD(finish,"atspi_exit");LOAD(get_desktop,"atspi_get_desktop");
+    int (*init)(void),(*finish)(void);void (*set_timeout)(int,int);
+    LOAD(init,"atspi_init");LOAD(finish,"atspi_exit");LOAD(set_timeout,"atspi_set_timeout");LOAD(get_desktop,"atspi_get_desktop");
     LOAD(get_count,"atspi_accessible_get_child_count");LOAD(get_child,"atspi_accessible_get_child_at_index");
     LOAD(get_name,"atspi_accessible_get_name");LOAD(get_pid,"atspi_accessible_get_process_id");
     LOAD(unref,"g_object_unref");LOAD(free_text,"g_free");LOAD(free_error,"g_error_free");
-    if(init())return 2;
+    puts("A11Y_PHASE init");if(init())return 2;set_timeout(1500,3000);puts("A11Y_PHASE desktop");
     Accessible *d=get_desktop(0);if(!d){finish();return 1;}
     Error *e=NULL;int c=get_count(d,&e);check_error(e);int found=0;
     if(c<0 || c>128)failed=1;
+    printf("A11Y_APPLICATIONS=%d\n",c);
     for(int i=0;i<c && !failed;i++) {
+        printf("A11Y_PHASE application=%d\n",i);
         e=NULL;Accessible *a=get_child(d,i,&e);check_error(e);
         if(!a){failed=1;break;}
         e=NULL;unsigned pid=get_pid(a,&e);check_error(e);
+        printf("A11Y_APP_PID=%u\n",pid);
         if(pid==target){found++;walk(a,0);}
         unref(a);
     }

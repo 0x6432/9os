@@ -33,15 +33,35 @@ call_bool() {
  timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest="$1" "$2" "org.kde.dolphin.MainWindow.$3" ${4:+string:$4} > "$D/reply" 2> "$D/readback.err" || return 1
  sed -n 's/^[[:space:]]*boolean \(true\|false\)$/\1/p' "$D/reply"
 }
+# Do not recursively enumerate every QAction with qdbus: that can consume the
+# entire deadline and lose buffered path output when killed. Inspect bounded
+# real parent nodes, stopping as soon as the MainWindow interface is exported.
+find_window() {
+ pending=/;visited=0
+ for depth in 0 1 2;do
+  next=
+  for path in $pending;do
+   visited=$((visited+1));[ "$visited" -le 32 ] || return 1
+   if timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest="$1" "$path" org.freedesktop.DBus.Introspectable.Introspect > "$D/introspect" 2> "$D/introspect.err";then
+    if grep -Fq '<interface name="org.kde.dolphin.MainWindow">' "$D/introspect";then printf '%s\n' "$path";return 0;fi
+    for node in $(sed -n 's/.*<node name="\([A-Za-z0-9_]*\)".*/\1/p' "$D/introspect");do
+     [ -n "$node" ] || continue
+     next="$next ${path%/}/$node"
+    done
+   fi
+  done
+  pending=$next
+ done
+ return 1
+}
 service=;object=;deadline=$(( $(date +%s) + 90 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
  # Read actual bus names without spawning Qt/introspection for every poll.
  for name in $(timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames | sed -n 's/^[[:space:]]*string "\(org\.kde\.dolphin[^" ]*\)"$/\1/p');do
-  for path in $(timeout -s KILL 5 "$Q" "$name" | grep '^/' || true);do
-   if call_bool "$name" "$path" isUrlOpen "file://$D/files" | tee "$D/readback.out" | grep -qx true;then
-    service=$name;object=$path;break
-   fi
-  done
+  path=$(find_window "$name" || true)
+  if [ -n "$path" ] && call_bool "$name" "$path" isUrlOpen "file://$D/files" | tee "$D/readback.out" | grep -qx true;then
+   service=$name;object=$path;break
+  fi
   [ -z "$object" ] || break
  done
  [ -z "$object" ] || break

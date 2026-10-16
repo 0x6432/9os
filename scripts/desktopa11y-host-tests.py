@@ -11,6 +11,7 @@ MOCK = r'''
 #include <string.h>
 static int root,app,leaf;
 int atspi_init(void){return 0;}int atspi_exit(void){return 0;}
+void atspi_set_timeout(int a,int b){(void)a;(void)b;}
 void *atspi_get_desktop(int n){(void)n;return &root;}
 int atspi_accessible_get_child_count(void *a,void **e){
  const char *m=getenv("MOCK");

@@ -47,6 +47,7 @@ jobs:
           python3 scripts/alpine-plasma-host-tests.py
           python3 scripts/desktopframe-host-tests.py
           python3 scripts/desktopa11y-host-tests.py
+          python3 scripts/dolphin-discovery-host-tests.py
       - name: Install signed prebuilt runtime
         # apk2 applies Sway's signed security.capability xattr. The runner needs
         # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.

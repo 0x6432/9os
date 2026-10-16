@@ -2471,3 +2471,23 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
  it still requires actual host QEMU before/after/Dolphin PNGs, genuine typed
  UID1000 PTY files and actual accessible before/after model. Headless default
  serial PNG and independent checker unchanged. Failure image kept.
+
+### Integrated main green; real helper ownership bug found
+- Main run38859198398 at1d2a11d8 completed success ALL3. Reviewed downloaded
+ main-1d2-116837427{885,915},116837428000 logs: each main115, disk20+6,
+ audio2+2, UP9, MLFQ12; x86SMP8 10. This is integrated PR17, not follow-up.
+- Image normalizes all host owners to0:0. Signed launch-helper APK metadata
+ requires root:messagebus4750; actual helper root:root4750 was inaccessible
+ to real messagebus81, causing UDisks Spawn.ExecFailed Permission denied.
+ Guest services now explicitly restore ONLY that signed file to0:81:4750,
+ rejecting symlinks and wrong daemon identity. No world-exec broadening.
+- x86 helper mode and non-user executable checks pass. Actual UID1000 UDisks
+ activation now gets ChildSignaled5 instead of EACCES: real service remains
+ unimplemented/unvalidated; no UDisks success claim. Capturing foreground error
+ /data/udisks-diagnostic.out, build/test-udisks-diagnostic.log.
+- Dolphin discovery replaced recursive qdbus over dozens of QAction objects
+ with bounded direct Introspect parent traversal,32nodes/3levels, actual
+ interface matching. Mock controls5/5 (not GUI evidence).
+- Observer now has per-call1500/3000ms deadlines and line-buffered progress;
+ global45s alarm unchanged. Full Plasma observer previously hit45s alarm,
+ not a passing model check. Next actual full desktop repeat is pending.
