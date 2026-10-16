@@ -3205,6 +3205,17 @@ isolated build lacked the optional uACPI dependency and could not log in; it was
 stopped, the dependency restored, and the kernel rebuilt before these results.
 No desktop readiness claim or M40 completion claim follows from this ABI fix.
 
+### WIP: source Quick on QtWayland consumer (not yet compiled)
+
+A separate tiny QQuickView consumer and QML Rectangle are drafted for source
+Quick/Wayland: binding 42->48, software renderer identity, three private-queue
+wl_surface.frame callbacks, resize and every-pixel RGB checks via grabWindow.
+It reuses the existing mapped-app/clean-exit Sway harness under root and UID1000.
+Only shell syntax and diff checks have run so far; no compile/runtime pass is
+claimed and no Qt libraries were compiled locally. This branch is not merge-ready.
+Source PR20 RISC-V CI now exposes another optional GUI host import,
+qmltestrunner, which must be corrected in the parent configuration first.
+
 ### Source Quick cross configuration: optional qmltestrunner follow-up
 
 PR20 current-source RISC-V job 117115014357 (run 38942880209) reached target
@@ -3232,3 +3243,47 @@ fix the intermittent cold-start issue; a fixed parent/candidate sample is runnin
 Prebuilt CI at that head passed all three architectures, including desktop jobs.
 The optional qmltestrunner parent correction changes configuration, so all current
 head CI must pass again before integration; earlier green runs are not current.
+
+The isolated Quick Wayland draft wrapper has four passing host-control groups:
+forced software/interpreter identity, poisoned search-path removal, UID1000
+selection preservation and failure propagation/real-harness frame-marker checks.
+These do not substitute for compiling or running the drafted C++ consumer.
+
+### Tiny Quick Wayland consumer: signed prebuilt x86 validation
+
+The drafted consumer now compiles cleanly with -Wall -Wextra -Werror against
+independently signature-verified Alpine 3.22 Qt 6.8.3 development headers and
+links the existing signed prebuilt Qt libraries. Only the small test executable
+was compiled locally; no Qt/Mesa/LLVM libraries were rebuilt. Development headers
+were extracted into a separate SDK, without package install hooks. The local
+prebuilt harness adapts only the platform-plugin directory to Alpine's layout;
+source CI retains its source-port paths and real compositor requirements.
+
+One fresh four-CPU x86 boot passed 5/5: root and UID1000 each passed 38 assertions,
+including native Wayland identity, QML binding, software renderer, three genuine
+compositor callbacks, resize, every captured pixel, mapped app and clean client/
+Sway shutdown; an offscreen negative rejected the non-Wayland backend with status
+1 and both identity errors; lockdep remained zero. This uses Sway's headless
+backend with actual Wayland clients, not physical KMS scanout or a completed
+source Qt Quick build. Full source all-architecture PR CI remains required.
+
+An earlier run correctly reported 4/5, despite both 37-assertion clients passing:
+the expected negative printed FAIL to serial, which the runner rejects even with
+zero shell status. The negative now captures its intentional errors privately,
+checks status/reasons and emits EXPECTED_OFFSCREEN_REJECTION. The runner and its
+failure detection were not weakened. Explicit UID assertions were then added
+before the successful final 38-assertion run. Four isolated wrapper host controls
+also pass and are wired into both CI workflows. This branch is not merge-ready.
+
+### Fixed cold comparison: masks do not resolve the desktop startup issue
+
+The predeclared parent/candidate/parent/candidate sample finished with one
+16/16 pass and one 7/16 failure per kernel. Both failures reached a PTY but not
+the required focused/showing/visible Terminal within the unchanged deadline.
+Both passing boots rendered and input-validated UID1000 Konsole, updated real
+Dolphin models and passed fresh host scanout checks, clean exit and lockdep.
+Failed samples remain failures, not rescued by later screenshots or retries.
+Signed SDK downloads/verification ran concurrently, but no extraction, build or
+second VM overlapped these boots. This small sample does not establish a
+performance or statistical claim. The futex mask fix is independently necessary
+ABI work, not a demonstrated fix for intermittent Plasma cold startup.

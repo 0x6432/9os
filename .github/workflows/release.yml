@@ -93,6 +93,7 @@ jobs:
           python3 scripts/qtdeclarative-cross-host-tests.py
           python3 scripts/host-qsb-host-tests.py
           python3 scripts/quick-pixel-host-tests.py
+          python3 scripts/quick-wayland-host-tests.py
           scripts/proctask-host-tests.sh
           sudo env MOUNTINFO_HOST_MUTATE=1 scripts/mountinfo-host-tests.sh
           scripts/pimutex-host-tests.sh
