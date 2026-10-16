@@ -2960,3 +2960,25 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Carry WIP FD parser, real failure diagnostics, isolated Linux comparison and
   QMP input into PR18 for new current-head ALL3 CI. Prior971 full-source and
   432 fast ALL3 results remain historical evidence, not current-head passes.
+
+### Further cold-start evidence and terminal-focus WIP
+
+- Private LP_NUM_THREADS=1 + explicit QMP transitions: the third x86 cold boot
+  failed11/16 after two16/16 runs. Its actual after PNG/OCR shows `y` rather than
+  `tty`; the before PNG had no detectable Konsole text. UID/marker subsequently
+  arrived but the tty witness did not. Later Dolphin URL readiness and physical
+  pixels also failed; its failure-only trace showed ongoing icon-path lookups,
+  not proof of a sleeping deadlock. Preserve `/data/physical-qmp-lp1-3`.
+- The renderer resource limit is NOT a demonstrated general reliability fix.
+  QMP acknowledgements are NOT evidence that a window already has keyboard focus.
+  No commands were retried, failed gates waived or deadlines enlarged.
+- WIP replaces the guessed3s Konsole sleep with a bounded read-only AT-SPI
+  terminal focused/showing/visible observation, using the existing tiny C helper
+  and the real application PID. PTY and terminal state share the existing120s
+  readiness budget. This does not set focus, inject keys or modify Qt/KDE.
+  Mock rejection controls cover wrong PID/role, absent focus/visibility/state,
+  malformed input and bounded trees. Real Linux/9os validation is pending.
+- PR18 stays at9ebf9e4 pending its full-source38914052546 and fast38914052540
+  ALL3 gates; keep this WIP separate so those runs are not restarted for notes.
+  All3 fast base runtime/UP jobs have passed; desktop/source remain in progress.
+  Source Qt Quick rendering/service scope and M40 remain unfinished.

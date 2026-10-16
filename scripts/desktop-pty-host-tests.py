@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Actual Konsole shell producer/readiness logic; mocked tty is NOT GUI evidence."""
+"""PTY + focus readiness logic; mock commands are NOT GUI evidence."""
 import os,pathlib,re,shlex,subprocess,tempfile,unittest
 TEXT=pathlib.Path(os.environ.get('PLASMA_PROBE_SOURCE','userland/alpine/desktop-overlay/usr/bin/alpine-plasma-probe')).read_text()
 BLOCK=TEXT.split('if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then\n',1)[1]
 START,COND=re.match(r'(.*?)\n if (.*?);then\n  echo \'alpine-plasma: FAIL interactive',BLOCK,re.S).groups()
 class Test(unittest.TestCase):
- def check(self,expected,delay='.1',result='/dev/pts/mock',status=0,bad_marker=False):
+ def check(self,expected,delay='.1',result='/dev/pts/mock',status=0,bad_marker=False,focus_status=0,focus_delay='0'):
   with tempfile.TemporaryDirectory() as d:
    root=pathlib.Path(d)
    (root/'konsole').write_text('#!/bin/sh\nwhile [ "$1" != -e ];do shift;done\nshift\nexec "$@"\n')
    (root/'tty').write_text('#!/bin/sh\nsleep '+delay+'\nprintf "%s\\n" '+shlex.quote(result)+'\nexit '+str(status)+'\n')
-   for f in ['konsole','tty']:(root/f).chmod(0o755)
+   (root/'dbus-send').write_text('#!/bin/sh\nexit 0\n')
+   (root/'desktopa11y').write_text('#!/bin/sh\n[ "$1" = --terminal ] || exit 2\nsleep '+focus_delay+'\nexit '+str(focus_status)+'\n')
+   for f in ['konsole','tty','dbus-send','desktopa11y']:(root/f).chmod(0o755)
    # Keep the mocked child alive after publication, like the interactive shell.
    start=START.replace('exec /bin/sh"','exec sleep 2"').replace('$(seq 1200)','$(seq 100)').replace('sleep .1','sleep .01')
    if bad_marker:start=start.replace('echo KDE_INTERACTIVE_PTY','echo INCOMPLETE_PTY')
@@ -22,4 +24,6 @@ class Test(unittest.TestCase):
  def test_failed_tty(self):self.check(False,status=1)
  def test_wrong_device(self):self.check(False,result='/dev/null')
  def test_missing_shell_marker(self):self.check(False,bad_marker=True)
+ def test_unfocused_terminal_rejected(self):self.check(False,focus_status=1)
+ def test_delayed_focus_observation(self):self.check(True,focus_delay='.2')
 if __name__=='__main__':unittest.main()

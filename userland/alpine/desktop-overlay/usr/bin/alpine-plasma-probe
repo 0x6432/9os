@@ -185,15 +185,23 @@ if [ "${ALPINE_PLASMA_SERIAL_PNG:-1}" = 1 ];then
 fi
 cat "$D/plasma.log" "$D/kwin.log"
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
+ # The child PTY can start before KWin maps/focuses Konsole. Observe the real
+ # terminal's accessibility state instead of guessing with a startup sleep.
+ export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 QT_ACCESSIBILITY=1
+ timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.a11y.Bus /org/a11y/bus org.a11y.Bus.GetAddress > "$D/konsole-a11y-bus"
  konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
- pty_ready=0
- for i in $(seq 1200);do
-  if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then pty_ready=1;break;fi
+ pty_ready=0;terminal_ready=0;deadline=$(( $(date +%s) + 120 ))
+ while [ "$(date +%s)" -lt "$deadline" ];do
+  if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then
+   pty_ready=1
+   if timeout -k 2 -s TERM 8 desktopa11y --terminal "$client" > "$D/konsole-focus" 2>&1;then terminal_ready=1;break;fi
+  fi
   kill -0 "$client" 2>/dev/null || break
   sleep .1
  done
- if [ "$pty_ready" != 1 ];then
-  echo 'alpine-plasma: FAIL interactive Konsole PTY readiness'
+ cat "$D/konsole-focus" 2>/dev/null || true
+ if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then
+  echo 'alpine-plasma: FAIL interactive Konsole PTY/focused terminal readiness'
   echo "KONSOLE_BLOCKED_PROCESS_DIAGNOSTIC pid=$client"
   cat "$D/konsole.log"
   ls -l "/proc/$client/fd" 2>/dev/null || true
@@ -205,7 +213,7 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
   exit 1
  fi
  cat "$D/interactive-pty"
- sleep 3
+ echo KONSOLE_FOCUSED_TERMINAL_READY
 fi
 echo 'alpine-plasma: real wallpaper/panel rendered; independent host acceptance required'
 if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then

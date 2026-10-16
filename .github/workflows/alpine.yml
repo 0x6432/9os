@@ -49,6 +49,7 @@ jobs:
           python3 scripts/alpine-plasma-host-tests.py
           python3 scripts/desktopframe-host-tests.py
           python3 scripts/desktopa11y-host-tests.py
+          python3 scripts/desktop-terminal-focus-host-tests.py
           python3 scripts/dolphin-discovery-host-tests.py
           python3 scripts/desktop-lifecycle-host-tests.py
           python3 scripts/plasma-failure-diagnostics-host-tests.py
