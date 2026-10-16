@@ -3179,3 +3179,20 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   omits only the two tools, native Quick keeps both, headless native generators
   remain, repeat application is idempotent and modified source is rejected.
   This is configuration proof, NOT successful source Quick compilation/rendering.
+
+### Source Quick cross configuration: optional qmltestrunner follow-up
+
+PR20 current-source RISC-V job 117115014357 (run 38942880209) reached target
+QtDeclarative configure and failed importing Qt6::qmltestrunner from the
+headless native QmlTools package. QT_BUILD_TESTS=OFF does not remove this tool:
+it is entered when the target exports QuickTest. Like qmltime/qmlplugindump,
+this is a GUI/test runner, not a required library-build generator.
+
+The pinned tools-list patch now guards all three optional host GUI imports only
+when cross compiling. Native builds retain all three; target qmlscene and real
+QML generators remain enabled. Existing exact two-tool patches upgrade safely;
+unexpected or partial edits still fail closed. Eight executed CMake control-flow
+tests pass, including a negative legacy two-tool case that now reproduces the
+actual missing qmltestrunner failure. Host-qsb seven groups and pixel four groups
+also pass. This is configuration evidence, not a completed source Quick build or
+render result. Full current-head source CI remains required before integration.
