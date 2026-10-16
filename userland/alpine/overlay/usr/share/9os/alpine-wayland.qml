@@ -25,5 +25,5 @@ Window {
     }
     // Keep the final surface alive while the harness verifies Sway IPC/capture.
     Timer { id: exitTimer; interval: 8000; onTriggered: Qt.quit() }
-    Timer { interval: 15000; running: true; onTriggered: { console.log("alpine-wayland: FAIL timeout"); Qt.exit(1) } }
+    Timer { interval: 90000; running: true; onTriggered: { console.log("alpine-wayland: FAIL timeout"); Qt.exit(1) } }
 }

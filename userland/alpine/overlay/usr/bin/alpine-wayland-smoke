@@ -33,7 +33,17 @@ for f in "$D"/wayland-*; do [ ! -S "$f" ] || WAYLAND_DISPLAY="$f"; done
 [ -n "${WAYLAND_DISPLAY:-}" ] || { cat "$D/sway.log"; echo 'alpine-wayland: FAIL socket'; exit 1; }
 export WAYLAND_DISPLAY
 C=$D/client; mkdir -m700 "$C"
-export QT_QPA_PLATFORM=wayland QT_QUICK_BACKEND=software QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1
+export QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1
+ready_tries=100
+case ${ALPINE_WAYLAND_RENDERER:-software} in
+    software) export QT_QPA_PLATFORM=wayland QT_QUICK_BACKEND=software ;;
+    opengl)
+        ready_tries=600
+        unset QT_QUICK_BACKEND
+        export QT_QPA_PLATFORM=wayland-egl QSG_RHI_BACKEND=opengl QSG_INFO=1
+        export QSG_RENDER_LOOP=basic LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=${GALLIUM_DRIVER:-llvmpipe} LP_NUM_THREADS=${LP_NUM_THREADS:-1} ;;
+    *) echo 'alpine-wayland: FAIL unsupported Quick renderer'; exit 1 ;;
+esac
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1 QT_WAYLAND_SHELL_INTEGRATION=xdg-shell WAYLAND_DEBUG=client
 if [ "${ALPINE_WAYLAND_USER:-}" = user ]; then
     expected_uid=1000
@@ -43,12 +53,20 @@ else
     (cd "$C"; printf ALPINE_WAYLAND_CLIENT_UID=; id -u; exec /usr/lib/qt6/bin/qmlscene /usr/share/9os/alpine-wayland.qml) > "$C/client.log" 2>&1 & client=$!
 fi
 ready=0
-for i in $(seq 100); do
+for i in $(seq "$ready_tries"); do
     if grep -q 'alpine-wayland: READY frames' "$C/client.log"; then ready=1; break; fi
     kill -0 "$client" 2>/dev/null || break
     sleep .1
 done
-if [ "$ready" != 1 ]; then cat "$C/client.log" "$D/sway.log"; echo 'alpine-wayland: FAIL client readiness'; exit 1; fi
+if [ "$ready" != 1 ]; then
+    if ! kill -0 "$client" 2>/dev/null; then
+        if wait "$client"; then r=0; else r=$?; fi
+        client=; echo "ALPINE_WAYLAND_EARLY_EXIT=$r"
+    else
+        echo "ALPINE_WAYLAND_CLIENT_STILL_ALIVE=$client"
+    fi
+    cat "$C/client.log" "$D/sway.log"; echo 'alpine-wayland: FAIL client readiness'; exit 1
+fi
 swaymsg -t get_tree > "$D/tree.json"
 jq -e '.. | objects | select(.name? == "9os-alpine-wayland" and .shell? == "xdg_shell" and .visible? == true)' "$D/tree.json" >/dev/null || { cat "$D/tree.json"; echo 'alpine-wayland: FAIL mapped xdg-shell surface'; exit 1; }
 # Capture the COMPOSITOR output, not a client-side grab or fake offscreen QPA.
@@ -60,7 +78,7 @@ echo ALPINE_WAYLAND_PNG_END
 echo "ALPINE_WAYLAND_TRACE_BEGIN uid=$expected_uid"
 cat "$C/client.log"
 echo ALPINE_WAYLAND_TRACE_END
-wait "$client"; r=$?; client=
+if wait "$client"; then r=0; else r=$?; fi; client=
 [ "$r" = 0 ] || { echo 'alpine-wayland: FAIL client status'; exit 1; }
 swaymsg -q exit || true
 for i in $(seq 30); do kill -0 "$compositor" 2>/dev/null || break; sleep .1; done

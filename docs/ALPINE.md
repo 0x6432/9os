@@ -97,3 +97,59 @@ Widgets applications, complete Alpine service compatibility or KDE/Plasma. Sourc
 Qt Quick remains separate work. **M40 remains incomplete.** The existing
 source-build CI remains the reproducible custom-port/regression lane; the new
 `alpine-prebuilt-runtime` workflow provides the fast compatibility lane.
+
+## Experimental desktop profile (not a completed desktop)
+
+`python3 userland/alpine/build.py --arch x86_64 --profile desktop` assembles a
+separate signed KDE/Plasma/KWin/Konsole/Dolphin/Mesa runtime. Its checked-in
+`x86_64-desktop.json` lock and generated `alpine-desktop-x86_64.lock.json` must
+not be substituted for the base profile lock. `USERLAND=alpine-desktop` uses
+separate kernel/image outputs. The current installed payload is about 2.5 GiB;
+prefer an ext2 disk root with the smaller base initramfs for iterative debugging.
+No target Qt, Mesa, LLVM or libc build is involved. `musl-dev` supplies headers
+and startup objects for compiling small ABI regression programs, not libraries.
+
+The private-bus KWin virtual/QPainter probe and real llvmpipe OpenGL Quick
+root/non-root frames passed on all three architectures in the f02fa50 desktop
+CI. Its original Konsole child check was insufficient: an inherited console
+could satisfy it. The updated probe requires an actual `/dev/pts/` slave and
+needs new current-head CI before claiming a genuine Konsole PTY on ALL3. KWin exit15 after requested SIGTERM
+is its upstream signal-handler convention, not a crash. The same CI exposed a
+real Plasma abort on the unsupported PI mutex capability; subsequent kernel
+fixes provide an explicit unsupported result and working ordinary-mutex fallback.
+
+The latest x86-only desktop experiment passes real system DBus (root/non-root),
+eudev trigger/settle, stock Plasma desktop/panel readiness and strict compositor
+capture including the genuine packaged wallpaper. Cold initialization and image
+loading are bounded, not replaced with a test background. `alpine-desktop-services`
+starts the real system bus as a locked messagebus identity and real eudev; it is
+not a logind/udisks/FUSE/PipeWire implementation. Physical KMS/input and updated
+three-architecture validation remain pending. **M40 is not complete.**
+
+The experimental desktop additionally needs host `glib-compile-schemas` and
+`update-mime-database` (Ubuntu packages `libglib2.0-bin shared-mime-info`). Since
+APK install scripts remain disabled, the builder explicitly generates only the
+known schema and MIME caches using these HOST tools on declarative packaged data.
+It never executes a target compiler/tool or arbitrary package hook. Cache hashes
+are recorded in the desktop manifest. Breeze and workspace wallpapers are
+explicit signed dependencies rather than assumed optional runtime files.
+Private sessions update the DBus activation environment when their Wayland
+socket becomes available; otherwise activated Qt helpers incorrectly select X11.
+
+### ABI and acceptance hardening (in progress)
+
+Linux treats `ioctl` requests as 32-bit unsigned values, even on a 64-bit
+syscall ABI. Prebuilt musl can sign-extend its public `int` request; 9os now
+normalizes it at the syscall boundary instead of incorrectly rejecting real
+`TIOCGPTN` (and other read-direction requests). The same-source Linux oracle
+and x86 guest, root and UID1000, pass all 30 checks, including garbage upper
+bits, invalid pointers, PTY raw I/O and window-size round trips.
+
+Plasma screenshot readiness now polls actual grim PPM pixels, requiring two
+consecutive rendered wallpaper/panel frames, rather than assuming a fixed
+sleep finishes asynchronous image loading. The independent strict PNG checker
+and its black-background negative controls remain mandatory and unchanged.
+Physical KMS diagnostics now require wlroots' actual `drm,libinput` backends
+and an enumerated keyboard. A real PTY and rendered physical display alone
+do NOT prove that keyboard input reaches Konsole; that end-to-end test remains
+a separate gate. M40 is NOT complete.

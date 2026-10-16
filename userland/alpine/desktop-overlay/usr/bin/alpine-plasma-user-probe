@@ -1,0 +1,31 @@
+#!/bin/sh
+# Genuine unprivileged desktop with a root seatd broker, not fake logind.
+set -eu
+[ "$(id -u)" = 0 ] || { echo 'Seat broker setup requires root';exit 1; }
+[ "$(id -u user)" = 1000 ] || { echo 'Expected the explicit VM test user';exit 1; }
+D=$(mktemp -d /tmp/alpine-seat-XXXXXX)
+seat=
+cleanup() {
+ r=$?
+ if [ -n "$seat" ];then
+  kill "$seat" 2>/dev/null || true
+  for i in $(seq 30);do kill -0 "$seat" 2>/dev/null || break;sleep .1;done
+  kill -KILL "$seat" 2>/dev/null || true;wait "$seat" 2>/dev/null || true
+  cat "$D/seat.log"
+ fi
+ rm -rf "$D"
+ exit "$r"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
+ [ ! -S /run/seatd.sock ] || { echo 'Refusing to replace an existing seat broker';exit 1; }
+ seatd -g video -l debug > "$D/seat.log" 2>&1 & seat=$!
+ ready=0
+ for i in $(seq 50);do
+  if [ -S /run/seatd.sock ];then ready=1;break;fi
+  kill -0 "$seat" 2>/dev/null || break;sleep .1
+ done
+ [ "$ready" = 1 ] || { cat "$D/seat.log";exit 1; }
+fi
+su user -s /bin/sh -c 'ALPINE_PLASMA_EXTERNAL_SEAT=1 exec alpine-plasma-probe'

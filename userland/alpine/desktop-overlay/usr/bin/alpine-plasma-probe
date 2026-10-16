@@ -1,0 +1,160 @@
+#!/bin/sh
+# Experimental real Plasma shell nested under Sway for compositor-side evidence.
+set -eu
+if [ "${1:-}" != --session ]; then
+    # Activated helpers inherit the bus stderr. Keep their asynchronous output
+    # out of base64 PNG framing, but replay ALL diagnostics after the session.
+    log=$(mktemp /tmp/alpine-plasma-bus-XXXXXX)
+    if dbus-run-session -- "$0" --session 2> "$log";then r=0;else r=$?;fi
+    cat "$log";rm -f "$log";exit "$r"
+fi
+D=$(mktemp -d /tmp/alpine-plasma-XXXXXX)
+swaypid=;kwin=;plasma=;client=;seat=;SWAYSOCK=
+cleanup() {
+ for p in "$client" "$plasma" "$kwin" "$swaypid" "$seat"; do
+  [ -n "$p" ] || continue
+  kill "$p" 2>/dev/null || true
+  for i in $(seq 30); do kill -0 "$p" 2>/dev/null || break;sleep .1;done
+  kill -KILL "$p" 2>/dev/null || true;wait "$p" 2>/dev/null || true
+ done
+ rm -rf "$D"
+}
+finish() {
+ r=$?
+ if [ "$r" != 0 ];then
+  for f in plasma kwin sway seat konsole;do [ ! -f "$D/$f.log" ] || { echo "PLASMA_DIAGNOSTIC=$f";cat "$D/$f.log"; };done
+ fi
+ cleanup
+}
+trap finish EXIT
+trap 'exit 1' HUP INT TERM
+unset DISPLAY WAYLAND_DISPLAY QT_QPA_PLATFORM QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH
+export XDG_RUNTIME_DIR="$D" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" XDG_DATA_HOME="$D/data"
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=KDE XDG_MENU_PREFIX=plasma- LANG=C.UTF-8
+export QT_QUICK_BACKEND=software QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1 KWIN_COMPOSE=Q
+export WLR_RENDERER=pixman
+case ${ALPINE_PLASMA_OUTPUT:-headless} in
+ headless) export WLR_BACKENDS=headless WLR_HEADLESS_OUTPUTS=1 ;;
+ kms)
+  export WLR_BACKENDS=drm,libinput LIBSEAT_BACKEND=seatd SEATD_SOCK=/run/seatd.sock
+  unset WLR_HEADLESS_OUTPUTS
+  if [ "${ALPINE_PLASMA_EXTERNAL_SEAT:-0}" != 1 ];then
+   seatd -l debug > "$D/seat.log" 2>&1 & seat=$!
+  else
+   : > "$D/seat.log" # Root-owned broker is logged by alpine-plasma-user-probe.
+  fi
+  for i in $(seq 50);do [ ! -S "$SEATD_SOCK" ] || break;sleep .1;done
+  [ -S "$SEATD_SOCK" ] || { cat "$D/seat.log";exit 1; } ;;
+ *) echo 'Unknown output backend';exit 1 ;;
+esac
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME"
+# These are ordinary session defaults, not alternate rendering/test substitutes.
+cat > "$XDG_CONFIG_HOME/kdeglobals" <<'CONFIG'
+[General]
+ColorScheme=BreezeLight
+[Icons]
+Theme=breeze
+[KDE]
+widgetStyle=Breeze
+CONFIG
+cat > "$XDG_CONFIG_HOME/kcminputrc" <<'CONFIG'
+[Mouse]
+cursorTheme=breeze_cursors
+CONFIG
+if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = headless ];then echo 'output * resolution 800x600' > "$D/sway.conf";else : > "$D/sway.conf";fi
+printf '%s\n'  'default_border none' 'default_floating_border none' 'for_window [app_id="kwin_wayland"] fullscreen enable' >> "$D/sway.conf"
+sway -d -c "$D/sway.conf" > "$D/sway.log" 2>&1 & swaypid=$!
+for i in $(seq 100); do
+ for f in "$D"/sway-ipc.*;do [ ! -S "$f" ] || SWAYSOCK="$f";done
+ [ -z "$SWAYSOCK" ] || break
+ sleep .1
+done
+[ -n "$SWAYSOCK" ] || { cat "$D/sway.log";exit 1; }
+export SWAYSOCK
+if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
+ input_ready=0
+ for i in $(seq 100);do
+  swaymsg -t get_inputs > "$D/inputs.json"
+  if jq -e '[.[]|select(.type=="keyboard")]|length>0' "$D/inputs.json" >/dev/null;then input_ready=1;break;fi
+  sleep .1
+ done
+ cat "$D/inputs.json"
+ [ "$input_ready" = 1 ] || { echo 'alpine-plasma: FAIL no physical keyboard';exit 1; }
+fi
+parent=
+for f in "$D"/wayland-*;do [ ! -S "$f" ] || parent="$f";done
+[ -n "$parent" ] || exit 1
+# DBus activation inherits the bus's environment, not a later client's exports.
+# Supply the live outer display before KWin activates portal helpers.
+export WAYLAND_DISPLAY="$parent" QT_QPA_PLATFORM=wayland
+dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QUICK_BACKEND QV4_FORCE_INTERPRETER XDG_RUNTIME_DIR XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_MENU_PREFIX LANG
+kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
+for i in $(seq 300);do [ ! -S "$D/9os-plasma" ] || break;kill -0 "$kwin" 2>/dev/null || break;sleep .1;done
+[ -S "$D/9os-plasma" ] || { cat "$D/kwin.log";exit 1; }
+export WAYLAND_DISPLAY="$D/9os-plasma" QT_QPA_PLATFORM=wayland
+dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM
+# Optional real EGL scene graph diagnostic; the default remains stock software.
+# Neither mode patches packaged QML or substitutes a test wallpaper.
+if [ "${ALPINE_PLASMA_RENDERER:-software}" = opengl ];then
+ unset QT_QUICK_BACKEND
+ export QSG_RHI_BACKEND=opengl QT_QPA_PLATFORM=wayland-egl QSG_RENDER_LOOP=basic
+ export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe LP_NUM_THREADS=1
+ export QSG_INFO=1 QT_WAYLAND_DISABLE_WINDOWDECORATION=1 QT_WAYLAND_SHELL_INTEGRATION=xdg-shell
+fi
+plasmashell --replace --no-respawn > "$D/plasma.log" 2>&1 & plasma=$!
+ready=0
+deadline=$(( $(date +%s) + 180 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ if timeout -s KILL 5 /usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript  'print("desktops="+desktops().length+" panels="+panels().length)'  > "$D/desktops" 2> "$D/bus.log";then
+  if grep -Eq 'desktops=[1-9][0-9]* panels=[1-9][0-9]*' "$D/desktops";then ready=1;break;fi
+ fi
+ kill -0 "$plasma" 2>/dev/null || break
+ sleep .2
+done
+if [ "$ready" != 1 ];then
+ if ! kill -0 "$plasma" 2>/dev/null;then if wait "$plasma";then r=0;else r=$?;fi;plasma=;echo "PLASMA_EARLY_EXIT=$r";fi
+ cat "$D/desktops" "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';exit 1
+fi
+printf PLASMA_DESKTOPS=;cat "$D/desktops"
+dbus-send --session --print-reply --reply-timeout=120000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].wallpaperPlugin="org.kde.image";ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];ds[i].writeConfig("Image","file:///usr/share/wallpapers/Next/contents/images/1024x768.png");}print("PLASMA_WALLPAPER_CONFIGURED="+ds.length);'
+/usr/lib/qt6/bin/qdbus org.kde.KWin /KWin org.kde.KWin.supportInformation
+swaymsg -t get_tree > "$D/tree.json";cat "$D/tree.json"
+cat "$D/plasma.log" "$D/kwin.log"
+output=$(swaymsg -t get_outputs | jq -r '.[]|select(.active==true)|.name' | head -n1)
+[ -n "$output" ] || exit 1
+# Do not guess when asynchronous image loading/animation has completed. Poll
+# actual compositor pixels; the independent host PNG checker stays unchanged.
+frame_ready=0;stable=0;deadline=$(( $(date +%s) + 150 ))
+while [ "$(date +%s)" -lt "$deadline" ];do
+ WAYLAND_DISPLAY="$parent" grim -t ppm -o "$output" "$D/plasma.ppm"
+ if desktopframecheck "$D/plasma.ppm" > "$D/frame.log";then stable=$((stable+1));else stable=0;fi
+ if [ "$stable" -ge 2 ];then frame_ready=1;break;fi
+ kill -0 "$plasma" 2>/dev/null || break
+ sleep 3
+done
+cat "$D/frame.log"
+[ "$frame_ready" = 1 ] || { echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness';exit 1; }
+WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
+echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+cat "$D/plasma.log" "$D/kwin.log"
+if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
+ konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty';echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ for i in $(seq 1200);do
+  [ ! -f "$D/interactive-pty" ] || break
+  kill -0 "$client" 2>/dev/null || break
+  sleep .1
+ done
+ if [ ! -f "$D/interactive-pty" ] || ! grep -q /dev/pts/ "$D/interactive-pty";then
+  cat "$D/konsole.log";echo 'alpine-plasma: FAIL interactive Konsole PTY readiness';exit 1
+ fi
+ cat "$D/interactive-pty"
+ sleep 3
+fi
+echo 'alpine-plasma: real wallpaper/panel rendered; independent host acceptance required'
+if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
+ swaymsg -t get_inputs
+ cat "$D/seat.log" "$D/sway.log"
+fi
+[ ! -f "$D/konsole.log" ] || cat "$D/konsole.log"
+echo ALPINE_PLASMA_INPUT_READY
+sleep "${ALPINE_PLASMA_HOLD:-0}"

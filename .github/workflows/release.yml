@@ -85,6 +85,11 @@ jobs:
           scripts/futex-host-tests.sh
           scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
+          scripts/unixcred-host-tests.sh
+          scripts/procinfo-host-tests.sh
+          scripts/pimutex-host-tests.sh
+          scripts/ioctlwidth-host-tests.sh
+          python3 scripts/rootfs-stamp-host-tests.py
           python3 scripts/fetch-host-tests.py
 
       - name: Build userland (musl, BusyBox, Bash, ports)

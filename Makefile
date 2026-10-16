@@ -5,11 +5,14 @@ USERLAND ?= source
 ifeq ($(USERLAND),alpine)
 BUILD := build/$(ARCH)-alpine
 ROOTFS := userland/alpine-root-$(ARCH)
+else ifeq ($(USERLAND),alpine-desktop)
+BUILD := build/$(ARCH)-alpine-desktop
+ROOTFS := userland/alpine-desktop-root-$(ARCH)
 else ifeq ($(USERLAND),source)
 BUILD := build/$(ARCH)
 ROOTFS := userland/root-$(ARCH)
 else
-$(error USERLAND must be source or alpine)
+$(error USERLAND must be source, alpine or alpine-desktop)
 endif
 CC := clang
 LD := ld.lld
@@ -93,9 +96,15 @@ $(BUILD)/%.S.o: %.S $(CONFIG_STAMP)
 	@echo "  AS  $<"
 	@$(CC) $(CFLAGS) $(ASFLAGS_ARCH) -c $< -o $@
 
-$(INITRAMFS): $(shell find $(ROOTFS) -type f 2>/dev/null)
+# File lists in Make prerequisites split package filenames containing spaces.
+# A stable metadata stamp also tracks added/deleted files, symlinks and modes.
+ROOTFS_STAMP := $(BUILD)/rootfs.stamp
+$(ROOTFS_STAMP): FORCE scripts/rootfs-stamp.py
+	python3 scripts/rootfs-stamp.py "$(ROOTFS)" "$@"
+
+$(INITRAMFS): $(ROOTFS_STAMP)
 	@mkdir -p $(BUILD) $(ROOTFS)
-	(cd $(ROOTFS) && find . | cpio -o -H newc -R 0:0 --quiet) > $@
+	(cd $(ROOTFS) && find . -print0 | cpio -0 -o -H newc -R 0:0 --quiet) > $@
 
 LIMINE := third_party/limine-bin
 # kernel command line (e.g. CMDLINE="root=/dev/vda1"): appended to limine.conf

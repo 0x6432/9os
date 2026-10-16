@@ -2261,3 +2261,95 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   workflow. Follow-up now explicitly includes it between replay and make, checks
   shadow readability/root traversal and restores BusyBox setuid. Local manual
   sudo install/replay + ownership-handoff + unprivileged ISO + suite11/11 passed.
+
+### Signed KDE desktop / real-runtime syscall regressions (in progress)
+- Focused PR15 exact9f09603 fast38792864784 passed ALL3 main13/13, UP8/8;
+  x86 SMP8 8/8. Linux-oracle job-stop/ptrace regression and real prebuilt strace-f
+  expose/fix a BKL-held SIGSTOP/PTRACE_INTERRUPT livelock. Full source gates pending.
+- Focused PR16 exact6b55b24 removes false fallocate success. No filesystem yet
+  guarantees preallocation: return EOPNOTSUPP rather than claim sparse truncate
+  implements it. Mesa was mapping past EOF after musl posix_fallocate accepted
+  that false success. Same-source Linux oracle31 checks; x86 9os27 checks, zero
+  failures. Source/prebuilt CI include this regression; validation gates pending.
+- With patched kernel, DEFAULT Mesa cache settings, real prebuilt QtQuick EGL
+  creates OpenGL4.5 llvmpipeLLVM20.1.8 and completes >=3 Wayland surface frames
+  under Sway. Every128x96 compositor pixel is RGB565-quantized16,170,82,255.
+  Host checker requires renderer/QRhi/RGB565 protocol evidence and exact pixels;
+  software-backend assertions remain unchanged. Eight checker host tests pass.
+  Traced and then untraced x86 root succeeded; UID1000 repeat pending.
+- Real KWin6.3.6 virtual/QPainter supportInformation, KonsoleQtWidgets child PTY
+  and Konsole exit0 passed. KWin normal exit15 after requested SIGTERM matches
+  upstream's signalReceived -> QCoreApplication::exit connection, not a crash.
+- Experimental nested KWin + Plasma probe is still in progress. First bus call
+  returned before desktop readiness, and screenshot targeted the child compositor
+  instead of outer Sway; stronger desktop/panel and capture checks are pending.
+  NO claim of KMS/input, hardware acceleration, complete services or completed M40.
+
+### Desktop ABI follow-up (in progress; M40 is NOT complete)
+- Prerequisite PR14 merged19f501770690461ef86119644040f4e0e40ebdb3 and
+  PR15 merged08dea06cfa76efffac63e6f44e63eb7e76d74a3f after current-head fast
+  and full-source CI succeeded on all three architectures; branches retained.
+- PR16 mergeda85c0708b39680d7571a4bac3541edc8e8bad698 after fast ALL3 main14,
+  UP8, x86SMP8 8, source ALL3 main111, disk20+6, both fscks and clean shutdown,
+  audio2+2, UP9, MLFQ12 and x86SMP8 10 passed. It does NOT implement preallocation.
+- PR17 f02fa50 desktop CI passed real llvmpipe Quick root/non-root and KWin/
+  Konsole on ALL3, but failed Plasma on ALL3: PulseAudio asserted on musl's
+  PTHREAD_PRIO_INHERIT capability probe receiving ENOSYS. The new kernel returns
+  EOPNOTSUPP for explicitly unsupported PI futex commands; no fake PI lock.
+  pimutextest tests working ordinary recursive-mutex fallback (Linux10/9os11).
+- unixcredtest is a same-source Linux oracle for forked inherited socketpairs:
+  zero-length datagrams, MSG_PEEK credentials, send-time real IDs versus
+  socket-time SO_PEERCRED effective IDs, mixed-sender stream boundaries, and
+  shutdown/closed-peer errors. Linux root and x86 guest:140 checks, zero failures.
+  Fixed datagram socketpair destination lookup and stale socket-creator message
+  credentials. Real eudev trigger + settle now passes in the x86 disk-root guest.
+- sysfs statfs/fstatfs now identify SYSFS_MAGIC rather than TMPFS_MAGIC.
+  procinfotest: same-source Linux and x86 guest27 checks, zero failures.
+- Latest x86 stock Plasma reaches desktops=1/panels=1 and captures a real panel,
+  but wallpaper is BLACK and strict host capture check correctly FAILS. A longer
+  bounded cold-start deadline was needed after enabling the packaged volume
+  applet. Testing real llvmpipe EGL scene-graph rendering next; do not substitute
+  a fake wallpaper or weaken the black-background negative control.
+- seatd uses its actual CLI/default /run/seatd.sock, not unsupported -s.
+  KMS/input acceptance and the updated current-head ALL3 gates remain pending.
+
+- Follow-up x86 Plasma stock SOFTWARE scene graph DID render the genuine Next
+  wallpaper and full panel: strict800x600 opaque/diverse-background host check
+  passed, image visually reviewed. The prior OpacityAnimator suspicion was not
+  established; do NOT claim software rendering itself is broken. Real system
+  DBus, bounded direct evaluateScript call and30s image-load settling were used.
+  Root and UID1000 system-bus GetId succeeded. No fake logind/udisks/portals.
+- --no-scripts also skips DBus's daemon-account creation. Desktop builder now
+  explicitly installs locked/nologin messagebus UID/GID81, rejecting collisions
+  or privileged existing accounts; nine host trust/account tests pass.
+- Real BusyBox pidof crashed because /proc/PID/stat stopped at field24. Added
+  full52-field ABI record (actual scheduler/signal/exit fields, no swap/guest
+  accounting, address fields redacted), leader comm reflects PR_SET_NAME.
+  Expanded Linux/guest procinfotest47 checks; x86 root AND UID1000 pass.
+  Prebuilt pidof, ps and top now pass without a crash. Musl's public
+  sched_getscheduler wrapper is an ENOSYS stub: oracle uses the real syscall.
+- Physical KMS/keyboard/interactive Konsole validation is running; not yet a
+  pass. New PR17 gates must run on the actual fixes, not its older f02 baseline.
+
+### ioctl width and honest desktop acceptance (in progress)
+- Saved WIP713bcb0 on notion/alpine-desktop-abi; PR17 still draft at068e942.
+  Fast38812554465: base ALL3 green; desktop RISC-V17/17, x86/ARM16/17,
+  only strict black-wallpaper capture failed. Source38812554561 still running.
+  Those gates do NOT cover the newer ioctl fix or strengthened PTY check.
+- Linux ioctl request is unsigned32, including64-bit syscall ABIs. Prebuilt
+  musl sign-extended TIOCGPTN and 9os compared all64bits -> ENOTTY. Normalize
+  once in sys_ioctl; ioctlwidthtest30 checks pass Linux and x86 guest root
+  AND UID1000. No target Qt/Mesa/libc compilation.
+- IMPORTANT correction: old Konsole test could accept inherited /dev/console,
+  so previous ALL3 genuine-PTY claims were not established. New check requires
+  /dev/pts/. Physical test after ioctl fix DOES launch a child on /dev/pts/0.
+- Pixel readiness uses real grim PPM with two consecutive wallpaper/panel
+  frames, bounded150s; independent strict host PNG acceptance unchanged.
+  Positive and eight negative host controls pass. KMS3 captures actual1280x800
+  stock wallpaper/panel (41089/3097 distinct background/panel colors), but
+  physical keyboard test FAILS and is NOT counted as complete.
+- KMS3 Sway get_inputs was empty: WLR_BACKENDS=drm omitted libinput entirely.
+  New diagnostic enables drm,libinput and requires enumerated keyboard before
+  shell startup; KMS4 validation running. No fake udev service/rules workaround.
+- M40 remains incomplete; current-head ALL3 regression and actual end-to-end
+  physical keyboard acceptance are required, plus remaining scope review.

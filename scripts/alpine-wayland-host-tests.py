@@ -32,6 +32,14 @@ class EvidenceTests(unittest.TestCase):
             self.assertEqual(m.check(evidence().replace(b'frames 5',f'frames {n}'.encode())),[3])
         for n in [0,1,2]:
             with self.assertRaises(ValueError):m.check(evidence().replace(b'frames 5',f'frames {n}'.encode()))
+    def test_opengl_requires_exact_quantized_pixels_and_actual_renderer(self):
+        trace=(b'OpenGL llvmpipe QRhi\nwl_shm_pool#40.create_buffer(new id wl_buffer#38, 0, 128, 96, 256, 909199186)\n'+
+               b'wl_surface#30.frame(new id wl_callback#41)\nwl_callback#41.done(123)\n'*3)
+        good=evidence(color=(16,170,82,255),trace=trace)
+        self.assertEqual(m.check(good,"opengl"),[3])
+        for bad in [good.replace(b'llvmpipe',b'unknown'),good.replace(b'909199186',b'0'),evidence(trace=trace)]:
+            with self.subTest(),self.assertRaises(ValueError):m.check(bad,"opengl")
+        with self.assertRaises(ValueError):m.check(good)
     def test_missing_evidence(self):
         for raw in [b'',evidence().split(b'ALPINE_WAYLAND_TRACE_BEGIN')[0]]:
             with self.subTest(raw=raw),self.assertRaises(ValueError):m.check(raw)

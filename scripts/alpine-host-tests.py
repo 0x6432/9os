@@ -7,6 +7,28 @@ spec = importlib.util.spec_from_file_location('alpine_builder', p)
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 class TrustTests(unittest.TestCase):
+    def test_account_overlay_preserves_distro_groups_and_locked_accounts(self):
+        original='root:x:0:\naudio:x:29:\nvideo:x:27:\n'
+        overlay='root:x:0:root\nvideo:x:44:root,user\nuser:x:1000:\n'
+        out=m.merge_named_records(original,overlay)
+        self.assertEqual(out,'root:x:0:root\naudio:x:29:\nvideo:x:44:root,user\nuser:x:1000:\n')
+        self.assertEqual(m.merge_named_records(out,overlay),out)
+        self.assertIn('daemon:!:0:0:::::',m.merge_named_records('root:*:0:0:::::\ndaemon:!:0:0:::::\n','root::0:0:::::\n'))
+    def test_desktop_daemon_identity_is_locked_unprivileged_and_idempotent(self):
+        with tempfile.TemporaryDirectory() as d:
+            stage=pathlib.Path(d);(stage/'etc').mkdir()
+            for name,text in [('passwd','root:x:0:0:root:/root:/bin/sh\n'),('group','root:x:0:\n'),('shadow','root::0:0:::::\n')]:
+                (stage/'etc'/name).write_text(text)
+            m.install_desktop_accounts(stage)
+            before={name:(stage/'etc'/name).read_text() for name in ['passwd','group','shadow']}
+            self.assertIn('messagebus:x:81:81:',before['passwd'])
+            self.assertIn('messagebus:!:',before['shadow'])
+            m.install_desktop_accounts(stage)
+            self.assertEqual(before,{name:(stage/'etc'/name).read_text() for name in before})
+            (stage/'etc/passwd').write_text('other:x:81:81::/:/bin/false\n')
+            with self.assertRaises(ValueError):m.install_desktop_accounts(stage)
+            (stage/'etc/passwd').write_text('messagebus:x:0:0::/:/bin/false\n')
+            with self.assertRaises(ValueError):m.install_desktop_accounts(stage)
     def entry(self, **kw):
         return dict(url=m.BASE+'/v3.22/main/x86_64/musl-1.2.5-r12.apk', sha256='a'*64, **kw)
     def test_strict_locked_urls(self):
@@ -30,6 +52,14 @@ class TrustTests(unittest.TestCase):
         for i in range(len(entries)):
             with self.subTest(missing=i),self.assertRaises(ValueError):m.validate_profile(entries[:i]+entries[i+1:])
         with self.assertRaises(ValueError):m.validate_profile([dict(e,url=e['url'].replace('6.8.3','6.9.0')) for e in entries])
+    def test_desktop_profile_requires_desktop_packages(self):
+        entries=[dict(url=m.BASE+'/v3.22/community/x86_64/'+name+'-1.0-r0.apk') for name in m.PROFILES['desktop']]
+        entries[0]['url']=m.BASE+'/v3.22/community/x86_64/qt6-qtdeclarative-6.8.3-r0.apk'
+        m.validate_profile(entries,'desktop')
+        m.validate_profile(entries,'base')
+        for missing in ['kwin','plasma-workspace','plasma-desktop','konsole','dolphin','seatd','strace']:
+            subset=[e for e in entries if '/'+missing+'-1.0-r0.apk' not in e['url']]
+            with self.subTest(missing=missing),self.assertRaises(ValueError):m.validate_profile(subset,'desktop')
     def test_valid_offline_cache_never_uses_network(self):
         with tempfile.TemporaryDirectory() as d:
             p=pathlib.Path(d)/'p.apk';p.write_bytes(b'valid')

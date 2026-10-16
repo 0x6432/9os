@@ -37,8 +37,15 @@ jobs:
         run: |
           scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
+          scripts/unixcred-host-tests.sh
+          scripts/procinfo-host-tests.sh
+          scripts/pimutex-host-tests.sh
+          scripts/ioctlwidth-host-tests.sh
+          python3 scripts/rootfs-stamp-host-tests.py
           python3 scripts/alpine-host-tests.py
           python3 scripts/alpine-wayland-host-tests.py
+          python3 scripts/alpine-plasma-host-tests.py
+          python3 scripts/desktopframe-host-tests.py
       - name: Install signed prebuilt runtime
         # apk2 applies Sway's signed security.capability xattr. The runner needs
         # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
@@ -86,4 +93,56 @@ jobs:
           path: |
             build/test-alpine*.log
             userland/build/alpine-${{ matrix.arch }}.lock.json
+          if-no-files-found: warn
+
+  desktop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64, riscv64]
+    env:
+      ARCH: ${{ matrix.arch }}
+      TOOLS_DIR: ${{ github.workspace }}/.tools
+    steps:
+      - uses: actions/checkout@v4
+      - name: Host tools only; signed prebuilt desktop dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio python3-pil e2fsprogs fdisk libglib2.0-bin shared-mime-info
+          scripts/install-qemu-alpine.sh
+          echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
+          scripts/fetch-deps.sh
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.TOOLS_DIR }}/dl/alpine
+          key: alpine-desktop-v3.22-${{ matrix.arch }}-${{ hashFiles('userland/alpine/locks/*.json') }}
+          restore-keys: |
+            alpine-desktop-v3.22-${{ matrix.arch }}-
+            alpine-v3.22-${{ matrix.arch }}-
+      - name: Signed base and desktop assembly, then exact offline desktop replay
+        run: |
+          sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH"
+          sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --profile desktop
+          sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --profile desktop --lock "userland/build/alpine-desktop-$ARCH.lock.json" --offline
+          sudo chown -hR "$(id -u):$(id -g)" "userland/alpine-root-$ARCH" "userland/alpine-desktop-root-$ARCH" userland/build "$TOOLS_DIR/dl/alpine"
+          chmod 4755 "userland/alpine-root-$ARCH/bin/busybox" "userland/alpine-desktop-root-$ARCH/bin/busybox"
+      - name: Build kernel/image and tiny ABI tests only; never compile desktop libraries
+        run: |
+          scripts/alpine-build-tests.sh "$ARCH"
+          make -j2 ARCH=$ARCH USERLAND=alpine iso
+      - name: Real EGL Quick pixels, KWin, Konsole and Plasma on disk root
+        run: scripts/alpine-desktop-tests.sh "$ARCH"
+      - name: Physical KMS keyboard to real Konsole PTY, then clean shutdown
+        run: scripts/alpine-kms-tests.sh "$ARCH"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpine-desktop-evidence-${{ matrix.arch }}
+          path: |
+            build/test-alpine-desktop-*.log
+            build/test-alpine-kms-*.log
+            build/test-alpine-kms-*.png
+            userland/build/alpine-desktop-${{ matrix.arch }}.lock.json
           if-no-files-found: warn

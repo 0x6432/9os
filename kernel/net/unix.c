@@ -99,7 +99,7 @@ static struct usock *usock_new(int type) {
     if (!s) return nullptr;
     s->type = type;
     list_init(&s->rxq); list_init(&s->backlog);
-    const struct cred *c = current_cred();      /* SO_PEERCRED/SCM_CREDENTIALS: effective ids */
+    const struct cred *c = current_cred();      /* SO_PEERCRED: socket/connection-time effective ids */
     s->cred = (struct ucred_k){ curproc ? curproc->pid : 0, c->euid, c->egid };
     return s;
 }
@@ -493,6 +493,14 @@ struct cmsghdr_k { size_t len; int level, type; };
 /* unix_lock held; ino is the resolved filesystem name for path destinations */
 static struct usock *dest_locked(struct usock *s, const struct sockaddr_un_k *a, int alen, struct inode *ino, int *err) {
     if (s->type == SOCK_DGRAM) {
+        /* An unnamed socketpair has a direct peer, not a bound destination.
+         * Zero-byte datagrams still carry a message and sender credentials. */
+        if (!a && !s->dstlen && (s->peer || s->peer_gone)) {
+            if (s->shut_wr) { *err = -EPIPE; return nullptr; }
+            if (!s->peer) { *err = -ECONNREFUSED; return nullptr; }
+            if (s->peer->shut_rd) { *err = -EPIPE; return nullptr; }
+            return s->peer;
+        }
         if (!a && !s->dstlen) { *err = -ENOTCONN; return nullptr; }
         struct usock *t = match_locked(a ? a : &s->dst, a ? alen : s->dstlen, ino);
         if (!t) *err = -ECONNREFUSED;
@@ -533,6 +541,10 @@ static int64_t do_send(struct file *file, struct usock *s, struct iovec_k *iov, 
         else { uint64_t f = ulock(); d0 = s->dst; d0len = s->dstlen; uunlock(f); }
         if (d0len) { int r = name_inode(&d0, d0len, &ino); if (r) return r == -ENOENT ? -ENOENT : r; }
     }
+    /* SCM_CREDENTIALS identifies the current sender, including forked users of
+     * an inherited socket. Unlike SO_PEERCRED these are send-time REAL ids. */
+    const struct cred *sender = current_cred();
+    struct ucred_k sender_cred = { curproc ? curproc->pid : 0, sender->uid, sender->gid };
     size_t sent = 0, vi = 0, vo = 0;
     bool first = true;
     int64_t ret = 0;
@@ -568,7 +580,7 @@ static int64_t do_send(struct file *file, struct usock *s, struct iovec_k *iov, 
                 if (w) { ret = w; break; }
                 continue;                                    /* re-resolve: peer may be gone */
             }
-            c->cred = s->cred;
+            c->cred = sender_cred;
             if (s->bound) { c->from = s->name; c->fromlen = s->namelen; }
             if (first && nfds) { c->fds = fds; c->nfds = nfds; fds = nullptr; if (consumed) *consumed = true; }
             list_add_tail(&d->rxq, &c->node);
@@ -666,7 +678,8 @@ static int64_t do_recv(struct file *file, struct usock *s, struct msghdr_k *m, i
     bool peek = flags & MSG_PEEK;
     list_for_each_safe(it, tmp, &s->rxq) {
         struct chunk *c = list_entry(it, struct chunk, node);
-        if (c != first && (c->nfds || s->type != SOCK_STREAM)) break;   /* message / fd boundary */
+        if (c != first && (c->nfds || s->type != SOCK_STREAM ||
+            (s->passcred && (c->cred.pid != cred.pid || c->cred.uid != cred.uid || c->cred.gid != cred.gid)))) break;   /* message / fd boundary */
         size_t avail = c->len - c->off, take = MIN(avail, total - done);
         size_t t = 0;
         while (t < take) {
@@ -677,12 +690,12 @@ static int64_t do_recv(struct file *file, struct usock *s, struct msghdr_k *m, i
         }
         if (err) break;
         done += take;
+        if (c == first && s->passcred) want_cred = true;
         if (!peek) {
             if (c->nfds) {                                    /* detach; installed after unlock */
                 for (int i = 0; i < c->nfds; i++) if (c->fds[i]) fv[nfv++] = c->fds[i];
                 c->nfds = 0;
             }
-            if (c == first && s->passcred) want_cred = true;
         }
         if (s->type != SOCK_STREAM) {
             if (take < avail) m->flags |= MSG_TRUNC;

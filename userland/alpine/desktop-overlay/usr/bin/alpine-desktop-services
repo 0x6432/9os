@@ -1,0 +1,12 @@
+#!/bin/sh
+# Minimal genuine desktop prerequisites, not a logind/udisks/portal substitute.
+set -eu
+[ "$(id -u)" = 0 ] || { echo 'Desktop service startup requires root' >&2;exit 1; }
+mkdir -p /run/dbus /var/lib/dbus
+dbus-uuidgen --ensure
+if [ ! -S /run/dbus/system_bus_socket ];then dbus-daemon --system --fork;fi
+dbus-send --system --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames
+if ! pidof udevd >/dev/null;then udevd --daemon;fi
+udevadm trigger
+udevadm settle --timeout=20
+echo 'alpine-desktop-services: real system DBus and eudev ready'

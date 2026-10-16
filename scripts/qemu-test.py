@@ -20,7 +20,7 @@ def main():
     ap.add_argument('cmds', nargs='*')
     ap.add_argument('--smp', default='4')
     ap.add_argument('--sched', default='')
-    ap.add_argument('--userland', choices=['source', 'alpine'], default='source')
+    ap.add_argument('--userland', choices=['source', 'alpine', 'alpine-desktop'], default='source')
     ap.add_argument('--memory', default=None, help='QEMU memory, e.g. 2048M for Alpine Qt')
     ap.add_argument('--boot-timeout', type=float, default=180)
     ap.add_argument('--timeout', type=float, default=240, help='per command')
@@ -123,8 +123,12 @@ def main():
             passed = bool(m) and m.group(1) == b'0' and not re.search(rb'\bFAIL', body) and not state['panic']
             results.append((cmd, passed))
             if state['panic'] or p.poll() is not None: break
-        send('poweroff\n')
-        pump(time.time() + 20, lambda: False)
+        if p.poll() is None:
+            try:
+                send('poweroff\n')
+                pump(time.time() + 20, lambda: False)
+            except BrokenPipeError:
+                pass  # failed/exited VMs still get a useful test summary below
     try: os.killpg(p.pid, signal.SIGKILL)
     except ProcessLookupError: pass
     if server:
