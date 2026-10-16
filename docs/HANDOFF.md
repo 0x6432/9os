@@ -2397,3 +2397,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   Do NOT edit active drivers, ISO/disk or installed runtime scripts.
 - M40 still not marked complete: updated follow-up and full-source validation
   plus remaining source-port/service limitations must stay explicit.
+
+### PR17 integration and sandbox restoration
+- PR17 exact75e3d01f3b2b78808b702993a25caa1e56175d8d reviewed and merged as
+  1d2a11d8a823e0601968704994ac8aaa24a7f4bc. All branches retained.
+- Fast38817891542 ALL3: base19/19, UP8/8, desktop18/18, physical UID1000
+  keyboard/PTY11/11; x86SMP8 8/8. Source38817891502 ALL3: main115/115,
+  disk20+6, both fscks and clean root halt, audio2+2, UP9, MLFQ12; x86SMP8 10.
+  Reviewed full logs before ready/expected-SHA merge commit.
+- Sandbox reset after the exploratory Dolphin run started; its final result
+  and all local build/log artifacts were lost. Do NOT claim Dolphin passed.
+  All code through b58d35d was pushed and restored cleanly from branch
+  notion/alpine-desktop-acceptance, separate from integrated PR17.
+- Restoring NO_PORTS=1 ARCHES=x86_64 core tools at /data/x86-restore.log;
+  signed base+593-APK desktop assembly completed at /data/alpine-restore.log.
+  New private GitHub helper /tmp/9os-gh.py must be removed at eventual end,
+  including matching pycache; remind user to rotate the exposed credential.
+- Current follow-up also rejects preexisting messagebus root groups, login
+  shells, unlocked passwords, duplicates and id collisions. Ten host trust
+  tests pass; the current actual distro identity validates unchanged.
+- Recreate a fresh immutable /data/run-dolphin.sh driver from the permanent
+  scripts/alpine-kms-tests.sh, enabling ALPINE_PLASMA_FILEMANAGER=1 and
+  waiting for DOLPHIN_MODEL_READY before physical screenshot. Revalidate x86,
+  then add actual Dolphin acceptance to PR CI for non-x86. M40 remains open.
