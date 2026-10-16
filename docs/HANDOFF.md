@@ -2982,3 +2982,12 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   ALL3 gates; keep this WIP separate so those runs are not restarted for notes.
   All3 fast base runtime/UP jobs have passed; desktop/source remain in progress.
   Source Qt Quick rendering/service scope and M40 remain unfinished.
+- Terminal-focus WIP actual Linux callback control is now PASS: genuine Konsole
+  PID269, Terminal role visited7 nodes, focused/showing/visible all1; real Dolphin
+  model,33 fresh independent actual filename captures and clean exit passed.
+  `/data/linux-oracle-focus-1.log` and `.check` preserve results. This is Linux
+  headless evidence, NOT9os physical typing. Production-default9os cold boot
+  `/data/physical-focus-default-1` is active at WIP3247fe5, no private LP override.
+- Current9eb fast x86 desktop28/28 + physical16/16 passed. Downloaded actual
+  artifact12051134732: independent unchanged Dolphin OCR passes; after PNG has
+  actual `tty`. Other desktop and full-source gates remain in progress.
