@@ -3332,3 +3332,28 @@ exposed. This is not an identical TCG/KMS comparison or a 9os acceptance pass,
 and deliberately does not validate UDisks/device services. The existing 9os
 cold failure remains unresolved; a separate one-boot Wayland protocol diagnostic
 is investigating it without relaxing readiness deadlines or sending rescue input.
+
+### 2026-10-16: checksum-preserving GLib zlib cache recovery
+
+PR23 source run38958525636 x86 job117167433786 stopped before kernel/Qt
+validation: Meson's unchanged zlib1.2.11 SHA256 expected c3e5e9fd… but the
+upstream response hashed69072105…. This repeats a previously observed fetch
+failure; it is NOT a guest or Qt regression, and the failing bytes are never
+accepted. A fresh upstream download and the independent Alpine v3.14 distfile
+both matched the original complete SHA256
+`c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1`.
+
+`glib-zlib-cache.py` validates the exact source identity/hash in GLib's wrap,
+then prefetches that same archive from the verified Alpine mirror, with the
+original upstream as fallback. Both the downloads cache and Meson's local
+packagecache are SHA256-checked and atomically populated; corrupt/oversized
+bytes cannot enter either cache. Changed wrap pins fail closed for review.
+Meson still independently verifies its original wrap hash. No archive pin,
+GLib version, dependency recipe, target library or test criterion changed.
+
+Ten offline host controls pass (including bad hash/network fallback, poisoned
+and oversized caches, all-bad fail-closed, wrap identity and offline replay).
+The real607698-byte archive passed the actual Meson cache verifier, without
+configuration, extraction or compilation. This is download-path validation,
+not a fresh full-source guest result. The corrected current head still needs
+ALL3 source and prebuilt CI; earlier-head green gates are not substituted.
