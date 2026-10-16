@@ -2606,3 +2606,18 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   restart PR18's expensive checks. Draft must not merge until investigated.
 - Diagnostic physical repeat /data/kms-konsole-diagnostic.out is running; active
   disk/ISO/driver must not be edited. M40 remains incomplete.
+
+### Atomic exit witness / broader startup diagnosis
+- All three fast desktop CI21/21 pass and actual physical input plus both exact
+  Dolphin model states pass. New final witness gate fails15/16 ALL3: redirection
+  created an EMPTY status file at START, so existence was not completion.
+- Added real asynchronous mock controls: old driver fails1/7, atomic rename of
+  status.tmp only after session returns passes7/7. No weakened acceptance.
+- Diagnostic physical repeat did NOT reproduce Konsole failure, but Dolphin URL
+  readiness failed. Failure trace shows main thread actively parsing MIME data,
+  repeated mmap/munmap/statx, not a proven futex deadlock. Do not guess a cause.
+  /data/kms-konsole-diagnostic.out (12/16); retain this failure.
+- Added an eight-launch genuine UID1000 Konsole QtWidgets/PTY lifecycle stress
+  consumer. Host-only private copies alpine-plasma-konsole-stress and
+  alpine-konsole-stress-user invoke it in real stock Plasma; these wrappers
+  are not acceptance/CI claims. No full GUI pass until actual execution.
