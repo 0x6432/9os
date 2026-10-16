@@ -3188,9 +3188,19 @@ The candidate stores each waiter's mask, preserves it through requeue and filter
 WAKE_BITSET by nonempty intersection under the existing bucket lock. Ordinary
 WAIT/WAKE, robust-owner wake and WAKE_OP use MATCH_ANY.
 
-The exact new `futexbitsettest.c` passes 44 checks on host Linux, including selective
-low/high-bit wakes, ordinary wait/wake interoperability, mask-preserving requeue,
+The exact new `futexbitsettest.c` passes 52 checks on host Linux, including selective
+low/high-bit wakes, ordinary wait/wake and WAKE_OP interoperability, mask-preserving requeue,
 shared inode aliases across fork, zero masks and past absolute deadlines. Requeue
 move counts establish waiter enrollment; no fixed settling sleep is assumed.
-Guest negative-control and candidate validation are still pending at this WIP
-checkpoint. No desktop readiness claim or M40 completion claim follows from it.
+The final exact 52-check consumer fails eight mask assertions on the unpatched
+x86 kernel under both root and UID1000. The corrected kernel passes all 52 under
+both users in the four-CPU core suite and sequential one/eight-CPU RR and
+eight-CPU MLFQ boots. Each focused topology suite passed 10/10, including the
+existing 128-check WAKE_OP test, futextest, PI fallback, poll/eventfd/time and zero
+lockdep violations. The full available source-core profile passed 89/89,
+disk-root 24/24 and 7/7, both filesystem checks, clean shutdown, PCM/WAV 2/2 and
+no-card 2/2. These local images do not include the full source graphics stack.
+ARM/RISC-V and full source/prebuilt regressions remain PR-CI gates. One initial
+isolated build lacked the optional uACPI dependency and could not log in; it was
+stopped, the dependency restored, and the kernel rebuilt before these results.
+No desktop readiness claim or M40 completion claim follows from this ABI fix.

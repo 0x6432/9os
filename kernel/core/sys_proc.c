@@ -595,6 +595,7 @@ int64_t sys_reboot(uint64_t m1_, uint64_t m2_, uint64_t cmd_, void *arg) {
  * before returning, so a waker that still holds the lock never touches a dead stack frame. */
 #define FUTEX_BUCKETS 64
 struct futex_bucket;
+/* The nonzero waiter mask is immutable, including across requeue. */
 struct futex_waiter { struct list_node node; struct mm *mm; uint32_t *addr; uint32_t bitset; struct wait_queue wq; bool woken; struct futex_bucket *bucket; };
 struct futex_bucket { spinlock_t lock; struct list_node head; } __attribute__((aligned(64)));
 static struct futex_bucket futex_buckets[FUTEX_BUCKETS];

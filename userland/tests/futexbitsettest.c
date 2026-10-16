@@ -72,6 +72,16 @@ static void plain_wait(void) {
     fx(&a,1|PRIVATE,1,0,NULL,0);fx(&b,1|PRIVATE,1,0,NULL,0);
     CHECK(pthread_join(t,NULL)==0);CHECK(w.rc==0);
 }
+static void wake_op_any(void) {
+    uint32_t a=0,b=0;
+    struct waiter w[2]={{&a,1,9,99},{&a,0x80000000u,9,99}};pthread_t t[2];int made=0;
+    for(;made<2;made++) { int r=pthread_create(t+made,NULL,waiter,w+made);CHECK(r==0);if(r)break; }
+    int ok=enrolled(&a,&b,made,PRIVATE);CHECK(ok && made==2);
+    /* OR zero, compare old zero, two same-key wake lists must ignore masks. */
+    if(ok)CHECK(fx(&b,5|PRIVATE,1,1,&b,2u<<28)==2);
+    fx(&a,1|PRIVATE,INT_MAX,0,NULL,0);fx(&b,1|PRIVATE,INT_MAX,0,NULL,0);
+    for(int i=0;i<made;i++) { CHECK(pthread_join(t[i],NULL)==0);CHECK(w[i].rc==0); }
+}
 static void shared_alias(void) {
     int fd=memfd_create("bitset",MFD_CLOEXEC);CHECK(fd>=0);if(fd<0)return;
     int r=ftruncate(fd,4096);CHECK(r==0);if(r){close(fd);return;}
@@ -105,7 +115,7 @@ int main(void) {
     struct timespec past={0,0};
     CHECK(fx(&a,9|PRIVATE,0,(uintptr_t)&past,NULL,1)==-ETIMEDOUT);
     CHECK(fx(&a,9|PRIVATE|256,0,(uintptr_t)&past,NULL,1)==-ETIMEDOUT);
-    masked_group();plain_wait();shared_alias();
+    masked_group();plain_wait();wake_op_any();shared_alias();
     printf("futexbitsettest: %s (%d checks, %d failures)\n",fails?"FAILED":"PASSED",checks,fails);
     return fails?1:0;
 }

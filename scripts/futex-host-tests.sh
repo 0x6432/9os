@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run the exact guest WAKE_OP regression against the host Linux ABI as an oracle.
+# Run the exact guest WAKE_OP/bitset regressions against the Linux ABI oracle.
 set -eu
 cd "$(dirname "$0")/.."
 b=$(mktemp -d)
