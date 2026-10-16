@@ -763,10 +763,15 @@ static int futex_requeue(struct futex_key a, struct futex_key b, int n) {
         if (moved >= n) break;
         struct futex_waiter *w = list_entry(it, struct futex_waiter, node);
         if (w->addr != a.addr || w->mm != a.mm) continue;
-        list_del(&w->node);
-        w->mm = b.mm; w->addr = b.addr;
-        __atomic_store_n(&w->bucket, bb, __ATOMIC_RELEASE);
-        list_add_tail(&bb->head, &w->node);
+        /* Equal keys (including different shared aliases) still count each
+         * waiter once. Rotating them to this same list's tail revisits earlier
+         * nodes until n, potentially INT_MAX, instead of its original length. */
+        if (a.mm != b.mm || a.addr != b.addr) {
+            list_del(&w->node);
+            w->mm = b.mm; w->addr = b.addr;
+            __atomic_store_n(&w->bucket, bb, __ATOMIC_RELEASE);
+            list_add_tail(&bb->head, &w->node);
+        }
         moved++;
     }
     if (l2 != l1) spin_unlock(&l2->lock);

@@ -3244,6 +3244,23 @@ Prebuilt CI at that head passed all three architectures, including desktop jobs.
 The optional qmltestrunner parent correction changes configuration, so all current
 head CI must pass again before integration; earlier green runs are not current.
 
+### WIP: same-key futex requeue list accounting
+
+A separate audit found that requeuing onto the same key rotates list nodes and
+counts them repeatedly up to the requested limit, rather than counting each
+original waiter once. Different virtual aliases of one shared inode key have
+the same issue. Linux returns three for three waiters even with move limit 100;
+the candidate leaves equal-key nodes in place and counts each once. Different-key
+movement and bitset preservation remain unchanged. This is independent of the
+intermittent Plasma startup issue; no desktop-fix claim follows.
+
+The new exact portable guest consumer passes 29 checks on host Linux. Eleven
+exact-kernel-function list controls pass with mock locks, while the original
+function fails the same-key negative control. These are not real-kernel SMP
+validation: guest negative/candidate runs and all-architecture PR CI are still
+pending. The branch is not merge-ready. The compare-versus-requeue atomicity
+of CMP_REQUEUE remains a separate audit concern, not fixed by this small change.
+
 The isolated Quick Wayland draft wrapper has four passing host-control groups:
 forced software/interpreter identity, poisoned search-path removal, UID1000
 selection preservation and failure propagation/real-harness frame-marker checks.
@@ -3287,3 +3304,56 @@ Signed SDK downloads/verification ran concurrently, but no extraction, build or
 second VM overlapped these boots. This small sample does not establish a
 performance or statistical claim. The futex mask fix is independently necessary
 ABI work, not a demonstrated fix for intermittent Plasma cold startup.
+
+### Same-key requeue: completed local kernel controls
+
+The unchanged 29-check consumer rejects the actual unpatched bitset kernel:
+root and UID1000 each fail six same-key count assertions, covering private
+addresses and distinct shared virtual aliases. The raw negative boot remains
+2/4, with zero lockdep violations. The corrected kernel passes all 29 under
+both users in the four-CPU full available source-core suite (91/91), disk-root
+24/24 and 7/7, both e2fsck checks, clean shutdown, PCM/WAV 2/2 and no-card 2/2.
+Sequential one- and eight-CPU RR boots each pass 11/11, including both users,
+existing 128-check WAKE_OP, 52-check bitset, futextest, PI fallback, poll/eventfd,
+time and zero lockdep violations. No source graphics libraries are in these
+local core images. All-architecture source/prebuilt PR CI remains required.
+
+The Quick Wayland consumer is now the stacked prerequisite; its merge changes
+no kernel code relative to these validated kernel binaries. Its additional
+source graphics tests remain CI-only until that source stack completes. The
+same-key fix does not change CMP_REQUEUE's separate compare/move atomicity gap.
+
+One private Linux mount/PID/network-namespace control of the same packaged
+Plasma/KWin/Konsole and production observer passed genuine UID1000 focused,
+showing, visible Terminal observation and the existing wallpaper/panel check.
+It used headless Sway, private system/session buses, private /dev, read-only
+sysfs and an overlay root; no host input/DRM/block devices or host buses were
+exposed. This is not an identical TCG/KMS comparison or a 9os acceptance pass,
+and deliberately does not validate UDisks/device services. The existing 9os
+cold failure remains unresolved; a separate one-boot Wayland protocol diagnostic
+is investigating it without relaxing readiness deadlines or sending rescue input.
+
+### 2026-10-16: checksum-preserving GLib zlib cache recovery
+
+PR23 source run38958525636 x86 job117167433786 stopped before kernel/Qt
+validation: Meson's unchanged zlib1.2.11 SHA256 expected c3e5e9fd… but the
+upstream response hashed69072105…. This repeats a previously observed fetch
+failure; it is NOT a guest or Qt regression, and the failing bytes are never
+accepted. A fresh upstream download and the independent Alpine v3.14 distfile
+both matched the original complete SHA256
+`c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1`.
+
+`glib-zlib-cache.py` validates the exact source identity/hash in GLib's wrap,
+then prefetches that same archive from the verified Alpine mirror, with the
+original upstream as fallback. Both the downloads cache and Meson's local
+packagecache are SHA256-checked and atomically populated; corrupt/oversized
+bytes cannot enter either cache. Changed wrap pins fail closed for review.
+Meson still independently verifies its original wrap hash. No archive pin,
+GLib version, dependency recipe, target library or test criterion changed.
+
+Ten offline host controls pass (including bad hash/network fallback, poisoned
+and oversized caches, all-bad fail-closed, wrap identity and offline replay).
+The real607698-byte archive passed the actual Meson cache verifier, without
+configuration, extraction or compilation. This is download-path validation,
+not a fresh full-source guest result. The corrected current head still needs
+ALL3 source and prebuilt CI; earlier-head green gates are not substituted.

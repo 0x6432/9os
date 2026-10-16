@@ -47,6 +47,7 @@ jobs:
           python3 scripts/host-qsb-host-tests.py
           python3 scripts/quick-pixel-host-tests.py
           python3 scripts/quick-wayland-host-tests.py
+          python3 scripts/glib-zlib-cache-host-tests.py
           scripts/proctask-host-tests.sh
           sudo env MOUNTINFO_HOST_MUTATE=1 scripts/mountinfo-host-tests.sh
           scripts/pimutex-host-tests.sh
@@ -102,7 +103,7 @@ jobs:
         run: >-
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
           --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log "timeout 30 futexbitsettest"
-          'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 10 alarmcputest"
+          'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 30 futexrequeuetest" 'su user -s /bin/sh -c "timeout 30 futexrequeuetest"' "timeout 10 alarmcputest"
           'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
           "su user -s /bin/sh -c pollwakebench" alpine-qtsmoke
           "su user -s /bin/sh -c alpine-qtsmoke"
