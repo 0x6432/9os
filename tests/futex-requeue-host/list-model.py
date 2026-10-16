@@ -28,7 +28,7 @@ struct futex_key {struct mm *mm;uint32_t *addr;};
 static int locked;static int *last;
 static uint64_t arch_irq_save(void){assert(!locked);last=NULL;return 42;}
 static void arch_irq_restore(uint64_t f){assert(f==42&&!locked);}
-static void spin_lock_ipi(int *l){assert(!*l);if(last)assert(l>last);last=l;*l=1;locked++;}
+static void spin_lock_ipi(int *l){assert(!*l);if(last)assert((uintptr_t)l>(uintptr_t)last);last=l;*l=1;locked++;}
 static void spin_unlock(int *l){assert(*l);*l=0;locked--;}
 static struct futex_bucket *futex_bucket(struct mm *mm,uint32_t *addr){(void)mm;return &buckets[((uintptr_t)addr>>2)&1];}
 '''
