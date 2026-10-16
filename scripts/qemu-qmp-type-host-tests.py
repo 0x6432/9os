@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Explicit mock QMP protocol controls, NOT physical guest delivery evidence."""
+"""Mock batched-tap QMP controls, NOT physical guest delivery evidence."""
 import json
 import os
 from pathlib import Path
@@ -40,10 +40,10 @@ class QMPType(unittest.TestCase):
 
     def test_distinct_repeated_down_up(self):
         messages = self.run_keys('tty\\n')
-        self.assertEqual(len(messages),8)
+        self.assertEqual(len(messages),4)
         for index,key in enumerate(['t','t','y','ret']):
             for offset,down in enumerate([True,False]):
-                event = messages[index*2+offset]['arguments']['events']
+                event = [messages[index]['arguments']['events'][offset]]
                 self.assertEqual(event,[{'type':'key','data':{'down':down,'key':{'type':'qcode','data':key}}}])
         self.assertTrue(all(m['execute']=='input-send-event' for m in messages))
         self.assertTrue(all('hold-time' not in m['arguments'] for m in messages))
@@ -51,10 +51,11 @@ class QMPType(unittest.TestCase):
     def test_shift_released_in_reverse_order(self):
         messages = self.run_keys('A>')
         for index,key in enumerate(['a','dot']):
-            down = messages[index*2]['arguments']['events']
-            up = messages[index*2+1]['arguments']['events']
+            events = messages[index]['arguments']['events']
+            down, up = events[:2], events[2:]
             self.assertEqual([e['data']['key']['data'] for e in down],['shift',key])
             self.assertEqual([e['data']['key']['data'] for e in up],[key,'shift'])
+            self.assertTrue(all(e['data']['down'] for e in down))
             self.assertTrue(all(not e['data']['down'] for e in up))
 
     def test_rejected_key_fails_without_command_retry(self):

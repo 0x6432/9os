@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Type physical input with explicit QMP transitions (preferred) or legacy HMP.
+"""Type physical input with batched QMP key taps (preferred) or legacy HMP.
 
 Usage: qemu-type.py [--qmp] SOCK TEXT...; literal \n becomes Return.
 HMP sendkey uses a VIRTUAL-time release timer: host sleeps cannot guarantee
 non-overlap under slow TCG (ARM evidence: tty became ty even at20ms/120ms).
-QMP input-send-event emits explicit down/up events through the same emulated
-keyboard devices. No guest command injection, clipboard, retries or test waiver.
+QMP input-send-event batches explicit down/up edges for one tap through the
+same emulated keyboard devices. A host scheduling delay cannot leave a key
+held between separate down/up monitor requests. No guest command injection, clipboard, retries or test waiver.
 """
 import argparse
 import json
@@ -63,10 +64,14 @@ class QMP:
             return
         raise RuntimeError('Too many asynchronous QMP events')
 
-    def keys(self, keys, down):
-        self.execute('input-send-event', {'events': [
-            {'type': 'key', 'data': {'down': down, 'key': {'type': 'qcode', 'data': k}}}
-            for k in keys]})
+    def tap(self, keys):
+        # Adjacent edges in one QMP command cannot become an autorepeat-length
+        # held key if the host process is descheduled between monitor requests.
+        events = [{'type': 'key', 'data': {'down': down,
+                   'key': {'type': 'qcode', 'data': key}}}
+                  for down, ordered in [(True, keys), (False, list(reversed(keys)))]
+                  for key in ordered]
+        self.execute('input-send-event', {'events': events})
 
 
 def main():
@@ -88,12 +93,8 @@ def main():
                     raise ValueError(f'Unsupported physical key: {ch!r}')
                 if qmp is not None:
                     keys = k.split('-')
-                    qmp.keys(keys, True)
-                    try:
-                        time.sleep(HOLD_MS / 1000)
-                    finally:
-                        qmp.keys(list(reversed(keys)), False)
-                    time.sleep(INTERVAL_SECONDS - HOLD_MS / 1000)
+                    qmp.tap(keys)
+                    time.sleep(INTERVAL_SECONDS)
                 else:
                     s.sendall(f'sendkey {k} {HOLD_MS}\n'.encode())
                     response = prompt(s)

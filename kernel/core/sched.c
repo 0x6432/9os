@@ -628,7 +628,11 @@ bool sched_tick_fast(bool from_user) {
     rq_lock(c->id);
     cur->quantum -= account_tick(c, cur);
     if (cur->quantum <= 0) { quantum_expired(cur); c->resched = true; }
-    bool slow = c->resched || (from_user && (signal_pending(cur) || (cur->proc && cur->proc->alarm_ns)));
+    /* A future alarm needs no signal work yet. Forcing every AP user tick
+     * through the BKL until it expires creates needless global contention. */
+    uint64_t alarm = cur->proc ? __atomic_load_n(&cur->proc->alarm_ns, __ATOMIC_RELAXED) : 0;
+    bool alarm_due = alarm && time_ns() >= alarm;
+    bool slow = c->resched || (from_user && (signal_pending(cur) || alarm_due));
     rq_unlock(c->id);
     if (slow) return false;
     c->tick_accounted = false;
