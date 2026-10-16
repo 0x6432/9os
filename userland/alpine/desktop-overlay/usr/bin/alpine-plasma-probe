@@ -88,7 +88,17 @@ for f in "$D"/wayland-*;do [ ! -S "$f" ] || parent="$f";done
 # Supply the live outer display before KWin activates portal helpers.
 export WAYLAND_DISPLAY="$parent" QT_QPA_PLATFORM=wayland
 dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QUICK_BACKEND QV4_FORCE_INTERPRETER XDG_RUNTIME_DIR XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_MENU_PREFIX LANG
-kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
+# KWin6.3.6 + wlroots0.18.2 can leave a no-damage presentation request
+# pending forever (also reproduced on Linux). Select KWin's existing frame
+# callback fallback on THIS outer connection only, without library/QML patches.
+# Keep native mode for upstream/kernel comparison; neither mode waives pixels.
+case ${ALPINE_PLASMA_PRESENTATION:-callback} in
+ callback) set -- wayland-presentation-proxy -- ;;
+ native) set -- ;;
+ *) echo 'Unknown presentation mode';exit 1 ;;
+esac
+echo "PLASMA_PRESENTATION_MODE=${ALPINE_PLASMA_PRESENTATION:-callback}"
+"$@" kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
 for i in $(seq 300);do [ ! -S "$D/9os-plasma" ] || break;kill -0 "$kwin" 2>/dev/null || break;sleep .1;done
 [ -S "$D/9os-plasma" ] || { cat "$D/kwin.log";exit 1; }
 export WAYLAND_DISPLAY="$D/9os-plasma" QT_QPA_PLATFORM=wayland

@@ -2795,3 +2795,29 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   decoded image substitution, timeout increase or acceptance waiver.
 - This probe ordering fix is NOT claimed to solve stock Plasma/Dolphin missing
   windows. Private protocol reproduction with the fixed kernel remains running.
+
+### Optional presentation feedback isolated against Linux
+-30937ca fast38893183305: ALL3 base28+UP8, x86SMP8 and desktop26 pass;
+  explicit Window probe now passes root/user actual-image checks ALL3. x86/ARM
+  strict16 pass; RISC strict15/16 still fails visible Dolphin. Do not merge.
+- Fixed-kernel Wayland-debug run fails8/17 at wallpaper readiness, lockdep0,
+  no panic. Actual protocol shows final no-damage KWin commit requesting
+  wp_presentation_feedback#28 without a later presented/discarded reply;
+  Qt inner surfaces subsequently time out on frame callbacks. Evidence saved
+  /data/evidence-73-protocol-failure (actual black-wallpaper PNG and logs).
+- Explicit QSG_RENDER_LOOP=basic alone is NOT a fix: local12/16; genuine typed
+  UID1000 tty passes but later Dolphin readiness/presentation fail.
+- Ran exact packaged Sway/KWin/Plasma against REAL HOST LINUX in isolated
+  PID/mount namespaces with actual proc/dev/devpts, normal UID1000, no library
+  rebuild. A fresh stock run fails unchanged150-second wallpaper gate with
+  black desktop/panel, matching 9os. Previous Linux run's immediate outer
+  Dolphin image was Konsole-only; not a complete35-second negative control.
+- Private optional-global filter selects KWin's built-in frame-callback fallback
+  without modifying libraries/QML. Linux real wallpaper/Konsole/Dolphin passes;
+  a fresh capture passes unchanged actual-file OCR immediately. Not repeated
+  cold-start reliability proof. Logs /data/host-plasma-no-presentation-control.out
+  and actual PNG /data/host-linux-filter-fresh-captures/capture-0.png.
+- Add explicit portable compatibility transport and native diagnostic mode to
+  Plasma harness, plus15 same-source wire/FD/process controls (host passes).
+  Desktop28 + strict physical16 run on x86 now; ALL3 CI dispatch pending.
+  This does NOT finish source Qt Quick/service scope or M40.

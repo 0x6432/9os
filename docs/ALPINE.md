@@ -217,3 +217,35 @@ namespace; guest root and UID1000 checks plus source disk reboot tests pass.
 UDisks acceptance is read-only enumeration, not privileged mounting, formatting
 or authorization. Direct KWin DRM, hardware acceleration, logind and the
 remaining source Qt Quick rendering scope are not claimed. M40 remains open.
+
+### Nested presentation-feedback compatibility (validation in progress)
+
+The packaged KWin6.3.6 / wlroots0.18.2 nested stack can stop rendering after
+KWin commits a buffer with no damage and requests `wp_presentation` feedback.
+A real failing 9os protocol trace has an outstanding feedback request, idle
+compositors and Qt frame-callback timeouts. The same unmodified packaged stack
+also failed the unchanged150-second wallpaper/panel gate on REAL HOST LINUX
+(headless Sway); it is not evidence of a new 9os syscall failure. An earlier
+Linux run reached the actual Dolphin model but its immediate outer capture
+still showed only Konsole; that immediate image alone is not a full35-second
+presentation-deadline negative control.
+
+The Plasma harness now explicitly defaults to `ALPINE_PLASMA_PRESENTATION=callback`.
+`wayland-presentation-proxy` hides only the optional presentation-time registry
+advertisement on KWin's OUTER connection, selecting KWin's existing standard
+`wl_surface.frame` fallback. It does not patch packaged libraries/QML, change
+images, alter the inner KWin application connection or weaken any readiness,
+model, physical typing, fresh-image/OCR or cleanup gate. Native protocol mode
+remains available as `ALPINE_PLASMA_PRESENTATION=native` for comparisons.
+This is a userland compatibility workaround, NOT a claim that the upstream
+presentation implementation or all kernel ABIs are fixed.
+
+The proxy preserves ordered Wayland byte messages and SCM_RIGHTS, handles
+fragmentation/short writes, closes transferred rights and propagates signals
+and child status. It is NOT a security boundary. `--passthrough` is a transport
+control. Same-source `python3 /usr/share/9os/wayland-proxy-selftest.py` runs15
+wire/FD/process controls; these are NOT GUI proof. Root and UID1000 controls
+are added to the desktop suite (28 gates). A private Linux protocol-filter
+control passed actual wallpaper/Konsole/Dolphin and the unchanged independent
+fresh-image OCR immediately, but 9os and non-x86 compatibility validation is
+still pending. M40 remains open.
