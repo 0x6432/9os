@@ -46,9 +46,10 @@ static int anon_fd(const struct file_ops *ops, void *priv, int flags, unsigned m
 /* ------------------------------------------------------------------ eventfd */
 /* eventfd runs without the BKL (file_ops.nobkl): the counter is updated with compare-and-swap,
  * the 8-byte value is copied with copy_{to,from}_user (or memcpy for kernel buffers), and
- * blocking uses wait_until_sl() on poll_wq, whose condition is re-checked under sched_lock;
- * every counter change is followed by poll_notify(), so no wakeup can be lost. */
-struct eventfd { uint64_t count; bool semaphore; };
+ * blocking re-checks conditions under sched_lock. Overflow writers have their own
+ * queue: a non-saturated drain must wake large-value writers too, but need not
+ * broadcast to unrelated pollers. A saturated drain also makes POLLOUT ready. */
+struct eventfd { uint64_t count; bool semaphore; struct wait_queue writers; };
 
 static int efd_copy_out(void *dst, const void *src) {
     if ((vaddr_t)dst >= USER_TOP) { memcpy(dst, src, 8); return 0; }
@@ -68,7 +69,8 @@ static ssize_t efd_read(struct file *f, void *buf, size_t n, off_t *off) {
         if (c) {
             uint64_t v = e->semaphore ? 1 : c;
             if (!__atomic_compare_exchange_n(&e->count, &c, c - v, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) continue;
-            poll_notify();
+            wake_up(&e->writers);
+            if (c == UINT64_MAX - 1) poll_notify();
             return efd_copy_out(buf, &v) ?: 8;
         }
         if (f->flags & O_NONBLOCK) return -EAGAIN;
@@ -90,7 +92,7 @@ static ssize_t efd_write(struct file *f, const void *buf, size_t n, off_t *off) 
             return 8;
         }
         if (f->flags & O_NONBLOCK) return -EAGAIN;
-        int r = wait_until_sl(&poll_wq, UINT64_MAX - 1 - efd_count(e) >= v);
+        int r = wait_until_sl(&e->writers, UINT64_MAX - 1 - efd_count(e) >= v);
         if (r) return r;
     }
 }
@@ -107,6 +109,7 @@ int64_t sys_eventfd2(unsigned initval, int flags) {
     struct eventfd *e = kzalloc(sizeof *e);
     if (!e) return -ENOMEM;
     e->count = initval; e->semaphore = flags & EFD_SEMAPHORE;
+    wait_queue_init(&e->writers);
     int fd = anon_fd(&eventfd_fops, e, flags, 0600);
     if (fd < 0) kfree(e);
     return fd;
