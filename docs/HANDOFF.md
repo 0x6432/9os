@@ -2930,3 +2930,24 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   Keep HMP only as legacy CLI mode. Three explicit mock QMP controls verify
   distinct repeated t transitions, reverse modifier release and rejected-command
   failure;7 lifecycle and old HMP protocol controls pass. Real validation pending.
+
+### Full-source ALL3 complete; explicit QMP physical input validated ALL3
+- PR18 head971 full-source38896975226 ALL3 SUCCESS, reviewed completed logs:
+  main117/117; disk23/23+7/7 with both fsck checks; PCM/no-card2/2 each;
+  MLFQ9/9 and UP12/12; x86 SMP8 adds10/10. Source Qt GUI21, Wayland30,
+  GL37 and QML41 ROOT+USER, actual LLVM/Mesa/Sway consumers included.
+  This validates current971 source scope, NOT source Qt Quick rendering.
+- WIP432 QMP fast38909665904 ALL3 SUCCESS: base28+UP8 (x86 SMP8),
+  desktop28, strict physical16 each. procinfotest183 ROOT+USER ALL3.
+  Re-downloaded all three actual Dolphin PNGs; independent unchanged host OCR
+  passes after.txt/new.txt, not before.txt. ARM after.png independently OCRs
+  actual `tty`, correcting prior2fb run's `ty` (which remained a failed gate).
+  Real keyboard path retained; explicit QMP edges do not use HMP release timers.
+- Local private LP_NUM_THREADS=1 control, default unmodified deadlines/pixels,
+  current FD-hardened kernel + QMP input: first cold boot16/16, genuine tty/UID
+  witness, actual Dolphin pixels, clean exit, lockdep0. Repeating two further
+  cold boots before drawing conclusions. This is a private renderer-thread
+  resource control, NOT yet a proven fix or a production session-default change.
+- PR18 head remains971, draft/open. Source CI is finished without cancellation;
+  hold integration while local cold-start reliability remains unresolved. Do not
+  promote full-source green or a single positive control into M40 completion.
