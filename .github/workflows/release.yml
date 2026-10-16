@@ -85,6 +85,7 @@ jobs:
           scripts/futex-host-tests.sh
           scripts/eventfd-host-tests.sh
           scripts/poll-filter-host-tests.sh
+          python3 scripts/plasma-readiness-host-tests.py
           scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh

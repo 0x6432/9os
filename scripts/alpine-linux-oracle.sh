@@ -56,11 +56,11 @@ printf "LINUX_ORACLE_KERNEL=%s\n" "$(uname -s)"
 printf "LINUX_ORACLE_UID=%s\n" "$(id -u)"
 alpine-plasma-probe > /tmp/linux-plasma.log 2>&1 & session=$!
 for i in $(seq 240);do
- grep -q DOLPHIN_MODEL_READY /tmp/linux-plasma.log && break
+ grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/linux-plasma.log && break
  kill -0 "$session" 2>/dev/null || break
  sleep 1
 done
-if grep -q DOLPHIN_MODEL_READY /tmp/linux-plasma.log;then
+if grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/linux-plasma.log;then
  display=
  for f in /tmp/alpine-plasma-*/wayland-*;do [ ! -S "$f" ] || display=$f;done
  [ -n "$display" ] || { cat /tmp/linux-plasma.log;exit 1; }
