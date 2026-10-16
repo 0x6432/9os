@@ -131,6 +131,8 @@ def main(args):
         child.close()
         raise
     child.close()
+    # Failure diagnostics must attach to KWin, not only this transport process.
+    print('wayland-presentation-proxy: child_pid=%d' % process.pid, file=sys.stderr, flush=True)
     state = RegistryFilter(hide)
     errors = []
 

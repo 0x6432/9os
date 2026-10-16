@@ -2893,3 +2893,17 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   run are not changed/restarted. Non-x86 validation must run in GitHub CI.
 - Next scheduled physical cold boot uses the current WIP kernel (FD-name fix),
   not frozen971, because the prior boot fully finished before rebuilding.
+- Subsequent WIP physical cold boot is a REAL failure,7/16: Plasma shell
+  readiness times out, downstream physical frames/PTY/model are absent, lockdep0.
+  Unlike the invalid initial fixture, helpers exist. This run includes only the
+  proc FD parser kernel change over971; causation is NOT established. Preserve
+  /data/physical-971-valid-2 logs; do not claim cold reliability solved or merge
+  solely because previous ALL3 fast sets were green.
+- Add failure-only bounded process diagnostics to shell readiness as well as
+  frame readiness. The transport logs its real child PID; tracing now targets
+  KWin rather than only the Python wrapper. Five explicit host mock controls
+  verify PID selection, malformed-line rejection, bounded tracing and no gate
+  rescue;16 actual proxy controls still pass. No readiness deadlines increased.
+- PR18 full-source x86 job116959705154 is now SUCCESS; ARM/RISC remain building.
+  Separate FD-hardening fast ALL3 run38906037936 has base jobs green, desktop
+  physical jobs still running. Neither replaces the unresolved local failure.
