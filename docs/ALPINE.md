@@ -245,10 +245,12 @@ fragmentation/short writes, closes transferred rights and propagates signals
 and child status. It is NOT a security boundary. `--passthrough` is a transport
 control. Same-source `python3 /usr/share/9os/wayland-proxy-selftest.py` runs16
 wire/FD/process controls; these are NOT GUI proof. Root and UID1000 controls
-are added to the desktop suite (28 gates). A private Linux protocol-filter
-control passed actual wallpaper/Konsole/Dolphin and the unchanged independent
-fresh-image OCR immediately, but 9os and non-x86 compatibility validation is
-still pending. M40 remains open.
+are added to the desktop suite (28 gates). Historical971 and432 ALL3 fast
+runs passed desktop28/28 and physical16/16;971 also passed the full-source
+ALL3 regression gate. Actual physical Dolphin filename PNGs were independently
+checked. These results do not prove universal cold-start reliability: later
+local boots still fail (see the cold-start caveat below). Current9ebf9e4 source
+and fast PR18 checks must pass separately. M40 remains open.
 
 For a reproducible Linux comparison in a disposable x86_64 sandbox:
 
@@ -264,6 +266,27 @@ runtime directories and a real UID1000 session on the HOST LINUX KERNEL. It
 captures fresh outer-compositor frames for35 seconds after the genuine Dolphin
 model is ready. The checker reuses the unchanged wallpaper and filename/OCR
 oracles, and requires real Konsole PTY/model/clean-exit markers. It cannot prove
-9os syscall correctness or physical input. These checked-in wrappers preserve
-the earlier private experiment; execute them before treating their new
-read-only-root variant as validated. Do not replace the 9os QEMU gates with it.
+9os syscall correctness or physical input. The checked-in read-only-root wrapper
+passed three real callback cold sessions with33/31/31 fresh captures; native mode
+reached the model but failed filename visibility over26 fresh captures. A fourth
+callback session with the WIP terminal-focus observer also passed33 fresh
+captures. Do not replace the 9os QEMU gates with Linux results.
+
+### Cold-start and physical keyboard caveat (still open)
+
+Explicit QMP down/up events replace HMP's virtual-time key-release timer, but
+monitor acknowledgements still cannot prove a terminal is mapped and focused.
+Three private local LP_NUM_THREADS=1 cold boots produced16/16,16/16, then11/16:
+the last actual terminal PNG reads `y` instead of `tty`, and later Dolphin URL
+readiness/pixels failed too. The renderer thread cap is an overridable resource
+policy, not a proven general cold-start fix. No failed attempt is reclassified.
+
+The separate terminal-focus WIP adds `desktopa11y --terminal PID`, observing the
+real application's Terminal role plus focused/showing/visible states through
+packaged AT-SPI. It never sets focus or sends input. PTY publication alone can
+precede window mapping, so the guessed3-second sleep is replaced by this stronger
+check within the existing120-second PTY readiness budget. Mock negative controls
+and real Linux observation pass; production-default9os physical validation is
+in progress. Qt/KDE libraries are unmodified, no timeout or pixel threshold is
+relaxed, and physical tty/UID/marker plus real Dolphin model/OCR/exit gates remain
+mandatory. M40 is not complete.

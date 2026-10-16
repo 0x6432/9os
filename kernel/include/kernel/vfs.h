@@ -80,7 +80,8 @@ struct timespec { int64_t tv_sec, tv_nsec; };
 struct inode;
 struct file;
 
-typedef int (*filldir_t)(void *ctx, const char *name, size_t len, uint64_t ino, unsigned type);
+/* next_cookie is the filesystem's opaque position immediately after this entry. */
+typedef int (*filldir_t)(void *ctx, const char *name, size_t len, uint64_t ino, unsigned type, uint64_t next_cookie);
 
 struct inode_ops {
     int (*lookup)(struct inode *dir, const char *name, struct inode **out);

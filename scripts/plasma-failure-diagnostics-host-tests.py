@@ -41,6 +41,22 @@ timeout() { printf '%s\\n' "$*" >> "$TRACE"; }
     def test_last_valid_spawn(self):
         self.selection('wayland-presentation-proxy: child_pid=444\nwayland-presentation-proxy: child_pid=555\n', 555)
 
+    def test_terminal_snapshot_is_failure_only(self):
+        failure = TEXT.index("echo 'alpine-plasma: FAIL interactive Konsole PTY/focused terminal readiness'")
+        snapshot = TEXT.index('echo "KONSOLE_READINESS pty=')
+        trace = TEXT.index('strace -f -tt -T -p "$client"')
+        stop = TEXT.index('  exit 1', trace)
+        ready = TEXT.index(' echo KONSOLE_FOCUSED_TERMINAL_READY')
+        self.assertLess(failure, snapshot)
+        self.assertLess(snapshot, trace)
+        self.assertLess(trace, stop)
+        self.assertLess(stop, ready)
+        block = TEXT[failure:stop]
+        self.assertIn('timeout -k 2 -s TERM 8 grim', block)
+        self.assertIn('ALPINE_PLASMA_FAILURE_PNG_BEGIN', block)
+        self.assertIn('head -n 20 "$D/$f"', block)
+        self.assertNotIn('ALPINE_PLASMA_INPUT_READY', block)
+
     def test_no_acceptance_after_trace(self):
         self.assertIn("echo 'alpine-plasma: FAIL shell readiness';blocked_diagnostics;exit 1", TEXT)
         self.assertIn("echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness'", TEXT)

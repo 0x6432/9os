@@ -49,7 +49,7 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl bzip2 xz-utils e2fsprogs fdisk \
-            bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip ninja-build libglib2.0-dev-bin \
+            bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip python3-pil ninja-build libglib2.0-dev-bin \
             qemu-system-x86 qemu-system-misc qemu-system-arm qemu-efi-aarch64 qemu-efi-riscv64
           pip3 install --break-system-packages 'meson>=1.3' Mako PyYAML packaging
           clang --version | head -1
@@ -87,6 +87,11 @@ jobs:
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh
           scripts/procinfo-host-tests.sh
+          scripts/dircookie-host-tests.sh
+          scripts/poll-wake-host-tests.sh
+          python3 scripts/qtdeclarative-cross-host-tests.py
+          python3 scripts/host-qsb-host-tests.py
+          python3 scripts/quick-pixel-host-tests.py
           scripts/proctask-host-tests.sh
           sudo env MOUNTINFO_HOST_MUTATE=1 scripts/mountinfo-host-tests.sh
           scripts/pimutex-host-tests.sh
@@ -121,6 +126,13 @@ jobs:
             balancetest pcputest smptest timetest vforktest orphantest \
             "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
 
+      - name: Eight-CPU RR poll progress
+        if: matrix.arch == 'x86_64'
+        run: >-
+          python3 scripts/qemu-test.py $ARCH --smp 8 --boot-timeout 300
+          --log build/test-pollwake-smp8-$ARCH.log pollwakebench
+          "su user -s /bin/sh -c pollwakebench" polltest timetest
+          "grep -q '^violations 0' /proc/lockdep"
       - name: Eight-CPU scheduler and allocator stress
         if: matrix.arch == 'x86_64'
         run: >-

@@ -2960,3 +2960,194 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Carry WIP FD parser, real failure diagnostics, isolated Linux comparison and
   QMP input into PR18 for new current-head ALL3 CI. Prior971 full-source and
   432 fast ALL3 results remain historical evidence, not current-head passes.
+
+### Further cold-start evidence and terminal-focus WIP
+
+- Private LP_NUM_THREADS=1 + explicit QMP transitions: the third x86 cold boot
+  failed11/16 after two16/16 runs. Its actual after PNG/OCR shows `y` rather than
+  `tty`; the before PNG had no detectable Konsole text. UID/marker subsequently
+  arrived but the tty witness did not. Later Dolphin URL readiness and physical
+  pixels also failed; its failure-only trace showed ongoing icon-path lookups,
+  not proof of a sleeping deadlock. Preserve `/data/physical-qmp-lp1-3`.
+- The renderer resource limit is NOT a demonstrated general reliability fix.
+  QMP acknowledgements are NOT evidence that a window already has keyboard focus.
+  No commands were retried, failed gates waived or deadlines enlarged.
+- WIP replaces the guessed3s Konsole sleep with a bounded read-only AT-SPI
+  terminal focused/showing/visible observation, using the existing tiny C helper
+  and the real application PID. PTY and terminal state share the existing120s
+  readiness budget. This does not set focus, inject keys or modify Qt/KDE.
+  Mock rejection controls cover wrong PID/role, absent focus/visibility/state,
+  malformed input and bounded trees. Real Linux/9os validation is pending.
+- PR18 stays at9ebf9e4 pending its full-source38914052546 and fast38914052540
+  ALL3 gates; keep this WIP separate so those runs are not restarted for notes.
+  All3 fast base runtime/UP jobs have passed; desktop/source remain in progress.
+  Source Qt Quick rendering/service scope and M40 remain unfinished.
+- Terminal-focus WIP actual Linux callback control is now PASS: genuine Konsole
+  PID269, Terminal role visited7 nodes, focused/showing/visible all1; real Dolphin
+  model,33 fresh independent actual filename captures and clean exit passed.
+  `/data/linux-oracle-focus-1.log` and `.check` preserve results. This is Linux
+  headless evidence, NOT9os physical typing. Production-default9os cold boot
+  `/data/physical-focus-default-1` is active at WIP3247fe5, no private LP override.
+- Current9eb fast x86 desktop28/28 + physical16/16 passed. Downloaded actual
+  artifact12051134732: independent unchanged Dolphin OCR passes; after PNG has
+  actual `tty`. Other desktop and full-source gates remain in progress.
+
+### Directory-cookie ABI fix (separate from unproven desktop causation)
+
+- Production-default cold boot with terminal-focus WIP failed7/16 at the earlier
+  Plasma shell gate, BEFORE Konsole/focus observation ran. Preserve
+  `/data/physical-focus-default-1`. Failure-only traces show real timezone-file
+  enumeration and normal compositor traffic. This does NOT establish a deadlock
+  or that changing timezone configuration would fix it; no such change was made.
+- Auditing directory iteration exposed a concrete independent bug: getdents
+  d_off was an output-buffer byte offset, not a usable next-entry filesystem
+  cookie. Raw lseek/replay and libc telldir/seekdir were therefore broken.
+- Same-source bounded dircookietest passes Linux. Preserved pre-fix9os kernel
+  fails68 checks (285 evaluated) with the initial test, while boot/lockdep pass;
+  the red harness is2/3, NOT a successful regression run.
+- Fix carries the filesystem's next cookie through filldir: tmpfs entry cookies
+  (including deleted gaps), proc/sys iteration positions, ext2 directory offsets.
+  Internal getcwd enumeration ignores that new field. No guessed cookie values
+  are exposed as Linux-matching constants: callers must treat them as opaque.
+- Expanded test passes x86 UP7/7 and SMP8 7/7 harnesses: directory486 checks each
+  ROOT+UID1000, vfstest, available procinfo/proctask consumers and lockdep0. Ext2
+  disk-root6/6 passes with443 directory checks each ROOT+UID1000, clean shutdown
+  and e2fsck exit0. Linux current complete consumer687 checks,0 failures.
+- Wired exact consumer into source/fast ALL3 CI and Linux host checks. Those new
+  gates have NOT run on non-x86 yet; PR18 head9eb remains unchanged while its
+  full-source gate finishes. No claim this ABI fix solves Plasma cold starts.
+- Current9eb fast38914052540 ALL3 SUCCESS: each desktop28/28 + physical16/16,
+  base runtime28/28 + UP8/8, x86 SMP8 8/8. Actual physical Dolphin PNGs independently
+  pass unchanged filename OCR for all3. Full-source38914052546 still in progress.
+
+### Current cookie/focus WIP ALL3 evidence and local limitation
+- WIP b51694e fast prebuilt38917793392 ALL3 SUCCESS: runtime30/30 + UP8/8
+  each, x86 SMP8 8/8; desktop29/29 + strict physical16/16 each. All3 observe
+  genuine Konsole Terminal focused/showing/visible. Downloaded actual all3
+  physical PNGs independently pass unchanged Dolphin filename OCR; terminal
+  after PNGs show actual typed tty commands. No non-x86 build/test ran locally.
+- Local production-default b516 cold boot `/data/physical-dircookie-focus-1`
+  fails7/16. It DID reach real wallpaper/panel and then failed the combined
+  Konsole PTY/focus120s gate; no focus-observer output was produced. This is
+  not the earlier shell-readiness failure and not proof of a focused-but-hidden
+  terminal. Failure-only trace shows continuing allocation/Wayland activity.
+  The cookie fix therefore does NOT establish general cold-start reliability.
+- Add failure-only PTY/terminal readiness flags, bounded atomic-publication file
+  snapshots and genuine failure scanout before cleanup/strace. These diagnostics
+  never retry input, set focus, enlarge deadlines or rescue a failed attempt.
+  Six diagnostic, seven PTY and three observer host-control groups pass.
+- Full available x86 core/disk regression is running after rebuilding only small
+  consumers. PR18 remains draft at9eb; its full-source38914052546 is still building.
+  WIP b516 fast success is not a source Quick rendering or complete-M40 claim.
+
+### RR wakeup experiment (not a completed desktop fix)
+- Available b516 x86 core run completed84/84, disk24/24+7/7, both fsck checks,
+  clean shutdown and PCM/no-card2/2 each. Local UP physical control passed16/16
+  with real focused terminal, typed tty/UID and independently checked Dolphin
+  pixels. Neither result makes the failing production SMP4 cold boot a pass.
+- Baseline second SMP4 cold boot fails7/16: PTY was published but no genuine
+  Terminal accessible object was found (application present, models0). Failure
+  scanout timed out and produced no PNG; do not invent image evidence.
+- Experimental default RR change queues normal peers until the current slice
+  ends, retaining idle-CPU wakeups, RT priority rules and unchanged MLFQ policy.
+  First experimental SMP4 physical boot passed16/16; second is still running.
+  This is a hypothesis under validation, not an established cold-start fix.
+- Original small eventfd benchmark: baseline49/67ms, producer21/83 switches;
+  candidate50/56ms, producer1 switch but MORE waiter switches. There is no
+  demonstrated wall-time improvement. Candidate focused poll/timer/fairness/
+  affinity/PI tests passed11/11; full core/disk/UP/SMP8 policy regression is pending.
+- Add exact portable pollwakebench consumer plus Linux and ALL3 CI wiring.
+  Current Linux consumer passes; timings/switch counts are informational only.
+  Current revised consumer still needs guest execution. No target-library build
+  was performed locally and no non-x86 validation ran locally.
+- Current PR18 full-source38914052546 ARM and RISC-V completed successfully;
+  x86 still running. PR18 remains draft at9eb, separate from this WIP branch.
+
+### RR experiment rejected for integration
+- Second candidate SMP4 physical cold boot failed10/16. Readiness passed and
+  genuine before/after scanouts exist, but the actual typed command contains
+  repeated characters and a shell syntax error; required tty/UID markers were
+  absent. No input retry was attempted. Memory pressure/OOM counters stayed0.
+- Therefore restore the original RR wake-preemption policy. Two cold boots
+  (one pass, one fail) and inconclusive benchmark timing do not justify changing
+  global scheduler semantics as a desktop fix. Experimental kernel, hashes,
+  serial logs and genuine screenshots remain outside the repository for review.
+- Retain the portable progress/readiness consumer and CI wiring as independent
+  regression coverage; its timing measurements are explicitly non-gating.
+
+### Native qsb groundwork and newly exposed SMP8 probe failure
+- Signed qsb6.8.3 BUILD-HOST generator validated through genuine, byte-unchanged
+  Qt6ShaderToolsTools CMake metadata. Real upstream Quick fragment shader output
+  is byte-identical to the full signed SDK control; invalid shader is rejected.
+  Runtime-only134-APK closure+separately signed tool metadata occupies498MiB,
+  avoiding the unrelated962MiB SDK dependency set. Offline cache replay passes.
+  This generates shader assets only: no Qt/Mesa/LLVM libraries compiled locally.
+  Target source Quick is NOT enabled or validated by this groundwork yet.
+- Exact pollwakebench passes x86 UP11/11 including UID1000 and existing poll,
+  timers, fairness, affinity, PI and lockdep0. SMP8 gives9/11: the new probe times
+  out as ROOT and UID1000; existing tests pass. A second diagnostic boot confirms
+  timeout during setup/private-worker startup, BEFORE unrelated transfer phase.
+  Therefore do not label this as a proved poll notification loss or wake storm.
+- Add failure-only phase/count diagnostics with unchanged45-second alarm, no
+  measured-path progress printing, and no performance threshold. Linux passes.
+  Further guest startup-state diagnosis is running. This remains unvalidated WIP.
+
+### Source Quick candidate submitted for PR validation
+- PR18 head9eb full-source38914052546 ALL3 SUCCESS: each main117/117,
+  disk23/23+7/7 with both fsck checks and clean shutdown, PCM/no-card2/2 each,
+  UP9/9, MLFQ12/12 and x86 MLFQ SMP8 10/10. These gates do NOT cover
+  source Quick rendering or the newer cookie/focus changes. PR18 still draft.
+- Restored-policy WIP1d997d1 fast38926362160 ALL3 SUCCESS; logs must be read
+  before quoting finer-grained counts. This is not the current Quick head gate.
+- Current exact static musl pollwakebench also passes on Linux. Baseline SMP4
+  passes4/4, but local SMP8 remains failing. Failure-only diagnostics vary:
+  setup/private-worker startup in one run, join with24 created/24 ready in a
+  background diagnostic run. Syscall tracing also fails (in transfer phase).
+  The preserved RR suppression experiment fails ROOT join but passes UID1000
+  on SMP8 (10/11 total); therefore keep original policy, not a scheduler fix.
+- Enable target Quick discovery with genuine signed host qsb, while keeping
+  native QML generators headless and source target libraries isolated. Require
+  real libQt6Quick, QtQuick import metadata and qmlscene after installation.
+  Target library build/validation is delegated to ALL3 PR CI, never local.
+- New qtquicksmoke tests QML binding/JSON, real swapped frames and item capture
+  as ROOT+UID1000. Host checker requires exactly2 captures and verifies EVERY
+  RGBA pixel. New consumer passes5/5 locally using signed prebuilt Qt libraries;
+  only path/plugin locations adapted for Alpine. This does NOT prove source
+  Quick renders; only the upcoming source CI can establish that.
+- Seven negative signed-tool installer controls and four synthetic frame-parser
+  groups pass. Genuine CMake import/shader and invalid-shader controls also pass.
+  Add explicit eight-CPU RR progress gates to source and prebuilt CI, rather
+  than omitting the local failing scenario. No deadline or assertion relaxed.
+
+### Source Quick cross-tools configuration correction
+- PR19 head8135a59 source CI reached QtDeclarative target configuration, then
+  failed on x86_64 and riscv64: headless native QmlTools lacks Qt6::qmltime.
+  Upstream also unconditionally enters qmlplugindump when target Quick exists;
+  both require native GUI/Quick, neither is a target-library build generator.
+- Apply a fail-closed, exact-source SHA256-checked Qt6.8.3 CMake adjustment:
+  omit those two optional tool subdirectories only when cross-compiling.
+  Preserve native behavior, genuine QML generators/import scanner/cachegen,
+  signed host qsb, target Quick, qml and qmlscene. No dummy imported targets,
+  host GUI library rebuild or target-tool execution is substituted.
+- Six local configuration controls execute the actual pinned upstream tools list
+  under CMake: unpatched cross-Quick reproduces missing qmltime; patched cross
+  omits only the two tools, native Quick keeps both, headless native generators
+  remain, repeat application is idempotent and modified source is rejected.
+  This is configuration proof, NOT successful source Quick compilation/rendering.
+
+### Source Quick cross configuration: optional qmltestrunner follow-up
+
+PR20 current-source RISC-V job 117115014357 (run 38942880209) reached target
+QtDeclarative configure and failed importing Qt6::qmltestrunner from the
+headless native QmlTools package. QT_BUILD_TESTS=OFF does not remove this tool:
+it is entered when the target exports QuickTest. Like qmltime/qmlplugindump,
+this is a GUI/test runner, not a required library-build generator.
+
+The pinned tools-list patch now guards all three optional host GUI imports only
+when cross compiling. Native builds retain all three; target qmlscene and real
+QML generators remain enabled. Existing exact two-tool patches upgrade safely;
+unexpected or partial edits still fail closed. Eight executed CMake control-flow
+tests pass, including a negative legacy two-tool case that now reproduces the
+actual missing qmltestrunner failure. Host-qsb seven groups and pixel four groups
+also pass. This is configuration evidence, not a completed source Quick build or
+render result. Full current-head source CI remains required before integration.

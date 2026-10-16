@@ -231,7 +231,7 @@ static int s_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
     for (int k = 0; k < 2; k++, idx++) {
         if (idx < *pos) continue;
         uint64_t ino = k ? (dir->parent ? dir->parent->ino : dir->ino) : dir->ino;
-        if (fill(ctx, n[k], strlen(n[k]), ino, 4)) goto out;
+        if (fill(ctx, n[k], strlen(n[k]), ino, 4, idx + 1)) goto out;
         (*pos)++;
     }
     for (size_t o = 0; o < c.len; idx++) {
@@ -239,7 +239,7 @@ static int s_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ctx
         size_t nl = strlen(nm);
         if (idx >= *pos) {
             snprintf(p, sizeof p, "%s/%s", ds->path, nm);
-            if (fill(ctx, nm, nl, path_ino(p), (unsigned char)c.names[o])) break;
+            if (fill(ctx, nm, nl, path_ino(p), (unsigned char)c.names[o], idx + 1)) break;
             (*pos)++;
         }
         o += nl + 2;

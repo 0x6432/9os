@@ -815,7 +815,7 @@ static int e2_iterate(struct inode *dir, uint64_t *pos, filldir_t fill, void *ct
             if (!de_ok(fs, e, off)) break;
             if (off >= want && e->inode) {
                 unsigned t = ft && e->type < 8 ? linux_dt[e->type] : 0;
-                if (fill(ctx, e->name, e->name_len, e->inode, t)) { *pos = l * fs->bsize + off; stop = true; break; }
+                if (fill(ctx, e->name, e->name_len, e->inode, t, l * fs->bsize + off + e->rec_len)) { *pos = l * fs->bsize + off; stop = true; break; }
             }
             off += e->rec_len;
         }
