@@ -3357,3 +3357,26 @@ The real607698-byte archive passed the actual Meson cache verifier, without
 configuration, extraction or compilation. This is download-path validation,
 not a fresh full-source guest result. The corrected current head still needs
 ALL3 source and prebuilt CI; earlier-head green gates are not substituted.
+
+### 2026-10-16: atomic compare/wake/requeue transaction candidate
+
+Review found a separate futex ABI gap: CMP_REQUEUE compared under a private
+(mm,VA) bucket, released it, then resolved the real keys and separately woke
+and moved waiters. Shared aliases could use a different bucket, and an enqueue
+could interleave after comparison or between wake and move. This candidate
+resolves both keys first and holds both buckets in address order across the
+user-word comparison, wake and move. A failing comparison/read has no queue
+side effects; CMP_REQUEUE at a null source still performs the read/error path.
+Both source and destination alignment are checked before any operation.
+
+The exact portable consumer passes63 checks on Linux (private and shared
+aliases, same and distinct keys, failed comparison preserving both queues,
+wake-one/move-rest and cleanup). The exact production requeue and wake bodies
+pass21 host model groups, including same-bucket collisions, distinct buckets,
+opaque shared keys, no-op comparison, null/read faults and preserved masks.
+Two model-only unsafe mutations are rejected (unlocked comparison and a gap
+between comparison and wake). Mock locks do NOT prove real SMP race behavior.
+Fresh x86 UP/SMP8 and available-core/disk/audio validation are running. No
+local Qt/Mesa/LLVM library build or ARM/RISC execution is performed. No
+Plasma cold-start fix or M40 completion is claimed; ALL3 current-head PR CI
+will still be required before integration.

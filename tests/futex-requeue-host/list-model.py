@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Execute the exact kernel requeue function with mock locks/stack waiters.
-List/count controls only: not a substitute for real kernel SMP execution.
+List/count/transaction lock controls: not a substitute for real kernel SMP execution.
 """
 from pathlib import Path
 import os,signal,subprocess,tempfile
@@ -78,7 +78,7 @@ int main(void){struct futex_key a=key(0x1000);int groups=0;
 '''
 with tempfile.TemporaryDirectory() as tmp:
  p=Path(tmp)
- extra=r''''''
+ extra=''
  if atomic:
   adapter='#define MOVE(a,b,n) futex_requeue(a,b,0,n,false,NULL,0)\n'
   extra=r'''
