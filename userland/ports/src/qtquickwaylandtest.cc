@@ -8,6 +8,8 @@
 #include <QQuickView>
 #include <QSGRendererInterface>
 #include <QThread>
+#include <QUrl>
+#include <QVariant>
 #include <QtGui/qguiapplication_platform.h>
 #include <qpa/qplatformnativeinterface.h>
 #include <wayland-client.h>

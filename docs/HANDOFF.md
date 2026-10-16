@@ -3243,3 +3243,8 @@ fix the intermittent cold-start issue; a fixed parent/candidate sample is runnin
 Prebuilt CI at that head passed all three architectures, including desktop jobs.
 The optional qmltestrunner parent correction changes configuration, so all current
 head CI must pass again before integration; earlier green runs are not current.
+
+The isolated Quick Wayland draft wrapper has four passing host-control groups:
+forced software/interpreter identity, poisoned search-path removal, UID1000
+selection preservation and failure propagation/real-harness frame-marker checks.
+These do not substitute for compiling or running the drafted C++ consumer.
