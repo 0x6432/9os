@@ -23,13 +23,19 @@ printf 'real KDE directory model\n' > "$D/files/before.txt"
 dolphin --new-window "$D/files" > "$D/client.log" 2>&1 & client=$!
 printf 'DOLPHIN_CLIENT_PID=%s uid=%s\n' "$client" "$(id -u)"
 Q=/usr/lib/qt6/bin/qdbus
+# Direct typed calls avoid Qt CLI introspection on every model query.
+# qdbus is needed only to enumerate the real application object path.
+call_bool() {
+ timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest="$1" "$2" "org.kde.dolphin.MainWindow.$3" ${4:+string:$4} > "$D/reply" 2> "$D/readback.err" || return 1
+ sed -n 's/^[[:space:]]*boolean \(true\|false\)$/\1/p' "$D/reply"
+}
 service=;object=;deadline=$(( $(date +%s) + 90 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
  # qdbus's ordinary service list indents aliases after their unique owner.
  # Its explicit glob mode returns one unindented real service name per line.
  for name in $(timeout -s KILL 5 "$Q" 'org.kde.dolphin*' | grep '^org.kde.dolphin' || true);do
   for path in $(timeout -s KILL 5 "$Q" "$name" | grep '^/' || true);do
-   if timeout -s KILL 5 "$Q" "$name" "$path" org.kde.dolphin.MainWindow.isUrlOpen "file://$D/files" 2>/dev/null | grep -qx true;then
+   if call_bool "$name" "$path" isUrlOpen "file://$D/files" | tee "$D/readback.out" | grep -qx true;then
     service=$name;object=$path;break
    fi
   done
@@ -38,9 +44,24 @@ while [ "$(date +%s)" -lt "$deadline" ];do
  [ -z "$object" ] || break
  kill -0 "$client" 2>/dev/null || break;sleep .2
 done
-[ -n "$object" ] || { echo 'alpine-dolphin: FAIL real directory URL readback';exit 1; }
+[ -n "$object" ] || {
+ echo 'alpine-dolphin: FAIL real directory URL readback'
+ cat "$D/readback.out" "$D/readback.err" 2>/dev/null || true
+ timeout -s KILL 10 "$Q" 'org.kde.dolphin*' > "$D/services" 2>&1 || true
+ cat "$D/services"
+ for name in $(grep '^org.kde.dolphin' "$D/services" | head -n 3);do
+  echo "DOLPHIN_DIAGNOSTIC_SERVICE=$name"
+  timeout -s KILL 10 "$Q" "$name" > "$D/objects" 2>&1 || true
+  cat "$D/objects"
+  for path in $(grep '^/' "$D/objects" | head -n 12);do
+   echo "DOLPHIN_DIAGNOSTIC_OBJECT=$path"
+   timeout -s KILL 10 "$Q" "$name" "$path" org.kde.dolphin.MainWindow.isUrlOpen "file://$D/files" 2>&1 || true
+  done
+ done
+ exit 1
+}
 printf 'DOLPHIN_URL_READY service=%s object=%s\n' "$service" "$object"
-visible() { timeout -s KILL 5 "$Q" "$service" "$object" org.kde.dolphin.MainWindow.isItemVisibleInAnyView "file://$D/files/$1"; }
+visible() { call_bool "$service" "$object" isItemVisibleInAnyView "file://$D/files/$1"; }
 ready=0;deadline=$(( $(date +%s) + 60 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
  if visible before.txt | grep -qx true;then ready=1;break;fi
@@ -51,13 +72,14 @@ mv "$D/files/before.txt" "$D/files/after.txt"
 printf 'created after the GUI directory loaded\n' > "$D/files/new.txt"
 ready=0;deadline=$(( $(date +%s) + 60 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- if visible after.txt | grep -qx true && visible new.txt | grep -qx true && visible before.txt | grep -qx false;then ready=1;break;fi
+ after=$(visible after.txt || true);new=$(visible new.txt || true);before=$(visible before.txt || true)
+ if [ "$after:$new:$before" = true:true:false ];then ready=1;break;fi
  sleep .2
 done
-[ "$ready" = 1 ] || { echo 'alpine-dolphin: FAIL live KIO directory changes';exit 1; }
+[ "$ready" = 1 ] || { echo "alpine-dolphin: FAIL live KIO directory changes after=$after new=$new before=$before";cat "$D/reply" "$D/readback.err";ls -la "$D/files";exit 1; }
 active=0;deadline=$(( $(date +%s) + 30 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- if timeout -s KILL 5 "$Q" "$service" "$object" org.kde.dolphin.MainWindow.isActiveWindow | grep -qx true;then active=1;break;fi
+ if call_bool "$service" "$object" isActiveWindow | grep -qx true;then active=1;break;fi
  sleep .2
 done
 [ "$active" = 1 ] || { echo 'alpine-dolphin: FAIL mapped active GUI window';exit 1; }
@@ -70,7 +92,7 @@ if [ -n "${ALPINE_DOLPHIN_DONE_FILE:-}" ];then
 else
  sleep "${ALPINE_DOLPHIN_HOLD:-0}"
 fi
-timeout -s KILL 5 "$Q" "$service" "$object" org.kde.dolphin.MainWindow.quit
+timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest="$service" "$object" org.kde.dolphin.MainWindow.quit
 for i in $(seq 200);do kill -0 "$client" 2>/dev/null || break;sleep .1;done
 if kill -0 "$client" 2>/dev/null;then echo 'alpine-dolphin: FAIL graceful application quit';exit 1;fi
 if wait "$client";then r=0;else r=$?;fi

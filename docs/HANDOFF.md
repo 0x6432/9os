@@ -2420,3 +2420,16 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   scripts/alpine-kms-tests.sh, enabling ALPINE_PLASMA_FILEMANAGER=1 and
   waiting for DOLPHIN_MODEL_READY before physical screenshot. Revalidate x86,
   then add actual Dolphin acceptance to PR CI for non-x86. M40 remains open.
+
+### Follow-up Dolphin diagnosis (not a pass)
+- Restored base explicit-ioctl-mask regression passed19/19, lockdep0. Both
+  physical KMS follow-up attempts proved real UID1000 typed Konsole PTY input,
+  but Dolphin phase failed; do not count the new15-check driver as passing.
+- Isolated real UID1000 KWin virtual session reaches Dolphin isUrlOpen=true.
+  Direct libdbus queries avoid repeated Qt CLI introspection overhead.
+- Crucial oracle correction: upstream Dolphin25.04.2 viewShowingItem deliberately
+  checks the containing open folder, NOT item existence. Its isItemVisibleInAnyView
+  returns true even for nonexistent children; it cannot prove rename/delete or
+  a loaded KIO listing. Existing exploratory assertion must be replaced before
+  any acceptance claim. Investigating the packaged real AT-SPI file model.
+- No kernel notification regression established by this failed assertion.
