@@ -2871,3 +2871,25 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   /proc/TID/fd. A bounded --fd-wrap-control checks only the safe positive alias
   2^32+live-fd for an old-kernel negative control. No kernel fix or guest result
   claimed yet; isolated x86 image built for that control.
+- Restored current971 physical x86 cold boot finishes strict16/16, including
+  actual UID1000 physical key->Konsole tty witness, fresh actual Dolphin OCR,
+  clean application/session exit and lockdep0. Independently rechecked the
+  captured Dolphin PNG. Linux read-only callback repetitions also pass:3/3
+  cold sessions,33/31/31 fresh captures respectively. Native file-model success
+  still does not waive its failed actual visibility check.
+
+### Proc FD-name overflow: exact negative control and focused fix
+- Exact old x86 kernel admits 2^32+live-fd as that live fd under all three proc
+  FD paths; both root/user report14 checks/3 failures. The negative-control
+  QEMU harness correctly remains red because it detects the intentional FAIL
+  lines, even though a surrounding shell expected exit1. No negative indexing
+  inputs were exercised against the old kernel. Same-source Linux control14/14.
+- Reuse strict bounded proc_number for FD names, with explicit canonical "0"
+  exception and a negative bound check before any fd-table indexing. Rejects
+  leading zeroes and decimal overflow, not just out-of-range positive values.
+- Fixed x86 UP and SMP8 each8/8 gates: procinfotest183/183 ROOT+USER,
+  wrap control14/14 ROOT+USER,16 repeated full runs ROOT+USER, lockdep0.
+  This is separate WIP hardening; PR18 head971 and its expensive full-source
+  run are not changed/restarted. Non-x86 validation must run in GitHub CI.
+- Next scheduled physical cold boot uses the current WIP kernel (FD-name fix),
+  not frozen971, because the prior boot fully finished before rebuilding.

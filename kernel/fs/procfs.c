@@ -240,9 +240,10 @@ static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
     }
     if (pi->kind == P_FDDIR) {
         struct process *p = process_find(pi->pid);
-        int fd = 0;
-        for (const char *c = name; *c; c++) { if (*c < '0' || *c > '9') return -ENOENT; fd = fd * 10 + (*c - '0'); }
-        if (!p || (pi->tid && !proc_task(pi)) || fd >= MAX_FDS || !p->fds[fd]) return -ENOENT;
+        /* Like PID/TID names, FD components must not overflow or have leading
+         * zeroes. FD zero is the one canonical exception to proc_number(). */
+        int fd = !strcmp(name, "0") ? 0 : proc_number(name);
+        if (!p || (pi->tid && !proc_task(pi)) || fd < 0 || fd >= MAX_FDS || !p->fds[fd]) return -ENOENT;
         *out = for_thread(pnew(S_IFLNK | 0700, P_FD, pi->pid, fd, 0), pi->tid);
         return 0;
     }
