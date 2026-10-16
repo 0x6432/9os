@@ -2544,3 +2544,26 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Core-only mkroot hit its existing missing usr/lib/find error without graphics
   ports. Create that normal empty runtime directory unconditionally; this does
   not restore or pretend to validate the full source graphics stack locally.
+
+### Directory-scoped real Dolphin observer; core regressions green
+- Physical x86 repeat after UDisks fix passed real services, wallpaper/panel,
+  actual UID1000 typed Konsole PTY and before/after QEMU screenshots. Dolphin
+  registered the correct real window, but old exhaustive AT-SPI walk hit45s
+  after64 nodes. Rejected12/16; no physical Dolphin pass was claimed.
+- Verified Dolphin25.04.2 accessibility sources: KItemListViewAccessible is
+  List, Name=directory basename, Description ends with real directory URL,
+  direct childCount=model()->count(); delegates are ListItem. Observer now
+  locates that exact process/role/directory and enumerates EVERY model row,
+  rather than scanning hundreds of unrelated menu widgets. Names elsewhere
+  cannot satisfy checks. Same45s alarm,1500/3000ms call bounds remain.
+- Explicit mock controls17/17 include menu decoy, wrong role, wrong row role,
+  wrong directory/prefix/suffix, remote errors, oversize, cycles and stale names.
+- Actual isolated UID1000 KWin/QPainter5/5 passed, including UDisks: Dolphin372
+  model found after25 visited nodes;1 row before.txt, then2 rows after.txt/new.txt
+  with before.txt absent; actual active window, DBus quit and lockdep0.
+  Logs build/test-dolphin-model-scoped.log, /data/dolphin-model-scoped.out.
+- Available source-profile x86 core81/81, disk23/23 + reboot7/7, both e2fsck,
+  clean shutdown, audio2/2 + absent2/2 all pass. UP focused poll/IPC/inotify/
+  mount/futex7/7 passes. Source graphics/Qt ports were NOT restored locally;
+  this is not the full source graphics regression suite. Non-x86 remains CI-only.
+- Combined physical16-gate repeat with the scoped observer is next. M40 open.

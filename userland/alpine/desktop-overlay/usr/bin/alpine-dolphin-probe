@@ -94,7 +94,7 @@ printf 'DOLPHIN_URL_READY service=%s object=%s\n' "$service" "$object"
 # allows unloaded/nonexistent children); it is NOT a file-existence oracle.
 ready=0;deadline=$(( $(date +%s) + 90 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- if desktopa11y "$client" +before.txt -after.txt -new.txt > "$D/model" 2>&1;then ready=1;break;fi
+ if desktopa11y "$client" "$D/files" +before.txt -after.txt -new.txt > "$D/model" 2>&1;then ready=1;break;fi
  kill -0 "$client" 2>/dev/null || break;sleep 1
 done
 cat "$D/model"
@@ -103,7 +103,7 @@ mv "$D/files/before.txt" "$D/files/after.txt"
 printf 'created after the GUI directory loaded\n' > "$D/files/new.txt"
 ready=0;deadline=$(( $(date +%s) + 90 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- if desktopa11y "$client" +after.txt +new.txt -before.txt > "$D/model" 2>&1;then ready=1;break;fi
+ if desktopa11y "$client" "$D/files" +after.txt +new.txt -before.txt > "$D/model" 2>&1;then ready=1;break;fi
  kill -0 "$client" 2>/dev/null || break;sleep 1
 done
 cat "$D/model"
