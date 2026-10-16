@@ -10,6 +10,9 @@ T=$DL/qtdeclarative-everywhere-src-$V.tar.xz
 printf '%s  %s\n' 75c9fdc8ba26ef95ae8ff0c82b18589b74d7ff3065e86e5bd8427bc36336e569eaa22fa07863f99d0592eec0c1a69c3409c7b3941eae14361ff523c058e56084 "$T" | sha512sum -c -
 S=$PORTS_SRC/qtdeclarative-everywhere-src-$V
 [ -d "$S" ] || tar xJf "$T" -C "$PORTS_SRC"
+# Keep real native generators mandatory, but do not import optional GUI host
+# tools absent from the deliberately headless native Qt. qmlscene stays enabled.
+python3 "$UL/ports/qtdeclarative-cross-tools.py" "$S"
 H=${HOST_TOOLS:-${TOOLS_DIR:-/data/tools}/host}/qt-$V
 HB=$UL/build/qtdeclarative-host-$V
 # Build real upstream native QML tools; never run a target tool in a cross build.

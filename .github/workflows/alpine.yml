@@ -42,6 +42,7 @@ jobs:
           scripts/dircookie-host-tests.sh
           scripts/poll-wake-host-tests.sh
           scripts/alarm-cpu-host-tests.sh
+          python3 scripts/qtdeclarative-cross-host-tests.py
           python3 scripts/host-qsb-host-tests.py
           python3 scripts/quick-pixel-host-tests.py
           scripts/proctask-host-tests.sh
