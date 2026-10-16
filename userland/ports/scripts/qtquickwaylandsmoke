@@ -1,0 +1,6 @@
+#!/bin/sh
+# Source Qt Quick software renderer on real QtWayland, not offscreen.
+unset QML_IMPORT_PATH QML2_IMPORT_PATH QT_PLUGIN_PATH
+export QTWAYLAND_TEST_CLIENT=qtquickwaylandtest QT_QUICK_BACKEND=software
+export QV4_FORCE_INTERPRETER=1 QML_DISABLE_DISK_CACHE=1
+exec qtwaylandsmoke
