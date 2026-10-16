@@ -12,6 +12,15 @@ MODE=${2:-callback}
 [ "$(id -u)" = 0 ] || { echo 'Run with sudo in a disposable test sandbox' >&2;exit 2; }
 case "$MODE" in native|callback) ;; *) echo 'Expected native or callback' >&2;exit 2 ;; esac
 python3 -c 'import json,sys;p=json.load(open(sys.argv[1]));assert p["arch"]=="x86_64" and p["profile"]=="desktop"' "$ROOT/etc/9os-alpine.json"
+# build.py assembles signed packages; the small same-source consumers are
+# installed separately by alpine-desktop-tests.sh. Reject incomplete fixtures
+# before spending minutes waiting for impossible rendering/model gates.
+for helper in desktopframecheck desktopa11y;do
+ [ -x "$ROOT/usr/bin/$helper" ] || {
+  echo "Missing desktop fixture helper: $helper (install from alpine-root-x86_64/usr/bin)" >&2
+  exit 2
+ }
+done
 if [ "$INNER" != 1 ];then
  exec timeout -k 10 480 unshare --mount --pid --fork "$SELF" --inner "$ROOT" "$MODE"
 fi
@@ -22,6 +31,10 @@ mount -o remount,bind,ro "$ROOT"
 mount -t proc proc "$ROOT/proc"
 mount -t tmpfs -o mode=1777 tmpfs "$ROOT/tmp"
 mount -t tmpfs -o mode=755 tmpfs "$ROOT/run"
+# The VM init normally creates this home; Linux does not run the 9os init.
+mount -t tmpfs -o mode=755 tmpfs "$ROOT/home"
+mkdir -m 700 "$ROOT/home/user"
+chown 1000:1000 "$ROOT/home/user"
 mount -t tmpfs -o mode=755 tmpfs "$ROOT/dev"
 for f in null zero random urandom;do
  touch "$ROOT/dev/$f"

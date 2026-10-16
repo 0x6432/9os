@@ -11,6 +11,14 @@ D=$(mktemp -d /tmp/9os-kms-XXXXXX)
 trap 'rm -rf "$D"' EXIT HUP INT TERM
 S=$D/monitor.sock
 P=$(pwd -P)/build/test-alpine-kms-$ARCH
+# A directly invoked physical test may not have run the desktop suite first.
+# Fail before packing/booting if its same-source consumers were not installed.
+for helper in desktopframecheck desktopa11y;do
+ [ -x "$ROOT/usr/bin/$helper" ] || {
+  echo "Missing desktop fixture helper: $helper (run alpine-desktop-tests.sh or install its consumers)" >&2
+  exit 2
+ }
+done
 scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
 export QEMU_EXTRA="${QEMU_EXTRA:-} -monitor unix:$S,server,nowait"
 python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
