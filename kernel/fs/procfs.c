@@ -24,7 +24,7 @@ int net_proc_file(int which, char *buf, size_t max);
 int locks_report(char *buf, int cap);
 enum pkind { P_ROOT, P_SELF, P_PIDDIR, P_FDDIR, P_FD, P_FILE, P_CWD, P_EXE, P_NETDIR, P_SYSDIR };
 enum pfile { F_STAT, F_STATUS, F_CMDLINE, F_COMM, F_ENVIRON, F_MAPS,
-             G_MEMINFO, G_UPTIME, G_VERSION, G_BOOT_CMDLINE, G_CPUINFO, G_MOUNTS, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS, G_LOCKS,
+             G_MEMINFO, G_UPTIME, G_VERSION, G_BOOT_CMDLINE, G_CPUINFO, G_MOUNTS, G_MOUNTINFO, G_LOADAVG, G_STAT, G_FILESYSTEMS, G_SCHED, G_VMSTAT, G_LOCKDEP, G_HARDEN, G_INTERRUPTS, G_PARTITIONS, G_DISKSTATS, G_LOCKS,
              N_DEV, N_ROUTE, N_ARP, N_TCP, N_UDP, N_RAW, N_UNIX, N_SNMP, N_IGMP,
              N_IGMP6, N_IF_INET6, N_IPV6_ROUTE, N_TCP6, N_UDP6, N_RAW6, N_SNMP6, N_NETLINK, N_NETSTAT, S_SYSCTL };
 /* P_SYSDIR: the /proc/sys directory whose path is sysctls[sysi].path[0, syslen) */
@@ -140,6 +140,7 @@ static const struct { const char *name; enum pfile f; } net_files[] = {
 static const struct { const char *name; enum pfile f; } pid_files[] = {
     { "stat", F_STAT }, { "status", F_STATUS }, { "cmdline", F_CMDLINE }, { "comm", F_COMM },
     { "environ", F_ENVIRON }, { "maps", F_MAPS },
+    { "mounts", G_MOUNTS }, { "mountinfo", G_MOUNTINFO },
 };
 
 static int p_lookup(struct inode *dir, const char *name, struct inode **out) {
@@ -561,7 +562,13 @@ static void gen(struct pinfo *pi, struct buf *b) {
 
 static int pf_open(struct inode *i, struct file *f) {
     struct buf *b = kzalloc(sizeof *b);
-    gen(i->priv, b);
+    if (!b) return -ENOMEM;
+    struct pinfo *pi = i->priv;
+    if (pi->file == G_MOUNTINFO) {
+        b->data = vfs_proc_mountinfo(&b->len);
+        if (!b->data) { kfree(b); return -ENOMEM; }
+        b->cap = b->len + 1;
+    } else gen(pi, b);
     f->priv = b;
     return 0;
 }

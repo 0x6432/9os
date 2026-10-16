@@ -277,6 +277,7 @@ static void dcache_purge(struct inode *dir, struct super_block *sb) {
 
 static int walk(struct inode *base, const char *path, bool follow_last, int depth, struct inode **out);
 static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size);
+static int vfs_path_from_l(struct inode *root, struct inode *cwd, char *buf, size_t size);
 
 /* ------------------------------------------------------------------ permissions (M31) */
 int cred_inode_permission(const struct cred *c, struct inode *i, int mask) {
@@ -771,8 +772,9 @@ struct mount {
     struct super_block *sb;       /* null for pseudo filesystems */
     char *src, *path;
     const char *type;
-    uint64_t flags;
+    uint64_t flags, id;
 };
+static uint64_t next_mount_id = 1; /* namespace lock; never reuse a live mount ID */
 static struct list_node mounts = LIST_INIT(mounts);
 #define MS_RDONLY 1
 #define MS_REMOUNT 32
@@ -786,7 +788,7 @@ static void mount_record(struct inode *root, struct inode *mp, struct super_bloc
                          const char *path, const char *type, uint64_t flags) {
     struct mount *m = kzalloc(sizeof *m);
     if (!m) return;
-    m->root = root; m->mp = mp; m->sb = sb; m->type = type; m->flags = flags;
+    m->root = root; m->mp = mp; m->sb = sb; m->type = type; m->flags = flags; m->id = next_mount_id++;
     m->src = strdup(src);
     char *buf = kmalloc(4096);
     if (buf && vfs_getcwd_l(root, buf, 4096) > 0) m->path = strdup(buf);
@@ -835,6 +837,66 @@ int vfs_proc_mounts(char *buf, size_t max) {
     }
     vfs_ns_unlock();
     return (int)MIN(n, max);
+}
+
+/* Linux mountinfo for 9os's single global mount namespace. No bind mounts,
+ * propagation or private mount namespaces are advertised. Derive topology from
+ * actual inode ancestry, not path prefix guesses; resolve paths at read time so
+ * a renamed ancestor cannot leave a stale cached mount point in this ABI. */
+static uint64_t mount_parent_id(struct mount *m) {
+    struct inode *p = m->mp;
+    for (int depth = 0; p && depth < 4096; depth++) {
+        list_for_each(it, &mounts) {
+            struct mount *other = list_entry(it, struct mount, node);
+            if (other != m && other->root == p) return other->id;
+        }
+        if (p->parent == p) break;
+        p = p->parent;
+    }
+    return m->id; /* namespace root: parent is not outside the visible tree */
+}
+static size_t mount_escape(char *buf, const char *s) {
+    size_t n = 0;
+    for (; *s; s++) {
+        unsigned char c = (unsigned char)*s;
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\\') {
+            buf[n++] = '\\'; buf[n++] = '0' + (c >> 6);
+            buf[n++] = '0' + ((c >> 3) & 7); buf[n++] = '0' + (c & 7);
+        } else buf[n++] = (char)c;
+    }
+    return n;
+}
+char *vfs_proc_mountinfo(size_t *len) {
+    *len = 0;
+    vfs_ns_lock();
+    /* Worst-case octal escaping of PATH_MAX plus the actual source string.
+     * Allocate the complete snapshot, never return a truncated final record. */
+    size_t cap = 1;
+    list_for_each(it, &mounts) {
+        struct mount *m = list_entry(it, struct mount, node);
+        size_t extra = 4 * (4096 + strlen(m->src)) + strlen(m->type) + 256;
+        if (extra > SIZE_MAX - cap) { vfs_ns_unlock(); return nullptr; }
+        cap += extra;
+    }
+    char *buf = kmalloc(cap), *path = kmalloc(4096);
+    if (!buf || !path) { kfree(buf); kfree(path); vfs_ns_unlock(); return nullptr; }
+    size_t n = 0;
+    list_for_each(it, &mounts) {
+        struct mount *m = list_entry(it, struct mount, node);
+        if (vfs_path_from_l(vfs_root, m->root, path, 4096) < 0) {
+            kfree(buf); kfree(path); vfs_ns_unlock(); return nullptr;
+        }
+        uint64_t dev = m->root->dev ? m->root->dev : 1; /* same as stat.st_dev */
+        bool ro = m->sb ? (m->sb->flags & SB_RDONLY) : (m->flags & MS_RDONLY);
+        n += snprintf(buf + n, cap - n, "%lu %lu %u:%u / ", m->id,
+                      mount_parent_id(m), (unsigned)MAJOR(dev), (unsigned)MINOR(dev));
+        n += mount_escape(buf + n, path);
+        n += snprintf(buf + n, cap - n, " %s - %s ", ro ? "ro" : "rw", m->type);
+        n += mount_escape(buf + n, m->src);
+        n += snprintf(buf + n, cap - n, " %s\n", ro ? "ro" : "rw");
+    }
+    buf[n] = 0; *len = n;
+    kfree(path); vfs_ns_unlock(); return buf;
 }
 
 static struct mount *mount_of_root(struct inode *root) {
@@ -999,6 +1061,7 @@ int vfs_mount_root(const char *source, const char *type) {
     iget(nr);
     /* the new root entry first in /proc/mounts */
     struct mount *m = kzalloc(sizeof *m);
+    m->id = next_mount_id++;
     m->root = nr; m->sb = sb; m->type = sb->type; m->src = strdup(source); m->path = strdup("/");
     list_add(&mounts, &m->node);
     list_for_each(it, &mounts) {
@@ -1071,11 +1134,12 @@ static int find_fill(void *c, const char *name, size_t len, uint64_t ino, unsign
     return 0;
 }
 
-static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size) {
+static int vfs_path_from_l(struct inode *root, struct inode *cwd, char *buf, size_t size) {
     char *tmp = kmalloc(4096), name[256];
+    if (!tmp) return -ENOMEM;
     size_t pos = 4095;
     tmp[pos] = 0;
-    struct inode *cur = cwd, *root = proc_root();
+    struct inode *cur = cwd;
     while (cur != root) {
         struct inode *c = cur;
         while (c->covered) c = c->covered;
@@ -1097,6 +1161,10 @@ static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size) {
     memcpy(buf, tmp + pos, len);
     kfree(tmp);
     return (int)len;
+}
+
+static int vfs_getcwd_l(struct inode *cwd, char *buf, size_t size) {
+    return vfs_path_from_l(proc_root(), cwd, buf, size);
 }
 
 void vfs_init(void) {

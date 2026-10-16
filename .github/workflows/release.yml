@@ -87,6 +87,7 @@ jobs:
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh
           scripts/procinfo-host-tests.sh
+          scripts/mountinfo-host-tests.sh
           scripts/pimutex-host-tests.sh
           scripts/ioctlwidth-host-tests.sh
           python3 scripts/rootfs-stamp-host-tests.py

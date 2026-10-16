@@ -2491,3 +2491,18 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Observer now has per-call1500/3000ms deadlines and line-buffered progress;
  global45s alarm unchanged. Full Plasma observer previously hit45s alarm,
  not a passing model check. Next actual full desktop repeat is pending.
+
+### Real mount reporting and volatile runtime state (follow-up, x86 only)
+- UDisks now executes after the signed helper ownership repair, but its actual
+  startup trapped because `/proc/self/mountinfo` was missing. Added records
+  derived from real VFS mount IDs, inode topology, device numbers, flags and
+  escaped sources/paths, plus `/proc/PID/mounts`. Complete per-open snapshots
+  replace no data with fabricated Linux mounts. Bind mounts, propagation and
+  private namespaces are not implemented; mount-change polling remains next.
+- New same-source `mountinfotest`: Linux host 563 checks; 9os x86 disk root
+  723 checks with real nested mount/unmount and 185 checks as UID1000, all pass.
+  Kernel lockdep stays zero. Actual UDisks D-Bus activation still times out;
+  this is NOT a UDisks or full desktop acceptance pass.
+- rcS mounts fresh tmpfs on `/run` before runtime directories: disk-root reboot
+  must not inherit stale sockets/PID files. Actual x86 boot verified fresh /run.
+- These changes have not yet received ARM/RISC-V PR CI. M40 remains open.

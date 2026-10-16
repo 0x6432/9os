@@ -215,6 +215,7 @@ int vfs_do_mount(const char *source, const char *target, const char *type, uint6
 int vfs_do_umount(const char *target, int flags);
 int vfs_mount_root(const char *source, const char *type);   /* root=: switch / to a disk */
 int vfs_proc_mounts(char *buf, size_t max);
+char *vfs_proc_mountinfo(size_t *len); /* allocated complete snapshot; caller kfree */
 int vfs_proc_filesystems(char *buf, size_t max);
 void ext2_init(void);
 
