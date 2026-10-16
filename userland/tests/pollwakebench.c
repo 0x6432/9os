@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/eventfd.h>
+#include <sys/inotify.h>
+#include <string.h>
 #include <sys/resource.h>
 #include <time.h>
 #include <unistd.h>
@@ -19,7 +21,7 @@
 #if ATOMIC_INT_LOCK_FREE != 2
 #error "The timeout diagnostic requires lock-free atomic int"
 #endif
-static int fd[N], ready, failed;
+static int fd[N], ino[N], watch_poll, ready, failed;
 static long switches[N];
 static atomic_int phase, created;
 
@@ -58,21 +60,27 @@ static void *sleeper(void *arg) {
     struct rusage before = {0}, after = {0};
     if (getrusage(RUSAGE_THREAD, &before)) fail();
     __atomic_add_fetch(&ready, 1, __ATOMIC_RELEASE);
-    struct pollfd p = {fd[i], POLLIN, 0};
+    struct pollfd p[2] = {{fd[i], POLLIN, 0}, {ino[i], POLLIN, 0}};
     int r;
-    do { r = poll(&p, 1, -1); } while (r < 0 && errno == EINTR);
+    do { r = poll(p, 2, -1); } while (r < 0 && errno == EINTR);
     uint64_t v = 0;
-    if (r != 1 || !(p.revents & POLLIN) || read(fd[i], &v, 8) != 8 || v != 1) fail();
+    if (r != 1 || !(p[0].revents & POLLIN) || p[1].revents || read(fd[i], &v, 8) != 8 || v != 1) fail();
     if (getrusage(RUSAGE_THREAD, &after)) fail();
     switches[i] = after.ru_nvcsw + after.ru_nivcsw - before.ru_nvcsw - before.ru_nivcsw;
     return NULL;
 }
-int main(void) {
+int main(int argc, char **argv) {
+    if (argc > 2 || (argc == 2 && strcmp(argv[1], "--inotify"))) {
+        fprintf(stderr, "usage: pollwakebench [--inotify]\n"); return 2;
+    }
+    watch_poll = argc == 2;
     if (signal(SIGALRM, timeout_handler) == SIG_ERR) { perror("signal"); return 2; }
     alarm(45);
     setvbuf(stdout, NULL, _IOLBF, 0);
     pthread_t t[N];
     for (int i = 0; i < N; i++) {
+        ino[i] = watch_poll ? inotify_init1(IN_CLOEXEC | IN_NONBLOCK) : -1;
+        if (watch_poll && ino[i] < 0) return 2;
         fd[i] = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
         if (fd[i] < 0 || pthread_create(&t[i], NULL, sleeper, (void *)(intptr_t)i)) return 2;
         atomic_store_explicit(&created, i + 1, memory_order_relaxed);
@@ -102,11 +110,12 @@ int main(void) {
         if (pthread_join(t[i], NULL)) return 2;
         total += switches[i];
         close(fd[i]);
+        if (ino[i] >= 0) close(ino[i]);
     }
     close(other);
     printf("pollwakebench: transfers=1000 idle_waiters=%d wall_ms=%lld "
-           "producer_switches=%ld waiter_switches=%ld failures=%d\n", N, elapsed / 1000000,
+           "producer_switches=%ld waiter_switches=%ld failures=%d inotify_waiters=%d\n", N, elapsed / 1000000,
            b.ru_nvcsw + b.ru_nivcsw - a.ru_nvcsw - a.ru_nivcsw, total,
-           __atomic_load_n(&failed, __ATOMIC_RELAXED));
+           __atomic_load_n(&failed, __ATOMIC_RELAXED), watch_poll ? N : 0);
     return __atomic_load_n(&failed, __ATOMIC_RELAXED) ? 1 : 0;
 }

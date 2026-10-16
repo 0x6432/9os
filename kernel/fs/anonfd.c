@@ -710,7 +710,9 @@ static void in_release(struct file *f) {
     list_for_each_safe(it, tmp, &in->events) kfree(list_entry(it, struct inotify_ev, node));
     kfree(in);
 }
-static const struct file_ops inotify_fops = { .read = in_read, .poll = in_poll, .ioctl = in_ioctl, .release = in_release };
+/* Queue readiness depends only on its own notification records, not on any
+ * other inode's eventfd. File mutations still issue global poll_notify(). */
+static const struct file_ops inotify_fops = { .poll_leaf = true, .read = in_read, .poll = in_poll, .ioctl = in_ioctl, .release = in_release };
 
 int64_t sys_inotify_init1(int flags) {
     if (flags & ~(O_NONBLOCK | O_CLOEXEC)) return -EINVAL;

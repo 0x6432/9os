@@ -110,7 +110,8 @@ jobs:
           'su user -s /bin/sh -c "timeout 35 pollfiltertest"' "timeout 30 futexbitsettest"
           'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 30 futexrequeuetest" 'su user -s /bin/sh -c "timeout 30 futexrequeuetest"' "timeout 10 alarmcputest"
           'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
-          "su user -s /bin/sh -c pollwakebench" alpine-qtsmoke
+          "su user -s /bin/sh -c pollwakebench" "pollwakebench --inotify"
+          'su user -s /bin/sh -c "pollwakebench --inotify"' alpine-qtsmoke
           "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-smp8-$ARCH.log"
           alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"
