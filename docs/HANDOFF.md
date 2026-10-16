@@ -3180,6 +3180,31 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
   remain, repeat application is idempotent and modified source is rejected.
   This is configuration proof, NOT successful source Quick compilation/rendering.
 
+### WIP: FUTEX_WAIT_BITSET / WAKE_BITSET mask matching
+
+An independent ABI audit found that the kernel checked nonzero bitsets but did
+not store or filter their masks. This is not an established Plasma failure cause.
+The candidate stores each waiter's mask, preserves it through requeue and filters
+WAKE_BITSET by nonempty intersection under the existing bucket lock. Ordinary
+WAIT/WAKE, robust-owner wake and WAKE_OP use MATCH_ANY.
+
+The exact new `futexbitsettest.c` passes 52 checks on host Linux, including selective
+low/high-bit wakes, ordinary wait/wake and WAKE_OP interoperability, mask-preserving requeue,
+shared inode aliases across fork, zero masks and past absolute deadlines. Requeue
+move counts establish waiter enrollment; no fixed settling sleep is assumed.
+The final exact 52-check consumer fails eight mask assertions on the unpatched
+x86 kernel under both root and UID1000. The corrected kernel passes all 52 under
+both users in the four-CPU core suite and sequential one/eight-CPU RR and
+eight-CPU MLFQ boots. Each focused topology suite passed 10/10, including the
+existing 128-check WAKE_OP test, futextest, PI fallback, poll/eventfd/time and zero
+lockdep violations. The full available source-core profile passed 89/89,
+disk-root 24/24 and 7/7, both filesystem checks, clean shutdown, PCM/WAV 2/2 and
+no-card 2/2. These local images do not include the full source graphics stack.
+ARM/RISC-V and full source/prebuilt regressions remain PR-CI gates. One initial
+isolated build lacked the optional uACPI dependency and could not log in; it was
+stopped, the dependency restored, and the kernel rebuilt before these results.
+No desktop readiness claim or M40 completion claim follows from this ABI fix.
+
 ### Source Quick cross configuration: optional qmltestrunner follow-up
 
 PR20 current-source RISC-V job 117115014357 (run 38942880209) reached target
@@ -3196,3 +3221,14 @@ tests pass, including a negative legacy two-tool case that now reproduces the
 actual missing qmltestrunner failure. Host-qsb seven groups and pixel four groups
 also pass. This is configuration evidence, not a completed source Quick build or
 render result. Full current-head source CI remains required before integration.
+
+### Bitset candidate: exploratory physical regression
+
+At head592cd19, the unchanged x86 SMP4 physical desktop gate passed 16/16 once:
+genuine focused/showing/visible Terminal, physical input to UID1000 pts/0, real
+Dolphin rename/create model and fresh visible files, clean exit, zero lockdep.
+Actual Konsole and Dolphin PNGs were inspected. This is not evidence that masks
+fix the intermittent cold-start issue; a fixed parent/candidate sample is running.
+Prebuilt CI at that head passed all three architectures, including desktop jobs.
+The optional qmltestrunner parent correction changes configuration, so all current
+head CI must pass again before integration; earlier green runs are not current.

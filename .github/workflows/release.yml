@@ -131,7 +131,8 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: >-
           python3 scripts/qemu-test.py $ARCH --smp 8 --boot-timeout 300
-          --log build/test-pollwake-smp8-$ARCH.log "timeout 10 alarmcputest"
+          --log build/test-pollwake-smp8-$ARCH.log "timeout 30 futexbitsettest"
+          'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 10 alarmcputest"
           'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
           "su user -s /bin/sh -c pollwakebench" polltest timetest
           "grep -q '^violations 0' /proc/lockdep"

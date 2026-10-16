@@ -595,7 +595,8 @@ int64_t sys_reboot(uint64_t m1_, uint64_t m2_, uint64_t cmd_, void *arg) {
  * before returning, so a waker that still holds the lock never touches a dead stack frame. */
 #define FUTEX_BUCKETS 64
 struct futex_bucket;
-struct futex_waiter { struct list_node node; struct mm *mm; uint32_t *addr; struct wait_queue wq; bool woken; struct futex_bucket *bucket; };
+/* The nonzero waiter mask is immutable, including across requeue. */
+struct futex_waiter { struct list_node node; struct mm *mm; uint32_t *addr; uint32_t bitset; struct wait_queue wq; bool woken; struct futex_bucket *bucket; };
 struct futex_bucket { spinlock_t lock; struct list_node head; } __attribute__((aligned(64)));
 static struct futex_bucket futex_buckets[FUTEX_BUCKETS];
 static volatile bool futex_ready;
@@ -619,13 +620,13 @@ static struct futex_bucket *futex_bucket(struct mm *mm, uint32_t *uaddr) {
 static uint64_t fb_lock(struct futex_bucket *b) { uint64_t f = arch_irq_save(); spin_lock_ipi(&b->lock); return f; }
 static void fb_unlock(struct futex_bucket *b, uint64_t f) { spin_unlock(&b->lock); arch_irq_restore(f); }
 
-static int futex_wake_locked(struct futex_bucket *b, struct mm *mm, uint32_t *uaddr, int n) {
+static int futex_wake_locked(struct futex_bucket *b, struct mm *mm, uint32_t *uaddr, int n, uint32_t bitset) {
     if (n <= 0) return 0;
     int woken = 0;
     list_for_each_safe(it, tmp, &b->head) {
         if (woken >= n) break;
         struct futex_waiter *w = list_entry(it, struct futex_waiter, node);
-        if (w->addr != uaddr || w->mm != mm) continue;
+        if (w->addr != uaddr || w->mm != mm || !(w->bitset & bitset)) continue;
         list_del(&w->node);
         __atomic_store_n(&w->woken, true, __ATOMIC_RELEASE);
         wake_up(&w->wq);            /* under the bucket lock: w stays alive until we drop it */
@@ -634,12 +635,16 @@ static int futex_wake_locked(struct futex_bucket *b, struct mm *mm, uint32_t *ua
     __atomic_fetch_add(&futex_wakes, (uint64_t)woken, __ATOMIC_RELAXED);
     return woken;
 }
-static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
+static int futex_wake_mask(struct mm *mm, uint32_t *uaddr, int n, uint32_t bitset) {
     struct futex_bucket *b = futex_bucket(mm, uaddr);
     uint64_t f = fb_lock(b);
-    int r = futex_wake_locked(b, mm, uaddr, n);
+    int r = futex_wake_locked(b, mm, uaddr, n, bitset);
     fb_unlock(b, f);
     return r;
+}
+/* Ordinary wake, WAKE_OP and robust-owner exit match every waiter bitset. */
+static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
+    return futex_wake_mask(mm, uaddr, n, UINT32_MAX);
 }
 int futex_wake(uint32_t *uaddr, int n) { return futex_wake_mm(curproc->mm, uaddr, n); }
 
@@ -732,8 +737,8 @@ static int futex_wake_op(uint32_t *addr, uint32_t *addr2, bool shared, int n, in
             default: r = -ENOSYS; break;
             }
             if (!r) {
-                r = futex_wake_locked(ba, a.mm, a.addr, n);
-                if (match) r += futex_wake_locked(bb, b.mm, b.addr, n2);
+                r = futex_wake_locked(ba, a.mm, a.addr, n, UINT32_MAX);
+                if (match) r += futex_wake_locked(bb, b.mm, b.addr, n2, UINT32_MAX);
             }
         }
         if (l2 != l1) spin_unlock(&l2->lock);
@@ -780,12 +785,12 @@ static struct futex_bucket *fw_lock(struct futex_waiter *w, uint64_t *f) {
     }
 }
 
-static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns, bool shared) {
+static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns, bool shared, uint32_t bitset) {
     if ((uintptr_t)uaddr & 3) return -EINVAL;
     struct futex_key key = futex_key_of(uaddr, shared);
     struct mm *mm = key.mm;
     struct futex_bucket *b = futex_bucket(mm, key.addr);
-    struct futex_waiter w = { .mm = mm, .addr = key.addr, .bucket = b };
+    struct futex_waiter w = { .mm = mm, .addr = key.addr, .bitset = bitset, .bucket = b };
     wait_queue_init(&w.wq);
     uint64_t f = fb_lock(b);
     uint32_t cur;
@@ -833,11 +838,11 @@ int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *
                 ns = ns > now ? ns - now : 0;
             }
         }
-        return futex_wait(uaddr, val, ns, shared);
+        return futex_wait(uaddr, val, ns, shared, cmd == 9 ? val3 : UINT32_MAX);
     }
     case 1: case 10:     /* FUTEX_WAKE(_BITSET) */
         if (cmd == 10 && !val3) return -EINVAL;
-        { struct futex_key k = futex_key_of(uaddr, shared); return futex_wake_mm(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX)); }
+        { struct futex_key k = futex_key_of(uaddr, shared); return futex_wake_mask(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX), cmd == 10 ? val3 : UINT32_MAX); }
     /* PI locks are not implemented. Report the unsupported capability rather
      * than an unknown command: musl exposes this result from setprotocol and
      * consumers such as PulseAudio fall back only on ENOTSUP. No fake lock. */
