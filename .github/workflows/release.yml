@@ -84,6 +84,7 @@ jobs:
           scripts/snd-host-tests.sh
           scripts/futex-host-tests.sh
           scripts/eventfd-host-tests.sh
+          scripts/poll-filter-host-tests.sh
           scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh

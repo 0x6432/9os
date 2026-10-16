@@ -18,7 +18,7 @@ p=Path(a[a.index('-o')+1]);assert p.name==Path(source).stem
 p.write_text('fake compiler output\\n')
 with open(os.environ['INSTALL_RECORD'],'a') as f:f.write(source+'\\n')
 '''
-def run(text):
+def run(text, consumer='eventfdwaketest'):
  with tempfile.TemporaryDirectory(prefix='9os-eventfd-install-') as temp:
   d=Path(temp);(d/'scripts').mkdir();(d/'bin').mkdir()
   (d/'userland/alpine-root-x86_64/usr/bin').mkdir(parents=True)
@@ -27,9 +27,15 @@ def run(text):
   record=d/'record';env=dict(os.environ,PATH=str(d/'bin')+os.pathsep+os.environ['PATH'],INSTALL_RECORD=str(record))
   subprocess.run(['sh',str(p),'x86_64'],check=True,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
   calls=record.read_text().splitlines()
-  return calls.count('userland/tests/eventfdwaketest.c')==1 and (d/'userland/alpine-root-x86_64/usr/bin/eventfdwaketest').is_file()
+  return calls.count(f'userland/tests/{consumer}.c')==1 and (d/f'userland/alpine-root-x86_64/usr/bin/{consumer}').is_file()
 assert run(script), 'new consumer was not installed exactly once'
 for label,changed in [('missing',script.replace(' eventfdwaketest ', ' ',1)),('duplicate',script.replace(' eventfdwaketest ',' eventfdwaketest eventfdwaketest ',1))]:
  assert changed!=script
  assert not run(changed), 'installer mutation survived: '+label
 print('eventfd installer model: x86 path passed; missing/duplicate mutations rejected')
+
+assert run(script, 'pollfiltertest'), 'poll filter consumer not installed exactly once'
+for label,changed in [('missing',script.replace(' pollfiltertest ', ' ',1)),('duplicate',script.replace(' pollfiltertest ',' pollfiltertest pollfiltertest ',1))]:
+ assert changed!=script
+ assert not run(changed, 'pollfiltertest'), 'poll installer mutation survived: '+label
+print('poll filter installer model: x86 path passed; missing/duplicate mutations rejected')
