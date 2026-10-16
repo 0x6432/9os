@@ -2677,3 +2677,33 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - This strengthens readiness, does not extend deadlines or rescue failed gates.
   Actual physical rerun /data/kms-atomic-pty.out is pending; do not claim fixed
   cold-start reliability or M40 completion until repeated real gates pass.
+
+### Physical presentation gate (follow-up to 948cbd4; not M40 completion)
+- Full available local source x86 suite passed:82/82, disk23/23+7/7,
+  both e2fsck and clean disk-root halt, audio2/2+absent2/2.
+  This is NOT a full source Mesa/Qt graphics regression.
+- 948cbd4 physical run passed16/16 functional gates: real UID1000 keyboard/PTY,
+  exact-PID Dolphin AT-SPI initial and renamed/created file models, clean exit.
+  BUT its actual QEMU screenshots showed only wallpaper/panel, not the apps.
+  Therefore those16 gates are insufficient proof of visible application frames;
+  no reliable full desktop or M40 completion claim is justified.
+- Add conservative host Tesseract OCR of fresh physical QEMU captures, above the
+  taskbar: require separate exact after.txt/new.txt tokens and no before.txt.
+  Bounded fresh capture polling supplements—not replaces—physical input and
+  exact application model checks. Inconclusive OCR fails rather than being waived.
+- Verified against ORIGINAL actual screenshots: CI948 x86 and earlier local785
+  visible Dolphin frames PASS; wallpaper-only948 physical frame FAILS.
+  Host text/image controls are explicitly synthetic controls, NOT GUI evidence.
+- Separate outer Sway grim image is diagnostic only, never substituted for physical
+  scanout. Comparing both can locate nested-compositor versus DRM presentation
+  failure. Root cause and repeated cold-start reliability remain unproven.
+- Fast948 CI: all3 base27+UP8 (x86SMP8), all3 desktop22, x86/RISC
+  physical16 passed. ARM physical15/16 failed typed-PTY gate: actual screenshot
+  shows `ty`, `/bin/sh: ty: not found`, rather than intended `tty` (artifact
+  12039061029). Later completion marker does NOT rescue that failed gate.
+- Host injector used implicit QEMU100ms sendkey hold but80ms spacing, allowing
+  repeated-key overlap. Make hold20ms explicit, leave120ms spacing, consume each
+  complete monitor prompt and reject errors. No command retries or serial/PTY
+  injection. Fake HMP controls reject the old driver and accept corrected one;
+  actual guest input still needs fresh ALL3 validation. A local concurrent cold
+  repeat also failed typed-input acceptance; keep its failure, not a green rerun.

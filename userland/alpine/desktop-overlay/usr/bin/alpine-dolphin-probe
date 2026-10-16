@@ -115,6 +115,16 @@ while [ "$(date +%s)" -lt "$deadline" ];do
 done
 [ "$active" = 1 ] || { echo 'alpine-dolphin: FAIL mapped active GUI window';exit 1; }
 echo DOLPHIN_WINDOW_ACTIVE=1
+# Independent outer-compositor pixels distinguish a nested presentation stall
+# from a physical DRM scanout stall. Never substitute these for QEMU evidence.
+if [ -n "${ALPINE_DOLPHIN_CAPTURE_DISPLAY:-}" ];then
+ if WAYLAND_DISPLAY="$ALPINE_DOLPHIN_CAPTURE_DISPLAY" timeout -s KILL 8 grim -o "$ALPINE_DOLPHIN_CAPTURE_OUTPUT" "$D/outer.png";then
+  echo ALPINE_DOLPHIN_OUTER_PNG_BEGIN;base64 "$D/outer.png";echo ALPINE_DOLPHIN_OUTER_PNG_END
+ else
+  echo DOLPHIN_OUTER_CAPTURE_FAILED
+ fi
+ cat /sys/class/drm/card0/scanout 2>/dev/null || true
+fi
 printf 'DOLPHIN_MODEL_READY uid=%s service=%s object=%s\n' "$(id -u)" "$service" "$object"
 if [ -n "${ALPINE_DOLPHIN_DONE_FILE:-}" ];then
  deadline=$(( $(date +%s) + 120 ))
