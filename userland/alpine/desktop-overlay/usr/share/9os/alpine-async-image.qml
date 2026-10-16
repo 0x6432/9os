@@ -1,5 +1,10 @@
 import QtQuick
-Rectangle {
+import QtQuick.Window
+// Construct the scene graph before Component.onCompleted starts the image
+// reader. A bare Item lets qmlscene create its implicit QQuickView afterwards,
+// racing the reader's backend/texture-factory initialization in Qt 6.8.3.
+Window {
+    visible: true
     width: 320; height: 240; color: "#000000"
     property int completed: 0
     property int target: 32

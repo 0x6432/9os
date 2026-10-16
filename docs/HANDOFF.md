@@ -2770,3 +2770,28 @@ Local builds/tests remain x86_64 only. Do not mark M38 complete or merge PR #4 y
 - Prepared a separate source-regression ISO from trusted old-source CI x86
   artifact12039913387, current fixed kernel and current static proc consumers.
   Qt/Mesa/LLVM are reused binaries, not recompiled. Broader validation pending.
+
+### Source-built graphics restored; async probe ordering corrected
+- Fixed73e254f x86 kernel + trusted CI0c03230 source-built runtime passed117/117
+  main, disk23+7, both e2fsck/clean shutdown, audio2+no-card2. Includes actual
+  softpipe/llvmpipe, EGL/GBM/DMA-BUF, Sway/foot, source Qt raster/Wayland/EGL
+  root/user frames. Logs /data/source-ci-0c03230/corrected-kernel-regression.out.
+  Current static proc consumers were added; Qt/Mesa/LLVM were NOT rebuilt.
+  Initial private ISO packaging had a wrong kernel basename and frozen cmdline;
+  stopped that unbootable driver and corrected separate initramfs/disk-root ISOs.
+  Those harness errors are not kernel failures or passing validation evidence.
+- Fast73e254f run38891473315: ALL3 base28+UP8 and x86SMP8 passed; source-proc
+  zombie61 root/user passes ALL3. x86 desktop26+strict16 pass. RISC desktop26
+  passes but strict15/16 fails actual visible Dolphin; ARM desktop24/26 fails
+  async-image root startup and dependent root/user pixel check (user image passes).
+- Exact failing async QML and packaged Qt6.8.3 on REAL HOST LINUX reproduces
+  OpenGL/RHI abort29/64 starts, despite explicit software environment. Thus this
+  new probe failure is not specific to the 9os kernel. Qt factory initialization
+  may start on the image reader before qmlscene creates a view for a bare Item.
+- Use an explicit real Quick Window, constructed before Component.onCompleted
+  starts the same32 uncached async image loads. Host128/128 starts pass across
+  two runs; all64 captures in the second run independently match the actual
+  wallpaper via the unchanged pixel checker. No application/library rebuild,
+  decoded image substitution, timeout increase or acceptance waiver.
+- This probe ordering fix is NOT claimed to solve stock Plasma/Dolphin missing
+  windows. Private protocol reproduction with the fixed kernel remains running.
