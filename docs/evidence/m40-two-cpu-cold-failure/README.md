@@ -25,3 +25,18 @@ were predeclared before execution, continue once each regardless ofguest1failure
 results pending at this checkpoint. No retry, fallback, timeout enlargement,
 active-fixture mutation or gate waiver. Earlier4 accepted guest samples do NOT
 erase this failure. All cold/integration holds and M40 incompleteness remain.
+
+
+## Final predeclared series outcome: FAILED,2/3 guest samples accepted
+The original job completed FAILURE, as required by guest1's retained failed
+step. Guest2 and guest3 independently passed18/18 with valid frozen hashes,
+exact raw390/262/128 and zero drops/repeats under the same two-host-CPU constraint.
+Their complete original artifacts are now retained too. They are separate
+predeclared samples, NOT a retry or reclassification of guest1. The series is
+2/3 accepted, NOT3/3, NOT a reliability cure and NOT permission to merge.
+
+After the ENTIRE original baseline completed, a separate fixed candidate plan
+was dispatched once at validation3718e0e, pinning PR36 runtime409ecfc. It tests
+paired live read-only query scheduling with all existing bounds/gates unchanged.
+Candidate outcomes are pending and do not change this baseline failure. No
+source rebuild was restarted for these evidence notes; M40/holds remain open.

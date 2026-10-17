@@ -6,5 +6,13 @@
   "guest1": {
     "artifact_id": 12107419483,
     "sha256": "dbd3af50d5269f9ec238e7f5f1c00a419a30a9a6a3be16d41d956eaa5a38ff2f"
+  },
+  "guest2": {
+    "artifact_id": 12108525748,
+    "sha256": "8ce23c201caa10544b554d45713f9b72752ed160b9f4561c01559f5ed87881ba"
+  },
+  "guest3": {
+    "artifact_id": 12108795515,
+    "sha256": "af83d42a48690f1a718efc4fd27aaa5177856936bd988f48eda45fc13ddab024"
   }
 }

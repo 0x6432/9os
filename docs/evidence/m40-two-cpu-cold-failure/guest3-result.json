@@ -1,0 +1,24 @@
+{
+  "host_available_cpus": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "host_selected_cpus": [
+    0,
+    1
+  ],
+  "sample": "guest3",
+  "started": 1792256912.7194817,
+  "accepted": true,
+  "fixture_before": true,
+  "fixture_after": true,
+  "driver_rc": 0,
+  "raw_rc": 0,
+  "totals": [
+    "18/18 passed"
+  ],
+  "failures": [],
+  "finished": 1792257638.1716943
+}
