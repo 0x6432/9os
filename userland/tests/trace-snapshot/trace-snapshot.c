@@ -56,22 +56,51 @@ static int stop_wait(pid_t tid, int *status) {
     errno = ETIMEDOUT;
     return -1;
 }
-static int maps(pid_t tid) {
+static int maps(pid_t tid, uint64_t pc, uint64_t sp) {
     char path[64], line[1024];
+    /* Buffered scanning, not thousands of flushed MAP writes while stopped.
+     * Only print the real mappings containing PC/SP; never infer a module
+     * from a nearby address or treat raw stack words as unwound frames. */
+    static char read_buffer[65536];
     snprintf(path, sizeof path, "/proc/%d/maps", tid);
     FILE *f = fopen(path, "r");
     if (!f) { printf("TRACE_SNAPSHOT_MAPS_ERROR errno=%d\n", errno); return -1; }
+    if (setvbuf(f, read_buffer, _IOFBF, sizeof read_buffer)) {
+        fclose(f);
+        puts("TRACE_SNAPSHOT_MAPS_ERROR reason=buffer");
+        return -1;
+    }
     puts("TRACE_SNAPSHOT_MAPS_BEGIN");
-    unsigned lines = 0;
-    while (lines < 256 && fgets(line, sizeof line, f)) {
-        printf("MAP %s", line);
-        if (!strchr(line, '\n')) putchar('\n');
+    unsigned lines = 0, selected = 0;
+    int pc_found = 0, sp_found = 0, malformed = 0;
+    while (lines < 4096 && fgets(line, sizeof line, f)) {
+        unsigned long long start, end;
+        char perm[5];
         lines++;
+        if (!strchr(line, '\n') || sscanf(line, "%llx-%llx %4s", &start, &end, perm) != 3 ||
+            start >= end || strlen(perm) != 4 ||
+            !strchr("r-", perm[0]) || !strchr("w-", perm[1]) ||
+            !strchr("x-", perm[2]) || !strchr("ps", perm[3])) {
+            malformed = 1;
+            break;
+        }
+        int has_pc = pc >= start && pc < end, has_sp = sp >= start && sp < end;
+        if (has_pc || has_sp) {
+            if (++selected > 2 || (has_pc && pc_found) || (has_sp && sp_found) ||
+                (has_pc && perm[2] != 'x') || (has_sp && perm[0] != 'r')) {
+                malformed = 1; /* overlapping/changed mappings cannot be trusted */
+                break;
+            }
+            printf("MAP %s", line);
+            pc_found |= has_pc;
+            sp_found |= has_sp;
+        }
     }
     int truncated = !feof(f), error = ferror(f);
     fclose(f);
-    printf("TRACE_SNAPSHOT_MAPS_END chunks=%u truncated=%d error=%d\n", lines, truncated, error);
-    return error || truncated ? -1 : 0;
+    printf("TRACE_SNAPSHOT_MAPS_END chunks=%u selected=%u pc=%d sp=%d truncated=%d error=%d malformed=%d\n",
+           lines, selected, pc_found, sp_found, truncated, error, malformed);
+    return error || truncated || malformed || !pc_found || !sp_found ? -1 : 0;
 }
 int main(int argc, char **argv) {
     char *end;
@@ -113,7 +142,7 @@ int main(int argc, char **argv) {
     printf("TRACE_SNAPSHOT_REGS pc=%016" PRIx64 " sp=%016" PRIx64 " bytes=%zu\n",
            regs[PC], regs[SP], io.iov_len);
     for (unsigned i = 0; i < NREGS; i++) printf("REG %u %016" PRIx64 "\n", i, regs[i]);
-    result = maps(tid) ? 1 : 0;
+    result = maps(tid, regs[PC], regs[SP]) ? 1 : 0;
     /* Raw words may be non-address data: NOT unwound frames. Never fabricate
      * zeros for unreadable memory. At most 32 words, one stopped thread. */
     for (unsigned i = 0; i < 32; i++) {

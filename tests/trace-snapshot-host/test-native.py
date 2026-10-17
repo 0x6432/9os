@@ -22,6 +22,11 @@ def main():
         d = Path(tmp)
         source = TOP/'userland/tests/trace-snapshot/trace-snapshot.c'
         cc = os.environ.get('CC', 'cc')
+        subprocess.run([cc, *strict, str(Path(__file__).with_name('maps-control.c')),
+                        '-o', str(d/'maps-control')], check=True)
+        model = subprocess.run([str(d/'maps-control')], capture_output=True, text=True, timeout=5)
+        assert model.returncode == 0, model.stdout+model.stderr
+        print(model.stdout.splitlines()[-1], flush=True)
         subprocess.run([cc, *strict, str(Path(__file__).with_name('target.c')), '-o', str(d/'target')], check=True)
         if args.consumer == 'native':
             subprocess.run([cc, *strict, str(source), '-o', str(d/'snapshot')], check=True)
@@ -41,7 +46,7 @@ def main():
         r = subprocess.run([*consumer, '2147483647'], capture_output=True, text=True, timeout=5)
         assert r.returncode == 1 and 'phase=seize' in r.stdout and 'REG ' not in r.stdout, r
         print('PASS nonexistent target is not a snapshot', flush=True)
-        for mode in ['busy', 'blocked', 'stopped']:
+        for mode in ['busy', 'blocked', 'stopped', 'many-maps', 'too-many-maps']:
             child = subprocess.Popen([str(d/'target'), mode], stdout=subprocess.PIPE, text=True)
             try:
                 assert select.select([child.stdout], [], [], 5)[0]
@@ -63,7 +68,7 @@ def main():
                     assert re.search(r'^State:\s+T', status, re.M), status
                     assert 'TRACE_SNAPSHOT_REGS' not in r.stdout
                 else:
-                    assert r.returncode == 0, r.stdout+r.stderr
+                    assert r.returncode == (1 if mode == 'too-many-maps' else 0), r.stdout+r.stderr
                     assert 'TRACE_SNAPSHOT_DETACHED signal=0' in r.stdout
                     assert len(re.findall(r'^REG ', r.stdout, re.M)) == 27
                     assert len(re.findall(r'^STACK ', r.stdout, re.M)) == 32
@@ -71,13 +76,22 @@ def main():
                     assert m, r.stdout
                     pc, sp = [int(x,16) for x in m.groups()]
                     mappings = re.findall(r'^MAP ([0-9a-f]+)-([0-9a-f]+) (....)', r.stdout, re.M)
-                    assert any(int(a,16)<=pc<int(b,16) and 'x' in perm for a,b,perm in mappings)
-                    assert any(int(a,16)<=sp<int(b,16) and 'r' in perm for a,b,perm in mappings)
+                    assert len(mappings) <= 2
+                    if mode == 'too-many-maps':
+                        assert re.search(r'MAPS_END chunks=4096 .* truncated=1 error=0 malformed=0', r.stdout), r.stdout
+                        assert 'TRACE_SNAPSHOT_END result=1' in r.stdout
+                    else:
+                        assert any(int(a,16)<=pc<int(b,16) and 'x' in perm for a,b,perm in mappings)
+                        assert any(int(a,16)<=sp<int(b,16) and 'r' in perm for a,b,perm in mappings)
+                        scan = re.search(r'MAPS_END chunks=(\d+) selected=(\d+) pc=1 sp=1 truncated=0 error=0 malformed=0', r.stdout)
+                        assert scan, r.stdout
+                        if mode == 'many-maps':
+                            assert int(scan[1]) > 256, r.stdout
                     assert not re.search(r'^State:\s+[Tt]', status, re.M), status
                 print('PASS real synthetic tracee', mode, args.consumer, flush=True)
             finally:
                 if child.poll() is None: child.kill()
                 child.wait(timeout=5)
-    print('13/13 native-kernel controls; synthetic only, not 9os or Konsole proof', flush=True)
+    print('15/15 native-kernel controls; synthetic only, not 9os or Konsole proof', flush=True)
 
 if __name__ == '__main__': main()
