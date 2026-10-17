@@ -7,3 +7,9 @@ Exactly oneLinux control currentlyrunning, then3predeclaredfresh9os boots only
 after acceptedLinux. Same twohostCPUs,SMP4/3072M,nohostmemorycap,18physicalgates,
 observersOFF,frozenhashes. All priorcoldfailures and PR18hold retained.
 No control/guest acceptance claim yet, no fix/causal/reliability/M40completion.
+
+## Original Linux control accepted
+Artifact12112686490, linux1 accepted17/18applicable; sole expected missing9os
+lockdep. Driver1/raw0 as planned, bothfrozenhashes valid; actualraw390events/
+262edges/128taps0errors. Noinputobserversloaded. All3guestresults pending;
+firstguest nowrunning. No coldguestacceptance or wholeplan success claim.
