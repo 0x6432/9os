@@ -46,10 +46,15 @@ uint64_t poll_file_key(struct file *f) {
     x ^= x >> 33; x *= 0xff51afd7ed558ccdULL; x ^= x >> 33;
     return 1ULL << (x & 63);
 }
-void poll_notify_file(struct file *f) {
+/* UINT64_MAX is an explicit conservative fallback, including zero-fd
+ * waiters. Other masks are immutable Bloom keys captured while ownership is
+ * protected; collisions only add wakeups. Never dereference a released file. */
+void poll_notify_mask(uint64_t mask) {
+    if (mask == UINT64_MAX) { poll_notify(); return; }
     __atomic_add_fetch(&poll_seq, 1, __ATOMIC_SEQ_CST);
-    wake_up_poll(&poll_wq, poll_file_key(f));
+    wake_up_poll(&poll_wq, mask);
 }
+void poll_notify_file(struct file *f) { poll_notify_mask(poll_file_key(f)); }
 
 /* Epoch check, filter publication and enrollment share the wait lock. A source
  * updating after the check must take that lock to wake the enrolled waiter. */

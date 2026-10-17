@@ -258,6 +258,7 @@ void poll_notify(void);
 /* Targeted notifications currently belong only to eventfd. Notify every
  * affected inode, or use the conservative global poll_notify(). */
 void poll_notify_file(struct file *f);
+void poll_notify_mask(uint64_t mask);
 uint64_t poll_file_key(struct file *f);
 extern uint64_t poll_seq;
 int poll_wait_seq(uint64_t seq, uint64_t ns);

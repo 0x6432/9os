@@ -72,6 +72,7 @@ struct usock {
     struct ucred_k cred, peercred;
     bool passcred;
     struct file *file;             /* owning file (nullptr while unaccepted in a backlog) */
+    uint64_t poll_key;             /* inode Bloom bit; publish/clear under unix_lock */
 };
 
 /*
@@ -83,7 +84,8 @@ struct usock {
  * still run under the BKL and take unix_lock around the state they share with the data path.
  * Never under unix_lock: the BKL, VFS lookups, vfs_close()/iput() (chunk_free), fd_alloc().
  * Sleeps sample poll_seq under the lock and use poll_wait_seq() after dropping it; every state
- * change is followed by poll_notify(), so wakeups cannot be lost.
+ * change is followed by a global or endpoint-key poll notification. Unknown
+ * dependencies remain global; epoch enrollment still prevents lost wakeups.
  * Lock order: BKL -> unix_lock -> mm lock -> pt/buddy/slab -> sched_lock.
  */
 static const struct lock_class unix_class = { "unix_lock", LR_UNIX, false };
@@ -145,6 +147,17 @@ static void usock_destroy(struct usock *s) {
     poll_notify();
 }
 
+/* Connected data changes affect both endpoint poll views. Capture ONLY
+ * immutable keys while unix_lock pins socket ownership; no file/inode pointer
+ * escapes the lock. Missing/unaccepted peers and datagrams stay global. Every
+ * blocking I/O/select/epoll waiter remains unfiltered and therefore still wakes.
+ * Connection, backlog, close and shutdown notifications remain global below. */
+static uint64_t pair_poll_mask(struct usock *s, struct usock *peer) {
+    if (s->type == SOCK_DGRAM || !s->poll_key || !peer || !peer->poll_key)
+        return UINT64_MAX;
+    return s->poll_key | peer->poll_key;
+}
+
 static int sock_file(struct usock *s, int flags) {
     struct inode *i = inode_alloc(S_IFSOCK | 0777);
     if (!i) return -ENOMEM;
@@ -152,9 +165,15 @@ static int sock_file(struct usock *s, int flags) {
     struct file *f = file_open_inode(i, O_RDWR | (flags & SOCK_NONBLOCK ? O_NONBLOCK : 0));
     iput(i);
     if (!f) return -ENOMEM;
-    f->priv = s; s->file = f;
+    f->priv = s;
+    uint64_t lock = ulock();
+    s->file = f; s->poll_key = poll_file_key(f);
+    uunlock(lock);
     int fd = fd_alloc(f, 0, flags & SOCK_CLOEXEC);
-    if (fd < 0) { f->priv = nullptr; s->file = nullptr; vfs_close(f); }
+    if (fd < 0) {
+        lock = ulock(); s->file = nullptr; s->poll_key = 0; uunlock(lock);
+        f->priv = nullptr; vfs_close(f);
+    }
     return fd;
 }
 
@@ -585,9 +604,10 @@ static int64_t do_send(struct file *file, struct usock *s, struct iovec_k *iov, 
             if (first && nfds) { c->fds = fds; c->nfds = nfds; fds = nullptr; if (consumed) *consumed = true; }
             list_add_tail(&d->rxq, &c->node);
             d->rxbytes += want;
+            uint64_t mask = pair_poll_mask(s, d);
             uunlock(f);
             c = nullptr;
-            poll_notify();
+            poll_notify_mask(mask);
             break;
         }
         if (c) { kfree(c); break; }                          /* not queued: ret holds the error */
@@ -708,8 +728,9 @@ static int64_t do_recv(struct file *file, struct usock *s, struct msghdr_k *m, i
         }
         if (done == total) break;
     }
+    uint64_t mask = pair_poll_mask(s, s->peer);
     uunlock(f);
-    poll_notify();
+    poll_notify_mask(mask);
     free_chunks(&dead);
     if (err && !done) {
         for (int i = 0; i < nfv; i++) vfs_close(fv[i]);

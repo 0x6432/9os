@@ -25,3 +25,14 @@ Originalserial2/3, paired0/3 and selected-map1/3 accepted cold series remain
 separate, all failures and holds retained. Six selected failure snapshots now
 cover actual code/stack mappings but are post-failure/timing-perturbed; they do
 not prove a fixed deadlock. M40 remains unfinished.
+
+## WIP candidate after the single frozen baseline
+Baseline x86 core8/8 accepted, both fixture hashes valid; exactlogs retained in
+evidence-only ec0c82b. No causal desktopclaim. Candidate narrows ONLY connected
+stream/seqpacket enqueue/drain notifications to BOTH stable endpoint Bloomkeys.
+Key publication/clear is under unix_lock; no file/inode pointer survives unlock.
+Datagrams, missing/unaccepted endpoints and EVERY control-plane/backlog/close/
+shutdown path remain global; unfiltered blocking/select/epoll still wake on
+any endpointnotification. Epoch enrollment and existing eventfd behavior retained.
+This code is UNVALIDATED until actual x86 tests, full review and ALL3 PRCI. No PR,
+merge, M40 cure or reliableGUIclaim. No active fixtures were modified.
