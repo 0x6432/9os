@@ -1,7 +1,7 @@
 # Validation-only durable cold experiment — never merge this branch wholesale
 
-This branch is based on PR35 runtime commit
-`935bd746cb6ea6d9ed833a5125b8f4465dc31ee7`. It replaces the existing Alpine workflow
+This branch is based on PR36 candidate runtime commit
+`409ecfc018c72cb65ac91cdd4481e265ab0b2377`. It replaces the existing Alpine workflow
 ONLY ON THIS NON-PR VALIDATION BRANCH with a manual x86-only experiment. Never
 merge this workflow over the product workflow. It changes no kernel, userland,
 readiness deadline, sender, application or acceptance gate. The workflow asserts
@@ -75,3 +75,17 @@ CPU availability, memory and cgroup CPU quota are recorded before the experiment
 and hashed. No host memory limit, physical-core guarantee or scheduler-runtime
 fix is claimed. This is a host-constraint hypothesis test, NOT rerunning a failed
 sample, overwriting earlier results, selecting successes or waiving any hold.
+
+
+## Pipeline candidate: new fixed comparison, not a failed-baseline retry
+The original two-CPU baseline39050199421 at99f9d60 retains firstguest8/18 failure
+withvalidhashes, realPTY but timed-out focus query. Guest2 separatelypassed18/18;
+lastsamplepending when this new plan was prepared. All baseline outcomes remain.
+This validation branch now pins EXACT PR36 candidate409ecfc runtime. It changes
+only each node's live read-only GetRole/GetChildren request scheduling, not the
+kernel, applications, PID/role/state acceptance, any deadline, focus or physical
+input path. New27-case native+signed-musl real private-bus controls must pass
+before booting. Same frozen actualtwohostCPUs, oneLinuxcontrol then3predeclared
+freshguest samples, per-sample artifacts and noretries. This separate plan must
+not run until the original fixed baseline series has completed. No selecting
+successes, comparing unknown outcomes, retroactive cure or M40 completion claim.

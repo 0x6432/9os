@@ -1,11 +1,11 @@
 # Validation-only branch based on PR35. Never merge over the product workflow.
-name: m40-fixed-two-host-cpu-cold-series
+name: m40-fixed-pipeline-two-cpu-cold-series
 on:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: m40-cold-two-cpu-${{ github.ref }}
+  group: m40-pipeline-two-cpu-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   fixed-x86-plan:
@@ -21,7 +21,7 @@ jobs:
       - name: No rerun or runtime-code substitution
         run: |
           test "${{ github.run_attempt }}" = 1
-          test -z "$(git diff 935bd746cb6ea6d9ed833a5125b8f4465dc31ee7 -- kernel userland scripts/qemu-test.py scripts/qemu-ready-type.py)"
+          test -z "$(git diff 409ecfc018c72cb65ac91cdd4481e265ab0b2377 -- kernel userland scripts/qemu-test.py scripts/qemu-ready-type.py)"
       - name: Host tools only; never compile desktop libraries
         run: |
           sudo apt-get update -q
@@ -40,6 +40,12 @@ jobs:
           sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch x86_64 --profile desktop
           sudo chown -hR "$(id -u):$(id -g)" userland/alpine-root-x86_64 userland/alpine-desktop-root-x86_64 userland/build "$TOOLS_DIR/dl/alpine"
           chmod 4755 userland/alpine-root-x86_64/bin/busybox userland/alpine-desktop-root-x86_64/bin/busybox
+      - name: Candidate native and signed-musl public protocol prerequisites
+        run: |
+          python3 tests/a11y-dbus-host/test-native.py --consumer native
+          python3 tests/a11y-dbus-host/test-native.py --consumer signed-musl
+          python3 scripts/a11y-dbus-integration-host-tests.py
+          python3 scripts/terminal-backend-host-tests.py
       - name: Strict plan negative controls and tiny consumers
         run: |
           python3 scripts/m40-cold-host-tests.py

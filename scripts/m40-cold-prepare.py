@@ -14,7 +14,7 @@ profile={'available_cpus':cpus,'selected_cpus':cpus[:2],
  'meminfo':Path('/proc/meminfo').read_text(),
  'cpu_max':Path('/sys/fs/cgroup/cpu.max').read_text() if Path('/sys/fs/cgroup/cpu.max').exists() else 'unavailable'}
 (D/'host-profile.json').write_text(json.dumps(profile,indent=2)+'\n')
-assert not subprocess.check_output(['git','diff','935bd746cb6ea6d9ed833a5125b8f4465dc31ee7','--','kernel','userland','scripts/qemu-test.py','scripts/qemu-ready-type.py']), 'runtime code must match PR35 exactly'
+assert not subprocess.check_output(['git','diff','409ecfc018c72cb65ac91cdd4481e265ab0b2377','--','kernel','userland','scripts/qemu-test.py','scripts/qemu-ready-type.py']), 'runtime code must match PR35 exactly'
 # The production desktop suite does not install this extra raw-input observer.
 # Copy only the same-source tiny consumer, before any fixture is frozen.
 shutil.copy2(S/'usr/bin/inputeventcapture',R/'usr/bin/inputeventcapture')
@@ -86,5 +86,5 @@ files += [R/'usr/bin'/n for n in ['alpine-plasma-probe','desktopa11y','desktopa1
 files += [TOP/'scripts'/n for n in ['m40-cold-driver.sh','m40-cold-prepare.py','m40-cold-run.py','qemu-test.py','qemu-ready-type.py','qemu-type.py']]
 manifest={str(p.relative_to(TOP)):hashlib.file_digest(p.open('rb'),'sha256').hexdigest()for p in files}
 (D/'fixtures.json').write_text(json.dumps(manifest,indent=2)+'\n')
-(D/'plan.json').write_text(json.dumps({'validation_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'runtime_base':'935bd746cb6ea6d9ed833a5125b8f4465dc31ee7','fixed_samples':['linux1','guest1','guest2','guest3'],'retries':0,'host_profile':'two logical CPUs, recorded immutable affinity; no host memory cap','observers':'Qt/Wayland off; failure-only snapshots','expected_linux':'17/18; only missing 9os lockdep','expected_9os':'18/18; raw physical capture required'},indent=2)+'\n')
+(D/'plan.json').write_text(json.dumps({'validation_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'runtime_base':'409ecfc018c72cb65ac91cdd4481e265ab0b2377','fixed_samples':['linux1','guest1','guest2','guest3'],'retries':0,'host_profile':'two logical CPUs, recorded immutable affinity; no host memory cap','observers':'Qt/Wayland off; failure-only snapshots','expected_linux':'17/18; only missing 9os lockdep','expected_9os':'18/18; raw physical capture required'},indent=2)+'\n')
 print('FIXED_COLD_FIXTURES_READY')
