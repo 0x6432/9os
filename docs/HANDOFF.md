@@ -3540,3 +3540,43 @@ The stricter witness correction is PR27; it is not a kernel startup fix. No
 physical cold result yet exists for this inotify-leaf candidate. Full x86 core/
 disk/audio/UP/SMP8 and signed Alpine suites are running, not claimed complete.
 All non-x86 and eventual current-head CI remain required. M40 stays open.
+
+### Evdev frame/key conformance follow-up (M40 still open)
+
+The stricter-witness inotify physical P1/C1/P2/C2 plan retained every outcome:
+10/16, functional16/16,16/16,6/16. P1 had an extra `s` in the typed mv source;
+C1 also shows tolerated repeated slashes. C2 genuinely froze `pty=1 terminal=0`
+and the host guard refused keys. Both variants had a pass and a failure; no
+cold-reliability fix is established. The original post-C1 fixture check stopped
+on the candidate ISO only: Make added the disk-root cmdline/repacked before QEMU,
+not during it. Kernel/probe/helper/guard/drivers stayed identical. Original
+manifest/stop retained; P2/C2 used a separate manifest including initramfs/config,
+all unchanged. Do not present C1 as a fully immutable ISO trial. PR28 fast CI all
+six jobs passed (base44/44,UP8/8, x86SMP8 22/22, desktop29/29+physical16/16);
+full source remains pending. PR25 current-head full source ALL3 also passed.
+
+Independent source review found actual Linux input ABI differences, not evidence
+of the desktop failures' cause. Evdev exposed queued events before SYN_REPORT;
+unchanged key-down became an invented value2 repeat; unsupported key codes could
+be delivered. A new exact uinput consumer on signed prebuilt Linux6.12.113 passes
+106 checks while the unchanged 9os kernel fails26. The initial targeted fix passes
+106 with existing uinput/vt/PTY tests and lockdep0 (6/6 boot suite). Expanded exact
+consumer115 also passes on Linux, including explicit-repeat-with-released-state.
+
+The isolated follow-up publishes a per-client completed-packet boundary, bounds
+read/poll to it under the existing device lock, retains SYN_DROPPED+newest event
+on overflow with no premature publication, and ignores unchanged/unsupported key
+state while preserving explicit repeat2 without state mutation. Input state and
+queue insertion share dev->lock; callbacks/notify remain outside it. No scheduler,
+Qt, key timing, focus policy or deadline changes. This is not full Linux evdev
+parity or a Plasma startup/repeated-key causality claim.
+
+Host tests execute production push/input/read/poll functions (12 groups under
+UBSan traps,7 rejected compiled mutations); they mock locks and user copies, not
+SMP/hardware. Both minimal/system Linux-UAPI consumer builds are checked. The
+self-contained tiny consumer avoids adding Linux headers to signed musl runtime.
+A reproducible x86-only Linux reference script installs the exact signed kernel
+with scripts disabled and boots the same dynamically linked consumer; no local
+Qt/Mesa/LLVM/libc build. CI includes consumer installation negative controls,
+ALL3 guest checks, UP and x86SMP8 plus x86 signed-Linux oracle. Broader local
+regressions, fresh controlled physical trials and current-head CI remain pending.

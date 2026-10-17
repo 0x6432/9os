@@ -3,8 +3,6 @@
 #define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
-#include <linux/input.h>
-#include <linux/uinput.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
@@ -13,6 +11,41 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
+/* Minimal public Linux UAPI: signed musl-dev deliberately has no Linux headers.
+ * All supported targets have the same 64-bit timeval layout. The optional host
+ * build checks these tests against system headers too; the signed Linux VM
+ * executes this exact self-contained consumer, not a translated model. */
+#ifdef EVDEV_USE_SYSTEM_UAPI
+#include <linux/input.h>
+#include <linux/uinput.h>
+#else
+#include <stdint.h>
+#include <sys/time.h>
+struct input_event { struct timeval time; uint16_t type, code; int32_t value; };
+struct input_id { uint16_t bustype, vendor, product, version; };
+struct uinput_setup { struct input_id id; char name[80]; uint32_t ff_effects_max; };
+#define BUS_VIRTUAL 6
+#define EV_SYN 0
+#define EV_KEY 1
+#define EV_REL 2
+#define SYN_REPORT 0
+#define REL_X 0
+#define REL_Y 1
+#define KEY_F13 183
+#define KEY_F14 184
+#define KEY_MAX 0x2ff
+#define UI_DEV_CREATE _IO('U',1)
+#define UI_DEV_DESTROY _IO('U',2)
+#define UI_DEV_SETUP _IOW('U',3,struct uinput_setup)
+#define UI_SET_EVBIT _IOW('U',100,int)
+#define UI_SET_KEYBIT _IOW('U',101,int)
+#define UI_SET_RELBIT _IOW('U',102,int)
+#define EVIOCGNAME(n) _IOC(_IOC_READ,'E',0x06,n)
+#define EVIOCGKEY(n) _IOC(_IOC_READ,'E',0x18,n)
+#endif
+_Static_assert(sizeof(struct input_event)==24,"64-bit input_event ABI");
+_Static_assert(sizeof(struct uinput_setup)==92,"uinput_setup ABI");
+_Static_assert(UI_DEV_SETUP==0x405c5503UL && UI_SET_RELBIT==0x40045566UL,"Linux ioctl ABI");
 static int checks, failures;
 #define CHECK(x, msg) do { checks++; if (!(x)) { failures++; printf("evdevframetest: FAIL %s (line %d errno %d)\n",msg,__LINE__,errno); } } while (0)
 static int device(int u, char *node, size_t cap) {
@@ -75,11 +108,13 @@ int main(void) {
     event(u,EV_KEY,KEY_F13,2);sync_(u);frame(a,EV_KEY,KEY_F13,2);frame(b,EV_KEY,KEY_F13,2);
     event(u,EV_KEY,KEY_F13,0);sync_(u);frame(a,EV_KEY,KEY_F13,0);frame(b,EV_KEY,KEY_F13,0);
     event(u,EV_KEY,KEY_F13,0);sync_(u);empty(a);empty(b);
+    event(u,EV_KEY,KEY_F13,2);sync_(u);frame(a,EV_KEY,KEY_F13,2);frame(b,EV_KEY,KEY_F13,2);
+    unsigned char keys[KEY_MAX/8+1]={0};CHECK(ioctl(a,EVIOCGKEY(sizeof keys),keys)>=0&&!(keys[KEY_F13/8]&(1u<<(KEY_F13%8))),"repeat bypasses released key state");
     event(u,EV_KEY,KEY_F14,1);sync_(u);empty(a);empty(b); /* unsupported key */
     /* A blocking reader must not consume an incomplete packet even when another
      * notification wakes the shared poll queue. Child announces enrollment first. */
     int p[2];CHECK(pipe(p)==0,"blocking report pipe");pid_t child=fork();CHECK(child>=0,"blocking fork");
-    if(child==0){close(p[0]);int e=open(node,O_RDONLY);char ready='R';write(p[1],&ready,1);struct input_event ev[4];ssize_t n=read(e,ev,sizeof ev);int ok=n==2*(ssize_t)sizeof ev[0]&&ev[0].type==EV_REL&&ev[0].value==44&&ev[1].type==EV_SYN;write(p[1],&ok,sizeof ok);close(e);_exit(ok?0:1);}
+    if(child==0){alarm(5);close(p[0]);int e=open(node,O_RDONLY);char ready='R';write(p[1],&ready,1);struct input_event ev[4];ssize_t n=read(e,ev,sizeof ev);int ok=n==2*(ssize_t)sizeof ev[0]&&ev[0].type==EV_REL&&ev[0].value==44&&ev[1].type==EV_SYN;write(p[1],&ok,sizeof ok);close(e);_exit(ok?0:1);}
     if(child>0){close(p[1]);char ready=0;CHECK(read(p[0],&ready,1)==1&&ready=='R',"blocking child enrolled");
         event(u,EV_REL,REL_X,44);CHECK(!readable(p[0],50),"blocking read waits for SYN");sync_(u);
         CHECK(readable(p[0],2000),"blocking read wakes on completed frame");int ok=0;CHECK(read(p[0],&ok,sizeof ok)==sizeof ok&&ok,"blocking complete payload");int st=0;CHECK(waitpid(child,&st,0)==child&&WIFEXITED(st)&&WEXITSTATUS(st)==0,"blocking child exits cleanly");close(p[0]);}

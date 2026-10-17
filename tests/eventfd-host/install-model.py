@@ -39,3 +39,9 @@ for label,changed in [('missing',script.replace(' pollfiltertest ', ' ',1)),('du
  assert changed!=script
  assert not run(changed, 'pollfiltertest'), 'poll installer mutation survived: '+label
 print('poll filter installer model: x86 path passed; missing/duplicate mutations rejected')
+
+assert run(script, 'evdevframetest'), 'evdev consumer not installed exactly once'
+for label,changed in [('missing',script.replace(' evdevframetest ', ' ',1)),('duplicate',script.replace(' evdevframetest ',' evdevframetest evdevframetest ',1))]:
+ assert changed!=script
+ assert not run(changed, 'evdevframetest'), 'evdev installer mutation survived: '+label
+print('evdev installer model: x86 path passed; missing/duplicate mutations rejected')
