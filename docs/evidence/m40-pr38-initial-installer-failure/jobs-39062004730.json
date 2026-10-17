@@ -1,0 +1,877 @@
+{
+  "total_count": 6,
+  "jobs": [
+    {
+      "id": 117481714183,
+      "run_id": 39062004730,
+      "workflow_name": "alpine-prebuilt-runtime",
+      "head_branch": "notion/m40-unix-wake-study",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39062004730",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbWnSyBw",
+      "head_sha": "609eb419ee28d0378af170fd9d55b6970822300b",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117481714183",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39062004730/job/117481714183",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-17T19:20:04Z",
+      "started_at": "2026-10-17T19:20:06Z",
+      "completed_at": null,
+      "name": "desktop (riscv64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-17T19:20:07Z",
+          "completed_at": "2026-10-17T19:20:08Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-17T19:20:08Z",
+          "completed_at": "2026-10-17T19:20:09Z"
+        },
+        {
+          "name": "Host tools only; signed prebuilt desktop dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-17T19:20:09Z",
+          "completed_at": "2026-10-17T19:20:29Z"
+        },
+        {
+          "name": "Run actions/cache@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-17T19:20:29Z",
+          "completed_at": "2026-10-17T19:20:29Z"
+        },
+        {
+          "name": "Signed base and desktop assembly, then exact offline desktop replay",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-17T19:20:29Z",
+          "completed_at": "2026-10-17T19:21:28Z"
+        },
+        {
+          "name": "Independent AT-SPI real private-bus negative controls (synthetic server)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-10-17T19:21:28Z",
+          "completed_at": "2026-10-17T19:21:28Z"
+        },
+        {
+          "name": "Build kernel/image and tiny ABI tests only; never compile desktop libraries",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-17T19:21:28Z",
+          "completed_at": "2026-10-17T19:21:45Z"
+        },
+        {
+          "name": "Real EGL Quick pixels, KWin, Konsole and Plasma on disk root",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 8,
+          "started_at": "2026-10-17T19:21:45Z",
+          "completed_at": null
+        },
+        {
+          "name": "Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model",
+          "status": "pending",
+          "conclusion": null,
+          "number": 9,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 10,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/cache@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 19,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 20,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117481714183",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004446,
+      "runner_name": "GitHub Actions 1000004446",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117481714317,
+      "run_id": 39062004730,
+      "workflow_name": "alpine-prebuilt-runtime",
+      "head_branch": "notion/m40-unix-wake-study",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39062004730",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbWnSyjQ",
+      "head_sha": "609eb419ee28d0378af170fd9d55b6970822300b",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117481714317",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39062004730/job/117481714317",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-17T19:20:04Z",
+      "started_at": "2026-10-17T19:20:06Z",
+      "completed_at": null,
+      "name": "alpine (riscv64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-17T19:20:07Z",
+          "completed_at": "2026-10-17T19:20:07Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-17T19:20:07Z",
+          "completed_at": "2026-10-17T19:20:08Z"
+        },
+        {
+          "name": "Host tools only (no Qt compiler/toolchain build)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-17T19:20:08Z",
+          "completed_at": "2026-10-17T19:20:24Z"
+        },
+        {
+          "name": "Run actions/cache@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-17T19:20:24Z",
+          "completed_at": "2026-10-17T19:20:25Z"
+        },
+        {
+          "name": "Lock/checksum negative controls",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-10-17T19:20:25Z",
+          "completed_at": "2026-10-17T19:20:25Z"
+        },
+        {
+          "name": "Install signed prebuilt runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-17T19:20:25Z",
+          "completed_at": "2026-10-17T19:20:32Z"
+        },
+        {
+          "name": "Prove exact offline replay (no index/network)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-17T19:20:32Z",
+          "completed_at": "2026-10-17T19:20:36Z"
+        },
+        {
+          "name": "Return image and cache ownership to the runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-17T19:20:36Z",
+          "completed_at": "2026-10-17T19:20:36Z"
+        },
+        {
+          "name": "Compile tiny syscall regression against prebuilt musl (not Qt)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-17T19:20:36Z",
+          "completed_at": "2026-10-17T19:20:42Z"
+        },
+        {
+          "name": "Exact input consumer on signed x86 Linux reference kernel",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-17T19:20:42Z",
+          "completed_at": "2026-10-17T19:20:42Z"
+        },
+        {
+          "name": "Build 9os kernel and isolated image",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-17T19:20:42Z",
+          "completed_at": "2026-10-17T19:20:55Z"
+        },
+        {
+          "name": "Prebuilt DBus and Qt Quick offscreen/Wayland, root/non-root pixels",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-17T19:20:55Z",
+          "completed_at": "2026-10-17T19:22:33Z"
+        },
+        {
+          "name": "Uniprocessor Quick offscreen and Wayland",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 13,
+          "started_at": "2026-10-17T19:22:33Z",
+          "completed_at": null
+        },
+        {
+          "name": "Eight-CPU Quick offscreen and Wayland",
+          "status": "pending",
+          "conclusion": null,
+          "number": 14,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 15,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/cache@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 29,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 30,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117481714317",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004447,
+      "runner_name": "GitHub Actions 1000004447",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117481714322,
+      "run_id": 39062004730,
+      "workflow_name": "alpine-prebuilt-runtime",
+      "head_branch": "notion/m40-unix-wake-study",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39062004730",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbWnSykg",
+      "head_sha": "609eb419ee28d0378af170fd9d55b6970822300b",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117481714322",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39062004730/job/117481714322",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-17T19:20:04Z",
+      "started_at": "2026-10-17T19:20:07Z",
+      "completed_at": null,
+      "name": "desktop (aarch64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-17T19:20:08Z",
+          "completed_at": "2026-10-17T19:20:08Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-17T19:20:08Z",
+          "completed_at": "2026-10-17T19:20:10Z"
+        },
+        {
+          "name": "Host tools only; signed prebuilt desktop dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-17T19:20:10Z",
+          "completed_at": "2026-10-17T19:20:34Z"
+        },
+        {
+          "name": "Run actions/cache@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-17T19:20:34Z",
+          "completed_at": "2026-10-17T19:20:34Z"
+        },
+        {
+          "name": "Signed base and desktop assembly, then exact offline desktop replay",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-17T19:20:34Z",
+          "completed_at": "2026-10-17T19:21:32Z"
+        },
+        {
+          "name": "Independent AT-SPI real private-bus negative controls (synthetic server)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-10-17T19:21:32Z",
+          "completed_at": "2026-10-17T19:21:32Z"
+        },
+        {
+          "name": "Build kernel/image and tiny ABI tests only; never compile desktop libraries",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-17T19:21:32Z",
+          "completed_at": "2026-10-17T19:21:54Z"
+        },
+        {
+          "name": "Real EGL Quick pixels, KWin, Konsole and Plasma on disk root",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 8,
+          "started_at": "2026-10-17T19:21:54Z",
+          "completed_at": null
+        },
+        {
+          "name": "Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model",
+          "status": "pending",
+          "conclusion": null,
+          "number": 9,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 10,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/cache@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 19,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 20,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117481714322",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004448,
+      "runner_name": "GitHub Actions 1000004448",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117481714407,
+      "run_id": 39062004730,
+      "workflow_name": "alpine-prebuilt-runtime",
+      "head_branch": "notion/m40-unix-wake-study",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39062004730",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbWnSy5w",
+      "head_sha": "609eb419ee28d0378af170fd9d55b6970822300b",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117481714407",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39062004730/job/117481714407",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-17T19:20:04Z",
+      "started_at": "2026-10-17T19:20:07Z",
+      "completed_at": null,
+      "name": "desktop (x86_64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-17T19:20:08Z",
+          "completed_at": "2026-10-17T19:20:09Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-17T19:20:09Z",
+          "completed_at": "2026-10-17T19:20:10Z"
+        },
+        {
+          "name": "Host tools only; signed prebuilt desktop dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-17T19:20:10Z",
+          "completed_at": "2026-10-17T19:20:30Z"
+        },
+        {
+          "name": "Run actions/cache@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-17T19:20:30Z",
+          "completed_at": "2026-10-17T19:20:31Z"
+        },
+        {
+          "name": "Signed base and desktop assembly, then exact offline desktop replay",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-17T19:20:31Z",
+          "completed_at": "2026-10-17T19:21:38Z"
+        },
+        {
+          "name": "Independent AT-SPI real private-bus negative controls (synthetic server)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-17T19:21:38Z",
+          "completed_at": "2026-10-17T19:21:57Z"
+        },
+        {
+          "name": "Build kernel/image and tiny ABI tests only; never compile desktop libraries",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-17T19:21:57Z",
+          "completed_at": "2026-10-17T19:22:15Z"
+        },
+        {
+          "name": "Real EGL Quick pixels, KWin, Konsole and Plasma on disk root",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 8,
+          "started_at": "2026-10-17T19:22:15Z",
+          "completed_at": null
+        },
+        {
+          "name": "Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model",
+          "status": "pending",
+          "conclusion": null,
+          "number": 9,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 10,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/cache@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 19,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 20,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117481714407",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004450,
+      "runner_name": "GitHub Actions 1000004450",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117481714409,
+      "run_id": 39062004730,
+      "workflow_name": "alpine-prebuilt-runtime",
+      "head_branch": "notion/m40-unix-wake-study",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39062004730",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbWnSy6Q",
+      "head_sha": "609eb419ee28d0378af170fd9d55b6970822300b",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117481714409",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39062004730/job/117481714409",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-17T19:20:04Z",
+      "started_at": "2026-10-17T19:20:06Z",
+      "completed_at": "2026-10-17T19:20:45Z",
+      "name": "alpine (x86_64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-17T19:20:07Z",
+          "completed_at": "2026-10-17T19:20:08Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-17T19:20:08Z",
+          "completed_at": "2026-10-17T19:20:09Z"
+        },
+        {
+          "name": "Host tools only (no Qt compiler/toolchain build)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-17T19:20:09Z",
+          "completed_at": "2026-10-17T19:20:27Z"
+        },
+        {
+          "name": "Run actions/cache@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-17T19:20:27Z",
+          "completed_at": "2026-10-17T19:20:28Z"
+        },
+        {
+          "name": "Lock/checksum negative controls",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 5,
+          "started_at": "2026-10-17T19:20:28Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Install signed prebuilt runtime",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Prove exact offline replay (no index/network)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Return image and cache ownership to the runner",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Compile tiny syscall regression against prebuilt musl (not Qt)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Exact input consumer on signed x86 Linux reference kernel",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Build 9os kernel and isolated image",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Prebuilt DBus and Qt Quick offscreen/Wayland, root/non-root pixels",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Uniprocessor Quick offscreen and Wayland",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Eight-CPU Quick offscreen and Wayland",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:43Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-17T19:20:43Z",
+          "completed_at": "2026-10-17T19:20:44Z"
+        },
+        {
+          "name": "Post Run actions/cache@v4",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 29,
+          "started_at": "2026-10-17T19:20:44Z",
+          "completed_at": "2026-10-17T19:20:44Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-17T19:20:44Z",
+          "completed_at": "2026-10-17T19:20:44Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-17T19:20:44Z",
+          "completed_at": "2026-10-17T19:20:44Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117481714409",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004449,
+      "runner_name": "GitHub Actions 1000004449",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117481714412,
+      "run_id": 39062004730,
+      "workflow_name": "alpine-prebuilt-runtime",
+      "head_branch": "notion/m40-unix-wake-study",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39062004730",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbWnSy7A",
+      "head_sha": "609eb419ee28d0378af170fd9d55b6970822300b",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117481714412",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39062004730/job/117481714412",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-17T19:20:04Z",
+      "started_at": "2026-10-17T19:20:07Z",
+      "completed_at": null,
+      "name": "alpine (aarch64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-17T19:20:08Z",
+          "completed_at": "2026-10-17T19:20:09Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-17T19:20:09Z",
+          "completed_at": "2026-10-17T19:20:10Z"
+        },
+        {
+          "name": "Host tools only (no Qt compiler/toolchain build)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-17T19:20:10Z",
+          "completed_at": "2026-10-17T19:20:29Z"
+        },
+        {
+          "name": "Run actions/cache@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-17T19:20:29Z",
+          "completed_at": "2026-10-17T19:20:29Z"
+        },
+        {
+          "name": "Lock/checksum negative controls",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-10-17T19:20:29Z",
+          "completed_at": "2026-10-17T19:20:29Z"
+        },
+        {
+          "name": "Install signed prebuilt runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-17T19:20:29Z",
+          "completed_at": "2026-10-17T19:20:35Z"
+        },
+        {
+          "name": "Prove exact offline replay (no index/network)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-17T19:20:35Z",
+          "completed_at": "2026-10-17T19:20:40Z"
+        },
+        {
+          "name": "Return image and cache ownership to the runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-17T19:20:40Z",
+          "completed_at": "2026-10-17T19:20:40Z"
+        },
+        {
+          "name": "Compile tiny syscall regression against prebuilt musl (not Qt)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-17T19:20:40Z",
+          "completed_at": "2026-10-17T19:20:48Z"
+        },
+        {
+          "name": "Exact input consumer on signed x86 Linux reference kernel",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-17T19:20:48Z",
+          "completed_at": "2026-10-17T19:20:48Z"
+        },
+        {
+          "name": "Build 9os kernel and isolated image",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-17T19:20:48Z",
+          "completed_at": "2026-10-17T19:21:02Z"
+        },
+        {
+          "name": "Prebuilt DBus and Qt Quick offscreen/Wayland, root/non-root pixels",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-17T19:21:02Z",
+          "completed_at": "2026-10-17T19:22:29Z"
+        },
+        {
+          "name": "Uniprocessor Quick offscreen and Wayland",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 13,
+          "started_at": "2026-10-17T19:22:29Z",
+          "completed_at": null
+        },
+        {
+          "name": "Eight-CPU Quick offscreen and Wayland",
+          "status": "pending",
+          "conclusion": null,
+          "number": 14,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 15,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/cache@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 29,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 30,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117481714412",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004451,
+      "runner_name": "GitHub Actions 1000004451",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
