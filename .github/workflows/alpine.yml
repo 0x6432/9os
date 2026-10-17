@@ -70,6 +70,8 @@ jobs:
           python3 scripts/input-capture-status-host-tests.py
           python3 scripts/wayland-keyboard-trace-host-tests.py
           python3 scripts/plasma-input-startup-host-tests.py
+          python3 scripts/inner-keyboard-dispatch-host-tests.py
+          python3 scripts/konsole-dispatch-trace-host-tests.py
           python3 scripts/plasma-renderer-thread-host-tests.py
           python3 scripts/desktop-pty-host-tests.py
           python3 scripts/desktop-visible-host-tests.py

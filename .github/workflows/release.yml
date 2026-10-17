@@ -91,6 +91,8 @@ jobs:
           python3 scripts/input-capture-status-host-tests.py
           python3 scripts/wayland-keyboard-trace-host-tests.py
           python3 scripts/plasma-input-startup-host-tests.py
+          python3 scripts/inner-keyboard-dispatch-host-tests.py
+          python3 scripts/konsole-dispatch-trace-host-tests.py
           scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh
