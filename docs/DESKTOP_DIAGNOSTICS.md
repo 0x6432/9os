@@ -97,3 +97,56 @@ failures when correcting a fixture; declare fresh samples instead of relabeling
 old gates. Linux has no 9os `/proc/lockdep`, so retain that failed non-applicable
 check rather than reporting an artificial full pass. Build/test only x86_64
 locally; non-x86 execution belongs to current-head GitHub PR CI.
+
+## Qt platform-key submission (opt-in, Qt 6.8.3 LP64 only)
+
+`ALPINE_QT_KEY_TRACE=1 scripts/alpine-kms-tests.sh x86_64` selects an explicit
+`konsole-key-trace` child wrapper. It uses a tiny C `LD_PRELOAD` observer for
+Qt 6.8.3's exported, versioned `QWindowSystemInterface::handleExtendedKeyEvent`
+(timestamp overload). No Qt, Mesa or LLVM library is compiled. Default launches
+have no preload, no extra clock calls and no observer output. The wrapper uses
+`exec`, preserves the real Konsole PID/arguments and any explicit existing
+preload, and does not force `WAYLAND_DEBUG`, keyboard repeat or focus changes.
+`ALPINE_KONSOLE_INPUT_TRACE=1` can independently enable the earlier stock
+libwayland pre-listener dispatch trace.
+
+The observer forwards opaque `QWindow *` and `QString const &` arguments
+untouched. It records before/after monotonic observations, the unchanged source
+timestamp, key/native fields, autorepeat flag, count and boolean return. It
+limits output to 4096 events and explicitly marks truncation. Non-Qt children
+can inherit the preload without a missing-Qt startup failure. This private
+C++ ABI is intentionally pinned to the reviewed Qt 6.8.3 LP64 signatures on
+x86_64/aarch64/riscv64; do not reuse it for other Qt versions or ABIs without
+fresh review and actual-client validation.
+
+`qt-key-observer-selftest` is an independent C forwarding surrogate (4100 calls,
+all arguments/return values, bounded output and inherited non-Qt child safety),
+not actual Qt, application, scheduler or SMP proof. Host controls additionally
+exercise exact recording, wrapper/PID/environment behavior and malformed,
+truncated, mixed-process, reordered and ambiguous-replay rejection. All local
+builds/tests are x86_64 only; non-x86 target validation belongs to PR CI.
+
+The real Konsole log is framed as `QT_PLATFORM_KEY_TRACE_BEGIN/END` on both
+success and failure. Run:
+
+```sh
+python3 scripts/qt-key-observer-check.py --require-no-autorepeat build/test-alpine-kms-x86_64.log
+```
+
+The checker requires the exact non-repeat physical edge sequence (XKB scan code
+is evdev code + 8), complete matching argument/result pairs, one client PID,
+monotonic observer timestamps and unambiguous framing. Autorepeat is always
+reported, never filtered out of evidence; the explicit flag additionally rejects
+any repeat in this fixed-tap test. CI uses that stricter mode. Missing events
+on a refused-input boot are a failed diagnostic, not an accepted input sample.
+
+This boundary is **platform event submission, not Qt application/terminal
+consumption**. Logging/preloading perturbs timing. A correct trace or passing
+boot cannot erase an earlier failure or establish general desktop reliability.
+Before portable integration, a private version was demonstrated with the signed
+Qt libraries on matching Linux and 9os: Linux all 17 applicable desktop checks
+and one 9os 18/18 run, all raw/outer/inner/platform edges exact and no autorepeat.
+The other predetermined 9os sample failed before input (PTY/focus not ready,
+zero injected/captured keys). Full stopped hashes, logs and screenshots were
+retained. The earlier same-boot duplicated character remains unresolved; M40
+and the existing cold-desktop integration holds remain open.

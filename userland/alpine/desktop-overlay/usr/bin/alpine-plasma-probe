@@ -52,6 +52,11 @@ finish() {
   grep 'wl_keyboard' "$D/konsole.log" 2>/dev/null || true
   echo INNER_KEYBOARD_DISPATCH_TRACE_END
  fi
+ if [ "${ALPINE_QT_KEY_TRACE:-0}" = 1 ];then
+  echo QT_PLATFORM_KEY_TRACE_BEGIN
+  grep '^QT_KEY_TRACE' "$D/konsole.log" 2>/dev/null || true
+  echo QT_PLATFORM_KEY_TRACE_END
+ fi
  if [ "$r" != 0 ];then
   for f in plasma kwin sway seat konsole;do [ ! -f "$D/$f.log" ] || { echo "PLASMA_DIAGNOSTIC=$f";cat "$D/$f.log"; };done
  fi
@@ -204,10 +209,12 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  # terminal's accessibility state instead of guessing with a startup sleep.
  export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 QT_ACCESSIBILITY=1
  timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.a11y.Bus /org/a11y/bus org.a11y.Bus.GetAddress > "$D/konsole-a11y-bus"
+ konsole_command=konsole
+ if [ "${ALPINE_QT_KEY_TRACE:-0}" = 1 ];then konsole_command=konsole-key-trace;fi
  if [ "${ALPINE_KONSOLE_INPUT_TRACE:-0}" = 1 ];then
- WAYLAND_DEBUG=client konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ WAYLAND_DEBUG=client "$konsole_command" --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
  else
- konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ "$konsole_command" --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
  fi
  pty_ready=0;terminal_ready=0;deadline=$(( $(date +%s) + 120 ))
  while [ "$(date +%s)" -lt "$deadline" ];do

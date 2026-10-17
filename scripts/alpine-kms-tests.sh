@@ -4,6 +4,11 @@
 set -eu
 cd "$(dirname "$0")/.."
 ARCH=${1:-x86_64}
+case ${ALPINE_QT_KEY_TRACE:-0} in
+ 0) service_command=alpine-desktop-services ;;
+ 1) service_command='export ALPINE_QT_KEY_TRACE=1; alpine-desktop-services' ;;
+ *) echo 'ALPINE_QT_KEY_TRACE must be 0 or 1' >&2;exit 2 ;;
+esac
 ROOT=userland/alpine-desktop-root-$ARCH
 DISK=build/alpine-desktop-$ARCH.img
 L=build/test-alpine-kms-$ARCH.log
@@ -24,7 +29,7 @@ scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
 export QEMU_EXTRA="${QEMU_EXTRA:-} -monitor unix:$S,server,nowait -qmp unix:$Q,server,nowait"
 python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" \
- alpine-desktop-services \
+ "$service_command" \
  'su user -s /bin/sh -c alpine-udisks-smoke' \
  '(if ALPINE_PLASMA_OUTPUT=kms ALPINE_PLASMA_SERIAL_PNG=0 ALPINE_PLASMA_INTERACTIVE=1 ALPINE_PLASMA_FILEMANAGER=1 ALPINE_PLASMA_INPUT_DONE_FILE=/tmp/kms-input-done ALPINE_DOLPHIN_DONE_FILE=/tmp/dolphin-capture-done alpine-plasma-user-probe >/tmp/plasma-kms.log 2>&1;then echo 0;else echo $?;fi >/tmp/plasma-kms.status.tmp;mv /tmp/plasma-kms.status.tmp /tmp/plasma-kms.status) & echo $! >/tmp/plasma-kms.pid' \
  'for i in $(seq 700);do grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -x KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -x ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }' \

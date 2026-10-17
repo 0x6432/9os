@@ -93,6 +93,8 @@ jobs:
           python3 scripts/plasma-input-startup-host-tests.py
           python3 scripts/inner-keyboard-dispatch-host-tests.py
           python3 scripts/konsole-dispatch-trace-host-tests.py
+          python3 scripts/qt-key-observer-host-tests.py
+          python3 scripts/qt-key-observer-parser-host-tests.py
           scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh

@@ -72,6 +72,8 @@ jobs:
           python3 scripts/plasma-input-startup-host-tests.py
           python3 scripts/inner-keyboard-dispatch-host-tests.py
           python3 scripts/konsole-dispatch-trace-host-tests.py
+          python3 scripts/qt-key-observer-host-tests.py
+          python3 scripts/qt-key-observer-parser-host-tests.py
           python3 scripts/plasma-renderer-thread-host-tests.py
           python3 scripts/desktop-pty-host-tests.py
           python3 scripts/desktop-visible-host-tests.py
@@ -177,7 +179,9 @@ jobs:
       - name: Real EGL Quick pixels, KWin, Konsole and Plasma on disk root
         run: scripts/alpine-desktop-tests.sh "$ARCH"
       - name: Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model
-        run: scripts/alpine-kms-tests.sh "$ARCH"
+        run: |
+          ALPINE_QT_KEY_TRACE=1 scripts/alpine-kms-tests.sh "$ARCH"
+          python3 scripts/qt-key-observer-check.py --require-no-autorepeat "build/test-alpine-kms-$ARCH.log"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

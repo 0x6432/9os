@@ -1,0 +1,1 @@
+Qt_6_PRIVATE_API { global: _ZN22QWindowSystemInterface22handleExtendedKeyEventEP7QWindowmN6QEvent4TypeEi6QFlagsIN2Qt16KeyboardModifierEEjjjRK7QStringbt; mock_calls; local: *; };

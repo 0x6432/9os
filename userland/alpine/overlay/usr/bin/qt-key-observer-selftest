@@ -1,0 +1,24 @@
+#!/bin/sh
+# C ABI forwarding surrogate, not a real Qt/client or SMP correctness proof.
+set -eu
+D=$(mktemp -d /tmp/qt-key-observer-XXXXXX)
+trap 'rm -rf "$D"' EXIT HUP INT TERM
+qt-key-observer-caller > "$D/plain.out" 2> "$D/plain.err"
+LD_PRELOAD=/usr/lib/lib9os-qt-key-observer.so qt-key-observer-caller > "$D/observed.out" 2> "$D/observed.err"
+cmp "$D/plain.out" "$D/observed.out"
+grep -qx 'MOCK_ABI_FORWARDING_PASS calls=4100' "$D/observed.out"
+[ ! -s "$D/plain.err" ]
+[ "$(wc -l < "$D/observed.err")" -eq 8194 ]
+[ "$(grep -cx 'QT_KEY_TRACE_LOADED abi=Qt6.8.3-LP64 boundary=platform-submission' "$D/observed.err")" -eq 1 ]
+[ "$(grep -cx 'QT_KEY_TRACE_TRUNCATED limit=4096' "$D/observed.err")" -eq 1 ]
+awk '
+/^QT_KEY_TRACE / {
+ expected=int(n/2); phase=(n%2==0?"begin":"end");result=(n%2==0?-1:expected%2)
+ if ($2!="seq="expected || $3!="phase="phase || $7!="source_ms=1234605616436508552" || $14!="autorepeat="expected%2 || $15!="count=65534" || $16!="result="result) bad=1
+ n++
+}
+END {exit bad || n!=8192}
+' "$D/observed.err"
+LD_PRELOAD=/usr/lib/lib9os-qt-key-observer.so /bin/busybox true > "$D/nonqt.out" 2> "$D/nonqt.err"
+[ ! -s "$D/nonqt.out" ] && [ ! -s "$D/nonqt.err" ]
+echo 'qt-key-observer: PASSED C surrogate forwarding/returns, bound, non-Qt child safety (not GUI proof)'
