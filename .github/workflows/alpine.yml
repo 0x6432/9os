@@ -154,7 +154,7 @@ jobs:
       - name: Host tools only; signed prebuilt desktop dependencies
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng e2fsprogs fdisk libglib2.0-bin shared-mime-info
+          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng e2fsprogs fdisk libglib2.0-bin libglib2.0-dev pkg-config shared-mime-info
           scripts/install-qemu-alpine.sh
           echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
           scripts/fetch-deps.sh
@@ -172,6 +172,12 @@ jobs:
           sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --profile desktop --lock "userland/build/alpine-desktop-$ARCH.lock.json" --offline
           sudo chown -hR "$(id -u):$(id -g)" "userland/alpine-root-$ARCH" "userland/alpine-desktop-root-$ARCH" userland/build "$TOOLS_DIR/dl/alpine"
           chmod 4755 "userland/alpine-root-$ARCH/bin/busybox" "userland/alpine-desktop-root-$ARCH/bin/busybox"
+      - name: Independent AT-SPI real private-bus negative controls (synthetic server)
+        if: matrix.arch == 'x86_64'
+        run: |
+          python3 tests/a11y-dbus-host/test-native.py --consumer native
+          python3 tests/a11y-dbus-host/test-native.py --consumer signed-musl
+          python3 scripts/a11y-dbus-integration-host-tests.py
       - name: Build kernel/image and tiny ABI tests only; never compile desktop libraries
         run: |
           scripts/alpine-build-tests.sh "$ARCH"
@@ -180,7 +186,7 @@ jobs:
         run: scripts/alpine-desktop-tests.sh "$ARCH"
       - name: Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model
         run: |
-          ALPINE_QT_KEY_TRACE=1 scripts/alpine-kms-tests.sh "$ARCH"
+          ALPINE_QT_KEY_TRACE=1 ALPINE_A11Y_DBUS_VALIDATE=1 scripts/alpine-kms-tests.sh "$ARCH"
           python3 scripts/qt-key-observer-check.py --require-no-autorepeat "build/test-alpine-kms-$ARCH.log"
       - uses: actions/upload-artifact@v4
         if: always()

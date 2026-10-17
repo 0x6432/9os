@@ -24,6 +24,15 @@ cleanup() {
  done
  rm -rf "$D"
 }
+# Independent real PID/role/state observation. No acceptance substitution.
+# Failure-only calls cannot rescue the already failed original readiness gate.
+terminal_dbus_diagnostic() {
+ echo "KONSOLE_${1}_DBUS_BULK_BEGIN"
+ if timeout -k 2 -s TERM 8 desktopa11y-dbus "$client" > "$D/bulk-a11y.log" 2>&1;then bulk_rc=0;else bulk_rc=$?;fi
+ cat "$D/bulk-a11y.log"
+ echo "KONSOLE_${1}_DBUS_BULK_END rc=$bulk_rc"
+ return "$bulk_rc"
+}
 # Run only AFTER a gate has irrevocably failed. Attaching may alter timing;
 # diagnostics can never rescue or reclassify that attempt as successful.
 blocked_diagnostics() {
@@ -234,6 +243,7 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
   for f in interactive-pty interactive-pty.tmp konsole-focus;do
    [ ! -f "$D/$f" ] || { echo "KONSOLE_READINESS_FILE=$f";head -n 20 "$D/$f"; }
   done
+  terminal_dbus_diagnostic FAILURE_ONLY || true
   # Genuine failure pixels only, taken AFTER failure is irrevocable and before
   # cleanup destroys the window. They can never satisfy an acceptance gate.
   if WAYLAND_DISPLAY="$parent" timeout -k 2 -s TERM 8 grim -o "$output" "$D/konsole-failure.png";then
@@ -252,6 +262,11 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  fi
  cat "$D/interactive-pty"
  echo KONSOLE_FOCUSED_TERMINAL_READY
+ # Explicit CI validation is an ADDITIONAL observation after original success.
+ # Any failure exits; it cannot convert old readiness failure into success.
+ if [ "${ALPINE_A11Y_DBUS_VALIDATE:-0}" = 1 ];then
+  terminal_dbus_diagnostic POST_READY || exit 1
+ fi
 fi
 echo 'alpine-plasma: real wallpaper/panel rendered; independent host acceptance required'
 if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then

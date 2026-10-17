@@ -7,7 +7,7 @@ ARCH=${1:-x86_64}
 ROOT=userland/alpine-desktop-root-$ARCH
 DISK=build/alpine-desktop-$ARCH.img
 L=build/test-alpine-desktop-$ARCH.log
-for test in fallocatetest ptracestoptest unixcredtest procinfotest dircookietest proctasktest mountinfotest pimutextest ioctlwidthtest desktopframecheck desktopa11y;do cp "userland/alpine-root-$ARCH/usr/bin/$test" "$ROOT/usr/bin/$test";done
+for test in fallocatetest ptracestoptest unixcredtest procinfotest dircookietest proctasktest mountinfotest pimutextest ioctlwidthtest desktopframecheck desktopa11y desktopa11y-dbus;do cp "userland/alpine-root-$ARCH/usr/bin/$test" "$ROOT/usr/bin/$test";done
 mkdir -p "$ROOT/usr/lib/9os-tests"
 cp "userland/alpine-root-$ARCH/usr/lib/lib9os-qt-key-observer.so" "$ROOT/usr/lib/"
 cp "userland/alpine-root-$ARCH/usr/lib/9os-tests/libqt-key-observer-mock.so" "$ROOT/usr/lib/9os-tests/"

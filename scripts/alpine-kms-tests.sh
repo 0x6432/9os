@@ -9,6 +9,11 @@ case ${ALPINE_QT_KEY_TRACE:-0} in
  1) service_command='export ALPINE_QT_KEY_TRACE=1; alpine-desktop-services' ;;
  *) echo 'ALPINE_QT_KEY_TRACE must be 0 or 1' >&2;exit 2 ;;
 esac
+case ${ALPINE_A11Y_DBUS_VALIDATE:-0} in
+ 0) ;;
+ 1) service_command="export ALPINE_A11Y_DBUS_VALIDATE=1; $service_command" ;;
+ *) echo 'ALPINE_A11Y_DBUS_VALIDATE must be 0 or 1' >&2;exit 2 ;;
+esac
 ROOT=userland/alpine-desktop-root-$ARCH
 DISK=build/alpine-desktop-$ARCH.img
 L=build/test-alpine-kms-$ARCH.log
@@ -19,7 +24,7 @@ Q=$D/qmp.sock
 P=$(pwd -P)/build/test-alpine-kms-$ARCH
 # A directly invoked physical test may not have run the desktop suite first.
 # Fail before packing/booting if its same-source consumers were not installed.
-for helper in desktopframecheck desktopa11y;do
+for helper in desktopframecheck desktopa11y desktopa11y-dbus;do
  [ -x "$ROOT/usr/bin/$helper" ] || {
   echo "Missing desktop fixture helper: $helper (run alpine-desktop-tests.sh or install its consumers)" >&2
   exit 2
