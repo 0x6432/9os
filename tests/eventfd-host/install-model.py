@@ -14,7 +14,14 @@ from pathlib import Path
 a=sys.argv[1:]
 assert '--target=x86_64-linux-musl' in a
 source=next(x for x in a if x.startswith('userland/tests/') and x.endswith('.c'))
-p=Path(a[a.index('-o')+1]);assert p.name==Path(source).stem
+p=Path(a[a.index('-o')+1]);stem=Path(source).stem
+expected={'qt-key-observer':'lib9os-qt-key-observer.so','qt-key-observer-mock':'libqt-key-observer-mock.so'}.get(stem,stem)
+assert p.name==expected
+if stem in ['qt-key-observer','qt-key-observer-mock']:
+ assert '-shared' in a and '-fPIC' in a and '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
+ assert '-Wl,--version-script=userland/tests/'+stem+'.map' in a
+if stem=='qt-key-observer-caller':
+ assert '-lqt-key-observer-mock' in a and '-Wl,-rpath,/usr/lib/9os-tests' in a
 p.write_text('fake compiler output\\n')
 with open(os.environ['INSTALL_RECORD'],'a') as f:f.write(source+'\\n')
 '''
@@ -27,7 +34,8 @@ def run(text, consumer='eventfdwaketest'):
   record=d/'record';env=dict(os.environ,PATH=str(d/'bin')+os.pathsep+os.environ['PATH'],INSTALL_RECORD=str(record))
   subprocess.run(['sh',str(p),'x86_64'],check=True,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
   calls=record.read_text().splitlines()
-  return calls.count(f'userland/tests/{consumer}.c')==1 and (d/f'userland/alpine-root-x86_64/usr/bin/{consumer}').is_file()
+  output={'qt-key-observer':'usr/lib/lib9os-qt-key-observer.so','qt-key-observer-mock':'usr/lib/9os-tests/libqt-key-observer-mock.so'}.get(consumer,'usr/bin/'+consumer)
+  return calls.count(f'userland/tests/{consumer}.c')==1 and (d/'userland/alpine-root-x86_64'/output).is_file()
 assert run(script), 'new consumer was not installed exactly once'
 for label,changed in [('missing',script.replace(' eventfdwaketest ', ' ',1)),('duplicate',script.replace(' eventfdwaketest ',' eventfdwaketest eventfdwaketest ',1))]:
  assert changed!=script
@@ -45,3 +53,13 @@ for label,changed in [('missing',script.replace(' evdevframetest ', ' ',1)),('du
  assert changed!=script
  assert not run(changed, 'evdevframetest'), 'evdev installer mutation survived: '+label
 print('evdev installer model: x86 path passed; missing/duplicate mutations rejected')
+
+# Exercise the new shared-library path rather than silently ignoring it. Keep
+# every earlier eventfd/poll/evdev missing/duplicate negative unchanged.
+for consumer,token in [('qt-key-observer','observer'),('qt-key-observer-mock','mock')]:
+ assert run(script,consumer), 'Qt diagnostic shared library not installed exactly once: '+consumer
+ for label,changed in [('missing',script.replace('for model in observer mock;do','for model in '+('mock'if token=='observer'else'observer')+';do',1)),('duplicate',script.replace('for model in observer mock;do','for model in observer mock '+token+';do',1))]:
+  assert changed!=script
+  assert not run(changed,consumer), 'Qt library installer mutation survived: '+consumer+' '+label
+assert run(script,'qt-key-observer-caller'), 'ABI surrogate caller not installed exactly once'
+print('Qt observer installer model: libraries/caller paths and strict flags passed; missing/duplicate libraries rejected')
