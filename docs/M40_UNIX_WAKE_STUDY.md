@@ -36,3 +36,18 @@ shutdown path remain global; unfiltered blocking/select/epoll still wake on
 any endpointnotification. Epoch enrollment and existing eventfd behavior retained.
 This code is UNVALIDATED until actual x86 tests, full review and ALL3 PRCI. No PR,
 merge, M40 cure or reliableGUIclaim. No active fixtures were modified.
+
+The first candidate's ONE fixed x86SMP4/512M VM passed16/16, including all six
+benchmark commands, root/user pollfiltertest/socktest/ipctest/polltest andlockdep0;
+allfrozenhashes valid. Unix-transfer privatepoller contextswitches reduced in
+these samples, but magnitudes vary and there is NO claimed statisticalrate,
+desktop causalfix or M40acceptance. Kernelcode remains unreviewed/unvalidated
+on nonx86 until PRCI. No failedtest was retried or reset.
+
+New exact-source unixpolltest passes216 nativeLinux checks (count can vary with
+buffercapacity). It covers stream/seqpacket/dgram dup-only receiver poll/ppoll,
+nestedepoll, blockingreads, full-buffer duplicatedwriter POLLOUT after drain,
+and peerhalf/fullclose EOF/RDHUP/HUP. Native CLI/installer missing+duplicate
+controls pass. All originaltests retained, newroot/user tests/benchmark modes
+added to source/signedALL3CI and x86SMP8, withsourceMLFQ coverage. Guest results
+for this NEW test are still pending. No desktop library builds or localnonx86.

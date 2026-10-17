@@ -119,10 +119,12 @@ jobs:
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
           --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log "timeout 35 evdevframetest" "timeout 30 eventfdwaketest"
           'su user -s /bin/sh -c "timeout 30 eventfdwaketest"' "timeout 35 pollfiltertest"
-          'su user -s /bin/sh -c "timeout 35 pollfiltertest"' "timeout 30 futexbitsettest"
+          'su user -s /bin/sh -c "timeout 35 pollfiltertest"' "timeout 45 unixpolltest" 'su user -s /bin/sh -c "timeout 45 unixpolltest"' "timeout 30 futexbitsettest"
           'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 30 futexrequeuetest" 'su user -s /bin/sh -c "timeout 30 futexrequeuetest"' "timeout 10 alarmcputest"
           'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
           "su user -s /bin/sh -c pollwakebench" "pollwakebench --inotify"
+          "pollwakebench --unix" "pollwakebench --unix-inotify"
+          'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"'
           'su user -s /bin/sh -c "pollwakebench --inotify"' alpine-qtsmoke
           "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-smp8-$ARCH.log"

@@ -139,6 +139,7 @@ jobs:
           python3 scripts/qemu-test.py $ARCH --smp 2 --sched mlfq --boot-timeout 300 \
             --log build/test-mlfq-$ARCH.log slabtest idletest nicetest afftest \
             balancetest pcputest smptest timetest vforktest orphantest \
+            "timeout 45 unixpolltest" "pollwakebench --unix" "pollwakebench --unix-inotify" \
             "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
 
       - name: Eight-CPU RR poll progress
@@ -148,7 +149,9 @@ jobs:
           --log build/test-pollwake-smp8-$ARCH.log "timeout 30 futexbitsettest"
           'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 10 alarmcputest"
           'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
-          "su user -s /bin/sh -c pollwakebench" polltest timetest
+          "su user -s /bin/sh -c pollwakebench" "timeout 45 unixpolltest"
+          'su user -s /bin/sh -c "timeout 45 unixpolltest"' "pollwakebench --unix" "pollwakebench --unix-inotify"
+          'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"' polltest timetest
           "grep -q '^violations 0' /proc/lockdep"
       - name: Eight-CPU scheduler and allocator stress
         if: matrix.arch == 'x86_64'

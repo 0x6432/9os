@@ -23,3 +23,11 @@ rc=$?
 set -e
 test "$rc" = 2
 echo 'poll-wake-host: PASS four exact transport modes and four invalid CLI controls; no timing thresholds'
+${CC:-cc} -O2 -D_FORTIFY_SOURCE=2 -Wall -Wextra -Werror -pthread userland/tests/unixpolltest.c -o "$D/unixpolltest"
+"$D/unixpolltest"
+set +e
+"$D/unixpolltest" bad > "$D/invalid-unix.out" 2>&1
+rc=$?
+set -e
+test "$rc" = 2
+echo 'unixpoll-host: PASS exact native endpoint controls and CLI rejection; no GUI proof'
