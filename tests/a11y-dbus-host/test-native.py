@@ -54,7 +54,7 @@ def main():
         cc = os.environ.get('CC', 'cc')
         gio = shlex.split(subprocess.check_output(['pkg-config', '--cflags', '--libs', 'gio-2.0'], text=True))
         subprocess.run([cc, *strict, str(HERE/'mock-server.c'), *gio, '-o', str(work/'server')], check=True)
-        source = HERE/'terminal-dbus.c'
+        source = TOP/'userland/tests/a11y-dbus/terminal-dbus.c'
         binary = work/'consumer'
         if args.consumer == 'native':
             subprocess.run([cc, *strict, str(source), '-ldl', '-o', str(binary)], check=True)

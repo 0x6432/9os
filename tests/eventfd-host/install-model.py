@@ -15,7 +15,7 @@ a=sys.argv[1:]
 assert '--target=x86_64-linux-musl' in a
 source=next(x for x in a if x.startswith('userland/tests/') and x.endswith('.c'))
 p=Path(a[a.index('-o')+1]);stem=Path(source).stem
-expected={'qt-key-observer':'lib9os-qt-key-observer.so','qt-key-observer-mock':'libqt-key-observer-mock.so'}.get(stem,stem)
+expected={'terminal-dbus':'desktopa11y-dbus','qt-key-observer':'lib9os-qt-key-observer.so','qt-key-observer-mock':'libqt-key-observer-mock.so'}.get(stem,stem)
 assert p.name==expected
 if stem in ['qt-key-observer','qt-key-observer-mock']:
  assert '-shared' in a and '-fPIC' in a and '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
@@ -34,8 +34,9 @@ def run(text, consumer='eventfdwaketest'):
   record=d/'record';env=dict(os.environ,PATH=str(d/'bin')+os.pathsep+os.environ['PATH'],INSTALL_RECORD=str(record))
   subprocess.run(['sh',str(p),'x86_64'],check=True,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
   calls=record.read_text().splitlines()
-  output={'qt-key-observer':'usr/lib/lib9os-qt-key-observer.so','qt-key-observer-mock':'usr/lib/9os-tests/libqt-key-observer-mock.so'}.get(consumer,'usr/bin/'+consumer)
+  output={'terminal-dbus':'usr/bin/desktopa11y-dbus','qt-key-observer':'usr/lib/lib9os-qt-key-observer.so','qt-key-observer-mock':'usr/lib/9os-tests/libqt-key-observer-mock.so'}.get(consumer,'usr/bin/'+consumer)
   source=f'userland/tests/qt-key-observer/{consumer}.c' if consumer.startswith('qt-key-observer') else f'userland/tests/{consumer}.c'
+  if consumer=='terminal-dbus':source='userland/tests/a11y-dbus/terminal-dbus.c'
   return calls.count(source)==1 and (d/'userland/alpine-root-x86_64'/output).is_file()
 assert run(script), 'new consumer was not installed exactly once'
 for label,changed in [('missing',script.replace(' eventfdwaketest ', ' ',1)),('duplicate',script.replace(' eventfdwaketest ',' eventfdwaketest eventfdwaketest ',1))]:
@@ -77,3 +78,13 @@ for name in ['qt-key-observer','qt-key-observer-mock']:
  assert (fixtures/(name+'.map')).is_file()
 assert '"$TOP"/tests/*.c' in (ROOT/'userland/mkroot.sh').read_text()
 print('Qt observer source isolation: standalone mkroot namespace excludes all ABI fixtures')
+
+assert run(script,'terminal-dbus'), 'independent AT-SPI consumer not installed exactly once'
+start=script.index('# Independent public GIO/AT-SPI consumer:')
+end=script.index('# Tiny, opt-in Qt6.8.3',start)
+block=script[start:end]
+for label,changed in [('missing',script[:start]+script[end:]),('duplicate',script[:start]+block+script[start:])]:
+ assert not run(changed,'terminal-dbus'), 'bulk diagnostic installer mutation survived: '+label
+assert (ROOT/'userland/tests/a11y-dbus/terminal-dbus.c').is_file()
+assert not (ROOT/'userland/tests/terminal-dbus.c').exists()
+print('independent bulk AT-SPI installer: exact nested source/output; missing/duplicate rejected')
