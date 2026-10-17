@@ -9,7 +9,18 @@ static const char *mode,*unique;
 static const char *root="/org/a11y/atspi/accessible/root",*app="/org/a11y/atspi/accessible/app",*frame="/org/a11y/atspi/accessible/frame",*terminal="/org/a11y/atspi/accessible/terminal",*menu="/org/a11y/atspi/accessible/menu";
 static int is(const char*s){return !strcmp(mode,s);}
 static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,const gchar *iface,const gchar *name,GVariant *parameters,GDBusMethodInvocation *inv,gpointer data){
- (void)conn;(void)sender;(void)iface;(void)parameters;(void)data;
+ (void)sender;(void)iface;(void)parameters;(void)data;
+ /* Explicitly forge mismatched signatures using public message APIs. The
+  * typed skeleton would otherwise prevent a broken server from sending them. */
+ if((is("address-signature")&&!strcmp(name,"GetAddress"))||
+    (is("children-signature")&&!strcmp(name,"GetChildren"))||
+    (is("role-signature")&&!strcmp(name,"GetRole"))||
+    (is("state-signature")&&!strcmp(name,"GetState"))){
+  GDBusMessage *reply=g_dbus_message_new_method_reply(g_dbus_method_invocation_get_message(inv));
+  g_dbus_message_set_body(reply,is("address-signature")?g_variant_new("(u)",42u):g_variant_new("(s)","intentionally-wrong-reply"));
+  g_dbus_connection_send_message(conn,reply,G_DBUS_SEND_MESSAGE_FLAGS_NONE,NULL,NULL);
+  g_object_unref(reply);g_object_unref(inv);return;
+ }
  if(!strcmp(name,"GetAddress")){g_dbus_method_invocation_return_value(inv,g_variant_new("(s)",is("bad-address")?"invalid":getenv("DBUS_SESSION_BUS_ADDRESS")));return;}
  if(is("remote-error")&&!strcmp(name,"GetRole")){g_dbus_method_invocation_return_dbus_error(inv,"org.test.QueryError","explicit negative");return;}
  if(!strcmp(name,"GetRole")){
@@ -20,7 +31,9 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
  if(!strcmp(name,"GetState")){
   GVariantBuilder b;g_variant_builder_init(&b,G_VARIANT_TYPE("au"));
   guint32 bits=(1u<<12)|(1u<<25)|(1u<<30);
-  if(is("unfocused"))bits&=~(1u<<12);if(is("hidden"))bits&=~(1u<<25);if(is("invisible"))bits&=~(1u<<30);
+  if(is("unfocused"))bits&=~(1u<<12);
+  if(is("hidden"))bits&=~(1u<<25);
+  if(is("invisible"))bits&=~(1u<<30);
   g_variant_builder_add(&b,"u",bits);if(!is("short-state"))g_variant_builder_add(&b,"u",0u);
   if(is("long-state"))g_variant_builder_add(&b,"u",0u);
   g_dbus_method_invocation_return_value(inv,g_variant_new("(au)",&b));return;
@@ -43,7 +56,8 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
 static const GDBusInterfaceVTable table={.method_call=method};
 static const char xml[]="<node><interface name='org.a11y.Bus'><method name='GetAddress'><arg type='s' direction='out'/></method></interface><interface name='org.a11y.atspi.Accessible'><method name='GetChildren'><arg type='a(so)' direction='out'/></method><method name='GetRole'><arg type='u' direction='out'/></method><method name='GetState'><arg type='au' direction='out'/></method></interface></node>";
 int main(int argc,char **argv){
- if(argc!=2)return 2;mode=argv[1];GError *e=NULL;GDBusConnection *c=g_bus_get_sync(G_BUS_TYPE_SESSION,NULL,&e);if(!c){fprintf(stderr,"connect: %s\n",e?e->message:"none");return 2;}
+ if(argc!=2)return 2;
+ mode=argv[1];GError *e=NULL;GDBusConnection *c=g_bus_get_sync(G_BUS_TYPE_SESSION,NULL,&e);if(!c){fprintf(stderr,"connect: %s\n",e?e->message:"none");return 2;}
  unique=g_dbus_connection_get_unique_name(c);
  for(int i=0;i<2;i++){
   GVariant *v=g_dbus_connection_call_sync(c,"org.freedesktop.DBus","/org/freedesktop/DBus","org.freedesktop.DBus","RequestName",g_variant_new("(su)",i?"org.a11y.atspi.Registry":"org.a11y.Bus",4u),G_VARIANT_TYPE("(u)"),0,1000,NULL,&e);
