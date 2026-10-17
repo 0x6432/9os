@@ -1,0 +1,7 @@
+#!/bin/sh
+# Explicit diagnostic only: real Konsole PID/arguments preserved by exec.
+# Qt6.8.3 private LP64 ABI; no forced WAYLAND_DEBUG or repeat/focus changes.
+set -eu
+[ -r /usr/lib/lib9os-qt-key-observer.so ] || { echo 'Missing Qt key observer library' >&2;exit 2; }
+# Preserve any explicitly supplied preload; this child never changes its parent.
+LD_PRELOAD="/usr/lib/lib9os-qt-key-observer.so${LD_PRELOAD:+:$LD_PRELOAD}" exec konsole "$@"

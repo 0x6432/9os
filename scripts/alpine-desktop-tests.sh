@@ -8,10 +8,14 @@ ROOT=userland/alpine-desktop-root-$ARCH
 DISK=build/alpine-desktop-$ARCH.img
 L=build/test-alpine-desktop-$ARCH.log
 for test in fallocatetest ptracestoptest unixcredtest procinfotest dircookietest proctasktest mountinfotest pimutextest ioctlwidthtest desktopframecheck desktopa11y;do cp "userland/alpine-root-$ARCH/usr/bin/$test" "$ROOT/usr/bin/$test";done
+mkdir -p "$ROOT/usr/lib/9os-tests"
+cp "userland/alpine-root-$ARCH/usr/lib/lib9os-qt-key-observer.so" "$ROOT/usr/lib/"
+cp "userland/alpine-root-$ARCH/usr/lib/9os-tests/libqt-key-observer-mock.so" "$ROOT/usr/lib/9os-tests/"
+cp "userland/alpine-root-$ARCH/usr/bin/qt-key-observer-caller" "$ROOT/usr/bin/"
 scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
 python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 480 --log "$L" \
- 'grep -q "root=/dev/vda1" /proc/cmdline' fallocatetest ptracestoptest unixcredtest procinfotest 'su user -s /bin/sh -c procinfotest' 'TMPDIR=/root dircookietest /proc/self /sys/class' proctasktest "mountinfotest --mutate" 'su user -s /bin/sh -c mountinfotest' pimutextest ioctlwidthtest \
+ 'timeout 30 qt-key-observer-selftest' 'su user -s /bin/sh -c "timeout 30 qt-key-observer-selftest"' 'grep -q "root=/dev/vda1" /proc/cmdline' fallocatetest ptracestoptest unixcredtest procinfotest 'su user -s /bin/sh -c procinfotest' 'TMPDIR=/root dircookietest /proc/self /sys/class' proctasktest "mountinfotest --mutate" 'su user -s /bin/sh -c mountinfotest' pimutextest ioctlwidthtest \
  'python3 /usr/share/9os/wayland-proxy-selftest.py' \
  'su user -s /bin/sh -c "python3 /usr/share/9os/wayland-proxy-selftest.py"' \
  'ALPINE_WAYLAND_RENDERER=opengl alpine-wayland-smoke' \
