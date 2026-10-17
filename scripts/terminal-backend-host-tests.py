@@ -16,7 +16,8 @@ class Backend(unittest.TestCase):
    p=Path(t)/'calls';return r,p.read_text().splitlines()if p.exists()else[]
  def test_default_and_explicit_original_backend_unchanged(self):
   for mode in [None,'','atspi']:
-   r,calls=self.execute(mode);self.assertEqual(r.returncode,0,r.stderr);self.assertEqual(calls,['-k 2 -s TERM 8 desktopa11y --terminal 777'])
+   for rc in [0,1,124]:
+    r,calls=self.execute(mode,rc);self.assertEqual(r.returncode,rc,r.stderr);self.assertEqual(calls,['-k 2 -s TERM 8 desktopa11y --terminal 777'])
  def test_live_backend_has_same_bound_real_pid_no_fallback(self):
   for rc in [0,1,2,124,143]:
    r,calls=self.execute('live-dbus',rc);self.assertEqual(r.returncode,rc,r.stderr);self.assertEqual(calls,['-k 2 -s TERM 8 desktopa11y-dbus 777'])

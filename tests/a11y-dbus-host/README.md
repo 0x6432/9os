@@ -85,7 +85,7 @@ M40, earlier cold-start/typing failures and integration holds remain open.
 - at-spi2-core 2.56.2 `atspi-accessible.c` and `atspi-misc.c`: current consumer
   semantics and the per-node ChildCount/GetChildAtIndex round trips.
 
-## WIP explicit readiness-backend candidate (not default, not validated yet)
+## Explicit readiness-backend candidate (not default; current-head CI pending)
 
 `ALPINE_TERMINAL_QUERY=live-dbus` selects the independent live AT-SPI consumer
 BEFORE readiness is attempted. Default/unset/empty remains the existing `atspi`
@@ -99,7 +99,22 @@ Only bulk child enumeration and the public GIO connection path differ.
 with synthetic commands: default remains original, live mode forwards the exact
 PID/bound, nonzero status is preserved, invalid input runs neither backend, and
 all original failure exits/input witnesses remain. This is not VM evidence.
-A separate private fixed-scope Linux + two x86 guest candidate trial is running
-without Qt or Wayland observer timing; do not claim its outcome before it ends.
+A separate PRIVATE fixed-scope trial completed on 2026-10-17: one signed-Linux
+control17/18 (all17 applicable, explicit missing-lockdep failure), then two x86
+9os cold boots18/18 EACH, no retries. Both guests observed genuine matching
+terminal PIDs926/932 with focused/showing/visible, UID1000 physical PTY command,
+Dolphin file-model and fresh physical pixels, clean exit and zero lockdep.
+All three raw390/262edges/128taps/0repeat/drop/error; Qt and Wayland observers
+were OFF on the application path. Build-free adapter dry-run emitted exactly
+one QEMU command, and every stopped-VM fixture hash check passed. The earlier
+integrated hash-failed sample remains INVALID, not silently replaced.
+
+Complete archives and the frozen runner are retained on the evidence-only branch
+`notion/m40-failure-phase-evidence`, directory
+`docs/evidence/m40-bulk-readiness-candidate`. Private probe selection differs
+from the checked-in optional shell dispatcher; its actual integrated boot and
+current-head all-architecture PR CI remain required. The CI explicitly chooses
+`live-dbus` and requires its exact backend witness while preserving the strict
+Qt platform observer and every physical/file-model gate.
 The candidate is NOT the unchanged original readiness gate. Earlier failures,
 source/CI validation requirements and all integration holds remain open.
