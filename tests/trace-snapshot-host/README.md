@@ -7,7 +7,8 @@ is explicit for x86_64, aarch64 and riscv64. Local builds/tests are x86_64 only;
 PR CI owns other architectures.
 
 The wait is bounded at two seconds/400 polls. Output is bounded to one register
-set, 256 mapping chunks of at most 1023 bytes and 32 stack words. Truncation,
+set, at most two selected PC/SP mapping lines, and 32 stack words. The map
+scanner reads at most4096 chunks of at most1023 bytes. Truncation,
 unreadable memory, short register sets and errors are explicit failures. Raw
 stack words are **not unwound frames**; mapping offsets require the matching
 signed package ELF, not a guessed symbol. A single sample cannot prove a deadlock
@@ -99,3 +100,39 @@ These exact check totals depend on runtime syscall stops, not fixed thresholds.
 All current-head non-x86 validation remains PR CI only. No Qt/Konsole startup
 cause, cold-reliability improvement or M40 completion is inferred from this ABI
 fix. The earlier desktop failure and integration holds remain open.
+
+## Separate WIP: bounded selected PC/SP maps after real truncation
+
+Baseline two-host-CPU run39050199421 failed its first readiness gate before any
+snapshot. Its diagnostic then printed193 map chunks before timeout143; later
+samples printed256/truncated=1 and did not cover either captured PC or SP. The
+addresses therefore remain unattributed; no frame or kernel root cause inferred.
+
+This separate WIP keeps register/stack ptrace operations and the failure-only
+outer4-second budget unchanged. It scans at most4096 chunks of1023 bytes using a
+64KiB stdio buffer, but prints ONLY the real PC/SP mappings (at most2), with exact
+scan/selection/coverage/truncation/error/malformed fields. Missing, overlapping,
+non-executable PC, unreadable SP, malformed/overlong or truncated input rejects;
+no nearest-module guessing and no stack unwinding. More scanning is not more
+output and is not a deadline enlargement or a guaranteed real-time completion.
+The whole process is still a timing-perturbed single-thread observation.
+
+Native x86:15/15 real synthetic ptrace controls, including a fragmented process
+with over256 mappings and a hard-limit process with over4096. Original409
+snapshot against the SAME fragmented target returns1/maps256truncated, whereas
+candidate returns0/maps347/selected2/PC+SPcovered, both explicitly detachsignal0
+and preserve liveness/TracerPid0.13/13 synthetic scanner I/O controls exercise the
+actual scanner via an explicit in-memory fopen fixture; these are NOT ptrace or
+GUI proof. Failure-only shell integration2/2. Strict compilation/diffcheck pass.
+Optional ASan/UBSan binary could compile but could NOT run: sandbox lacks
+libasan.so.6 and static sanitizer archives; no sanitizer pass claimed. Signed
+musl/9os/non-x86 validation, actual failed-GUI snapshots and review remain pending.
+
+PR36 fixed two-CPU comparison39053663726 also retained a genuine first-guest
+8/18 failure: pty=1/terminal=0; all three failure-only snapshots again truncated
+at256 chunks without selected PC/SP coverage. Paired public queries did not
+resolve this sample. Remaining two predeclared samples continue unchanged.
+
+This diagnostic change is being submitted separately for current-head CI. It
+is NOT included in PR36/runtime409ecfc or its frozen two-CPU comparison. Do not
+merge or treat it as a startup cure. All original failures/holds/M40 gaps remain.
