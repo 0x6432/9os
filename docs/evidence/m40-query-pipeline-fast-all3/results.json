@@ -1,0 +1,26 @@
+{
+  "x86_64": {
+    "totals": [
+      "33/33 passed",
+      "16/16 passed"
+    ],
+    "native27": true,
+    "signed_musl27": true
+  },
+  "aarch64": {
+    "totals": [
+      "33/33 passed",
+      "16/16 passed"
+    ],
+    "native27": false,
+    "signed_musl27": false
+  },
+  "riscv64": {
+    "totals": [
+      "33/33 passed",
+      "16/16 passed"
+    ],
+    "native27": false,
+    "signed_musl27": false
+  }
+}
