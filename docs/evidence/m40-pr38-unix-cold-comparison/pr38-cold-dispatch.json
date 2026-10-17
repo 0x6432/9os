@@ -1,0 +1,13 @@
+{
+  "validation_head": "6046bd2bfa66401ec5fca382c4daf8fa2f2688c9",
+  "runtime_head": "e0bc041024445770aad61fa70824527b0395a58f",
+  "prerequisite_run": 39062201201,
+  "dispatch_count": 1,
+  "fixed_samples": [
+    "linux1",
+    "guest1",
+    "guest2",
+    "guest3"
+  ],
+  "retries": 0
+}
