@@ -32,3 +32,20 @@ SP7ffefd965e38 again lack map coverage: samples1/3 printed256/truncated; sample2
 did not complete map output in its unchanged bound. Failure-only bulkrc142.
 No kernel/module/frame attribution or accepted physical result. Guest3 pending,
 not an invitation to retry either failure. Candidate has NOT resolved the gate.
+
+## Final predeclared outcome: FAILED,0/3 accepted guest samples
+Run39053663726 completed FAILURE. Guest3 also failed8/18 with BOTH hashes valid,
+PTY1/terminalverification0 pid868, driver1/raw1. All3 original guest artifacts
+are retained unchanged. No retry/reclassification. Linux accepted17/18 only.
+Guest3 failure-only query DID later observe the real focused/showing/visible
+terminal, authenticated pid868, models1/visited7, rc0 AFTER failure-only ptrace
+snapshots. That timing-perturbed post-failure observation CANNOT rescue its
+earlier failed readiness/physical gates and does not prove a root cause. Earlier
+rawPC7e47bf8a42e7/SP7ffde5122118 remain outside printed truncated256 maps.
+PR36 paired queries have NOT resolved the failure. Original serial baseline
+2/3 accepted and candidate0/3 are small distinct series, not a statistical
+regression proof or general reliability rate. All holds/M40 gaps remain open.
+
+A separately prepared diagnostic-only plan8210a0a pinsPR37 runtime1bb8bc3.
+NOT yet dispatched: requires this whole candidate series complete AND current
+PR37 fastALL3 success. No new samples added to chase a desired outcome.
