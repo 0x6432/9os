@@ -48,7 +48,7 @@ jobs:
       - name: Install host packages
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl bzip2 xz-utils e2fsprogs fdisk \
+          sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl jq bzip2 xz-utils e2fsprogs fdisk \
             bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip python3-pil ninja-build libglib2.0-dev-bin \
             qemu-system-x86 qemu-system-misc qemu-system-arm qemu-efi-aarch64 qemu-efi-riscv64
           pip3 install --break-system-packages 'meson>=1.3' Mako PyYAML packaging
@@ -87,6 +87,10 @@ jobs:
           scripts/poll-filter-host-tests.sh
           scripts/evdev-host-tests.sh
           python3 scripts/plasma-readiness-host-tests.py
+          python3 scripts/input-capture-host-tests.py
+          python3 scripts/input-capture-status-host-tests.py
+          python3 scripts/wayland-keyboard-trace-host-tests.py
+          python3 scripts/plasma-input-startup-host-tests.py
           scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh
