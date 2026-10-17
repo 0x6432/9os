@@ -1,0 +1,115 @@
+{
+  "linux1": {
+    "summary": [
+      "17/18 passed"
+    ],
+    "failures": [
+      "FAIL   grep -q \"^violations 0\" /proc/lockdep"
+    ],
+    "bulk_observation": [
+      "terminal-dbus: pid=1430 applications=1 models=1 visited=7 OBSERVED (diagnostic only)"
+    ],
+    "archive_sha256": "0db76963f7891555b461156fe99593c566165e821c755d8e2c1bea60b8794769",
+    "input_layers": {
+      "raw": {
+        "all_events": 390,
+        "device": 1,
+        "dropped": 0,
+        "explicit_repeats": 0,
+        "key_events": 262,
+        "name": "QEMU Virtio Keyboard",
+        "scope": "raw hardware stream only; not compositor/client or reliable GUI proof",
+        "taps": 128
+      },
+      "outer": {
+        "identical_log_replays": 1,
+        "intended_taps": 128,
+        "key_edges": 262,
+        "scope": "outer compositor -> KWin wire sequence only; not inner Qt delivery, timing or reliability proof"
+      },
+      "qt": {
+        "autorepeat_events": 0,
+        "autorepeat_scancodes": [],
+        "events": 262,
+        "identical_replays": 1,
+        "physical_key_edges": 262,
+        "pid": 1430,
+        "scope": "Qt platform event submission only; not application/terminal consumption or unchanged-timing reliability proof"
+      }
+    }
+  },
+  "guest1": {
+    "summary": [
+      "18/18 passed"
+    ],
+    "failures": [],
+    "bulk_observation": [
+      "terminal-dbus: pid=776 applications=1 models=1 visited=7 OBSERVED (diagnostic only)"
+    ],
+    "archive_sha256": "66934b250a8cbffd3994b1fc5fbc1c8ef18aa6180c44acb73165424cae9fb0fc",
+    "input_layers": {
+      "raw": {
+        "all_events": 390,
+        "device": 0,
+        "dropped": 0,
+        "explicit_repeats": 0,
+        "key_events": 262,
+        "name": "QEMU Virtio Keyboard",
+        "scope": "raw hardware stream only; not compositor/client or reliable GUI proof",
+        "taps": 128
+      },
+      "outer": {
+        "identical_log_replays": 1,
+        "intended_taps": 128,
+        "key_edges": 262,
+        "scope": "outer compositor -> KWin wire sequence only; not inner Qt delivery, timing or reliability proof"
+      },
+      "qt": {
+        "autorepeat_events": 0,
+        "autorepeat_scancodes": [],
+        "events": 262,
+        "identical_replays": 1,
+        "physical_key_edges": 262,
+        "pid": 776,
+        "scope": "Qt platform event submission only; not application/terminal consumption or unchanged-timing reliability proof"
+      }
+    }
+  },
+  "guest2": {
+    "summary": [
+      "18/18 passed"
+    ],
+    "failures": [],
+    "bulk_observation": [
+      "terminal-dbus: pid=911 applications=1 models=1 visited=7 OBSERVED (diagnostic only)"
+    ],
+    "archive_sha256": "50342895b61bee219e41d9c1e241816d895e06949c6a2846a4ef94b70026511c",
+    "input_layers": {
+      "raw": {
+        "all_events": 390,
+        "device": 0,
+        "dropped": 0,
+        "explicit_repeats": 0,
+        "key_events": 262,
+        "name": "QEMU Virtio Keyboard",
+        "scope": "raw hardware stream only; not compositor/client or reliable GUI proof",
+        "taps": 128
+      },
+      "outer": {
+        "identical_log_replays": 1,
+        "intended_taps": 128,
+        "key_edges": 262,
+        "scope": "outer compositor -> KWin wire sequence only; not inner Qt delivery, timing or reliability proof"
+      },
+      "qt": {
+        "autorepeat_events": 0,
+        "autorepeat_scancodes": [],
+        "events": 262,
+        "identical_replays": 1,
+        "physical_key_edges": 262,
+        "pid": 911,
+        "scope": "Qt platform event submission only; not application/terminal consumption or unchanged-timing reliability proof"
+      }
+    }
+  }
+}
