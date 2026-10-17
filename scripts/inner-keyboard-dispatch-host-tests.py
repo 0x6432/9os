@@ -26,7 +26,8 @@ class Dispatch(unittest.TestCase):
     def test_bad_framing_and_event_sequences(self):
         variants = ['', self.good.rsplit('INNER_KEYBOARD_DISPATCH_TRACE_END', 1)[0], wrap(self.lines[:-1]),
                     wrap(self.lines+self.lines[-2:]), wrap(self.lines[:3]+list(reversed(self.lines[3:5]))+self.lines[5:]),
-                    self.good+wrap(self.lines[:-1])]
+                    self.good+wrap(self.lines[:-1]), 'INNER_KEYBOARD_DISPATCH_TRACE_BEGIN\n'+self.good,
+                    self.good+'INNER_KEYBOARD_DISPATCH_TRACE_END\n']
         for raw in variants:
             with self.subTest(raw=raw[:80]), self.assertRaises(ValueError):
                 M.check(raw)

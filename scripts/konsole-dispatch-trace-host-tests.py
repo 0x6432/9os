@@ -64,5 +64,19 @@ class Launch(unittest.TestCase):
         self.assertEqual(r.returncode,0);self.assertIn('TRACE_END',r.stdout)
 
 
+    def test_outer_trace_frame_is_opt_in(self):
+        start=self.source.index(' if [ "${ALPINE_PLASMA_KEY_TRACE:-0}" = 1 ];then\n',self.source.index('finish()'))
+        end=self.source.index(' fi\n',start)+len(' fi\n');block=self.source[start:end]
+        (self.root/'kwin.log').write_text('unrelated\nWAYLAND_KEY_TRACE object=16 event=key received_ns=1 serial=1 time_ms=2 key=20 state=1\n')
+        for trace in ['0','1']:
+            r=subprocess.run(['/bin/sh','-eu','-c',block],env={**os.environ,'D':str(self.root),'ALPINE_PLASMA_KEY_TRACE':trace},capture_output=True,text=True,timeout=5)
+            self.assertEqual(r.returncode,0,r.stderr)
+            if trace=='0':self.assertEqual(r.stdout,'')
+            else:
+                self.assertIn('OUTER_KEYBOARD_TRACE_BEGIN\nWAYLAND_KEY_TRACE ',r.stdout)
+                self.assertTrue(r.stdout.endswith('OUTER_KEYBOARD_TRACE_END\n'))
+                self.assertNotIn('unrelated',r.stdout)
+
+
 if __name__=='__main__':
     unittest.main()

@@ -26,6 +26,10 @@ def check(raw):
     blocks = re.findall(r'^INNER_KEYBOARD_DISPATCH_TRACE_BEGIN\n(.*?)^INNER_KEYBOARD_DISPATCH_TRACE_END$', raw, re.M | re.S)
     if not blocks:
         raise ValueError('no complete framed inner keyboard dispatch trace')
+    begins = len(re.findall(r'^INNER_KEYBOARD_DISPATCH_TRACE_BEGIN$', raw, re.M))
+    ends = len(re.findall(r'^INNER_KEYBOARD_DISPATCH_TRACE_END$', raw, re.M))
+    if begins != len(blocks) or ends != len(blocks):
+        raise ValueError('incomplete or nested trace framing')
     if any(block != blocks[0] for block in blocks):
         raise ValueError('ambiguous nonidentical trace replays')
     rows, objects, queues, repeats = [], set(), set(), []
