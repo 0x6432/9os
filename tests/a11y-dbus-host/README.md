@@ -118,3 +118,25 @@ current-head all-architecture PR CI remain required. The CI explicitly chooses
 Qt platform observer and every physical/file-model gate.
 The candidate is NOT the unchanged original readiness gate. Earlier failures,
 source/CI validation requirements and all integration holds remain open.
+
+
+### Integrated selector failure retained, not a cure
+
+The checked-in selector at bcdf3602dc232ba1f0ae18514e84abbe44a2a731 then
+failed its one fixed x86 boot8/18 with VALID before/after fixture hashes:
+PTY publication was missing (pty0/terminal0, Konsole PID901). The readiness
+query was never called because its genuine PTY prerequisite was not met. The
+failure-only independent query found only Plasma PID275, not Konsole901, and
+returned applications0/models0. Sender refused all physical typing; empty raw
+capture is not input proof. This failure is not silently retried or replaced
+by the earlier private18/18 positives. All reliability/integration holds remain.
+Complete evidence: evidence-only commit aeeaeb963896d978f3f770f962f1af782253f639,
+`docs/evidence/m40-readiness-integrated-failure`.
+
+Current-head PR34 prebuilt jobs at bcdf360: all three actual desktop jobs passed,
+but the x86 base host model failed because its extracted shell block omitted
+`focused_terminal_query`. Fix the fixture, not the production gate: include the
+actual selector and execute ALL eight existing positive/negative/mutation tests
+for BOTH backends and all Qt/Wayland trace-flag combinations. The repaired
+fixture passes8/8; these remain synthetic controls, not GUI proof. New-head CI
+is required; do not substitute the old-head desktop successes.
