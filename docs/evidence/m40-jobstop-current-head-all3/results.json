@@ -1,0 +1,27 @@
+{
+  "run": 39031883667,
+  "results": [
+    {
+      "job": 117393820183,
+      "desktop": "33/33",
+      "physical": "16/16",
+      "snapshot_root_user": "3/3 each",
+      "head": "935bd746cb6ea6d9ed833a5125b8f4465dc31ee7"
+    },
+    {
+      "job": 117393820262,
+      "desktop": "33/33",
+      "physical": "16/16",
+      "snapshot_root_user": "3/3 each",
+      "head": "935bd746cb6ea6d9ed833a5125b8f4465dc31ee7"
+    },
+    {
+      "job": 117393820271,
+      "desktop": "33/33",
+      "physical": "16/16",
+      "snapshot_root_user": "3/3 each",
+      "head": "935bd746cb6ea6d9ed833a5125b8f4465dc31ee7"
+    }
+  ],
+  "sha256": "c95edd6fb89521367eab5b7a95c3fac527a54c54d7e5993249d0cc2b27fb249a"
+}
