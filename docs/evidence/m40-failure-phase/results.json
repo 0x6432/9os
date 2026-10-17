@@ -1,0 +1,41 @@
+{
+  "linux1": {
+    "summary": [
+      "17/18 passed"
+    ],
+    "failure_gates": [
+      "FAIL   grep -q \"^violations 0\" /proc/lockdep"
+    ],
+    "readiness": [],
+    "archive_sha256": "d08a50e2dc0c374545855f5888051d35d70c6f502b436cf9fa5a3debf0c116ba"
+  },
+  "guest1": {
+    "summary": [
+      "8/18 passed"
+    ],
+    "failure_gates": [
+      "FAIL   for i in $(seq 700);do grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 \"$(cat /tmp/plasma-kms.pid)\" 2>/dev/null || break;sleep 1;done;grep -x KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -x ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }",
+      "FAIL   host:python3 scripts/qemu-screenshot.py /tmp/9os-kms-sht2D2/monitor.sock /vercel/sandbox/data/9os/build/test-hardware-capture-failure-phase-guest1-x86_64-before.png",
+      "FAIL   host:python3 /data/9os/scripts/qemu-ready-type.py --log build/test-hardware-capture-failure-phase-guest1-x86_64.log --ready-step 3 --qmp /tmp/9os-kms-sht2D2/qmp.sock 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\\n'",
+      "FAIL   for i in $(seq 20);do test ! -e /tmp/kms-input-ok || break;sleep 1;done;cat /tmp/kms-tty;test \"$(cat /tmp/kms-input-ok)\" = kms-input-ok && grep -q \"^/dev/pts/\" /tmp/kms-tty && test \"$(cat /tmp/kms-uid)\" = 1000",
+      "FAIL   host:python3 scripts/qemu-screenshot.py /tmp/9os-kms-sht2D2/monitor.sock /vercel/sandbox/data/9os/build/test-hardware-capture-failure-phase-guest1-x86_64-after.png",
+      "FAIL   test \"$(cat /tmp/kms-input-ok)\" = kms-input-ok && test \"$(cat /tmp/kms-uid)\" = 1000 && touch /tmp/kms-input-done",
+      "FAIL   for i in $(seq 300);do grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log && break;kill -0 \"$(cat /tmp/plasma-kms.pid)\" 2>/dev/null || break;sleep 1;done;grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log || { tail -n 100 /tmp/plasma-kms.log;false; }",
+      "FAIL   host:python3 scripts/qemu-dolphin-capture.py /tmp/9os-kms-sht2D2/monitor.sock /vercel/sandbox/data/9os/build/test-hardware-capture-failure-phase-guest1-x86_64-dolphin.png",
+      "FAIL   grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log && touch /tmp/dolphin-capture-done",
+      "FAIL   for i in $(seq 150);do test ! -f /tmp/plasma-kms.status || break;sleep 1;done;cat /tmp/plasma-kms.log;test \"$(cat /tmp/plasma-kms.status)\" = 0 && grep -qx \"alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit\" /tmp/plasma-kms.log"
+    ],
+    "readiness": [
+      "KONSOLE_READINESS pty=1 terminal=0 pid=907"
+    ],
+    "archive_sha256": "dbd09856962caad8c215149ab399ad15e9668850acc72a4cea25f4c2c816f40c"
+  },
+  "guest2": {
+    "summary": [
+      "18/18 passed"
+    ],
+    "failure_gates": [],
+    "readiness": [],
+    "archive_sha256": "a55f226ae7f62c68756809ba1b8adc6a017b0b0d5a53b6e2e21b488af45d17d7"
+  }
+}
