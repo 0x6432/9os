@@ -1,0 +1,9 @@
+{
+  "candidate_head": "935bd746cb6ea6d9ed833a5125b8f4465dc31ee7",
+  "linux_oracle": "8036 checks, 0 failures",
+  "original_9os": "2/4; exact SIGSTOP-vs-SIGTRAP mismatch root and UID1000",
+  "candidate_9os": "5/5; 728/1520 checks, zero failures, existing ptracetest and lockdep0",
+  "frozen_fixture_integrity": "baseline and candidate before/after checks all passed",
+  "archive_sha256": "68818cc2d92fc2b30876138e8e8a5fd97b9617dd4f1258c440d6c9c9618a1639",
+  "scope": "ABI conformance only, NOT Konsole cold-start cure or M40 completion"
+}
