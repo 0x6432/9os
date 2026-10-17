@@ -175,6 +175,9 @@ jobs:
       - name: Independent AT-SPI real private-bus negative controls (synthetic server)
         if: matrix.arch == 'x86_64'
         run: |
+          python3 tests/trace-snapshot-host/test-native.py --consumer native
+          python3 tests/trace-snapshot-host/test-native.py --consumer signed-musl
+          python3 scripts/trace-snapshot-integration-host-tests.py
           python3 tests/a11y-dbus-host/test-native.py --consumer native
           python3 tests/a11y-dbus-host/test-native.py --consumer signed-musl
           python3 scripts/a11y-dbus-integration-host-tests.py

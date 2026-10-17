@@ -12,6 +12,11 @@ clang --target="$ARCH-linux-musl" --sysroot="$S" -O2 -Wall -Wextra -fPIE -pie -f
     -L"$S/usr/lib" -lc "$S/usr/lib/crtn.o" \
     -Wl,--dynamic-linker,/lib/ld-musl-$ARCH.so.1 -o "$S/usr/bin/$test"
 done
+# Failure-only register snapshot: nested portable source, no library build.
+clang --target="$ARCH-linux-musl" --sysroot="$S" -O2 -Wall -Wextra -Werror -D_FORTIFY_SOURCE=2 -fPIE -pie -fuse-ld=lld -nostdlib \
+ "$S/usr/lib/Scrt1.o" "$S/usr/lib/crti.o" userland/tests/trace-snapshot/trace-snapshot.c \
+ -L"$S/usr/lib" -lc "$S/usr/lib/crtn.o" \
+ -Wl,--dynamic-linker,/lib/ld-musl-$ARCH.so.1 -o "$S/usr/bin/trace-snapshot"
 # Independent public GIO/AT-SPI consumer: tiny musl executable, no GLib/Qt build.
 # Nested source stays outside the standalone source-test glob.
 clang --target="$ARCH-linux-musl" --sysroot="$S" -O2 -Wall -Wextra -Werror -D_FORTIFY_SOURCE=2 -fPIE -pie -fuse-ld=lld -nostdlib \

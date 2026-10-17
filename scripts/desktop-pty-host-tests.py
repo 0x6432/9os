@@ -2,7 +2,7 @@
 """PTY + focus readiness logic; mock commands are NOT GUI evidence."""
 import os,pathlib,re,shlex,subprocess,tempfile,unittest,itertools
 TEXT=pathlib.Path(os.environ.get('PLASMA_PROBE_SOURCE','userland/alpine/desktop-overlay/usr/bin/alpine-plasma-probe')).read_text()
-QUERY=TEXT[TEXT.index('focused_terminal_query() {'):TEXT.index('terminal_dbus_diagnostic() {')]
+QUERY=TEXT[TEXT.index('focused_terminal_query() {'):TEXT.index('# Diagnostic only: all samples')]
 BLOCK=TEXT.split('if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then\n',1)[1]
 # Anchor to the actual final failure gate, not the first preceding if. Optional
 # launch branches must remain in START so negative mutations reach real launches.

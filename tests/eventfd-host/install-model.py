@@ -20,6 +20,8 @@ assert p.name==expected
 if stem in ['qt-key-observer','qt-key-observer-mock']:
  assert '-shared' in a and '-fPIC' in a and '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
  assert '-Wl,--version-script=userland/tests/qt-key-observer/'+stem+'.map' in a
+if stem=='trace-snapshot':
+ assert '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
 if stem=='qt-key-observer-caller':
  assert '-lqt-key-observer-mock' in a and '-Wl,-rpath,/usr/lib/9os-tests' in a
 p.write_text('fake compiler output\\n')
@@ -36,6 +38,7 @@ def run(text, consumer='eventfdwaketest'):
   calls=record.read_text().splitlines()
   output={'terminal-dbus':'usr/bin/desktopa11y-dbus','qt-key-observer':'usr/lib/lib9os-qt-key-observer.so','qt-key-observer-mock':'usr/lib/9os-tests/libqt-key-observer-mock.so'}.get(consumer,'usr/bin/'+consumer)
   source=f'userland/tests/qt-key-observer/{consumer}.c' if consumer.startswith('qt-key-observer') else f'userland/tests/{consumer}.c'
+  if consumer=='trace-snapshot':source='userland/tests/trace-snapshot/trace-snapshot.c'
   if consumer=='terminal-dbus':source='userland/tests/a11y-dbus/terminal-dbus.c'
   return calls.count(source)==1 and (d/'userland/alpine-root-x86_64'/output).is_file()
 assert run(script), 'new consumer was not installed exactly once'
@@ -88,3 +91,13 @@ for label,changed in [('missing',script[:start]+script[end:]),('duplicate',scrip
 assert (ROOT/'userland/tests/a11y-dbus/terminal-dbus.c').is_file()
 assert not (ROOT/'userland/tests/terminal-dbus.c').exists()
 print('independent bulk AT-SPI installer: exact nested source/output; missing/duplicate rejected')
+
+assert run(script,'trace-snapshot'), 'snapshot consumer not installed exactly once'
+start=script.index('# Failure-only register snapshot:')
+end=script.index('# Independent public GIO/AT-SPI consumer:',start)
+block=script[start:end]
+for label,changed in [('missing',script[:start]+script[end:]),('duplicate',script[:start]+block+script[start:])]:
+ assert not run(changed,'trace-snapshot'), 'snapshot installer mutation survived: '+label
+assert (ROOT/'userland/tests/trace-snapshot/trace-snapshot.c').is_file()
+assert not (ROOT/'userland/tests/trace-snapshot.c').exists()
+print('snapshot installer: nested source and exact output; missing/duplicate rejected')

@@ -1,0 +1,42 @@
+#!/bin/sh
+# Real tiny diagnostic against explicit synthetic children, never GUI proof.
+set -eu
+D=$(mktemp -d /tmp/trace-snapshot-test-XXXXXX)
+child=
+cleanup() { [ -z "$child" ] || kill -KILL "$child" 2>/dev/null || true;rm -rf "$D"; }
+trap cleanup EXIT HUP INT TERM
+for mode in busy blocked stopped;do
+ set +e
+ (
+  if [ "$mode" = busy ];then /bin/sh -c 'while :;do :;done' &
+  else sleep 30 & fi
+  p=$!;echo "$p" > "$D/pid"
+  if [ "$mode" = stopped ];then
+   kill -STOP "$p"
+   for i in $(seq 100);do grep -q '^State:.*T' "/proc/$p/status" && break;sleep .01;done
+   grep -q '^State:.*T' "/proc/$p/status" || exit 2
+  fi
+  # Replacing the direct parent also works with native Yama ptrace_scope=1;
+  # no global security setting or child PR_SET_PTRACER bypass is needed.
+  exec trace-snapshot "$p"
+ ) > "$D/$mode.out" 2>&1
+ rc=$?;set -e
+ child=$(cat "$D/pid")
+ if [ "$mode" = stopped ];then expected=1;else expected=0;fi
+ if [ "$rc" != "$expected" ];then cat "$D/$mode.out";exit 1;fi
+ grep -q '^TracerPid:[[:space:]]*0$' "/proc/$child/status" || { cat "$D/$mode.out";exit 1; }
+ kill -0 "$child"
+ if [ "$mode" = stopped ];then
+  grep -q '^State:.*T' "/proc/$child/status"
+  grep -q 'phase=unexpected-stop' "$D/$mode.out"
+  ! grep -q '^TRACE_SNAPSHOT_REGS' "$D/$mode.out"
+ else
+  grep -q '^TRACE_SNAPSHOT_DETACHED signal=0$' "$D/$mode.out"
+  grep -q '^TRACE_SNAPSHOT_END result=0$' "$D/$mode.out"
+  test "$(grep -c '^STACK ' "$D/$mode.out")" = 32
+  ! grep -q '^State:.*[Tt]' "/proc/$child/status"
+ fi
+ kill -KILL "$child";child=
+ echo "trace-snapshot-selftest: PASS synthetic $mode"
+done
+echo 'trace-snapshot-selftest: PASSED 3/3 synthetic process controls; not GUI proof'
