@@ -1,0 +1,1 @@
+qemu-system-x86_64 -M q35 -cpu qemu64,+smep,+smap,+rdrand -m 3072M -smp 4 -serial stdio -no-reboot -device virtio-keyboard-pci -device virtio-tablet-pci -netdev user,id=n0 -device virtio-net-pci,netdev=n0 -boot d -cdrom build/x86_64-alpine/9os.iso -audiodev none,id=snd0 -device virtio-sound-pci,audiodev=snd0,streams=1 

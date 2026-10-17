@@ -1,0 +1,70 @@
+{
+  "linux1": {
+    "summary": [
+      "17/18 passed"
+    ],
+    "failure_gates": [
+      "FAIL   grep -q \"^violations 0\" /proc/lockdep"
+    ],
+    "readiness": [],
+    "bulk_observation": [
+      "terminal-dbus: pid=1465 applications=1 models=1 visited=7 OBSERVED (diagnostic only)"
+    ],
+    "archive_sha256": "44805c7689b0c06a459e31c82892b1d379c2e87d45c0039d37713c9432c7a5bd",
+    "raw_checker": {
+      "all_events": 390,
+      "device": 1,
+      "dropped": 0,
+      "explicit_repeats": 0,
+      "key_events": 262,
+      "name": "QEMU Virtio Keyboard",
+      "scope": "raw hardware stream only; not compositor/client or reliable GUI proof",
+      "taps": 128
+    },
+    "qt_or_wayland_observer_present": false
+  },
+  "guest1": {
+    "summary": [
+      "18/18 passed"
+    ],
+    "failure_gates": [],
+    "readiness": [],
+    "bulk_observation": [
+      "terminal-dbus: pid=926 applications=1 models=1 visited=7 OBSERVED (diagnostic only)"
+    ],
+    "archive_sha256": "ca7e6e2c93d533ad118ff986a06d8ac83fc6d637eac6773208667ce604a8daea",
+    "raw_checker": {
+      "all_events": 390,
+      "device": 0,
+      "dropped": 0,
+      "explicit_repeats": 0,
+      "key_events": 262,
+      "name": "QEMU Virtio Keyboard",
+      "scope": "raw hardware stream only; not compositor/client or reliable GUI proof",
+      "taps": 128
+    },
+    "qt_or_wayland_observer_present": false
+  },
+  "guest2": {
+    "summary": [
+      "18/18 passed"
+    ],
+    "failure_gates": [],
+    "readiness": [],
+    "bulk_observation": [
+      "terminal-dbus: pid=932 applications=1 models=1 visited=7 OBSERVED (diagnostic only)"
+    ],
+    "archive_sha256": "e2e0efb4029d89178cb8c4c064b1e2ede43b27b863993516a0486cc49a3a8527",
+    "raw_checker": {
+      "all_events": 390,
+      "device": 0,
+      "dropped": 0,
+      "explicit_repeats": 0,
+      "key_events": 262,
+      "name": "QEMU Virtio Keyboard",
+      "scope": "raw hardware stream only; not compositor/client or reliable GUI proof",
+      "taps": 128
+    },
+    "qt_or_wayland_observer_present": false
+  }
+}

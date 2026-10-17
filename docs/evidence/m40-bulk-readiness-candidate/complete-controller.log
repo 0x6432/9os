@@ -1,0 +1,29 @@
+PRIVATE_CANDIDATE_PREPARED: backend selected BEFORE attempt, no fallback/rescue, same PID role/state/deadline; no Qt/Wayland observers
+CANDIDATE_START linux1 2026-10-17T10:06:51Z
+CANDIDATE_END linux1 rc=1 2026-10-17T10:09:28Z
+CANDIDATE_RAW linux1 rc=0
+{"all_events": 390, "device": 1, "dropped": 0, "explicit_repeats": 0, "key_events": 262, "name": "QEMU Virtio Keyboard", "scope": "raw hardware stream only; not compositor/client or reliable GUI proof", "taps": 128}
+KONSOLE_READINESS_BACKEND=candidate-live-dbus
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal-dbus: pid=1465 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+FAIL   grep -q "^violations 0" /proc/lockdep
+17/18 passed
+CANDIDATE_EVIDENCE_READY 9os-bulk-candidate-linux1-evidence.zip 1257792
+CANDIDATE_START guest1 2026-10-17T10:10:10Z
+CANDIDATE_END guest1 rc=0 2026-10-17T10:21:05Z
+CANDIDATE_RAW guest1 rc=0
+{"all_events": 390, "device": 0, "dropped": 0, "explicit_repeats": 0, "key_events": 262, "name": "QEMU Virtio Keyboard", "scope": "raw hardware stream only; not compositor/client or reliable GUI proof", "taps": 128}
+KONSOLE_READINESS_BACKEND=candidate-live-dbus
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal-dbus: pid=926 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+18/18 passed
+CANDIDATE_EVIDENCE_READY 9os-bulk-candidate-guest1-evidence.zip 1242546
+CANDIDATE_START guest2 2026-10-17T10:21:47Z
+CANDIDATE_END guest2 rc=0 2026-10-17T10:32:14Z
+CANDIDATE_RAW guest2 rc=0
+{"all_events": 390, "device": 0, "dropped": 0, "explicit_repeats": 0, "key_events": 262, "name": "QEMU Virtio Keyboard", "scope": "raw hardware stream only; not compositor/client or reliable GUI proof", "taps": 128}
+KONSOLE_READINESS_BACKEND=candidate-live-dbus
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal-dbus: pid=932 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+18/18 passed
+CANDIDATE_EVIDENCE_READY 9os-bulk-candidate-guest2-evidence.zip 1243605
