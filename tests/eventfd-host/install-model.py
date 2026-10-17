@@ -115,3 +115,16 @@ for label,changed in [('missing',script.replace(' unixpolltest ', ' ',1)),('dupl
  assert changed!=script
  assert not run(changed,'unixpolltest'), 'Unix poll installer mutation survived: '+label
 print('Unix poll installer: exact output; missing/duplicate rejected')
+
+# These flags are part of the installed consumer contract, not only native CI.
+# Reject each missing flag independently using the actual installer/fake compiler.
+for missing,flags in [('-Werror','-D_FORTIFY_SOURCE=2'),('-D_FORTIFY_SOURCE=2','-Werror')]:
+ changed=script.replace('flags="-Werror -D_FORTIFY_SOURCE=2"','flags="'+flags+'"',1)
+ assert changed!=script
+ try:
+  run(changed,'unixpolltest')
+ except subprocess.CalledProcessError:
+  pass
+ else:
+  raise AssertionError('Unix installer missing strict flag survived: '+missing)
+print('Unix poll installer: missing Werror/fortify flags rejected independently')

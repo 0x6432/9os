@@ -67,3 +67,16 @@ paths global, only connected data enqueue/drain narrowed with both keys,
 key capture/publication protected by unix_lock, no pointer escapes unlock.
 Current-head ALL3 CI, complete graphics regression and a separately fixed cold
 comparison remain outstanding. This is NOT a GUI cure or M40 completion.
+
+## PR38 initial CI caught an installer regression
+At609eb41 fast39062004730 x86 host-controls job117481714409 failed before
+Alpine guest build/testing. The new strictflag mock assertion was correct:
+the general installer loop did NOT supply Werror/fortify for unixpolltest.
+Reproduced unchanged locally. Earlier install-controls log predates that final
+guard and is not proof of committed-head success. Exact native216checks and
+all four benchmark modes did pass in the failed CI job; no guest pass claimed.
+Fix supplies both flags for ONLY the new consumer, retaining all earlier code
+and assertions. Additional independent missing-Werror/missing-fortify mutations
+reject. Fixed actual installer model passes locally. Original failure retained
+in evidence-only m40-pr38-initial-installer-failure. Current-head ALL3 CI required
+after actual fix, no retry of unchanged failure, no gate weakening.
