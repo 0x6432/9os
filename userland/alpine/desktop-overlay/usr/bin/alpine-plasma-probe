@@ -42,6 +42,11 @@ blocked_diagnostics() {
 }
 finish() {
  r=$?
+ if [ "${ALPINE_PLASMA_KEY_TRACE:-0}" = 1 ];then
+  echo OUTER_KEYBOARD_TRACE_BEGIN
+  grep '^WAYLAND_KEY_TRACE ' "$D/kwin.log" 2>/dev/null || true
+  echo OUTER_KEYBOARD_TRACE_END
+ fi
  if [ "${ALPINE_KONSOLE_INPUT_TRACE:-0}" = 1 ];then
   echo INNER_KEYBOARD_DISPATCH_TRACE_BEGIN
   grep 'wl_keyboard' "$D/konsole.log" 2>/dev/null || true
