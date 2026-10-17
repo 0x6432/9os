@@ -21,10 +21,10 @@ for model in observer mock;do
   mock) SRC=qt-key-observer-mock;OUT="$S/usr/lib/9os-tests/libqt-key-observer-mock.so";;
  esac
  clang --target="$ARCH-linux-musl" --sysroot="$S" -O2 -Wall -Wextra -Werror -D_FORTIFY_SOURCE=2 -shared -fPIC -fuse-ld=lld -nostdlib \
-  "$S/usr/lib/crti.o" "userland/tests/$SRC.c" -L"$S/usr/lib" -lc "$S/usr/lib/crtn.o" \
-  -Wl,--version-script="userland/tests/$SRC.map" -o "$OUT"
+  "$S/usr/lib/crti.o" "userland/tests/qt-key-observer/$SRC.c" -L"$S/usr/lib" -lc "$S/usr/lib/crtn.o" \
+  -Wl,--version-script="userland/tests/qt-key-observer/$SRC.map" -o "$OUT"
 done
 clang --target="$ARCH-linux-musl" --sysroot="$S" -O2 -Wall -Wextra -Werror -D_FORTIFY_SOURCE=2 -fPIE -pie -fuse-ld=lld -nostdlib \
- "$S/usr/lib/Scrt1.o" "$S/usr/lib/crti.o" userland/tests/qt-key-observer-caller.c \
+ "$S/usr/lib/Scrt1.o" "$S/usr/lib/crti.o" userland/tests/qt-key-observer/qt-key-observer-caller.c \
  -L"$S/usr/lib/9os-tests" -lqt-key-observer-mock -L"$S/usr/lib" -lc "$S/usr/lib/crtn.o" \
  -Wl,-rpath,/usr/lib/9os-tests -Wl,--dynamic-linker,/lib/ld-musl-$ARCH.so.1 -o "$S/usr/bin/qt-key-observer-caller"

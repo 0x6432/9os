@@ -2,7 +2,7 @@
 """Actual host C forwarding/child-only wrapper tests; NOT actual Qt/SMP proof."""
 from pathlib import Path
 import os,shlex,subprocess,tempfile,unittest
-TOP=Path(__file__).resolve().parents[1];SRC=TOP/'userland/tests'
+TOP=Path(__file__).resolve().parents[1];SRC=TOP/'userland/tests/qt-key-observer'
 class Test(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
