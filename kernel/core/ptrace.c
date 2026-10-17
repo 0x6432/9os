@@ -435,7 +435,15 @@ bool ptrace_group_stop(int sig) {
 void ptrace_interrupt_stop(void) {
     struct thread *t = current;
     t->pt_interrupt = false;
-    if (t->ptracer && t->pt_seized) pt_event(t, PTRACE_EVENT_STOP, 0, SIGTRAP);
+    if (t->ptracer && t->pt_seized) {
+        /* SEIZE/INTERRUPT can wake do_stop without ending its job-control
+         * stop. Linux reports that existing stop signal in EVENT_STOP, not
+         * SIGTRAP (the latter is reserved for interrupting a running thread).
+         * Keep the group-stop kind so LISTEN and signal-preserving DETACH
+         * cannot mistake this for an ordinary running-thread snapshot. */
+        if (t->proc && t->proc->stopped) ptrace_group_stop(t->proc->stop_sig);
+        else pt_event(t, PTRACE_EVENT_STOP, 0, SIGTRAP);
+    }
 }
 
 void ptrace_kill_wake(struct process *p) { (void)p; wake_up(&pt_wq); }
