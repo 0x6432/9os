@@ -68,6 +68,27 @@ modified. Host controls cover exact payloads, unrelated objects, lifetime reuse,
 bounds, fragmented/short writes and descriptor transfer. Packaged proxy self-
 tests exercise traced forwarding as root/non-root in all-architecture PR CI.
 
+## Inner Konsole dispatch observation
+
+`ALPINE_KONSOLE_INPUT_TRACE=1` enables stock `WAYLAND_DEBUG=client` only on
+Konsole's interactive launch. The normal command/environment, actual child PID,
+focus traversal, deadlines and input repeat settings are unchanged when disabled.
+The child setting does not leak back to the probe or its later helper launches.
+At exit, `INNER_KEYBOARD_DISPATCH_TRACE_BEGIN/END` frames only `wl_keyboard`
+records from the real Konsole log. This is opt-in diagnostic logging and can
+perturb timing; it is not an unchanged-fixture reliability comparison.
+
+`inner-keyboard-dispatch-check.py LOG` checks the exact fixed physical typing
+sequence at libwayland1.23.1's pre-listener event-dispatch boundary, requiring one
+keyboard/queue and consistent repeat settings. It rejects missing/extra/reordered,
+malformed, outgoing/discarded events and ambiguous replayed logs. An empty trace
+after a correctly refused focus gate is NOT a keyboard pass. A complete correct
+sequence is NOT proof that Qt's listener, autorepeat timer or Konsole handled it
+correctly. The debug prefix is CLOCK_REALTIME microseconds truncated to uint32;
+it wraps and is not a monotonic receipt clock. This checker makes no timing claim.
+Synthetic/parser and actual-shell PID/environment controls do not substitute for
+same-boot real-client evidence or the original GUI acceptance gates.
+
 ## Evidence discipline
 
 Use fresh disposable snapshots, hash fixtures before/after stopped VMs, and run
