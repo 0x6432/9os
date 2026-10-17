@@ -23,3 +23,12 @@ Remainingguest2/3 run once each as predeclared; pending at this checkpoint.
 Original complete signed-download artifacts retained here unchanged with SHA256.
 PR36 fastALL3 green is separate, observed CI evidence, NOT a cold-start cure.
 The candidate has reproduced the held failure. No merge and M40 remains open.
+
+## Second predeclared guest also FAILED8/18
+Guest2 artifact12109625920 is retained unchanged. Both fixture hashes valid;
+driver1/raw1, genuinePTY1/terminalverification0 pid833, bounded live query
+still alarm-expired before terminal observation. Failure-only PC7e5a8ad462e7/
+SP7ffefd965e38 again lack map coverage: samples1/3 printed256/truncated; sample2
+did not complete map output in its unchanged bound. Failure-only bulkrc142.
+No kernel/module/frame attribution or accepted physical result. Guest3 pending,
+not an invitation to retry either failure. Candidate has NOT resolved the gate.
