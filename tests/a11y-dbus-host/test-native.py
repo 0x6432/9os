@@ -80,8 +80,10 @@ def main():
                          'short-state', 'long-state', 'bad-address', 'empty', 'duplicate-app',
                          'many-apps', 'many-children', 'bad-path', 'foreign-child', 'cycle',
                          'menu-decoy', 'remote-error', 'blocked-role', 'address-signature',
-                         'children-signature', 'role-signature', 'state-signature']
-            for mode in ['valid', *negatives]:
+                         'children-signature', 'role-signature', 'state-signature',
+                         'paired-role-error', 'paired-children-error', 'blocked-children']
+            positives = ['valid', 'paired-valid']
+            for mode in [*positives, *negatives]:
                 server = subprocess.Popen([str(work/'server'), mode], env=env, stdout=subprocess.PIPE,
                                           stderr=subprocess.PIPE, text=True)
                 try:
@@ -91,11 +93,20 @@ def main():
                                             capture_output=True, timeout=10)
                     if args.log_dir:
                         (args.log_dir/(mode+'.out')).write_text(result.stdout+result.stderr)
-                    assert result.returncode == (0 if mode == 'valid' else 1), (mode, result.returncode, result.stdout[-3000:], result.stderr[-1000:])
-                    if mode == 'valid':
+                    assert result.returncode == (0 if mode in positives else 1), (mode, result.returncode, result.stdout[-3000:], result.stderr[-1000:])
+                    if mode in positives:
                         assert 'DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1' in result.stdout
                         assert 'applications=1 models=1' in result.stdout
                         assert f'pid={pid} target={pid}' in result.stdout
+                    if mode == 'paired-valid':
+                        lines = result.stdout.splitlines()
+                        starts = [i for i, line in enumerate(lines)
+                                  if line.startswith('DBUS_A11Y_QUERY method=GetRole phase=begin ')]
+                        assert len(starts) == 3
+                        for i in starts:
+                            assert lines[i+1].startswith('DBUS_A11Y_QUERY method=GetChildren phase=begin ')
+                            assert lines[i+2].startswith('DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 ')
+                            assert lines[i+3].startswith('DBUS_A11Y_QUERY method=GetRole phase=end ok=1 ')
                     if mode == 'menu-decoy':
                         assert 'DBUS_A11Y_TERMINAL ' not in result.stdout
                     if mode.endswith('-signature'):
@@ -106,7 +117,8 @@ def main():
             for argv in [[], ['1', '2'], [''], ['0'], ['-1'], ['1x'], ['2147483648']]:
                 result = subprocess.run([*consumer, *argv], env=env, capture_output=True, timeout=5)
                 assert result.returncode == 2, argv
-            print(f'23/23 real private IPC controls + 7 CLI bounds ({args.consumer}); synthetic only, not Qt or GUI proof')
+            count = len(positives) + len(negatives)
+            print(f'{count}/{count} real private IPC controls + 7 CLI bounds ({args.consumer}); synthetic only, not Qt or GUI proof')
         finally:
             stop(daemon)
 
