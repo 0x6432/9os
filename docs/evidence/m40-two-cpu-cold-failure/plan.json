@@ -1,0 +1,15 @@
+{
+  "validation_head": "99f9d6024f64ac564ca6083b527716fb5fdb5dfa",
+  "runtime_base": "935bd746cb6ea6d9ed833a5125b8f4465dc31ee7",
+  "fixed_samples": [
+    "linux1",
+    "guest1",
+    "guest2",
+    "guest3"
+  ],
+  "retries": 0,
+  "host_profile": "two logical CPUs, recorded immutable affinity; no host memory cap",
+  "observers": "Qt/Wayland off; failure-only snapshots",
+  "expected_linux": "17/18; only missing 9os lockdep",
+  "expected_9os": "18/18; raw physical capture required"
+}

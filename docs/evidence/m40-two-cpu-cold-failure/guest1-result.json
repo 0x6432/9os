@@ -1,0 +1,35 @@
+{
+  "host_available_cpus": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "host_selected_cpus": [
+    0,
+    1
+  ],
+  "sample": "guest1",
+  "started": 1792255555.6595821,
+  "accepted": false,
+  "fixture_before": true,
+  "fixture_after": true,
+  "driver_rc": 1,
+  "raw_rc": 1,
+  "totals": [
+    "8/18 passed"
+  ],
+  "failures": [
+    "FAIL   for i in $(seq 700);do grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 \"$(cat /tmp/plasma-kms.pid)\" 2>/dev/null || break;sleep 1;done;grep -x KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -x ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }",
+    "FAIL   host:python3 scripts/qemu-screenshot.py /tmp/9os-kms-iBQ5jv/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-before.png",
+    "FAIL   host:python3 scripts/qemu-ready-type.py --log /home/runner/work/9os/9os/build/m40-cold/guest1.log --ready-step 3 --qmp /tmp/9os-kms-iBQ5jv/qmp.sock 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\\n'",
+    "FAIL   for i in $(seq 20);do test ! -e /tmp/kms-input-ok || break;sleep 1;done;cat /tmp/kms-tty;test \"$(cat /tmp/kms-input-ok)\" = kms-input-ok && grep -q \"^/dev/pts/\" /tmp/kms-tty && test \"$(cat /tmp/kms-uid)\" = 1000",
+    "FAIL   host:python3 scripts/qemu-screenshot.py /tmp/9os-kms-iBQ5jv/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-after.png",
+    "FAIL   test \"$(cat /tmp/kms-input-ok)\" = kms-input-ok && test \"$(cat /tmp/kms-uid)\" = 1000 && touch /tmp/kms-input-done",
+    "FAIL   for i in $(seq 300);do grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log && break;kill -0 \"$(cat /tmp/plasma-kms.pid)\" 2>/dev/null || break;sleep 1;done;grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log || { tail -n 100 /tmp/plasma-kms.log;false; }",
+    "FAIL   host:python3 scripts/qemu-dolphin-capture.py /tmp/9os-kms-iBQ5jv/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-dolphin.png",
+    "FAIL   grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log && touch /tmp/dolphin-capture-done",
+    "FAIL   for i in $(seq 150);do test ! -f /tmp/plasma-kms.status || break;sleep 1;done;cat /tmp/plasma-kms.log;test \"$(cat /tmp/plasma-kms.status)\" = 0 && grep -qx \"alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit\" /tmp/plasma-kms.log"
+  ],
+  "finished": 1792256164.5235605
+}

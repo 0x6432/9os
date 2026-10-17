@@ -1,0 +1,26 @@
+{
+  "host_available_cpus": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "host_selected_cpus": [
+    0,
+    1
+  ],
+  "sample": "linux1",
+  "started": 1792255377.8125455,
+  "accepted": true,
+  "fixture_before": true,
+  "fixture_after": true,
+  "driver_rc": 1,
+  "raw_rc": 0,
+  "totals": [
+    "17/18 passed"
+  ],
+  "failures": [
+    "FAIL   grep -q \"^violations 0\" /proc/lockdep"
+  ],
+  "finished": 1792255554.803236
+}

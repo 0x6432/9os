@@ -1,0 +1,10 @@
+{
+  "linux1": {
+    "artifact_id": 12107627413,
+    "sha256": "770bb2beea3695fe20393b19d064e60734f0a40b0f20b6fc459ccdf31408bc02"
+  },
+  "guest1": {
+    "artifact_id": 12107419483,
+    "sha256": "dbd3af50d5269f9ec238e7f5f1c00a419a30a9a6a3be16d41d956eaa5a38ff2f"
+  }
+}
