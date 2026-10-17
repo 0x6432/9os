@@ -7,7 +7,8 @@ is explicit for x86_64, aarch64 and riscv64. Local builds/tests are x86_64 only;
 PR CI owns other architectures.
 
 The wait is bounded at two seconds/400 polls. Output is bounded to one register
-set, 256 mapping chunks of at most 1023 bytes and 32 stack words. Truncation,
+set, at most two selected PC/SP mapping lines, and 32 stack words. The map
+scanner reads at most4096 chunks of at most1023 bytes. Truncation,
 unreadable memory, short register sets and errors are explicit failures. Raw
 stack words are **not unwound frames**; mapping offsets require the matching
 signed package ELF, not a guessed symbol. A single sample cannot prove a deadlock
@@ -127,6 +128,11 @@ Optional ASan/UBSan binary could compile but could NOT run: sandbox lacks
 libasan.so.6 and static sanitizer archives; no sanitizer pass claimed. Signed
 musl/9os/non-x86 validation, actual failed-GUI snapshots and review remain pending.
 
-No PR opened yet and no expensive workflow restarted for this WIP. It is NOT
-included in PR36/runtime409ecfc or its currently frozen two-CPU comparison. Do not
+PR36 fixed two-CPU comparison39053663726 also retained a genuine first-guest
+8/18 failure: pty=1/terminal=0; all three failure-only snapshots again truncated
+at256 chunks without selected PC/SP coverage. Paired public queries did not
+resolve this sample. Remaining two predeclared samples continue unchanged.
+
+This diagnostic change is being submitted separately for current-head CI. It
+is NOT included in PR36/runtime409ecfc or its frozen two-CPU comparison. Do not
 merge or treat it as a startup cure. All original failures/holds/M40 gaps remain.
