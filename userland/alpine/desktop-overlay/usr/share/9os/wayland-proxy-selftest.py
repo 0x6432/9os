@@ -155,6 +155,40 @@ class Controls(unittest.TestCase):
         finally:
             os.close(fd)
 
+    def test_keyboard_trace_observes_without_filtering(self):
+        lines = []
+        trace = proxy.KeyboardTrace(lines.append)
+        state = proxy.RegistryFilter(keyboard_trace=trace)
+        registry = message(1, 1, struct.pack('=I', 7))
+        bind = message(7, 0, struct.pack('=II', 42, 8) + b'wl_seat\0' + struct.pack('=II', 7, 8))
+        keyboard = message(8, 1, struct.pack('=I', 9))
+        for request in (registry, bind, keyboard):
+            self.assertFalse(state.drop(request, True))
+        self.state = lambda *args: state
+        raw = message(9, 5, struct.pack('=ii', 25, 600))
+        raw += message(9, 3, struct.pack('=IIII', 4, 100, 20, 1))
+        raw += message(9, 3, struct.pack('=IIII', 5, 100, 20, 0))
+        fd = os.memfd_create('keyboard-trace', 0)
+        try:
+            errors, fds = self.transport([raw[:3], raw[3:]], raw, descriptor=fd, short=True)
+            try:
+                self.assertEqual(errors, [])
+                self.assertEqual(len(fds), 1)
+                self.assertEqual(len(lines), 3)
+                self.assertIn('event=repeat_info', lines[0])
+                self.assertTrue(lines[1].endswith('key=20 state=1'))
+                self.assertTrue(lines[2].endswith('key=20 state=0'))
+            finally:
+                for received in fds:
+                    os.close(received)
+        finally:
+            os.close(fd)
+
+    def test_keyboard_trace_disabled_by_default(self):
+        state = proxy.RegistryFilter()
+        self.assertIsNone(state.keyboard_trace)
+        self.assertFalse(state.drop(message(9, 3, struct.pack('=IIII', 4, 100, 20, 1)), False))
+
     def test_client_direction_bytes_unchanged(self):
         raw = message(1, 1, struct.pack('=I', 19)) + message(99, 0, bytes(128))
         errors, fds = self.transport([raw[:4], raw[4:]], raw, client=True)

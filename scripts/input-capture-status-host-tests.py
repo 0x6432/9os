@@ -7,7 +7,7 @@ import tempfile
 import time
 import unittest
 
-HELPER = Path(__file__).with_name('input-capture-session.sh')
+HELPER = Path(__file__).resolve().parents[1] / 'userland/alpine/desktop-overlay/usr/bin/input-capture-session'
 
 
 class Publication(unittest.TestCase):

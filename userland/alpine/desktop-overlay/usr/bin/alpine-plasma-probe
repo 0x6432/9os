@@ -117,7 +117,9 @@ dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM XDG_CURRENT_D
 # callback fallback on THIS outer connection only, without library/QML patches.
 # Keep native mode for upstream/kernel comparison; neither mode waives pixels.
 case ${ALPINE_PLASMA_PRESENTATION:-callback} in
- callback) set -- wayland-presentation-proxy -- ;;
+ callback) set -- wayland-presentation-proxy --
+  # Diagnostic only; default transport/input behavior remains unchanged.
+  [ "${ALPINE_PLASMA_KEY_TRACE:-0}" != 1 ] || set -- wayland-presentation-proxy --trace-keyboard -- ;;
  native) set -- ;;
  *) echo 'Unknown presentation mode';exit 1 ;;
 esac
