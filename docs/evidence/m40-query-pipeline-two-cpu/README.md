@@ -1,0 +1,25 @@
+# PR36 fixed two-host-CPU comparison — first guest FAILED
+
+Run https://github.com/0x6432/9os/actions/runs/39053663726 was dispatched ONCE,
+after original baseline39050199421 completed FAILED with2/3 accepted guests.
+Validation3718e0e pins product409ecfc. Linux control plus3 independent guest
+samples were predeclared; no retries, fallback or relaxed acceptance.
+Both kernels run with verified host affinity[0,1] from allowed[0,1,2,3], guest
+SMP4/3072M unchanged. Host memory16GB: NOT a4GB-memory reproduction.
+
+Linux control accepted17/18 applicable, sole expected absent9oslockdep. Exact
+raw390events/262edges/128taps, zero drops/repeats, frozen hashes pass.
+Guest1 FAILED8/18, before/after frozen hashes pass, driver1/raw1. Genuine
+PTY exists, readiness pty=1/terminal=0 pid911. Paired GetRole/GetChildren are
+actually issued before either completion; the bounded query still expires
+at a shallow tree node before observing a focused terminal. This does NOT
+prove the real terminal was unfocused and does NOT identify a kernel cause.
+No physical sender rescue; no valid input/Dolphin acceptance. All3 failure-only
+snapshots captured PC7e5e335382e7/SP7fffaca21428, but printed maps256/truncated1;
+addresses lie outside printed maps, so no module/frame attribution. Failure-only
+bulk query also alarm142. Snapshot timing perturbed AFTER irrevocable failure.
+
+Remainingguest2/3 run once each as predeclared; pending at this checkpoint.
+Original complete signed-download artifacts retained here unchanged with SHA256.
+PR36 fastALL3 green is separate, observed CI evidence, NOT a cold-start cure.
+The candidate has reproduced the held failure. No merge and M40 remains open.
