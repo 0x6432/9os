@@ -1,6 +1,11 @@
 #!/bin/sh
 # Experimental real Plasma shell nested under Sway for compositor-side evidence.
 set -eu
+# Explicit candidate selection before any attempt. No fallback between backends.
+case ${ALPINE_TERMINAL_QUERY:-atspi} in
+ atspi|live-dbus) ;;
+ *) echo 'ALPINE_TERMINAL_QUERY must be atspi or live-dbus' >&2;exit 2 ;;
+esac
 # Incidental GL/effect work may still create llvmpipe workers with a software
 # scene graph. Bound oversubscription on small TCG hosts; keep an explicit user
 # override. This resource policy does not change any readiness/pixel deadline.
@@ -26,6 +31,13 @@ cleanup() {
 }
 # Independent real PID/role/state observation. No acceptance substitution.
 # Failure-only calls cannot rescue the already failed original readiness gate.
+focused_terminal_query() {
+ case ${ALPINE_TERMINAL_QUERY:-atspi} in
+  atspi) timeout -k 2 -s TERM 8 desktopa11y --terminal "$1" ;;
+  live-dbus) timeout -k 2 -s TERM 8 desktopa11y-dbus "$1" ;;
+  *) return 2 ;;
+ esac
+}
 terminal_dbus_diagnostic() {
  echo "KONSOLE_${1}_DBUS_BULK_BEGIN"
  if timeout -k 2 -s TERM 8 desktopa11y-dbus "$client" > "$D/bulk-a11y.log" 2>&1;then bulk_rc=0;else bulk_rc=$?;fi
@@ -225,11 +237,12 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  else
  "$konsole_command" --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
  fi
+ [ "${ALPINE_TERMINAL_QUERY:-atspi}" = atspi ] || echo KONSOLE_READINESS_BACKEND=live-dbus
  pty_ready=0;terminal_ready=0;deadline=$(( $(date +%s) + 120 ))
  while [ "$(date +%s)" -lt "$deadline" ];do
   if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then
    pty_ready=1
-   if timeout -k 2 -s TERM 8 desktopa11y --terminal "$client" > "$D/konsole-focus" 2>&1;then terminal_ready=1;break;fi
+   if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then terminal_ready=1;break;fi
   fi
   kill -0 "$client" 2>/dev/null || break
   sleep .1

@@ -84,3 +84,22 @@ M40, earlier cold-start/typing failures and integration holds remain open.
 - Qt 6.8.3 `src/gui/accessible/linux/qspidbuscache.cpp`: empty cache response.
 - at-spi2-core 2.56.2 `atspi-accessible.c` and `atspi-misc.c`: current consumer
   semantics and the per-node ChildCount/GetChildAtIndex round trips.
+
+## WIP explicit readiness-backend candidate (not default, not validated yet)
+
+`ALPINE_TERMINAL_QUERY=live-dbus` selects the independent live AT-SPI consumer
+BEFORE readiness is attempted. Default/unset/empty remains the existing `atspi`
+consumer. Unknown configuration fails before starting the session. There is no
+fallback between backends and no retry that reclassifies an earlier failed boot.
+Both use the same target PID, genuine terminal role, FOCUSED/SHOWING/VISIBLE
+requirements, eight-second per-query bound and 120-second original deadline.
+Only bulk child enumeration and the public GIO connection path differ.
+
+`python3 scripts/terminal-backend-host-tests.py` executes actual shell dispatch
+with synthetic commands: default remains original, live mode forwards the exact
+PID/bound, nonzero status is preserved, invalid input runs neither backend, and
+all original failure exits/input witnesses remain. This is not VM evidence.
+A separate private fixed-scope Linux + two x86 guest candidate trial is running
+without Qt or Wayland observer timing; do not claim its outcome before it ends.
+The candidate is NOT the unchanged original readiness gate. Earlier failures,
+source/CI validation requirements and all integration holds remain open.
