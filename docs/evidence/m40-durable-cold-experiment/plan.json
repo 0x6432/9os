@@ -1,0 +1,12 @@
+{
+  "validation_head": "58f26ebc9c3ee938bf5f54fe140eac65c19603fb",
+  "runtime_base": "935bd746cb6ea6d9ed833a5125b8f4465dc31ee7",
+  "fixed_samples": [
+    "linux1",
+    "guest1"
+  ],
+  "retries": 0,
+  "observers": "Qt/Wayland off; failure-only snapshots",
+  "expected_linux": "17/18; only missing 9os lockdep",
+  "expected_9os": "18/18; raw physical capture required"
+}
