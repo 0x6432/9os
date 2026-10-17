@@ -1,0 +1,16 @@
+{
+  "sample": "linux1",
+  "started": 1792243774.9529588,
+  "accepted": true,
+  "fixture_before": true,
+  "fixture_after": true,
+  "driver_rc": 1,
+  "raw_rc": 0,
+  "totals": [
+    "17/18 passed"
+  ],
+  "failures": [
+    "FAIL   grep -q \"^violations 0\" /proc/lockdep"
+  ],
+  "finished": 1792243908.9744008
+}

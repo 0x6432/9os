@@ -1,0 +1,14 @@
+{
+  "sample": "guest2",
+  "started": 1792244104.7502646,
+  "accepted": true,
+  "fixture_before": true,
+  "fixture_after": true,
+  "driver_rc": 0,
+  "raw_rc": 0,
+  "totals": [
+    "18/18 passed"
+  ],
+  "failures": [],
+  "finished": 1792244294.6958973
+}

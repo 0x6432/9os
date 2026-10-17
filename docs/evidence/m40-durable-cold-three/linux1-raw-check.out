@@ -1,0 +1,1 @@
+{"all_events": 390, "device": 1, "dropped": 0, "explicit_repeats": 0, "key_events": 262, "name": "QEMU Virtio Keyboard", "scope": "raw hardware stream only; not compositor/client or reliable GUI proof", "taps": 128}

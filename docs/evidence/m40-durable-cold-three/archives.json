@@ -1,0 +1,18 @@
+{
+  "linux1": {
+    "artifact_id": 12102104604,
+    "sha256": "4816c3055ff4904e5b4e852f178a62151d53a6b5ae6d06c86db79d999dfb7053"
+  },
+  "guest1": {
+    "artifact_id": 12102682172,
+    "sha256": "1d97316d89201cfa5fd4794093e0b318e2b31191498ea908b512b3a33834fe9f"
+  },
+  "guest2": {
+    "artifact_id": 12102866502,
+    "sha256": "69dfe473cc2271ce497fefdc62cbab915bd53343f00d7d2c1e9cc8cd0755a700"
+  },
+  "guest3": {
+    "artifact_id": 12103270587,
+    "sha256": "952e4cc8389a9ca8285c68719c044b245667bc7b49efc248339edca5e5ec02bb"
+  }
+}
