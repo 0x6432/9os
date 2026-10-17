@@ -59,3 +59,19 @@ Linux failure or cancellation blocks every guest. Separate snapshot overlays
 prevent persistent effects; fixture hashes are checked before/after EACH sample.
 A three-sample success is bounded repeated functional evidence, not a causal fix,
 statistical reliability guarantee, approval to merge held work, or M40 completion.
+
+
+## New predeclared two-logical-host-CPU profile
+Prior fixed-three run39036408360 at9d84d00 passed all3 guest18/18, with control,
+raw events and frozen hashes accepted; original complete evidence is retained
+atc518950. It does not reproduce the smaller sandbox's failures or prove a cure.
+This NEW validation branch uses the exact same935bd74 target runtime and same
+oneLinux+threeguest plan, but freezes the first TWO allowed logical host CPUs
+and applies that affinity to the entire driver/QEMU subprocess tree for BOTH
+kernels. Python verifies the applied affinity and records it in each result.
+Fewer than2 allowed CPUs or invalid affinity rejects without fallback. Guest
+SMP4 and3072M, all gates/timeouts/observers/keyboard path stay unchanged. Host
+CPU availability, memory and cgroup CPU quota are recorded before the experiment
+and hashed. No host memory limit, physical-core guarantee or scheduler-runtime
+fix is claimed. This is a host-constraint hypothesis test, NOT rerunning a failed
+sample, overwriting earlier results, selecting successes or waiving any hold.

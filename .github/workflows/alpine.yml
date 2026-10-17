@@ -1,11 +1,11 @@
 # Validation-only branch based on PR35. Never merge over the product workflow.
-name: m40-fixed-durable-three-cold-boots
+name: m40-fixed-two-host-cpu-cold-series
 on:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: m40-cold-${{ github.ref }}
+  group: m40-cold-two-cpu-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   fixed-x86-plan:
