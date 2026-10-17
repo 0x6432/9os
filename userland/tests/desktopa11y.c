@@ -2,6 +2,7 @@
  * app patch, injected model, or folder-only DBus oracle. Public stable C ABI.
  * Usage: desktopa11y PID /absolute/directory +required-name -forbidden-name ...
  * Terminal mode: desktopa11y --terminal PID observes focused/showing state.
+ * --terminal-trace PID is opt-in failure-only query-phase diagnostics; same gates.
  * It never sets focus, sends keys or treats PTY startup as a mapped window.
  * Dolphin25.04.2 KItemListViewAccessible exports role List, basename as Name,
  * directory URL in Description, and actual model rows as direct children. */
@@ -11,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 typedef struct _AtspiAccessible Accessible;
 typedef struct _GError Error;
 /* Stable public AtspiRole values, verified against upstream atspi-constants.h. */
@@ -24,7 +26,17 @@ static unsigned (*get_pid)(Accessible *, Error **);
 static void *(*get_states)(Accessible *);
 static int (*contains_state)(void *, int);
 static void (*unref)(void *), (*free_text)(void *), (*free_error)(Error *);
-static int nodes, failed, argc_, models, terminal_mode;static char **argv_;static unsigned seen[32];
+static int nodes, failed, argc_, models, terminal_mode, terminal_trace;static char **argv_;static unsigned seen[32];
+/* Explicit failure-only diagnostic mode. Normal readiness does no extra clock
+ * calls/output; tracing never changes traversal, deadlines or success criteria. */
+static void trace_query(const char *query, const char *phase, unsigned depth, int value) {
+    if (!terminal_trace) return;
+    struct timespec ts = {0};
+    int ok = clock_gettime(CLOCK_MONOTONIC, &ts) == 0;
+    printf("A11Y_TRACE query=%s phase=%s depth=%u node=%d value=%d clock_ok=%d mono_ns=%llu\n",
+           query, phase, depth, nodes, value, ok,
+           (unsigned long long)ts.tv_sec * 1000000000ull + (unsigned long long)ts.tv_nsec);
+}
 static void check_error(Error *e) { if(e){failed=1;free_error(e);} }
 static void read_model(Accessible *a) {
     Error *e=NULL;int c=get_count(a,&e);check_error(e);
@@ -49,10 +61,13 @@ static int directory_matches(const char *desc) {
 }
 static void find_model(Accessible *a,unsigned depth) {
     if(!a || depth>24 || ++nodes>256){failed=1;return;}
-    Error *e=NULL;int role=get_role(a,&e);check_error(e);if(failed)return;
+    trace_query("role", "begin", depth, 0);
+    Error *e=NULL;int role=get_role(a,&e);trace_query("role", "end", depth, role);check_error(e);if(failed)return;
     if(role==ROLE_MENU || role==ROLE_MENU_BAR || role==ROLE_MENU_ITEM || role==ROLE_POPUP_MENU || role==ROLE_TOOL_BAR)return;
     if(terminal_mode && role==ROLE_TERMINAL) {
+        trace_query("states", "begin", depth, 0);
         void *states=get_states(a);
+        trace_query("states", "end", depth, states != NULL);
         if(!states){failed=1;return;}
         int focused=contains_state(states,12), showing=contains_state(states,25), visible=contains_state(states,30);
         printf("A11Y_TERMINAL focused=%d showing=%d visible=%d\n",focused,showing,visible);
@@ -70,18 +85,21 @@ static void find_model(Accessible *a,unsigned depth) {
         free_text(name);
     }
     if(failed)return;
-    e=NULL;int c=get_count(a,&e);check_error(e);
+    trace_query("children", "begin", depth, 0);
+    e=NULL;int c=get_count(a,&e);trace_query("children", "end", depth, c);check_error(e);
     if(c<0 || c>512){failed=1;return;}
     for(int i=0;i<c&&!failed&&!models;i++) {
-        e=NULL;Accessible *b=get_child(a,i,&e);check_error(e);
+        trace_query("child", "begin", depth, i);
+        e=NULL;Accessible *b=get_child(a,i,&e);trace_query("child", "end", depth, b != NULL);check_error(e);
         find_model(b,depth+1);if(b)unref(b);
     }
 }
 #define LOAD(dst,sym) do { *(void **)(&dst)=dlsym(h,sym); \
     if(!dst){fprintf(stderr,"desktopa11y: missing %s\n",sym);return 2;} } while(0)
 int main(int argc,char **argv) {
-    terminal_mode=argc==3 && !strcmp(argv[1],"--terminal");
-    if(!terminal_mode && (argc<4 || argc>32 || argv[2][0]!='/' || !strchr(argv[2]+1,'/'))){fputs("usage: desktopa11y PID /absolute/directory +required -forbidden ... | --terminal PID\n",stderr);return 2;}
+    terminal_trace=argc==3 && !strcmp(argv[1],"--terminal-trace");
+    terminal_mode=terminal_trace || (argc==3 && !strcmp(argv[1],"--terminal"));
+    if(!terminal_mode && (argc<4 || argc>32 || argv[2][0]!='/' || !strchr(argv[2]+1,'/'))){fputs("usage: desktopa11y PID /absolute/directory +required -forbidden ... | --terminal PID | --terminal-trace PID\n",stderr);return 2;}
     const char *pid_arg=argv[terminal_mode?2:1];
     char *end;errno=0;unsigned long target=strtoul(pid_arg,&end,10);
     if(errno || end==pid_arg || *end || !target || target>2147483647)return 2;
@@ -94,16 +112,16 @@ int main(int argc,char **argv) {
     LOAD(get_name,"atspi_accessible_get_name");LOAD(get_description,"atspi_accessible_get_description");LOAD(get_role,"atspi_accessible_get_role");
     LOAD(get_pid,"atspi_accessible_get_process_id");LOAD(unref,"g_object_unref");LOAD(free_text,"g_free");LOAD(free_error,"g_error_free");
     if(terminal_mode){LOAD(get_states,"atspi_accessible_get_state_set");LOAD(contains_state,"atspi_state_set_contains");}
-    puts("A11Y_PHASE init");if(init())return 2;set_timeout(1500,3000);
-    Accessible *d=get_desktop(0);if(!d){finish();return 1;}
-    Error *e=NULL;int c=get_count(d,&e);check_error(e);int found=0;if(c<0||c>128)failed=1;
+    puts("A11Y_PHASE init");trace_query("init", "begin", 0, 0);int initialized=init();trace_query("init", "end", 0, initialized);if(initialized)return 2;set_timeout(1500,3000);
+    trace_query("desktop", "begin", 0, 0);Accessible *d=get_desktop(0);trace_query("desktop", "end", 0, d != NULL);if(!d){finish();return 1;}
+    trace_query("applications", "begin", 0, 0);Error *e=NULL;int c=get_count(d,&e);trace_query("applications", "end", 0, c);check_error(e);int found=0;if(c<0||c>128)failed=1;
     printf("A11Y_APPLICATIONS=%d\n",c);
     for(int i=0;i<c&&!failed&&!found;i++) {
-        e=NULL;Accessible *a=get_child(d,i,&e);check_error(e);if(!a){failed=1;break;}
-        e=NULL;unsigned pid=get_pid(a,&e);check_error(e);printf("A11Y_APP_PID=%u\n",pid);
+        trace_query("application", "begin", 0, i);e=NULL;Accessible *a=get_child(d,i,&e);trace_query("application", "end", 0, a != NULL);check_error(e);if(!a){failed=1;break;}
+        trace_query("pid", "begin", 0, 0);e=NULL;unsigned pid=get_pid(a,&e);trace_query("pid", "end", 0, (int)pid);check_error(e);printf("A11Y_APP_PID=%u\n",pid);
         if(pid==target){found++;find_model(a,0);}unref(a);
     }
-    unref(d);finish();
+    unref(d);trace_query("exit", "begin", 0, 0);finish();trace_query("exit", "end", 0, 0);
     if(!terminal_mode)for(int i=3;i<argc;i++){printf("A11Y_NAME %s matches=%u\n",argv[i],seen[i]);if(argv[i][0]=='+'?!seen[i]:seen[i]!=0)failed=1;}
     printf("desktopa11y: pid=%lu application=%d models=%d visited=%d %s\n",target,found,models,nodes,
            !failed&&found==1&&models==1?"PASSED":"NOT_READY");
