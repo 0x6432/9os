@@ -95,8 +95,11 @@ export SWAYSOCK
 if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
  input_ready=0
  for i in $(seq 100);do
-  swaymsg -t get_inputs > "$D/inputs.json"
-  if jq -e '[.[]|select(.type=="keyboard")]|length>0' "$D/inputs.json" >/dev/null;then input_ready=1;break;fi
+  # Socket creation precedes backend initialization. A transient IPC failure
+  # must remain a not-ready poll, not let set -e bypass the existing loop.
+  if swaymsg -t get_inputs > "$D/inputs.json" &&
+     jq -e '[.[]|select(.type=="keyboard")]|length>0' "$D/inputs.json" >/dev/null;then input_ready=1;break;fi
+  kill -0 "$swaypid" 2>/dev/null || break
   sleep .1
  done
  cat "$D/inputs.json"
