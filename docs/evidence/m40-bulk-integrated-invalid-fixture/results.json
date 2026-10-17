@@ -1,0 +1,12 @@
+{
+  "fixture_integrity_valid": false,
+  "runtime_head": "c24a22bae026b66f29906ba564ea656951aa474a",
+  "summary": [
+    "18/18 passed"
+  ],
+  "failures": [],
+  "observations": [
+    "terminal-dbus: pid=769 applications=1 models=1 visited=7 OBSERVED (diagnostic only)"
+  ],
+  "archive_sha256": "c4b08f8a1827bbb95de5e2ff6533c0097aa1aa5ef9b70674d962196e03ad171a"
+}
