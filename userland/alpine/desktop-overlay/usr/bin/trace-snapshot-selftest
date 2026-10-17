@@ -8,11 +8,13 @@ trap cleanup EXIT HUP INT TERM
 for mode in busy blocked stopped;do
  set +e
  (
-  if [ "$mode" = busy ];then /bin/sh -c 'while :;do :;done' &
-  else sleep 30 & fi
+  trace-snapshot-target "$mode" > "$D/target.out" 2>&1 &
   p=$!;echo "$p" > "$D/pid"
+  # Do not attach in the fork/exec gap while the child still has the shell's
+  # privilege/drop history. Require the plain target's own PID/mode witness.
+  for i in $(seq 100);do grep -qx "SNAPSHOT_TARGET_READY pid=$p mode=$mode" "$D/target.out" && break;sleep .01;done
+  grep -qx "SNAPSHOT_TARGET_READY pid=$p mode=$mode" "$D/target.out" || exit 2
   if [ "$mode" = stopped ];then
-   kill -STOP "$p"
    for i in $(seq 100);do grep -q '^State:.*T' "/proc/$p/status" && break;sleep .01;done
    grep -q '^State:.*T' "/proc/$p/status" || exit 2
   fi
@@ -23,7 +25,7 @@ for mode in busy blocked stopped;do
  rc=$?;set -e
  child=$(cat "$D/pid")
  if [ "$mode" = stopped ];then expected=1;else expected=0;fi
- if [ "$rc" != "$expected" ];then cat "$D/$mode.out";exit 1;fi
+ if [ "$rc" != "$expected" ];then cat "$D/target.out" "$D/$mode.out";cat "/proc/$child/status" 2>/dev/null || true;exit 1;fi
  grep -q '^TracerPid:[[:space:]]*0$' "/proc/$child/status" || { cat "$D/$mode.out";exit 1; }
  kill -0 "$child"
  if [ "$mode" = stopped ];then
