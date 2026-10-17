@@ -14,6 +14,11 @@ case ${ALPINE_A11Y_DBUS_VALIDATE:-0} in
  1) service_command="export ALPINE_A11Y_DBUS_VALIDATE=1; $service_command" ;;
  *) echo 'ALPINE_A11Y_DBUS_VALIDATE must be 0 or 1' >&2;exit 2 ;;
 esac
+case ${ALPINE_TERMINAL_QUERY:-atspi} in
+ atspi) ;;
+ live-dbus) service_command="export ALPINE_TERMINAL_QUERY=live-dbus; $service_command" ;;
+ *) echo 'ALPINE_TERMINAL_QUERY must be atspi or live-dbus' >&2;exit 2 ;;
+esac
 ROOT=userland/alpine-desktop-root-$ARCH
 DISK=build/alpine-desktop-$ARCH.img
 L=build/test-alpine-kms-$ARCH.log

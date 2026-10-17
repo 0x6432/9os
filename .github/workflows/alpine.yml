@@ -178,6 +178,7 @@ jobs:
           python3 tests/a11y-dbus-host/test-native.py --consumer native
           python3 tests/a11y-dbus-host/test-native.py --consumer signed-musl
           python3 scripts/a11y-dbus-integration-host-tests.py
+          python3 scripts/terminal-backend-host-tests.py
       - name: Build kernel/image and tiny ABI tests only; never compile desktop libraries
         run: |
           scripts/alpine-build-tests.sh "$ARCH"
@@ -186,7 +187,8 @@ jobs:
         run: scripts/alpine-desktop-tests.sh "$ARCH"
       - name: Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model
         run: |
-          ALPINE_QT_KEY_TRACE=1 ALPINE_A11Y_DBUS_VALIDATE=1 scripts/alpine-kms-tests.sh "$ARCH"
+          ALPINE_QT_KEY_TRACE=1 ALPINE_A11Y_DBUS_VALIDATE=1 ALPINE_TERMINAL_QUERY=live-dbus scripts/alpine-kms-tests.sh "$ARCH"
+          grep -qx "KONSOLE_READINESS_BACKEND=live-dbus" "build/test-alpine-kms-$ARCH.log"
           python3 scripts/qt-key-observer-check.py --require-no-autorepeat "build/test-alpine-kms-$ARCH.log"
       - uses: actions/upload-artifact@v4
         if: always()

@@ -60,7 +60,8 @@ class Integration(unittest.TestCase):
         stop=TEXT.index('  exit 1',diagnostic)
         ready=TEXT.index(' echo KONSOLE_FOCUSED_TERMINAL_READY')
         self.assertLess(failure,frozen);self.assertLess(frozen,diagnostic);self.assertLess(diagnostic,stop);self.assertLess(stop,ready)
-        self.assertIn('timeout -k 2 -s TERM 8 desktopa11y --terminal "$client"',TEXT[:failure])
+        self.assertIn('timeout -k 2 -s TERM 8 desktopa11y --terminal "$1"',TEXT[:failure])
+        self.assertIn('if focused_terminal_query "$client"',TEXT[:failure])
         self.assertIn('deadline=$(( $(date +%s) + 120 ))',TEXT[:failure])
 
 if __name__=='__main__':unittest.main()

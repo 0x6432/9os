@@ -84,3 +84,59 @@ M40, earlier cold-start/typing failures and integration holds remain open.
 - Qt 6.8.3 `src/gui/accessible/linux/qspidbuscache.cpp`: empty cache response.
 - at-spi2-core 2.56.2 `atspi-accessible.c` and `atspi-misc.c`: current consumer
   semantics and the per-node ChildCount/GetChildAtIndex round trips.
+
+## Explicit readiness-backend candidate (not default; current-head CI pending)
+
+`ALPINE_TERMINAL_QUERY=live-dbus` selects the independent live AT-SPI consumer
+BEFORE readiness is attempted. Default/unset/empty remains the existing `atspi`
+consumer. Unknown configuration fails before starting the session. There is no
+fallback between backends and no retry that reclassifies an earlier failed boot.
+Both use the same target PID, genuine terminal role, FOCUSED/SHOWING/VISIBLE
+requirements, eight-second per-query bound and 120-second original deadline.
+Only bulk child enumeration and the public GIO connection path differ.
+
+`python3 scripts/terminal-backend-host-tests.py` executes actual shell dispatch
+with synthetic commands: default remains original, live mode forwards the exact
+PID/bound, nonzero status is preserved, invalid input runs neither backend, and
+all original failure exits/input witnesses remain. This is not VM evidence.
+A separate PRIVATE fixed-scope trial completed on 2026-10-17: one signed-Linux
+control17/18 (all17 applicable, explicit missing-lockdep failure), then two x86
+9os cold boots18/18 EACH, no retries. Both guests observed genuine matching
+terminal PIDs926/932 with focused/showing/visible, UID1000 physical PTY command,
+Dolphin file-model and fresh physical pixels, clean exit and zero lockdep.
+All three raw390/262edges/128taps/0repeat/drop/error; Qt and Wayland observers
+were OFF on the application path. Build-free adapter dry-run emitted exactly
+one QEMU command, and every stopped-VM fixture hash check passed. The earlier
+integrated hash-failed sample remains INVALID, not silently replaced.
+
+Complete archives and the frozen runner are retained on the evidence-only branch
+`notion/m40-failure-phase-evidence`, directory
+`docs/evidence/m40-bulk-readiness-candidate`. Private probe selection differs
+from the checked-in optional shell dispatcher; its actual integrated boot and
+current-head all-architecture PR CI remain required. The CI explicitly chooses
+`live-dbus` and requires its exact backend witness while preserving the strict
+Qt platform observer and every physical/file-model gate.
+The candidate is NOT the unchanged original readiness gate. Earlier failures,
+source/CI validation requirements and all integration holds remain open.
+
+
+### Integrated selector failure retained, not a cure
+
+The checked-in selector at bcdf3602dc232ba1f0ae18514e84abbe44a2a731 then
+failed its one fixed x86 boot8/18 with VALID before/after fixture hashes:
+PTY publication was missing (pty0/terminal0, Konsole PID901). The readiness
+query was never called because its genuine PTY prerequisite was not met. The
+failure-only independent query found only Plasma PID275, not Konsole901, and
+returned applications0/models0. Sender refused all physical typing; empty raw
+capture is not input proof. This failure is not silently retried or replaced
+by the earlier private18/18 positives. All reliability/integration holds remain.
+Complete evidence: evidence-only commit aeeaeb963896d978f3f770f962f1af782253f639,
+`docs/evidence/m40-readiness-integrated-failure`.
+
+Current-head PR34 prebuilt jobs at bcdf360: all three actual desktop jobs passed,
+but the x86 base host model failed because its extracted shell block omitted
+`focused_terminal_query`. Fix the fixture, not the production gate: include the
+actual selector and execute ALL eight existing positive/negative/mutation tests
+for BOTH backends and all Qt/Wayland trace-flag combinations. The repaired
+fixture passes8/8; these remain synthetic controls, not GUI proof. New-head CI
+is required; do not substitute the old-head desktop successes.
