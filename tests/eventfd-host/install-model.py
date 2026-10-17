@@ -20,7 +20,7 @@ assert p.name==expected
 if stem in ['qt-key-observer','qt-key-observer-mock']:
  assert '-shared' in a and '-fPIC' in a and '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
  assert '-Wl,--version-script=userland/tests/qt-key-observer/'+stem+'.map' in a
-if stem in ['trace-snapshot','snapshot-target']:
+if stem in ['trace-snapshot','snapshot-target','unixpolltest']:
  assert '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
 if stem=='qt-key-observer-caller':
  assert '-lqt-key-observer-mock' in a and '-Wl,-rpath,/usr/lib/9os-tests' in a
@@ -109,3 +109,22 @@ for label,changed in [('missing',script.replace('in trace-snapshot snapshot-targ
 assert (ROOT/'userland/tests/trace-snapshot/snapshot-target.c').is_file()
 assert not (ROOT/'userland/tests/snapshot-target.c').exists()
 print('non-setuid snapshot target: strict nested source/output; missing/duplicate rejected')
+
+assert run(script,'unixpolltest'), 'Unix poll consumer not installed exactly once'
+for label,changed in [('missing',script.replace(' unixpolltest ', ' ',1)),('duplicate',script.replace(' unixpolltest ',' unixpolltest unixpolltest ',1))]:
+ assert changed!=script
+ assert not run(changed,'unixpolltest'), 'Unix poll installer mutation survived: '+label
+print('Unix poll installer: exact output; missing/duplicate rejected')
+
+# These flags are part of the installed consumer contract, not only native CI.
+# Reject each missing flag independently using the actual installer/fake compiler.
+for missing,flags in [('-Werror','-D_FORTIFY_SOURCE=2'),('-D_FORTIFY_SOURCE=2','-Werror')]:
+ changed=script.replace('flags="-Werror -D_FORTIFY_SOURCE=2"','flags="'+flags+'"',1)
+ assert changed!=script
+ try:
+  run(changed,'unixpolltest')
+ except subprocess.CalledProcessError:
+  pass
+ else:
+  raise AssertionError('Unix installer missing strict flag survived: '+missing)
+print('Unix poll installer: missing Werror/fortify flags rejected independently')

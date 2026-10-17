@@ -255,9 +255,10 @@ extern struct inode *vfs_root;
 /* global wait queue for poll/select: woken on any I/O readiness change */
 extern struct wait_queue poll_wq;
 void poll_notify(void);
-/* Targeted notifications currently belong only to eventfd. Notify every
- * affected inode, or use the conservative global poll_notify(). */
+/* Targeted notifications cover eventfd and connected AF_UNIX data changes.
+ * Include every affected inode; unknown dependencies require global fallback. */
 void poll_notify_file(struct file *f);
+void poll_notify_mask(uint64_t mask);
 uint64_t poll_file_key(struct file *f);
 extern uint64_t poll_seq;
 int poll_wait_seq(uint64_t seq, uint64_t ns);

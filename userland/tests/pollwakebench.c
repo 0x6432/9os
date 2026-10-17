@@ -14,6 +14,7 @@
 #include <sys/inotify.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -21,7 +22,7 @@
 #if ATOMIC_INT_LOCK_FREE != 2
 #error "The timeout diagnostic requires lock-free atomic int"
 #endif
-static int fd[N], ino[N], watch_poll, ready, failed;
+static int fd[N], ino[N], watch_poll, unix_transfer, ready, failed;
 static long switches[N];
 static atomic_int phase, created;
 
@@ -36,7 +37,7 @@ static void timeout_handler(int sig) {
     switch (atomic_load_explicit(&phase, memory_order_relaxed)) {
 #define STALLED(n, text) case n: diagnostic_write(text, sizeof(text) - 1); break
         STALLED(0, "pollwakebench: TIMEOUT waiting for private pollers to start\n");
-        STALLED(1, "pollwakebench: TIMEOUT in unrelated eventfd transfers\n");
+        STALLED(1, "pollwakebench: TIMEOUT in unrelated IPC transfers\n");
         STALLED(2, "pollwakebench: TIMEOUT waking private pollers\n");
         STALLED(3, "pollwakebench: TIMEOUT joining private pollers\n");
 #undef STALLED
@@ -70,10 +71,12 @@ static void *sleeper(void *arg) {
     return NULL;
 }
 int main(int argc, char **argv) {
-    if (argc > 2 || (argc == 2 && strcmp(argv[1], "--inotify"))) {
-        fprintf(stderr, "usage: pollwakebench [--inotify]\n"); return 2;
+    if (argc > 2 || (argc == 2 && strcmp(argv[1], "--inotify") &&
+                    strcmp(argv[1], "--unix") && strcmp(argv[1], "--unix-inotify"))) {
+        fprintf(stderr, "usage: pollwakebench [--inotify|--unix|--unix-inotify]\n"); return 2;
     }
-    watch_poll = argc == 2;
+    watch_poll = argc == 2 && (!strcmp(argv[1], "--inotify") || !strcmp(argv[1], "--unix-inotify"));
+    unix_transfer = argc == 2 && (!strcmp(argv[1], "--unix") || !strcmp(argv[1], "--unix-inotify"));
     if (signal(SIGALRM, timeout_handler) == SIG_ERR) { perror("signal"); return 2; }
     alarm(45);
     setvbuf(stdout, NULL, _IOLBF, 0);
@@ -87,15 +90,23 @@ int main(int argc, char **argv) {
     }
     while (__atomic_load_n(&ready, __ATOMIC_ACQUIRE) != N) usleep(1000);
     usleep(20000);
-    int other = eventfd(0, EFD_CLOEXEC);
-    if (other < 0) return 2;
+    int other, other_read;
+    if (unix_transfer) {
+        int pair[2];
+        if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, pair)) return 2;
+        other = pair[0]; other_read = pair[1];
+    } else {
+        other = eventfd(0, EFD_CLOEXEC);
+        if (other < 0) return 2;
+        other_read = other;
+    }
     struct rusage a = {0}, b = {0};
     if (getrusage(RUSAGE_THREAD, &a)) fail();
     atomic_store_explicit(&phase, 1, memory_order_relaxed);
     long long start = ns();
     for (int i = 0; i < 1000; i++) {
         uint64_t one = 1, v = 0;
-        if (write(other, &one, 8) != 8 || read(other, &v, 8) != 8 || v != 1) fail();
+        if (write(other, &one, 8) != 8 || read(other_read, &v, 8) != 8 || v != 1) fail();
     }
     long long elapsed = ns() - start;
     if (getrusage(RUSAGE_THREAD, &b)) fail();
@@ -112,10 +123,12 @@ int main(int argc, char **argv) {
         close(fd[i]);
         if (ino[i] >= 0) close(ino[i]);
     }
+    if (other_read != other) close(other_read);
     close(other);
     printf("pollwakebench: transfers=1000 idle_waiters=%d wall_ms=%lld "
-           "producer_switches=%ld waiter_switches=%ld failures=%d inotify_waiters=%d\n", N, elapsed / 1000000,
+           "producer_switches=%ld waiter_switches=%ld failures=%d inotify_waiters=%d transport=%s\n", N, elapsed / 1000000,
            b.ru_nvcsw + b.ru_nivcsw - a.ru_nvcsw - a.ru_nivcsw, total,
-           __atomic_load_n(&failed, __ATOMIC_RELAXED), watch_poll ? N : 0);
+           __atomic_load_n(&failed, __ATOMIC_RELAXED), watch_poll ? N : 0,
+           unix_transfer ? "unix-stream" : "eventfd");
     return __atomic_load_n(&failed, __ATOMIC_RELAXED) ? 1 : 0;
 }
