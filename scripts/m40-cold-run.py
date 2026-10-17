@@ -16,11 +16,11 @@ def active():
   if any(a.rsplit(b'/',1)[-1].startswith(b'qemu-system-')and b' 'not in a and b'\n'not in a for a in args):return True
  return False
 def main():
- assert len(sys.argv)==2 and sys.argv[1]in ['linux1','guest1'];sample=sys.argv[1]
+ assert len(sys.argv)==2 and sys.argv[1]in ['linux1','guest1','guest2','guest3'];sample=sys.argv[1]
  result=D/(sample+'-result.json');assert not result.exists(),'no retries'
  manifest=json.loads((D/'fixtures.json').read_text())
  def integrity():return not active()and all(hashlib.file_digest((TOP/p).open('rb'),'sha256').hexdigest()==h for p,h in manifest.items())
- if sample=='guest1':assert json.loads((D/'linux1-result.json').read_text())['accepted'],'control must pass first'
+ if sample.startswith('guest'):assert json.loads((D/'linux1-result.json').read_text())['accepted'],'control must pass first'
  info={'sample':sample,'started':time.time(),'accepted':False,'fixture_before':False,'fixture_after':False}
  result.write_text(json.dumps(info,indent=2)+'\n')
  info['fixture_before']=integrity()
