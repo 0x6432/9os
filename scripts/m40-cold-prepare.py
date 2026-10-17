@@ -51,7 +51,7 @@ echo LINUX_PHYSICAL_ORACLE_KERNEL=Linux
 exec chroot /rootfs /sbin/init
 ''');(I/'init').chmod(0o755)
 subprocess.run('find . -print0 | cpio -0 -o -H newc --owner=0:0 --quiet | gzip -1 > '+str(D/'linux-init.cpio.gz'),cwd=I,shell=True,check=True)
-for sample in ['linux1','guest1']:
+for sample in ['linux1','guest1','guest2','guest3']:
  B=D/'adapters'/sample;B.mkdir(parents=True)
  if sample=='linux1':
   text='''#!/usr/bin/env python3
@@ -78,5 +78,5 @@ files += [R/'usr/bin'/n for n in ['alpine-plasma-probe','desktopa11y','desktopa1
 files += [TOP/'scripts'/n for n in ['m40-cold-driver.sh','m40-cold-prepare.py','m40-cold-run.py','qemu-test.py','qemu-ready-type.py','qemu-type.py']]
 manifest={str(p.relative_to(TOP)):hashlib.file_digest(p.open('rb'),'sha256').hexdigest()for p in files}
 (D/'fixtures.json').write_text(json.dumps(manifest,indent=2)+'\n')
-(D/'plan.json').write_text(json.dumps({'validation_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'runtime_base':'935bd746cb6ea6d9ed833a5125b8f4465dc31ee7','fixed_samples':['linux1','guest1'],'retries':0,'observers':'Qt/Wayland off; failure-only snapshots','expected_linux':'17/18; only missing 9os lockdep','expected_9os':'18/18; raw physical capture required'},indent=2)+'\n')
+(D/'plan.json').write_text(json.dumps({'validation_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'runtime_base':'935bd746cb6ea6d9ed833a5125b8f4465dc31ee7','fixed_samples':['linux1','guest1','guest2','guest3'],'retries':0,'observers':'Qt/Wayland off; failure-only snapshots','expected_linux':'17/18; only missing 9os lockdep','expected_9os':'18/18; raw physical capture required'},indent=2)+'\n')
 print('FIXED_COLD_FIXTURES_READY')

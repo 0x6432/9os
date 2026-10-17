@@ -7,7 +7,7 @@ set -eu
 cd "$(dirname "$0")/.."
 TOP=$(pwd -P)
 COLD_DIR="$TOP/build/m40-cold"
-case ${COLD_SAMPLE:-} in linux1|guest1) ;;*) echo "Invalid fixed sample" >&2;exit 2;;esac
+case ${COLD_SAMPLE:-} in linux1|guest1|guest2|guest3) ;;*) echo "Invalid fixed sample" >&2;exit 2;;esac
 export MAKEFLAGS="ROOTFS=$TOP/userland/alpine-root-x86_64"
 ARCH=${1:-x86_64}
 [ "$ARCH" = x86_64 ] || { echo "Fixed experiment is x86_64 only" >&2;exit 2; }

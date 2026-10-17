@@ -1,5 +1,5 @@
 # Validation-only branch based on PR35. Never merge over the product workflow.
-name: m40-fixed-durable-cold-experiment
+name: m40-fixed-durable-three-cold-boots
 on:
   workflow_dispatch:
 permissions:
@@ -10,7 +10,7 @@ concurrency:
 jobs:
   fixed-x86-plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     env:
       ARCH: x86_64
       TOOLS_DIR: ${{ github.workspace }}/.tools
@@ -56,9 +56,10 @@ jobs:
             build/test-alpine-desktop-*.log
             userland/build/alpine-desktop-x86_64.lock.json
           if-no-files-found: warn
-      - name: Prepare immutable one-control one-guest plan
+      - name: Prepare immutable one-control three-guest plan
         run: python3 scripts/m40-cold-prepare.py
       - name: Exactly one signed Linux control
+        id: linux
         timeout-minutes: 25
         run: python3 scripts/m40-cold-run.py linux1
       - uses: actions/upload-artifact@v4
@@ -74,7 +75,8 @@ jobs:
             scripts/m40-cold-*
             userland/tests/trace-snapshot/*.c
           if-no-files-found: warn
-      - name: Exactly one 9os cold boot only after accepted Linux control
+      - name: Planned 9os cold boot 1 of 3
+        if: ${{ !cancelled() && steps.linux.outcome == 'success' }}
         timeout-minutes: 25
         run: python3 scripts/m40-cold-run.py guest1
       - uses: actions/upload-artifact@v4
@@ -88,5 +90,35 @@ jobs:
             build/m40-cold/guest1*.png
             build/m40-cold/guest1*.txt
             build/x86_64-alpine/kernel.elf
+            scripts/m40-cold-*
+          if-no-files-found: warn
+      - name: Planned 9os cold boot 2 of 3
+        if: ${{ !cancelled() && steps.linux.outcome == 'success' }}
+        timeout-minutes: 25
+        run: python3 scripts/m40-cold-run.py guest2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cold-9os-2-${{ github.run_id }}
+          path: |
+            build/m40-cold/*.json
+            build/m40-cold/guest2*.out
+            build/m40-cold/guest2.log
+            build/m40-cold/guest2*.png
+            scripts/m40-cold-*
+          if-no-files-found: warn
+      - name: Planned 9os cold boot 3 of 3
+        if: ${{ !cancelled() && steps.linux.outcome == 'success' }}
+        timeout-minutes: 25
+        run: python3 scripts/m40-cold-run.py guest3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cold-9os-3-${{ github.run_id }}
+          path: |
+            build/m40-cold/*.json
+            build/m40-cold/guest3*.out
+            build/m40-cold/guest3.log
+            build/m40-cold/guest3*.png
             scripts/m40-cold-*
           if-no-files-found: warn

@@ -9,7 +9,7 @@ that runtime diff is empty. Pushing this non-main branch without opening a PR
 does not restart PR35's expensive source workflow.
 
 Plan: unchanged desktop prerequisite, then exactly one signed Linux6.12.113-r0
-control and one fresh 9os cold boot. Guest boot is blocked unless Linux passes
+control and THREE separately planned fresh 9os cold boots. All guest boots are blocked unless Linux passes
 all17 applicable gates, with the missing9os lockdep gate explicitly retained as
 the sole failure. 9os must pass all18 gates plus raw physical input capture. Each
 sample needs both root/user snapshot selftests, genuine focused-terminal witness,
@@ -42,3 +42,20 @@ are NOT boot or GUI evidence. Current-head functional PR CI already passed all3
 separate. Genuine earlier missing-PTY and focus failures are not erased. M40 is
 NOT complete. The previous local physical experiment lost to a sandbox reset has
 UNKNOWN outcomes and is not reconstructed or silently replaced by this new job.
+
+
+## Three-sample plan, not a retry of the original plan
+Original fixed run39035386400 at58f26eb completed Linux17/18 applicable and
+9os18/18 with both fixture hashes and raw capture accepted. Evidence commit
+dfb8228 preserves the complete original artifacts; no outcome is overwritten.
+This new branch leaves the original validation branch unchanged and keeps the
+runtime935bd74 identical. It defines guest1/guest2/guest3 BEFORE execution.
+After an accepted Linux control each guest runs exactly once, regardless of an
+earlier guest failure, so any failure diagnostics are retained without selecting
+only successes. A failed step still makes the job fail. No continue-on-error,
+retry, observer fallback, deadline enlargement or changed acceptance threshold.
+Each guest has its own result/log/PNG and immediate always-upload artifact.
+Linux failure or cancellation blocks every guest. Separate snapshot overlays
+prevent persistent effects; fixture hashes are checked before/after EACH sample.
+A three-sample success is bounded repeated functional evidence, not a causal fix,
+statistical reliability guarantee, approval to merge held work, or M40 completion.
