@@ -13,3 +13,15 @@ Artifact12112686490, linux1 accepted17/18applicable; sole expected missing9os
 lockdep. Driver1/raw0 as planned, bothfrozenhashes valid; actualraw390events/
 262edges/128taps0errors. Noinputobserversloaded. All3guestresults pending;
 firstguest nowrunning. No coldguestacceptance or wholeplan success claim.
+
+## Guest1 FAILED, fixed series still running
+Originalartifact12112188855: guest1FAILED8/18,driver1/raw1,bothfrozenhashesvalid.
+PTYpublished1,focusedterminalgate0,pid1044. Last8secondquery alarmed before
+reaching terminal role. ALL3 failure-only snapshotsrc0,936chunks,2selectedmaps,
+PC/SPcoverage1/1,truncated/error/malformed0. AllthreePCs map to musl at the same
+address; registervalues include interruptedppoll/EINTR, NOT proof of a missed
+wake/deadlock. Postfailure query OBSERVED actualterminalfocused1, but AFTER
+ptrace timingperturbation; cannotrescuefailedoriginalgate. Raw physicalstream
+not delivered because readiness neverpassed; no fakeacceptance/no retry.
+Remainingguest2/3 predeclared stillrunindependently. Wholeplan cannot succeed
+after thisfailure. PR38 optimization has NOTsolvedstartup; allholdsretained.
