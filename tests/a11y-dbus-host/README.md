@@ -93,6 +93,37 @@ consumer. Unknown configuration fails before starting the session. There is no
 fallback between backends and no retry that reclassifies an earlier failed boot.
 Both use the same target PID, genuine terminal role, FOCUSED/SHOWING/VISIBLE
 requirements, eight-second per-query bound and 120-second original deadline.
+
+## WIP paired live queries after a real two-host-CPU timeout
+
+Fixed run39050199421, unchanged runtime935bd74, first guest failed8/18 with
+valid before/after hashes. It published its real PTY but the live query's
+eight-second alarm expired while walking shallow accessible nodes. A preceding
+Linux control passed all17 applicable gates under the same actual4-to-2 CPU
+affinity reduction. This differs from the earlier missing-PTY failure; it does
+not prove the terminal was unfocused or identify a kernel root cause. Original
+failure artifacts remain on the separate evidence branch.
+
+This candidate submits a node's independent read-only GetRole and GetChildren
+calls together, then drains BOTH completions before releasing callback storage.
+Replies may arrive in either order. Authentication, live terminal role/state,
+all exact reply signatures, menu pruning, tree/children/application bounds,
+1500ms call timeout, alarm8 and the shell120s deadline stay unchanged. No cache,
+fallback, focus request, application patch, physical-key injection or acceptance
+substitution. GetChildren is also queried for pruned/terminal nodes; any remote
+error still fails closed. This is a round-trip scheduling hypothesis, not a
+kernel or cold-start cure.
+
+The explicit synthetic paired-valid server withholds each GetRole reply until
+the same node's GetChildren arrives, then replies in reverse order. The original
+935bd74 serial consumer passes the ordinary positive but fails this new positive
+with a real method timeout. The candidate passes both, including exact protocol
+ordering assertions. Paired role error, paired children error and blocked
+children supplement every old negative; total27 real private IPC controls plus
+7 CLI bounds. Native x86 passed; local signed-musl test was BLOCKED before
+compilation by missing clang, not a consumer pass. New-head signed-musl, real
+Linux/9os, portable PR CI and review remain required. No local Qt/Mesa/LLVM/GLib
+library compilation, deadline enlargement or gate waiver. M40 remains open.
 Only bulk child enumeration and the public GIO connection path differ.
 
 `python3 scripts/terminal-backend-host-tests.py` executes actual shell dispatch

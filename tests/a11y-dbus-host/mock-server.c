@@ -6,8 +6,16 @@
 #include <string.h>
 #include <unistd.h>
 static const char *mode,*unique;
+static GDBusMethodInvocation *pending_role;
+static char *pending_path;
 static const char *root="/org/a11y/atspi/accessible/root",*app="/org/a11y/atspi/accessible/app",*frame="/org/a11y/atspi/accessible/frame",*terminal="/org/a11y/atspi/accessible/terminal",*menu="/org/a11y/atspi/accessible/menu";
 static int is(const char*s){return !strcmp(mode,s);}
+static int paired(void){return is("paired-valid")||is("paired-role-error")||is("paired-children-error");}
+static void role_reply(GDBusMethodInvocation *inv,const char *path){
+ unsigned role=!strcmp(path,app)?75:!strcmp(path,frame)?23:!strcmp(path,terminal)?(is("wrong-role")?61:60):!strcmp(path,menu)?34:0;
+ if(is("paired-role-error"))g_dbus_method_invocation_return_dbus_error(inv,"org.test.PairRoleError","explicit paired negative");
+ else g_dbus_method_invocation_return_value(inv,g_variant_new("(u)",role));
+}
 static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,const gchar *iface,const gchar *name,GVariant *parameters,GDBusMethodInvocation *inv,gpointer data){
  (void)sender;(void)iface;(void)parameters;(void)data;
  /* Explicitly forge mismatched signatures using public message APIs. The
@@ -24,9 +32,12 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
  if(!strcmp(name,"GetAddress")){g_dbus_method_invocation_return_value(inv,g_variant_new("(s)",is("bad-address")?"invalid":getenv("DBUS_SESSION_BUS_ADDRESS")));return;}
  if(is("remote-error")&&!strcmp(name,"GetRole")){g_dbus_method_invocation_return_dbus_error(inv,"org.test.QueryError","explicit negative");return;}
  if(!strcmp(name,"GetRole")){
+  if(paired()){
+   if(pending_role){g_dbus_method_invocation_return_dbus_error(inv,"org.test.Overlap","more than one node in flight");return;}
+   pending_role=g_object_ref(inv);pending_path=g_strdup(path);return;
+  }
   if(is("blocked-role"))g_usleep(2500000);
-  unsigned role=!strcmp(path,app)?75:!strcmp(path,frame)?23:!strcmp(path,terminal)?(is("wrong-role")?61:60):!strcmp(path,menu)?34:0;
-  g_dbus_method_invocation_return_value(inv,g_variant_new("(u)",role));return;
+  role_reply(inv,path);return;
  }
  if(!strcmp(name,"GetState")){
   GVariantBuilder b;g_variant_builder_init(&b,G_VARIANT_TYPE("au"));
@@ -39,6 +50,7 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
   g_dbus_method_invocation_return_value(inv,g_variant_new("(au)",&b));return;
  }
  if(!strcmp(name,"GetChildren")){
+  if(is("blocked-children")&&strcmp(path,root))g_usleep(2500000);
   GVariantBuilder b;g_variant_builder_init(&b,G_VARIANT_TYPE("a(so)"));
   if(!strcmp(path,root)){
    unsigned n=is("many-apps")?129:is("duplicate-app")?2:is("empty")?0:1;
@@ -49,7 +61,18 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
   }else if(!strcmp(path,frame)){
    g_variant_builder_add(&b,"(so)",is("foreign-child")?":1.999999":unique,is("cycle")?frame:is("menu-decoy")?menu:terminal);
   }else if(!strcmp(path,menu))g_variant_builder_add(&b,"(so)",unique,terminal);
-  g_dbus_method_invocation_return_value(inv,g_variant_new("(a(so))",&b));return;
+  if(is("paired-children-error")&&pending_role){
+   g_variant_builder_clear(&b);
+   g_dbus_method_invocation_return_dbus_error(inv,"org.test.PairChildrenError","explicit paired negative");
+  }else g_dbus_method_invocation_return_value(inv,g_variant_new("(a(so))",&b));
+  /* Child reply deliberately precedes role reply. A serial consumer cannot
+   * pass this explicit synthetic mode: GetRole waits for GetChildren. */
+  if(paired()&&pending_role){
+   if(strcmp(path,pending_path))g_error("paired fixture path mismatch");
+   role_reply(pending_role,pending_path);g_object_unref(pending_role);
+   pending_role=NULL;g_free(pending_path);pending_path=NULL;
+  }
+  return;
  }
  g_dbus_method_invocation_return_dbus_error(inv,"org.test.Unknown","unexpected query");
 }

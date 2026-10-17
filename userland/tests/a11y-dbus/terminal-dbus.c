@@ -5,6 +5,9 @@
  * references using org.freedesktop.DBus.GetConnectionUnixProcessID on that bus.
  * Bulk GetChildren avoids ChildCount plus a separate call for every child.
  * Every signature, bound and remote error fails closed. No cache GetItems.
+ * GetRole/GetChildren are independent read-only calls: submit both before
+ * waiting, then drain BOTH callbacks before releasing their stack storage.
+ * This reduces serialized round trips, not any acceptance requirement/bound.
  */
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -20,6 +23,9 @@ typedef void Error;
 static Obj *(*bus_get)(int,Obj *,Error **);
 static Obj *(*connect_address)(const char *,int,Obj *,Obj *,Error **);
 static Obj *(*call_sync)(Obj *,const char *,const char *,const char *,const char *,Obj *,const Obj *,int,int,Obj *,Error **);
+static void (*call_async)(Obj *,const char *,const char *,const char *,const char *,Obj *,const Obj *,int,int,Obj *,void (*)(Obj *,Obj *,void *),void *);
+static Obj *(*call_finish)(Obj *,Obj *,Error **);
+static int (*context_iteration)(Obj *,int);
 static Obj *(*variant_child)(Obj *,size_t);
 static size_t (*variant_count)(Obj *);
 static const char *(*variant_type)(Obj *);
@@ -67,14 +73,44 @@ static Obj *children(const struct Ref *r){
  if(variant_count(a)>512){variant_unref(a);err("children-bound");return NULL;}
  return a;
 }
+struct Pending {const char *method,*signature;Obj *reply;int done;};
+static void node_reply(Obj *source,Obj *result,void *data){
+ struct Pending *p=data;Error *e=NULL;
+ p->reply=call_finish(source,result,&e);
+ printf("DBUS_A11Y_QUERY method=%s phase=end ok=%d mono_ns=%llu\n",p->method,p->reply!=NULL&&e==NULL,mono());
+ if(e){error_free(e);err("remote-call");}
+ if(!p->reply){if(!failed)err("missing-reply");}
+ else if(strcmp(variant_type(p->reply),p->signature))err("reply-signature");
+ p->done=1;
+}
+static int node(const struct Ref *r,Obj **role,Obj **child_array){
+ struct Pending p[2]={{"GetRole","(u)",NULL,0},{"GetChildren","(a(so))",NULL,0}};
+ for(unsigned i=0;i<2;i++){
+  printf("DBUS_A11Y_QUERY method=%s phase=begin bus=%s path=%s mono_ns=%llu\n",p[i].method,r->name,r->path,mono());
+  call_async(bus,r->name,r->path,accessible,p[i].method,NULL,NULL,0,1500,NULL,node_reply,&p[i]);
+ }
+ /* Even on error do not return while another callback owns &p[i]. Both
+  * public GIO operations keep their original1500ms bound; alarm8 is unchanged. */
+ while(!p[0].done||!p[1].done)context_iteration(NULL,1);
+ if(failed){
+  for(unsigned i=0;i<2;i++)if(p[i].reply)variant_unref(p[i].reply);
+  return 0;
+ }
+ *role=p[0].reply;*child_array=variant_child(p[1].reply,0);variant_unref(p[1].reply);
+ if(variant_count(*child_array)>512){
+  variant_unref(*role);variant_unref(*child_array);err("children-bound");return 0;
+ }
+ return 1;
+}
 static void walk(const struct Ref *r,unsigned depth){
  if(failed||models)return;
  if(depth>24||++nodes>256){err("tree-bound");return;}
- Obj *v=query(bus,r,accessible,"GetRole",NULL,"(u)");if(!v)return;
+ Obj *v,*a;if(!node(r,&v,&a))return;
  Obj *c=variant_child(v,0);unsigned role=variant_uint(c);variant_unref(c);variant_unref(v);
  printf("DBUS_A11Y_NODE depth=%u node=%u role=%u\n",depth,nodes,role);
- if(role==33||role==34||role==35||role==41||role==63)return;
+ if(role==33||role==34||role==35||role==41||role==63){variant_unref(a);return;}
  if(role==60){
+  variant_unref(a);
   v=query(bus,r,accessible,"GetState",NULL,"(au)");if(!v)return;
   Obj *a=variant_child(v,0);variant_unref(v);
   if(variant_count(a)!=2){variant_unref(a);err("state-width");return;}
@@ -84,7 +120,6 @@ static void walk(const struct Ref *r,unsigned depth){
   if(focused&&showing&&visible)models++;
   return;
  }
- Obj *a=children(r);if(!a)return;
  for(size_t i=0;i<variant_count(a)&&!failed&&!models;i++){
   c=variant_child(a,i);struct Ref child;int valid=reference(c,&child);variant_unref(c);
   if(!valid)break;
@@ -102,6 +137,7 @@ int main(int argc,char **argv){
  target=(unsigned)p;setvbuf(stdout,NULL,_IOLBF,0);alarm(8);
  void *h=dlopen("libgio-2.0.so.0",RTLD_NOW);if(!h){fprintf(stderr,"%s\n",dlerror());return 2;}
  LOAD(bus_get,"g_bus_get_sync");LOAD(connect_address,"g_dbus_connection_new_for_address_sync");LOAD(call_sync,"g_dbus_connection_call_sync");
+ LOAD(call_async,"g_dbus_connection_call");LOAD(call_finish,"g_dbus_connection_call_finish");LOAD(context_iteration,"g_main_context_iteration");
  LOAD(variant_child,"g_variant_get_child_value");LOAD(variant_count,"g_variant_n_children");LOAD(variant_type,"g_variant_get_type_string");LOAD(variant_string,"g_variant_get_string");LOAD(variant_uint,"g_variant_get_uint32");LOAD(variant_new,"g_variant_new");LOAD(variant_unref,"g_variant_unref");LOAD(object_unref,"g_object_unref");LOAD(error_free,"g_error_free");
  Error *e=NULL;Obj *session=bus_get(2,NULL,&e);
  if(e){error_free(e);err("session-connect");}if(!session)return 1;
