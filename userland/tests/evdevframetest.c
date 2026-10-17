@@ -114,7 +114,14 @@ int main(void) {
     /* A blocking reader must not consume an incomplete packet even when another
      * notification wakes the shared poll queue. Child announces enrollment first. */
     int p[2];CHECK(pipe(p)==0,"blocking report pipe");pid_t child=fork();CHECK(child>=0,"blocking fork");
-    if(child==0){alarm(5);close(p[0]);int e=open(node,O_RDONLY);char ready='R';write(p[1],&ready,1);struct input_event ev[4];ssize_t n=read(e,ev,sizeof ev);int ok=n==2*(ssize_t)sizeof ev[0]&&ev[0].type==EV_REL&&ev[0].value==44&&ev[1].type==EV_SYN;write(p[1],&ok,sizeof ok);close(e);_exit(ok?0:1);}
+    if(child==0){
+        alarm(5);close(p[0]);int e=open(node,O_RDONLY);if(e<0)_exit(2);
+        char ready='R';if(write(p[1],&ready,1)!=1)_exit(2);
+        struct input_event ev[4];ssize_t n=read(e,ev,sizeof ev);
+        int ok=n==2*(ssize_t)sizeof ev[0]&&ev[0].type==EV_REL&&ev[0].value==44&&ev[1].type==EV_SYN;
+        if(write(p[1],&ok,sizeof ok)!=sizeof ok)_exit(2);
+        close(e);_exit(ok?0:1);
+    }
     if(child>0){close(p[1]);char ready=0;CHECK(read(p[0],&ready,1)==1&&ready=='R',"blocking child enrolled");
         event(u,EV_REL,REL_X,44);CHECK(!readable(p[0],50),"blocking read waits for SYN");sync_(u);
         CHECK(readable(p[0],2000),"blocking read wakes on completed frame");int ok=0;CHECK(read(p[0],&ok,sizeof ok)==sizeof ok&&ok,"blocking complete payload");int st=0;CHECK(waitpid(child,&st,0)==child&&WIFEXITED(st)&&WEXITSTATUS(st)==0,"blocking child exits cleanly");close(p[0]);}
