@@ -8,6 +8,10 @@ def evaluate(sample,text,rc,raw,integrity):
  expected=['17/18 passed']if sample=='linux1'else['18/18 passed']
  allowed=['FAIL   grep -q "^violations 0" /proc/lockdep']if sample=='linux1'else[]
  return bool(integrity and raw==0 and rc==(1 if sample=='linux1'else 0)and totals==expected and failures==allowed and len(re.findall(r'^trace-snapshot-selftest: PASSED 3/3 synthetic process controls; not GUI proof$',text,re.M))==2 and re.search(r'^KONSOLE_FOCUSED_TERMINAL_READY$',text,re.M) and re.search(r'^KONSOLE_READINESS_BACKEND=live-dbus$',text,re.M) and 'QT_KEY_TRACE_LOADED'not in text and 'WAYLAND_KEY_TRACE 'not in text)
+def validate_cpu_selection(selected,available):
+ assert len(selected)==2 and all(type(c)is int and c>=0 for c in selected)
+ assert selected==sorted(set(selected)) and set(selected)<=set(available)
+ return selected
 def active():
  for p in Path('/proc').iterdir():
   if not p.name.isdigit():continue
@@ -21,7 +25,12 @@ def main():
  manifest=json.loads((D/'fixtures.json').read_text())
  def integrity():return not active()and all(hashlib.file_digest((TOP/p).open('rb'),'sha256').hexdigest()==h for p,h in manifest.items())
  if sample.startswith('guest'):assert json.loads((D/'linux1-result.json').read_text())['accepted'],'control must pass first'
- info={'sample':sample,'started':time.time(),'accepted':False,'fixture_before':False,'fixture_after':False}
+ profile=json.loads((D/'host-profile.json').read_text())
+ available=sorted(os.sched_getaffinity(0))
+ selected=validate_cpu_selection(profile['selected_cpus'],available)
+ os.sched_setaffinity(0,selected)
+ assert sorted(os.sched_getaffinity(0))==selected, 'required affinity was not applied'
+ info={'host_available_cpus':available,'host_selected_cpus':selected,'sample':sample,'started':time.time(),'accepted':False,'fixture_before':False,'fixture_after':False}
  result.write_text(json.dumps(info,indent=2)+'\n')
  info['fixture_before']=integrity()
  if not info['fixture_before']:raise SystemExit('STOP initial fixture mismatch or active VM')

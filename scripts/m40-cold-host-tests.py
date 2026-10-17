@@ -17,6 +17,13 @@ class Controls(unittest.TestCase):
   for changed in [s.replace('lockdep','other'),s.replace('17/18','16/18'),s.replace('FAIL   ','PASS   '),s+'FAIL   other\n']:
    self.assertFalse(plan.evaluate('linux1',changed,1,0,True))
   self.assertFalse(plan.evaluate('linux1',s,1,1,True))
+ def test_exact_two_host_cpus_required_without_fallback(self):
+  self.assertEqual(plan.validate_cpu_selection([2,4],[1,2,3,4]),[2,4])
+  for selected,available in [([2],[2]),([2,2],[2]),([4,2],[2,4]),([2,4,6],[2,4,6]),([-1,2],[-1,2]),([2,4],[2]),([True,2],[1,2])]:
+   with self.subTest(selected=selected,available=available):
+    with self.assertRaises(AssertionError):plan.validate_cpu_selection(selected,available)
+  self.assertIn('os.sched_setaffinity(0,selected)',P.read_text())
+  self.assertIn("D/'host-profile.json'",P.with_name('m40-cold-prepare.py').read_text())
  def test_no_active_fixture_mutation_and_unconditional_uploads(self):
   driver=P.with_name('m40-cold-driver.sh').read_text()
   self.assertNotIn('mkdisk.sh',driver);self.assertIn('-snapshot',driver)
