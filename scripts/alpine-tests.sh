@@ -10,6 +10,7 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 2048M --boot-tim
     'dbus-run-session -- dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames' \
     'dbus-run-session -- sh -c "exit 23"; test $? = 23' \
     "timeout 30 eventfdwaketest" 'su user -s /bin/sh -c "timeout 30 eventfdwaketest"' "timeout 35 pollfiltertest" 'su user -s /bin/sh -c "timeout 35 pollfiltertest"' \
+    "timeout 35 evdevframetest" \
     fallocatetest ptracestoptest unixcredtest procinfotest proctasktest mountinfotest pimutextest ioctlwidthtest "timeout 30 futexbitsettest" \
     'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 30 futexrequeuetest" 'su user -s /bin/sh -c "timeout 30 futexrequeuetest"' "timeout 10 alarmcputest" \
     'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench "pollwakebench --inotify" 'su user -s /bin/sh -c "pollwakebench --inotify"' \

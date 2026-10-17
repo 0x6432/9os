@@ -45,6 +45,7 @@ jobs:
           scripts/futex-host-tests.sh
           scripts/eventfd-host-tests.sh
           scripts/poll-filter-host-tests.sh
+          scripts/evdev-host-tests.sh
           python3 scripts/qtdeclarative-cross-host-tests.py
           python3 scripts/host-qsb-host-tests.py
           python3 scripts/quick-pixel-host-tests.py
@@ -88,6 +89,9 @@ jobs:
           test -x "userland/alpine-root-$ARCH/root"
       - name: Compile tiny syscall regression against prebuilt musl (not Qt)
         run: scripts/alpine-build-tests.sh "$ARCH"
+      - name: Exact input consumer on signed x86 Linux reference kernel
+        if: matrix.arch == 'x86_64'
+        run: scripts/evdev-linux-oracle.sh
       - name: Build 9os kernel and isolated image
         run: make -j2 ARCH=$ARCH USERLAND=alpine iso
       - name: Prebuilt DBus and Qt Quick offscreen/Wayland, root/non-root pixels
@@ -95,7 +99,7 @@ jobs:
       - name: Uniprocessor Quick offscreen and Wayland
         run: >-
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 1
-          --boot-timeout 300 --log build/test-alpine-up-$ARCH.log alpine-qtsmoke
+          --boot-timeout 300 --log build/test-alpine-up-$ARCH.log "timeout 35 evdevframetest" alpine-qtsmoke
           "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-up-$ARCH.log"
           alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"
@@ -105,7 +109,7 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: >-
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
-          --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log "timeout 30 eventfdwaketest"
+          --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log "timeout 35 evdevframetest" "timeout 30 eventfdwaketest"
           'su user -s /bin/sh -c "timeout 30 eventfdwaketest"' "timeout 35 pollfiltertest"
           'su user -s /bin/sh -c "timeout 35 pollfiltertest"' "timeout 30 futexbitsettest"
           'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 30 futexrequeuetest" 'su user -s /bin/sh -c "timeout 30 futexrequeuetest"' "timeout 10 alarmcputest"
@@ -123,6 +127,7 @@ jobs:
           name: alpine-evidence-${{ matrix.arch }}
           path: |
             build/test-alpine*.log
+            build/evdev-linux-oracle.log*
             userland/build/alpine-${{ matrix.arch }}.lock.json
           if-no-files-found: warn
 

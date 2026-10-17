@@ -29,7 +29,7 @@ struct evdev_client {
     struct list_node node;
     struct input_dev *dev;
     struct input_event_abi q[QLEN];
-    unsigned head, tail;            /* tail - head = queued */
+    unsigned head, tail, packet_tail; /* read, write, last complete SYN_REPORT */
     int clockid;                    /* 0 realtime, 1 monotonic */
     uint64_t revoked;
 };
@@ -107,40 +107,48 @@ static void console_key(struct input_dev *d, unsigned code, int value) {
 static void client_push(struct evdev_client *c, unsigned type, unsigned code, int value, uint64_t mono) {
     uint64_t ns = c->clockid == 0 ? mono + (uint64_t)boot_epoch * 1000000000ull : mono;
     struct input_event_abi e = { (int64_t)(ns / 1000000000ull), (int64_t)(ns % 1000000000ull / 1000), type, code, value };
-    if (c->tail - c->head >= QLEN) {           /* overflow: drop the queue, tell the client */
-        c->head = c->tail;
-        e.type = EV_SYN; e.code = SYN_DROPPED; e.value = 0;
-    }
     c->q[c->tail++ % QLEN] = e;
+    if (c->tail - c->head >= QLEN) {
+        /* Linux evdev overflow: retain SYN_DROPPED and the newest event.
+         * Neither becomes readable until a complete SYN_REPORT arrives. */
+        c->head = c->tail - 2;
+        c->q[c->head % QLEN] = (struct input_event_abi){
+            e.sec, e.usec, EV_SYN, SYN_DROPPED, 0 };
+        c->packet_tail = c->head;
+    }
+    if (type == EV_SYN && code == SYN_REPORT) c->packet_tail = c->tail;
 }
 
 void input_event(struct input_dev *d, unsigned type, unsigned code, int value) {
     if (type > EV_MAX || !input_test_bit(d->evbit, type)) return;
+    uint64_t mono = time_ns();
+    uint64_t fl = spin_lock_irqsave(&d->lock);
     if (type == EV_KEY) {
-        if (code > KEY_MAX) return;
-        bool was = input_test_bit(d->keystate, code);
-        if (value && was) value = 2;                       /* autorepeat */
-        if (!value && !was) return;
-        if (value) d->keystate[code / 64] |= 1ull << (code % 64);
-        else d->keystate[code / 64] &= ~(1ull << (code % 64));
+        if (code > KEY_MAX || !input_test_bit(d->keybit, code)) goto ignored;
+        /* Linux ignores unchanged 0/1 state; only explicit value 2 repeats.
+         * Repeats bypass state updates, including a repeat while released. */
+        if (value != 2) {
+            bool was = input_test_bit(d->keystate, code);
+            if (!!value == was) goto ignored;
+            if (value) d->keystate[code / 64] |= 1ull << (code % 64);
+            else d->keystate[code / 64] &= ~(1ull << (code % 64));
+        }
     } else if (type == EV_ABS && code <= ABS_MAX) {
         d->abs[code].value = value;
     } else if (type == EV_SW) {                            /* only changes are reported */
-        if (code > SW_MAX || !input_test_bit(d->swbit, code)) return;
+        if (code > SW_MAX || !input_test_bit(d->swbit, code)) goto ignored;
         bool was = input_test_bit(d->swstate, code);
-        if (!!value == was) return;
+        if (!!value == was) goto ignored;
         if (value) d->swstate[code / 64] |= 1ull << (code % 64);
         else d->swstate[code / 64] &= ~(1ull << (code % 64));
     } else if (type == EV_SND) {
-        if (code > SND_MAX || !input_test_bit(d->sndbit, code)) return;
+        if (code > SND_MAX || !input_test_bit(d->sndbit, code)) goto ignored;
         if (value) d->sndstate[0] |= 1ull << code; else d->sndstate[0] &= ~(1ull << code);
     } else if (type == EV_FF) {
-        return;                                            /* force feedback goes to the device only */
+        goto ignored;                                      /* force feedback goes to the device only */
     }
-    uint64_t mono = time_ns();
-    uint64_t fl = spin_lock_irqsave(&d->lock);
     if (type == EV_SYN && code == SYN_REPORT) {            /* like Linux: no empty frames */
-        if (!d->npending) { spin_unlock_irqrestore(&d->lock, fl); return; }
+        if (!d->npending) goto ignored;
         d->npending = 0;
     } else d->npending++;
     bool grabbed = d->grab != nullptr;
@@ -152,6 +160,9 @@ void input_event(struct input_dev *d, unsigned type, unsigned code, int value) {
     spin_unlock_irqrestore(&d->lock, fl);
     if (type == EV_KEY && d->console_keys && !grabbed) console_key(d, code, value);
     if (type == EV_SYN) poll_notify();
+    return;
+ignored:
+    spin_unlock_irqrestore(&d->lock, fl);
 }
 
 /* ---------------------------------------------------------------- M34: sysfs */
@@ -346,10 +357,10 @@ static ssize_t evdev_read(struct file *f, void *buf, size_t n, off_t *off) {
     for (;;) {
         if (c->revoked || c->dev->gone) return -ENODEV;
         uint64_t fl = spin_lock_irqsave(&c->dev->lock);
-        if (c->tail != c->head) {
+        if (c->packet_tail != c->head) {
             size_t cnt = 0, max = n / sizeof(struct input_event_abi);
             struct input_event_abi tmp[32];
-            while (cnt < max && cnt < 32 && c->head != c->tail) tmp[cnt++] = c->q[c->head++ % QLEN];
+            while (cnt < max && cnt < 32 && c->head != c->packet_tail) tmp[cnt++] = c->q[c->head++ % QLEN];
             spin_unlock_irqrestore(&c->dev->lock, fl);
             if (copy_to_user(buf, tmp, cnt * sizeof tmp[0])) return -EFAULT;
             return cnt * sizeof tmp[0];
@@ -394,8 +405,11 @@ static ssize_t evdev_write(struct file *f, const void *buf, size_t n, off_t *off
 
 static unsigned evdev_poll(struct file *f) {
     struct evdev_client *c = f->priv;
-    if (c->revoked || c->dev->gone) return POLLERR | POLLHUP;
-    return (c->tail != c->head ? POLLIN | POLLRDNORM : 0) | POLLOUT | POLLWRNORM;
+    uint64_t fl = spin_lock_irqsave(&c->dev->lock);
+    unsigned mask = c->revoked || c->dev->gone ? POLLERR | POLLHUP :
+        (c->packet_tail != c->head ? POLLIN | POLLRDNORM : 0) | POLLOUT | POLLWRNORM;
+    spin_unlock_irqrestore(&c->dev->lock, fl);
+    return mask;
 }
 
 static int put_bits(uint64_t arg, size_t len, const void *bits, size_t size) {
@@ -521,7 +535,7 @@ static void ff_erase_slot(struct input_dev *d, int id) {
     d->ff_owner[id] = nullptr;
 }
 
-/* read/write/poll are lock-free (queue under dev->lock); ioctls take the BKL in sys_ioctl */
+/* read/write/poll run without BKL; queue/state use dev->lock. Ioctls take BKL. */
 static const struct file_ops evdev_ops = {
     .nobkl = true,
     .open = evdev_open, .release = evdev_release, .read = evdev_read, .write = evdev_write,
