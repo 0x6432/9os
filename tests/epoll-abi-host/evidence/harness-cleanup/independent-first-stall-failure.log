@@ -1,0 +1,3 @@
+six-second subprocess.run cleanup timed out at 6.006814s
+After subprocess.run timeout killed/reaped only the supervisor, its signal-blocked child was still running (waitpid WNOHANG=0).
+Independent wrapper killed the isolated process group and reaped the adopted child; no control processes left running.
