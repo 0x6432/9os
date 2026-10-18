@@ -13,7 +13,11 @@
 
 static bool no_restart(uint64_t nr) {
     return nr == __NR_nanosleep || nr == __NR_clock_nanosleep || nr == __NR_ppoll || nr == __NR_pselect6 ||
-           nr == __NR_rt_sigsuspend || nr == __NR_restart_syscall
+           nr == __NR_rt_sigsuspend || nr == __NR_restart_syscall ||
+           nr == __NR_epoll_pwait || nr == __NR_epoll_pwait2
+#ifdef __NR_epoll_wait
+           || nr == __NR_epoll_wait
+#endif
 #ifdef __NR_poll
            || nr == __NR_poll || nr == __NR_select || nr == __NR_pause
 #endif

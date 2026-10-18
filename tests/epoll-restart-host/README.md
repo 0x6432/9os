@@ -32,3 +32,45 @@ first commit before applying the later policy fix. No guest was run locally.
 
 This targets an inherited caught-SA_RESTART ABI issue, not cold startup. All
 startup/integration holds remain unchanged. No shared workflow wiring is added.
+
+## Policy-only checkpoint and exact-function controls
+
+The test-before-fix commit is
+`8bef592aa898fa3b2164ca179e0b5633f6b5bc17`. It includes the consumer and first
+native reference, with **no signal policy edit**. Parent must use that commit
+for the original-policy guest baseline, and preserve its outcome before applying
+the subsequent fix. Local host negative classification is NOT that baseline.
+
+The later kernel edit adds only epoll_pwait/epoll_pwait2 and the conditionally
+available epoll_wait to `no_restart()`. It changes no scheduler, enrollment,
+signal-frame, mask restoration, or anonfd code. This deliberately fixes an
+inherited Linux caught-SA_RESTART policy issue, not a startup issue.
+
+```
+python3 tests/epoll-restart-host/run.py --mutations
+```
+
+The runner extracts the exact production `no_restart()` body, compiling only
+tiny native x86 controls. It checks every syscall number through NR_SYSCALLS,
+including preservation of previous exclusions and ordinary restartable calls.
+The second native variant undefines only the legacy epoll_wait macro to check
+the ifdef: it is not an aarch64/riscv64 build. Required macro presence in those
+headers is inspected as text only.
+
+Recorded results in `evidence/`:
+
+- `original-policy-host-negative.log`: exact original policy fails3 explicit
+  epoll exclusions, exit1 as expected (classification only).
+- `fixed-policy-host.log`:461 checks/0 failures with the legacy syscall present,
+  and461/0 with it absent; six named mutations rejected in11 executions by explicit check
+  mismatches across meaningful variant combinations, not compiler crashes.
+  Mutations remove all three new exclusions, omit each one separately, drop
+  ppoll's existing exclusion, and incorrectly exclude ordinary read.
+- `native-linux-after-policy-edit.log`: unchanged consumer passes72/72 on native
+  Linux again. This does NOT execute or validate the changed 9os kernel.
+
+Real baseline/fixed 9os signal delivery, handler return, full mask restoration,
+and target integration remain unexecuted here; parent owns those runs. No shared
+workflow/Makefile, VM, heavy build, non-x86 build/run or dependency install was
+used. Tests are unsanitized and make no sanitizer-pass claim. Parent owns pushes,
+PRs, integration, and all existing holds.
