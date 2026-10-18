@@ -1,0 +1,16 @@
+{
+  "build/x86_64/9os.iso": "896682281dc9a70ee6b65ab9f8b3b415cddf506c8412fc44e2726eddf4ccd65d",
+  "build/x86_64/kernel.elf": "d9d8dbd88d1de2ab8f55f32c6262b74e283b60539f9b8321631109ad911d2a0c",
+  "build/x86_64/initramfs.cpio": "5fa9d72cb6c885200551a2c756c823282734a64c7e4fe1dc51aab88cf3f4b7bc",
+  "Makefile": "f8757d6363fb19fb12e9491a596c81191c6368c1aad1fb4b76922ffe3dd2efbc",
+  "scripts/qemu-test.py": "172d1bc45c8c7994f2e54793f51d48d61d03ca9d49280cc5189559638e6f66fb",
+  "userland/tests/pollwakebench.c": "536dc162fc7174fb6689f03276a277d16573ab40454aee522d44cf464a80b086",
+  "userland/root-x86_64/bin/pollwakebench": "b8fff503983eb50c2d7ff2975a2a6fc75652d7381eb714915d57dd05d741b86a",
+  "userland/root-x86_64/bin/unixpolltest": "7eae67a8c3713df509443f3987651cb5dc840bc82104660a566ddcbed5620145",
+  "userland/root-x86_64/bin/pollfiltertest": "0fc9f827892d60dba046128a07fe888f6c07e3d21d6e99b479fbc0df072416ae",
+  "userland/root-x86_64/bin/socktest": "6b7bdf408792504b7084b8b23ef4cf5fab57a280731eaaa72777d851e3e4f51a",
+  "userland/root-x86_64/bin/ipctest": "61e0c7515326b993a2e6daeec2ef74501b48513827d796b87820a73d280f5115",
+  "userland/root-x86_64/bin/polltest": "0c0495865b2b226680b1126bfebc1fb26d5b1eadc53f060c448705eadd8d88d5",
+  "userland/root-x86_64/bin/busybox": "d0c0a8e8321c009e7f15e3532f88b7966c571663506e04a6c41f192af79011fc",
+  "whole-root-manifest": "e8157f9085dfa395819eb5f02cff42061ebaf4b08024d8e54d3f8907ee088c04"
+}

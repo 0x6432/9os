@@ -1,0 +1,47 @@
+{
+  "runtime_source": "e0bc041024445770aad61fa70824527b0395a58f",
+  "measurement_head": "393a91d8c7bd758f8d551a45311c1de9d263b360",
+  "samples": 1,
+  "retries": 0,
+  "guest_arch": "x86_64",
+  "guest_smp": 4,
+  "guest_memory": "512M",
+  "host_available_cpus": [
+    0,
+    1
+  ],
+  "host_selected_cpus": [
+    0,
+    1
+  ],
+  "commands": [
+    "pollwakebench",
+    "pollwakebench --inotify",
+    "pollwakebench --unix",
+    "pollwakebench --unix-inotify",
+    "pollwakebench --epoll",
+    "pollwakebench --epoll-inotify",
+    "pollwakebench --epoll-unix",
+    "pollwakebench --epoll-unix-inotify",
+    "su user -s /bin/sh -c \"pollwakebench\"",
+    "su user -s /bin/sh -c \"pollwakebench --inotify\"",
+    "su user -s /bin/sh -c \"pollwakebench --unix\"",
+    "su user -s /bin/sh -c \"pollwakebench --unix-inotify\"",
+    "su user -s /bin/sh -c \"pollwakebench --epoll\"",
+    "su user -s /bin/sh -c \"pollwakebench --epoll-inotify\"",
+    "su user -s /bin/sh -c \"pollwakebench --epoll-unix\"",
+    "su user -s /bin/sh -c \"pollwakebench --epoll-unix-inotify\"",
+    "unixpolltest",
+    "su user -s /bin/sh -c unixpolltest",
+    "pollfiltertest",
+    "su user -s /bin/sh -c pollfiltertest",
+    "socktest",
+    "ipctest",
+    "polltest",
+    "grep -q '^violations 0' /proc/lockdep"
+  ],
+  "boot_timeout": 120,
+  "command_timeout": 60,
+  "scope": "CORE ONLY. Informational unchanged-kernel measurement, not graphics/cold validation. No performance thresholds.",
+  "created": 1792310770.9721005
+}
