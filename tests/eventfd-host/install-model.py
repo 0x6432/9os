@@ -20,7 +20,7 @@ assert p.name==expected
 if stem in ['qt-key-observer','qt-key-observer-mock']:
  assert '-shared' in a and '-fPIC' in a and '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
  assert '-Wl,--version-script=userland/tests/qt-key-observer/'+stem+'.map' in a
-if stem in ['trace-snapshot','snapshot-target','unixpolltest']:
+if stem in ['trace-snapshot','snapshot-target','unixpolltest','epollabitest','epollrestarttest']:
  assert '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
 if stem=='qt-key-observer-caller':
  assert '-lqt-key-observer-mock' in a and '-Wl,-rpath,/usr/lib/9os-tests' in a
@@ -128,3 +128,21 @@ for missing,flags in [('-Werror','-D_FORTIFY_SOURCE=2'),('-D_FORTIFY_SOURCE=2','
  else:
   raise AssertionError('Unix installer missing strict flag survived: '+missing)
 print('Unix poll installer: missing Werror/fortify flags rejected independently')
+
+# Both epoll ABI consumers are mandatory, tiny strict-flag standalone programs.
+for consumer in ['epollabitest', 'epollrestarttest']:
+ assert (ROOT/'userland/tests'/(consumer+'.c')).is_file()
+ assert run(script,consumer), 'epoll consumer not installed exactly once: '+consumer
+ for label,changed in [('missing',script.replace(' '+consumer+' ',' ',1)),('duplicate',script.replace(' '+consumer+' ',' '+consumer+' '+consumer+' ',1))]:
+  assert changed!=script
+  assert not run(changed,consumer), 'epoll installer mutation survived: '+consumer+' '+label
+ for missing,flags in [('-Werror','-D_FORTIFY_SOURCE=2'),('-D_FORTIFY_SOURCE=2','-Werror')]:
+  changed=script.replace('flags="-Werror -D_FORTIFY_SOURCE=2"','flags="'+flags+'"',1)
+  assert changed!=script
+  try:
+   run(changed,consumer)
+  except subprocess.CalledProcessError:
+   pass
+  else:
+   raise AssertionError('epoll installer missing flag survived: '+consumer+' '+missing)
+ print(consumer+': exact output; missing/duplicate/strict-flag mutations rejected')

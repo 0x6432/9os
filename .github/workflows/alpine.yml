@@ -45,6 +45,11 @@ jobs:
           scripts/futex-host-tests.sh
           scripts/eventfd-host-tests.sh
           scripts/poll-filter-host-tests.sh
+          python3 tests/epoll-abi-host/run.py --mode native
+          python3 tests/epoll-abi-host/run.py --mode model --mutations
+          python3 tests/epoll-restart-host/run.py --mutations
+          python3 scripts/terminal-attempt-history-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-readbacks.py
           scripts/evdev-host-tests.sh
           python3 scripts/qtdeclarative-cross-host-tests.py
           python3 scripts/host-qsb-host-tests.py
@@ -119,6 +124,7 @@ jobs:
           python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
           --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log "timeout 35 evdevframetest" "timeout 30 eventfdwaketest"
           'su user -s /bin/sh -c "timeout 30 eventfdwaketest"' "timeout 35 pollfiltertest"
+          "timeout 10 epollabitest" 'su user -s /bin/sh -c "timeout 10 epollabitest"' "timeout 10 epollrestarttest" 'su user -s /bin/sh -c "timeout 10 epollrestarttest"'
           'su user -s /bin/sh -c "timeout 35 pollfiltertest"' "timeout 45 unixpolltest" 'su user -s /bin/sh -c "timeout 45 unixpolltest"' "timeout 30 futexbitsettest"
           'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 30 futexrequeuetest" 'su user -s /bin/sh -c "timeout 30 futexrequeuetest"' "timeout 10 alarmcputest"
           'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
