@@ -85,6 +85,13 @@ jobs:
           scripts/futex-host-tests.sh
           scripts/eventfd-host-tests.sh
           scripts/poll-filter-host-tests.sh
+          python3 tests/epoll-abi-host/run.py --mode native
+          python3 tests/epoll-abi-host/run.py --mode model --mutations
+          python3 tests/epoll-restart-host/run.py --mutations
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/guest-watchdog-control.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/test-guest-watchdog-cleanup.py
+          python3 scripts/terminal-attempt-history-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-readbacks.py
           scripts/evdev-host-tests.sh
           python3 scripts/plasma-readiness-host-tests.py
           python3 scripts/input-capture-host-tests.py
@@ -140,6 +147,7 @@ jobs:
             --log build/test-mlfq-$ARCH.log slabtest idletest nicetest afftest \
             balancetest pcputest smptest timetest vforktest orphantest \
             "timeout 35 pollfiltertest" 'su user -s /bin/sh -c "timeout 35 pollfiltertest"' \
+            "timeout 10 epollabitest" 'su user -s /bin/sh -c "timeout 10 epollabitest"' "timeout 10 epollrestarttest" 'su user -s /bin/sh -c "timeout 10 epollrestarttest"' \
             "timeout 45 unixpolltest" "pollwakebench --unix" "pollwakebench --unix-inotify" \
             "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"' \
             "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
@@ -151,6 +159,7 @@ jobs:
           --log build/test-pollwake-smp8-$ARCH.log "timeout 30 futexbitsettest"
           'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 10 alarmcputest"
           'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
+          "timeout 10 epollabitest" 'su user -s /bin/sh -c "timeout 10 epollabitest"' "timeout 10 epollrestarttest" 'su user -s /bin/sh -c "timeout 10 epollrestarttest"'
           "su user -s /bin/sh -c pollwakebench" "timeout 45 unixpolltest"
           'su user -s /bin/sh -c "timeout 45 unixpolltest"' "pollwakebench --unix" "pollwakebench --unix-inotify"
           'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"' polltest timetest

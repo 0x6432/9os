@@ -1,6 +1,11 @@
 #!/bin/sh
 # Genuine packaged UDisks enumeration; never modify, format or mount a device.
 set -eu
+# Acceptance is specifically the unprivileged desktop user, never a root fallback.
+[ "$(id -u)" = 1000 ] || {
+ echo 'alpine-udisks: enumeration requires uid=1000' >&2
+ exit 1
+}
 D=$(mktemp -d /tmp/alpine-udisks-XXXXXX)
 trap 'rm -rf "$D"' EXIT HUP INT TERM
 timeout -s KILL 40 dbus-send --system --print-reply --reply-timeout=30000 \
@@ -13,4 +18,23 @@ grep -Fq 'object path "/org/freedesktop/UDisks2/block_devices/vda1"' "$D/reply"
 grep -Fq 'string "org.freedesktop.UDisks2.Filesystem"' "$D/reply"
 grep -Fq 'array of bytes "/dev/vda1"' "$D/reply"
 grep -Fq 'array of bytes "/"' "$D/reply"
+# Independent text fragments above are necessary, but do not prove that Device
+# and MountPoints belong to the expected objects/interfaces. Read those exact
+# public properties as the same UID; any failed/denied call remains a failure.
+# The enumeration deadline above is unchanged. Extra readbacks are bounded to
+# 4s reply / 6s kill each, with no retries or fallback to privileged execution.
+check_property() {
+ object=$1 interface=$2 property=$3 expected=$4
+ timeout -s KILL 6 dbus-send --system --print-reply --reply-timeout=4000 \
+  --dest=org.freedesktop.UDisks2 "$object" \
+  org.freedesktop.DBus.Properties.Get "string:$interface" "string:$property" \
+  > "$D/property"
+ python3 /usr/share/9os/udisks-property-check.py "$property" "$expected" "$D/property"
+}
+check_property /org/freedesktop/UDisks2/block_devices/vda \
+ org.freedesktop.UDisks2.Block Device /dev/vda
+check_property /org/freedesktop/UDisks2/block_devices/vda1 \
+ org.freedesktop.UDisks2.Block Device /dev/vda1
+check_property /org/freedesktop/UDisks2/block_devices/vda1 \
+ org.freedesktop.UDisks2.Filesystem MountPoints /
 printf 'alpine-udisks: real disk/partition/root filesystem enumerated uid=%s\n' "$(id -u)"

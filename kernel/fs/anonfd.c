@@ -500,10 +500,16 @@ static void ep_set_mask(uint64_t m) {     /* signal_send() samples sig_mask unde
     bkl_exit();
 }
 
-int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms, const uint64_t *usig, size_t sz) {
-    if (max <= 0 || max > 4096) return -EINVAL;
+/* UINT64_MAX denotes an infinite wait; finite timeouts/deadlines saturate at
+ * Linux's signed nanosecond horizon instead of wrapping through int milliseconds.
+ * Keep the original deadline across scans, spurious wakes and epoch retries. */
+static int64_t ep_pwait(int epfd, struct epoll_event_u *uev, int max, uint64_t timeout_ns, const uint64_t *usig, size_t sz) {
     uint64_t m = 0;
-    if (usig && copy_from_user(&m, usig, 8)) return -EFAULT;
+    if (usig) {
+        if (sz != sizeof m) return -EINVAL;
+        if (copy_from_user(&m, usig, sizeof m)) return -EFAULT;
+    }
+    if (max <= 0 || max > 4096) return -EINVAL;
     struct file *ef = fd_get_ref(epfd);
     if (!ef) return -EBADF;
     if (ef->fops != &epoll_fops) { vfs_close(ef); return -EINVAL; }
@@ -512,7 +518,12 @@ int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeou
     if (!ev) { vfs_close(ef); return -ENOMEM; }
     uint64_t oldmask = current->sig_mask;
     if (usig) ep_set_mask(m & ~(SIGBIT(SIGKILL) | SIGBIT(SIGSTOP)));
-    uint64_t deadline = timeout_ms < 0 ? UINT64_MAX : time_ns() + (uint64_t)timeout_ms * 1000000ull;
+    uint64_t deadline = UINT64_MAX;
+    if (timeout_ns != UINT64_MAX) {
+        uint64_t now = time_ns();
+        deadline = now >= INT64_MAX || timeout_ns > INT64_MAX - now
+                 ? INT64_MAX : now + timeout_ns;
+    }
     int64_t r;
     for (;;) {
         uint64_t pseq = poll_seq_read();
@@ -521,7 +532,7 @@ int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeou
         r = ep_scan_locked(ep, ev, max, &x);
         mutex_unlock(&ep->mtx);
         if (x.took_bkl) bkl_exit();
-        if (r || timeout_ms == 0) break;
+        if (r || timeout_ns == 0) break;
         uint64_t now = time_ns();
         if (now >= deadline) { r = 0; break; }
         int w = poll_wait_seq_masked(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now,
@@ -537,13 +548,23 @@ int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeou
     }
     return r;
 }
+int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms, const uint64_t *usig, size_t sz) {
+    uint64_t ns = timeout_ms < 0 ? UINT64_MAX : (uint64_t)timeout_ms * 1000000ull;
+    return ep_pwait(epfd, uev, max, ns, usig, sz);
+}
 int64_t sys_epoll_wait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms) {
     return sys_epoll_pwait(epfd, uev, max, timeout_ms, nullptr, 8);
 }
 int64_t sys_epoll_pwait2(int epfd, struct epoll_event_u *uev, int max, const struct timespec *uts, const uint64_t *usig, size_t sz) {
-    int ms = -1;
-    if (uts) { struct timespec ts; if (copy_from_user(&ts, uts, sizeof ts)) return -EFAULT; ms = ts.tv_sec * 1000 + (ts.tv_nsec + 999999) / 1000000; }
-    return sys_epoll_pwait(epfd, uev, max, ms, usig, sz);
+    uint64_t ns = UINT64_MAX;
+    if (uts) {
+        struct timespec ts;
+        if (copy_from_user(&ts, uts, sizeof ts)) return -EFAULT;
+        if (ts.tv_sec < 0 || ts.tv_nsec < 0 || ts.tv_nsec >= 1000000000) return -EINVAL;
+        ns = (uint64_t)ts.tv_sec > (INT64_MAX - (uint64_t)ts.tv_nsec) / 1000000000ull
+           ? INT64_MAX : (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+    }
+    return ep_pwait(epfd, uev, max, ns, usig, sz);
 }
 
 /* ------------------------------------------------------------------ memfd */
