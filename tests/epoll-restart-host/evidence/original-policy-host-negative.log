@@ -1,0 +1,9 @@
+host: Linux-6.18.49-x86_64-with-glibc2.34
+compiler: cc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
+exact no_restart sha256: f7de52482b080977ac4abc3dbe065d72b58a4717658f54375313c5a3354db1f6
+normal legacy_present=1
+FAIL nr=232 no_restart=0 expected=1
+FAIL nr=281 no_restart=0 expected=1
+FAIL nr=441 no_restart=0 expected=1
+exact no_restart host policy: 461 checks, 3 failures (classification only)
+expected_failure_exit=1 (exact original policy; NOT guest evidence)
