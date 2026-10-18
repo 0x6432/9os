@@ -1,0 +1,209 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 117649491905,
+      "run_id": 39118634740,
+      "workflow_name": "m40-fixed-epoll-leaf-two-cpu-comparison",
+      "head_branch": "notion/m40-epoll-leaf-two-cpu-validation",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39118634740",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbZHTHwQ",
+      "head_sha": "ad39a795cae2ade0083d451cdaf9edea3735ae33",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117649491905",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39118634740/job/117649491905",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-18T10:17:05Z",
+      "started_at": "2026-10-18T10:17:08Z",
+      "completed_at": null,
+      "name": "fixed-x86-plan",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T10:17:09Z",
+          "completed_at": "2026-10-18T10:17:10Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T10:17:10Z",
+          "completed_at": "2026-10-18T10:17:17Z"
+        },
+        {
+          "name": "No rerun or runtime-code substitution",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T10:17:17Z",
+          "completed_at": "2026-10-18T10:17:17Z"
+        },
+        {
+          "name": "Host tools only; never compile desktop libraries",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T10:17:17Z",
+          "completed_at": "2026-10-18T10:17:42Z"
+        },
+        {
+          "name": "Run actions/cache@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T10:17:42Z",
+          "completed_at": "2026-10-18T10:17:42Z"
+        },
+        {
+          "name": "Signed locked runtimes, no package scripts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T10:17:42Z",
+          "completed_at": "2026-10-18T10:18:22Z"
+        },
+        {
+          "name": "Candidate native and signed-musl public protocol prerequisites",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T10:18:22Z",
+          "completed_at": "2026-10-18T10:18:36Z"
+        },
+        {
+          "name": "Diagnostic native and signed-musl snapshot prerequisites",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T10:18:36Z",
+          "completed_at": "2026-10-18T10:18:37Z"
+        },
+        {
+          "name": "Strict plan negative controls and tiny consumers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T10:18:37Z",
+          "completed_at": "2026-10-18T10:19:16Z"
+        },
+        {
+          "name": "Unchanged desktop prerequisite",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T10:19:16Z",
+          "completed_at": "2026-10-18T10:22:38Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T10:22:38Z",
+          "completed_at": "2026-10-18T10:22:39Z"
+        },
+        {
+          "name": "Prepare immutable one-control three-guest plan",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 12,
+          "started_at": "2026-10-18T10:22:39Z",
+          "completed_at": null
+        },
+        {
+          "name": "Exactly one signed Linux control",
+          "status": "pending",
+          "conclusion": null,
+          "number": 13,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 14,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Planned 9os cold boot 1 of 3",
+          "status": "pending",
+          "conclusion": null,
+          "number": 15,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 16,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Planned 9os cold boot 2 of 3",
+          "status": "pending",
+          "conclusion": null,
+          "number": 17,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 18,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Planned 9os cold boot 3 of 3",
+          "status": "pending",
+          "conclusion": null,
+          "number": 19,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 20,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/cache@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 39,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "pending",
+          "conclusion": null,
+          "number": 40,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117649491905",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004789,
+      "runner_name": "GitHub Actions 1000004789",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
