@@ -1,0 +1,11 @@
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=0 transport=eventfd waiter_api=poll
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=24 transport=eventfd waiter_api=poll
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=1 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=poll
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=poll
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=0 transport=eventfd waiter_api=epoll_pwait
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=24 transport=eventfd waiter_api=epoll_pwait
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=epoll_pwait
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=epoll_pwait
+poll-wake-host: PASS eight exact modes, seven invalid CLI controls and two delivery mutants; no timing thresholds
+unixpolltest: PASSED (382 checks, 0 failures)
+unixpoll-host: PASS exact native endpoint controls and CLI rejection; no GUI proof

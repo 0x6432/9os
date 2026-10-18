@@ -1,0 +1,44 @@
+[
+  {
+    "smp": 1,
+    "accepted": "25/25",
+    "pollfilter_checks": [
+      "199",
+      "199"
+    ],
+    "unixpoll_checks": [
+      "498",
+      "498"
+    ],
+    "benchmark_results": 16,
+    "hashes_valid": true
+  },
+  {
+    "smp": 4,
+    "accepted": "25/25",
+    "pollfilter_checks": [
+      "199",
+      "199"
+    ],
+    "unixpoll_checks": [
+      "498",
+      "498"
+    ],
+    "benchmark_results": 16,
+    "hashes_valid": true
+  },
+  {
+    "smp": 8,
+    "accepted": "25/25",
+    "pollfilter_checks": [
+      "199",
+      "199"
+    ],
+    "unixpoll_checks": [
+      "498",
+      "498"
+    ],
+    "benchmark_results": 16,
+    "hashes_valid": true
+  }
+]

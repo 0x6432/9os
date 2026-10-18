@@ -1,0 +1,34 @@
+{
+  "samples": [
+    {
+      "smp": 1,
+      "driver_rc": 0,
+      "fixture_before": true,
+      "fixture_after": true,
+      "changed": [],
+      "accepted": true,
+      "finished": 1792314545.7891152
+    },
+    {
+      "smp": 4,
+      "driver_rc": 0,
+      "fixture_before": true,
+      "fixture_after": true,
+      "changed": [],
+      "accepted": true,
+      "finished": 1792314574.2455626
+    },
+    {
+      "smp": 8,
+      "driver_rc": 0,
+      "fixture_before": true,
+      "fixture_after": true,
+      "changed": [],
+      "accepted": true,
+      "finished": 1792314606.8642232
+    }
+  ],
+  "all_accepted": true,
+  "series_fixture_equal": true,
+  "finished": 1792314606.9944637
+}

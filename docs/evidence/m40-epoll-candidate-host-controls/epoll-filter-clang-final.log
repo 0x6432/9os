@@ -1,0 +1,18 @@
+pollfiltertest: PASSED (199 checks, 0 failures)
+poll filter exact-function model: 14 groups passed (mock locks/FDs only)
+poll filter model: rejected exclude-unfiltered
+poll filter model: rejected wake-unrelated
+poll filter model: rejected stale-epoch-enrolls
+poll filter model: rejected missing-publication
+poll filter model: rejected missing-reset
+poll filter model: rejected unsafe-wrapper
+poll filter model: rejected file-not-inode-alias-key
+epoll exact-scanner model: 15 groups passed (mock locks/FDs only)
+epoll scanner model: rejected overwrite-leaf-union
+epoll scanner model: rejected unsafe-wrapper
+epoll scanner model: rejected unsafe-empty
+epoll scanner model: rejected skip-disabled-guard
+epoll scanner model: rejected stale-fd-accepted
+epoll scanner model: rejected missing-et-latch
+epoll scanner model: rejected missing-oneshot
+epoll scanner model: rejected key-after-release

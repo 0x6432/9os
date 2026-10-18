@@ -1,0 +1,12 @@
+python3 scripts/rootfs-stamp.py "userland/root-x86_64" "build/x86_64/rootfs.stamp"
+(cd userland/root-x86_64 && find . -print0 | cpio -0 -o -H newc -R 0:0 --quiet) > build/x86_64/initramfs.cpio
+rm -rf build/x86_64/iso && mkdir -p build/x86_64/iso/boot/limine build/x86_64/iso/EFI/BOOT
+cp build/x86_64/kernel.elf build/x86_64/initramfs.cpio build/x86_64/iso/boot/
+cp build/x86_64/limine.conf build/x86_64/iso/boot/limine/limine.conf
+cp third_party/limine-bin/limine-bios.sys third_party/limine-bin/limine-bios-cd.bin third_party/limine-bin/limine-uefi-cd.bin build/x86_64/iso/boot/limine/
+cp third_party/limine-bin/BOOTX64.EFI third_party/limine-bin/BOOTAA64.EFI third_party/limine-bin/BOOTRISCV64.EFI build/x86_64/iso/EFI/BOOT/
+xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin -no-emul-boot \
+    -boot-load-size 4 -boot-info-table -hfsplus -apm-block-size 2048 \
+    --efi-boot boot/limine/limine-uefi-cd.bin -efi-boot-part --efi-boot-image \
+    --protective-msdos-label build/x86_64/iso -o build/x86_64/9os.iso 2>/dev/null
+if [ x86_64 = x86_64 ]; then third_party/limine-bin/limine bios-install build/x86_64/9os.iso 2>/dev/null; fi

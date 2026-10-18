@@ -1,0 +1,180 @@
+9os booting (x86_64, C202311)
+[ info] Limine base revision 6, HHDM offset 0xffff800000000000, cmdline ''
+[ info[0m] 23 memory map entries, 497 MiB usable
+[ info] pmm: buddy allocator ready, 490 MiB free (125657 pages, page array 7168 KiB)
+[ info] pmm: self-test passed
+[ info] vmm: kernel page tables active (root 9e000)
+[[32m info] harden: smep smap nx, stack protector, ASLR on, user W^X warn, kernel W+X pages 0
+[ info] slab: 8 kmalloc caches (16..2048 bytes)
+[ info] slab: self-test passed
+[uacpi info] starting uACPI, version 6.1.1
+[uacpi info] RSDP 0x00000000000F52C0 00000014 v00 (BOCHS )
+[uacpi info] RSDT 0x000000001FFE2378 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] DSDT 0x000000001FFE0040 00002130 v01 (BOCHS  BXPC    )
+[uacpi info] FACP 0x000000001FFE2170 000000F4 v03 (BOCHS  BXPC    )
+[uacpi info] APIC 0x000000001FFE2264 00000078 v03 (BOCHS  BXPC    )
+[uacpi info] HPET 0x000000001FFE22DC 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] MCFG 0x000000001FFE2314 0000003C v01 (BOCHS  BXPC    )
+[uacpi info] WAET 0x000000001FFE2350 00000028 v01 (BOCHS  BXPC    )
+[uacpi info] FACS 0x000000001FFE0000 00000040
+[ info] acpi: tables ready
+[ info] sched: round robin, quantum 10 ms
+[ info] tsc: 2504.458 MHz
+[ info] apic: lapic fee00000, 1 ioapic(s), 5 overrides
+[ info] apic: lapic timer 63001 ticks per 1000 Hz period
+[ info[0m] rtc: 2026-10-18 09:08:41 UTC
+[ info] smp: 1 CPU
+[ info] pmm: per-CPU order-0 caches enabled (16 pages/CPU)
+[ info[0m] pmm: per-CPU cache self-test passed
+[ info] slab: per-CPU magazines enabled (8 objects/cache/CPU, objects <=2048 bytes)
+[ info] slab: per-CPU magazine self-test passed
+[uacpi info] successfully loaded 1 AML blob, 1713 ops in 27ms (avg 61264/s)
+[uacpi info] namespace initialization done in 9ms: 39 devices, 0 thermal zones
+[uacpi info] enabled 2 GPEs in block _GPE@[0->64]
+[ info] acpi: namespace loaded and initialized
+[ info] vfs: tmpfs root mounted
+[ info] pci: 00:00.0 8086:29c0 class 0600
+[ info] pci: 00:01.0 1234:1111 class 0300
+[ info] pci: 00:02.0 1af4:1052 class 0900
+[ info] pci: 00:03.0 1af4:1052 class 0980
+[ info[0m] pci: 00:04.0 1af4:1000 class 0200
+[ info] pci: 00:05.0 1af4:1059 class 0401
+[ info] pci: 00:1f.0 8086:2918 class 0601
+[ info] pci: 00:1f.2 8086:2922 class 0106
+[ info] pci: 00:1f.3 8086:2930 class 0c05
+[ info] input: QEMU Virtio Keyboard as /dev/input/event0
+[ info] virtio-input: QEMU Virtio Keyboard (MSI-X irq 49)
+[ info] input: QEMU Virtio Tablet as /dev/input/event1
+[ info] virtio-input: QEMU Virtio Tablet (MSI-X irq 50)
+[ info[0m] virtio-net: eth0: 52:54:00:12:34:56 mtu 1500, MSI-X irq 51
+[ info[0m] virtio-snd: playback stream 0, stereo S16_LE 48000 Hz, MSI-X irq 52
+[ info] fbdev: /dev/fb0 1280x800, 32 bpp, pitch 5120
+[ info] drm: /dev/dri/card0 1280x800 (atomic KMS, PRIME)
+[ info] initramfs: unpacked 96 files (8445 KiB)
+[ info] input: AT Translated Set 2 keyboard as /dev/input/event2
+[ info] input: ps/2 keyboard (irq 1) + serial console (irq 4), interrupt-driven
+[ info] init: started /sbin/init (pid 1)
+
+Welcome to 9os!  (x86_64, busybox v1.36.1)
+
+
+9os login: root
+login[34]: root login on 'console'
+root@9os:~# pollwakebench; echo __RC0=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=6 producer_switches=1 waiter_switches=27 failures=0 inotify_waiters=0 transport=eventfd waiter_api=poll
+__RC0=0
+root@9os:~# pollwakebench --inotify; echo __RC1=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=6 producer_switches=0 waiter_switches=28 failures=0 inotify_waiters=24 transport=eventfd waiter_api=poll
+__RC1=0
+root@9os:~# pollwakebench --unix; echo __RC2=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=32 producer_switches=2000 waiter_switches=2027 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=poll
+__RC2=0
+root@9os:~# pollwakebench --unix-inotify; echo __RC3=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=11 producer_switches=0 waiter_switches=30 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=poll
+__RC3=0
+root@9os:~# pollwakebench --epoll; echo __RC4=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=6 producer_switches=0 waiter_switches=301 failures=0 inotify_waiters=0 transport=eventfd waiter_api=epoll_pwait
+__RC4=0
+root@9os:~# pollwakebench --epoll-inotify; echo __RC5=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=5 producer_switches=0 waiter_switches=582 failures=0 inotify_waiters=24 transport=eventfd waiter_api=epoll_pwait
+__RC5=0
+root@9os:~# pollwakebench --epoll-unix; echo __RC6=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=8 producer_switches=0 waiter_switches=302 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=epoll_pwait
+__RC6=0
+root@9os:~# pollwakebench --epoll-unix-inotify; echo __RC7=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=37 producer_switches=2000 waiter_switches=4580 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=epoll_pwait
+__RC7=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench"; echo __RC8=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=6 producer_switches=0 waiter_switches=27 failures=0 inotify_waiters=0 transport=eventfd waiter_api=poll
+__RC8=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --inotify"; echo __RC9=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=14 producer_switches=1001 waiter_switches=1029 failures=0 inotify_waiters=24 transport=eventfd waiter_api=poll
+__RC9=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --unix"; echo __RC10=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=11 producer_switches=1 waiter_switches=29 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=poll
+__RC10=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --unix-inotify"; echo __RC11=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=32 producer_switches=1965 waiter_switches=1996 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=poll
+__RC11=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --epoll"; echo __RC12=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=7 producer_switches=0 waiter_switches=301 failures=0 inotify_waiters=0 transport=eventfd waiter_api=epoll_pwait
+__RC12=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --epoll-inotify"; echo __RC13=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=6 producer_switches=0 waiter_switches=580 failures=0 inotify_waiters=24 transport=eventfd waiter_api=epoll_pwait
+__RC13=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --epoll-unix"; echo __RC14=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=37 producer_switches=156 waiter_switches=460 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=epoll_pwait
+__RC14=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"; echo __RC15=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=32 producer_switches=2000 waiter_switches=2582 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=epoll_pwait
+__RC15=0
+root@9os:~# pollfiltertest; echo __RC16=$?
+pollfiltertest: PASSED (199 checks, 0 failures)
+__RC16=0
+root@9os:~# su user -s /bin/sh -c pollfiltertest; echo __RC17=$?
+pollfiltertest: PASSED (199 checks, 0 failures)
+__RC17=0
+root@9os:~# unixpolltest; echo __RC18=$?
+unixpolltest: PASSED (498 checks, 0 failures)
+__RC18=0
+root@9os:~# su user -s /bin/sh -c unixpolltest; echo __RC19=$?
+unixpolltest: PASSED (498 checks, 0 failures)
+__RC19=0
+root@9os:~# socktest; echo __RC20=$?
+socktest: seqpacket done
+socktest: bulk done
+socktest: rights done
+socktest: close-race done
+socktest: accept done
+socktest: OK
+__RC20=0
+root@9os:~# ipctest; echo __RC21=$?
+eventfd ok
+timerfd ok (first expiry after 30.8 ms)
+signalfd ok
+epoll ok
+memfd ok
+seals ok
+unix sockets ok (stream throughput 409 MiB/s)
+ipctest: PASSED (106 checks, 0 failures)
+__RC21=0
+root@9os:~# polltest; echo __RC22=$?
+polltest: OK
+__RC22=0
+root@9os:~# grep -q '^violations 0' /proc/lockdep; echo __RC23=$?
+__RC23=0
+root@9os:~# poweroff
+root@9os:~# 9os shutting down
+The system is going down NOW!
+Sent SIGTERM to all processes
+Sent SIGKILL to all processes
+Requesting system poweroff
+[ info] system halted
+
+==== 9os test summary (x86_64, SMP=1) ====
+PASS   boot
+PASS   pollwakebench
+PASS   pollwakebench --inotify
+PASS   pollwakebench --unix
+PASS   pollwakebench --unix-inotify
+PASS   pollwakebench --epoll
+PASS   pollwakebench --epoll-inotify
+PASS   pollwakebench --epoll-unix
+PASS   pollwakebench --epoll-unix-inotify
+PASS   su user -s /bin/sh -c "pollwakebench"
+PASS   su user -s /bin/sh -c "pollwakebench --inotify"
+PASS   su user -s /bin/sh -c "pollwakebench --unix"
+PASS   su user -s /bin/sh -c "pollwakebench --unix-inotify"
+PASS   su user -s /bin/sh -c "pollwakebench --epoll"
+PASS   su user -s /bin/sh -c "pollwakebench --epoll-inotify"
+PASS   su user -s /bin/sh -c "pollwakebench --epoll-unix"
+PASS   su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"
+PASS   pollfiltertest
+PASS   su user -s /bin/sh -c pollfiltertest
+PASS   unixpolltest
+PASS   su user -s /bin/sh -c unixpolltest
+PASS   socktest
+PASS   ipctest
+PASS   polltest
+PASS   grep -q '^violations 0' /proc/lockdep
+25/25 passed

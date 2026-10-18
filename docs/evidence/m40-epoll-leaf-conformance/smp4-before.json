@@ -1,0 +1,20 @@
+{
+  "build/x86_64/9os.iso": "ccb2a118dc0634ae446be04b36d5cdc4ed2d255a3014ca13bfe09767ef5794b7",
+  "build/x86_64/kernel.elf": "ad3c5949a85eba2ea95622e73f81e93c62d7a1d07e4b62f7f77c181bdb29ce34",
+  "build/x86_64/initramfs.cpio": "6eb10d540ec55df6e89d433e54492b2e18b9ae6db36339e295cb2499e4e4a100",
+  "Makefile": "f8757d6363fb19fb12e9491a596c81191c6368c1aad1fb4b76922ffe3dd2efbc",
+  "scripts/qemu-test.py": "172d1bc45c8c7994f2e54793f51d48d61d03ca9d49280cc5189559638e6f66fb",
+  "kernel/fs/anonfd.c": "0c311b163026bb86a4f43a9cdba98e52bf788565a2a075293ac78ed12e4f2b43",
+  "kernel/fs/vfs.c": "e9a3091f6e883a6f3aeb345c3cd846da608b471dc5626cb1049012407a0103d2",
+  "kernel/core/sched.c": "2a74cc08a48def80da05cf2defb00effc684f26f9ece67de916527e8a99b629c",
+  "userland/tests/pollfiltertest.c": "806d422297eae94532e444dac8e10e6557c714882f1c369fa6f2c391041dedc1",
+  "userland/tests/unixpolltest.c": "71ada964a8e0228a7a8a5709d8cc0f3454a4f2dc8dffff469ac7772431f847ae",
+  "userland/root-x86_64/bin/pollwakebench": "b8fff503983eb50c2d7ff2975a2a6fc75652d7381eb714915d57dd05d741b86a",
+  "userland/root-x86_64/bin/pollfiltertest": "af1e11a9fcb9db7ac649755a0ed4de34664f17030fa7174a7d9996cbd0fa946e",
+  "userland/root-x86_64/bin/unixpolltest": "838a03c68515ab6d5e2c6b78b9c53edba05151c4c569aa30cae7158344dadb43",
+  "userland/root-x86_64/bin/socktest": "6b7bdf408792504b7084b8b23ef4cf5fab57a280731eaaa72777d851e3e4f51a",
+  "userland/root-x86_64/bin/ipctest": "61e0c7515326b993a2e6daeec2ef74501b48513827d796b87820a73d280f5115",
+  "userland/root-x86_64/bin/polltest": "0c0495865b2b226680b1126bfebc1fb26d5b1eadc53f060c448705eadd8d88d5",
+  "userland/root-x86_64/bin/busybox": "f84bf78d2d9ad4098abb0b867858e9565ef34dfbcd8669a3afcc719066655607",
+  "whole-root-manifest": "4bf28fbbda9104e234c6e1da00a1ee9bb998b4980b3bb7629502d16fedf31bd8"
+}
