@@ -1,0 +1,13 @@
+[notion/m40-team-integration 9747894] test(epoll): preserve independent harness descendant-cleanup failure
+ Date: Sun Oct 18 21:29:14 2026 +0000
+ 3 files changed, 75 insertions(+)
+ create mode 100644 tests/epoll-abi-host/evidence/harness-cleanup/README.md
+ create mode 100644 tests/epoll-abi-host/evidence/harness-cleanup/independent-first-stall-failure.log
+ create mode 100644 tests/epoll-abi-host/evidence/harness-cleanup/original-guest-watchdog-control.py.txt
+[notion/m40-team-integration cc55352] fix(epoll-tests): kill and reap isolated native control descendants on failure
+ Date: Sun Oct 18 21:32:09 2026 +0000
+ 7 files changed, 258 insertions(+), 5 deletions(-)
+ create mode 100644 tests/epoll-abi-host/evidence/harness-cleanup/fixed-five-second-control.log
+ create mode 100644 tests/epoll-abi-host/evidence/harness-cleanup/fixed-supervisor-stall-control.log
+ create mode 100644 tests/epoll-abi-host/isolated_process.py
+ create mode 100644 tests/epoll-abi-host/test-guest-watchdog-cleanup.py

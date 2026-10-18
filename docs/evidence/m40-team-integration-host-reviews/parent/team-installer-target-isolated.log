@@ -1,0 +1,12 @@
+eventfd installer model: x86 path passed; missing/duplicate mutations rejected
+poll filter installer model: x86 path passed; missing/duplicate mutations rejected
+evdev installer model: x86 path passed; missing/duplicate mutations rejected
+Qt observer installer model: libraries/caller paths and strict flags passed; missing/duplicate libraries rejected
+Qt observer source isolation: standalone mkroot namespace excludes all ABI fixtures
+independent bulk AT-SPI installer: exact nested source/output; missing/duplicate rejected
+snapshot installer: nested source and exact output; missing/duplicate rejected
+non-setuid snapshot target: strict nested source/output; missing/duplicate rejected
+Unix poll installer: exact output; missing/duplicate rejected
+Unix poll installer: missing Werror/fortify flags rejected independently
+epollabitest: exact output; missing/duplicate/strict-flag mutations rejected
+epollrestarttest: exact output; missing/duplicate/strict-flag mutations rejected
