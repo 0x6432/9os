@@ -125,6 +125,18 @@ class History(unittest.TestCase):
         self.assertIn('completion=present witness=unknown terminal_line=present', slots['first'])
         self.assertNotIn('incomplete-first', slots)
 
+    def test_foreign_backend_terminal_error_lines_remain_raw_not_selected_observations(self):
+        for backend, text in [('atspi', TERMINAL+REMOTE),
+                              ('live-dbus', TERMINAL.replace('DBUS_A11Y','A11Y'))]:
+            r, slots, calls = execute([(1, text)], backend=backend)
+            self.assertEqual(r.returncode, 1, r.stderr)
+            self.assertEqual(len(calls), 1)
+            self.assertIn('terminal_line=unknown remote_line=unknown', slots['first'])
+            self.assertIn('backend='+backend+' pid=777', slots['first'])
+            self.assertNotIn('terminal-first', slots)
+            self.assertNotIn('remote-first', slots)
+            self.assertIn(text.strip(), slots['first'])  # retain original raw evidence
+
     def test_large_middle_observation_retained_and_storage_output_bounded(self):
         # More iterations cannot grow slot count/size; significant mid-log lines
         # survive independently of bounded raw prefix/suffix. One long line too.

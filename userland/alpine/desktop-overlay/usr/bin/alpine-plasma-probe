@@ -48,10 +48,10 @@ record_terminal_attempt() {
  # Keep first/last terminal lines even if raw head/tail clipping omits them.
  query_flags=$(awk -v pid="$client" -v backend="${ALPINE_TERMINAL_QUERY:-atspi}" '
   BEGIN { complete="unknown"; witness="unknown"; terminal="unknown"; remote="unknown" }
-  /^(DBUS_)?A11Y_TERMINAL focused=[01] showing=[01] visible=[01]$/ {
+  (backend=="atspi" && /^A11Y_TERMINAL focused=[01] showing=[01] visible=[01]$/) || (backend=="live-dbus" && /^DBUS_A11Y_TERMINAL focused=[01] showing=[01] visible=[01]$/) {
    terminal="present"; if (first=="") first=$0; last=$0
   }
-  /^DBUS_A11Y_ERROR reason=remote-call$/ { remote="present" }
+  /^DBUS_A11Y_ERROR reason=remote-call$/ { if (backend=="live-dbus") remote="present" }
   $0 ~ "^DBUS_A11Y_WITNESS pid=" pid " terminals=[0-9]+ valid_states=[0-9]+ focused_states=[0-9]+ showing_states=[0-9]+ visible_states=[0-9]+ qualified=[0-9]+ protocol_error=[01]$" {
    if (backend=="live-dbus") { witness="present"; witness_line=substr($0,1,512) }
   }
@@ -73,7 +73,7 @@ record_terminal_attempt() {
   *) query_end=exit-status ;;
  esac
  # Bound metadata even for malformed/unexpected helper output.
- { printf 'attempt=%s rc=%s termination=%s\n%s\n' "$query_attempt" "$query_rc" "$query_end" "$query_flags"; } |
+ { printf 'attempt=%s rc=%s termination=%s backend=%s pid=%s\n%s\n' "$query_attempt" "$query_rc" "$query_end" "${ALPINE_TERMINAL_QUERY:-atspi}" "$client" "$query_flags"; } |
   head -c 1024 > "$D/konsole-attempt-meta" || return 1
  query_slots='first last'
  case $query_flags in *terminal_line=present*) query_slots="$query_slots terminal-first terminal-last" ;; esac
