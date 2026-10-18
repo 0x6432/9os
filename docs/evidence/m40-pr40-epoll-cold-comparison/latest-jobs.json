@@ -133,26 +133,26 @@
         },
         {
           "name": "Planned 9os cold boot 1 of 3",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "failure",
           "number": 15,
           "started_at": "2026-10-18T10:25:40Z",
-          "completed_at": null
+          "completed_at": "2026-10-18T10:35:25Z"
         },
         {
           "name": "Run actions/upload-artifact@v4",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 16,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T10:35:25Z",
+          "completed_at": "2026-10-18T10:35:27Z"
         },
         {
           "name": "Planned 9os cold boot 2 of 3",
-          "status": "pending",
+          "status": "in_progress",
           "conclusion": null,
           "number": 17,
-          "started_at": null,
+          "started_at": "2026-10-18T10:35:27Z",
           "completed_at": null
         },
         {

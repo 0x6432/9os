@@ -1,6 +1,26 @@
 {
-  "total_count": 2,
+  "total_count": 3,
   "artifacts": [
+    {
+      "id": 12133817136,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzMzgxNzEzNg==",
+      "name": "cold-9os-39118634740",
+      "size_in_bytes": 2239848,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12133817136",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12133817136/zip",
+      "expired": false,
+      "digest": "sha256:f494a4e9517bfbd504ccadf1d927cca989e9c5975a56580d5889695291aabae0",
+      "created_at": "2026-10-18T10:35:26Z",
+      "updated_at": "2026-10-18T10:35:26Z",
+      "expires_at": "2027-01-16T10:17:05Z",
+      "workflow_run": {
+        "id": 39118634740,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-epoll-leaf-two-cpu-validation",
+        "head_sha": "ad39a795cae2ade0083d451cdaf9edea3735ae33"
+      }
+    },
     {
       "id": 12133327102,
       "node_id": "MDg6QXJ0aWZhY3QxMjEzMzMyNzEwMg==",
