@@ -1,0 +1,72 @@
+[1;36m9os booting (x86_64, C202311)
+[ info] Limine base revision 6, HHDM offset 0xffff800000000000, cmdline ''
+[ info] 20 memory map entries, 497 MiB usable
+[ info] pmm: buddy allocator ready, 490 MiB free (125581 pages, page array 7168 KiB)
+[ info] pmm: self-test passed
+[[32m info[0m] vmm: kernel page tables active (root 9e000)
+[[32m info] harden: smep smap nx, stack protector, ASLR on, user W^X warn, kernel W+X pages 0
+[ info] slab: 8 kmalloc caches (16..2048 bytes)
+[ info] slab: self-test passed
+[uacpi info] starting uACPI, version 6.1.1
+[uacpi info] RSDP 0x00000000000F52C0 00000014 v00 (BOCHS )
+[uacpi info] RSDT 0x000000001FFE248F 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] DSDT 0x000000001FFE0040 0000222F v01 (BOCHS  BXPC    )
+[uacpi info] FACP 0x000000001FFE226F 000000F4 v03 (BOCHS  BXPC    )
+[uacpi info] APIC 0x000000001FFE2363 00000090 v03 (BOCHS  BXPC    )
+[uacpi info] HPET 0x000000001FFE23F3 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] MCFG 0x000000001FFE242B 0000003C v01 (BOCHS  BXPC    )
+[uacpi info] WAET 0x000000001FFE2467 00000028 v01 (BOCHS  BXPC    )
+[uacpi info] FACS 0x000000001FFE0000 00000040
+[ info] acpi: tables ready
+[ info] sched: round robin, quantum 10 ms
+[ info] tsc: 2904.815 MHz
+[ info] apic: lapic fee00000, 1 ioapic(s), 5 overrides
+[ info] apic: lapic timer 63041 ticks per 1000 Hz period
+[ info] rtc: 2026-10-18 21:36:24 UTC
+[ info] smp: 4 CPUs online (3 APs started in 4049 us)
+[ info[0m] pmm: per-CPU order-0 caches enabled (16 pages/CPU)
+[ info] pmm: per-CPU cache self-test passed
+[ info] slab: per-CPU magazines enabled (8 objects/cache/CPU, objects <=2048 bytes)
+[ info] slab: per-CPU magazine self-test passed
+[uacpi info] successfully loaded 1 AML blob, 1734 ops in 21ms (avg 79484/s)
+[uacpi info] namespace initialization done in 7ms: 42 devices, 0 thermal zones
+[uacpi info] enabled 2 GPEs in block _GPE@[0->64]
+[ info] acpi: namespace loaded and initialized
+[ info[0m] vfs: tmpfs root mounted
+[ info[0m] pci: 00:00.0 8086:29c0 class 0600
+[ info] pci: 00:01.0 1234:1111 class 0300
+[ info] pci: 00:02.0 1af4:1052 class 0900
+[ info] pci: 00:03.0 1af4:1052 class 0980
+[ info] pci: 00:04.0 1af4:1000 class 0200
+[ info] pci: 00:05.0 1af4:1059 class 0401
+[ info] pci: 00:1f.0 8086:2918 class 0601
+[ info] pci: 00:1f.2 8086:2922 class 0106
+[ info] pci: 00:1f.3 8086:2930 class 0c05
+[ info] input: QEMU Virtio Keyboard as /dev/input/event0
+[[32m info] virtio-input: QEMU Virtio Keyboard (MSI-X irq 49)
+[ info] input: QEMU Virtio Tablet as /dev/input/event1
+[ info] virtio-input: QEMU Virtio Tablet (MSI-X irq 50)
+[[32m info] virtio-net: eth0: 52:54:00:12:34:56 mtu 1500, MSI-X irq 51
+[ info] virtio-snd: playback stream 0, stereo S16_LE 48000 Hz, MSI-X irq 52
+[ info] fbdev: /dev/fb0 1280x800, 32 bpp, pitch 5120
+[ info[0m] drm: /dev/dri/card0 1280x800 (atomic KMS, PRIME)
+[ info] initramfs: unpacked 98 files (8544 KiB)
+[[32m info] input: AT Translated Set 2 keyboard as /dev/input/event2
+[[32m info] input: ps/2 keyboard (irq 1) + serial console (irq 4), interrupt-driven
+[ info] init: started /sbin/init (pid 1)
+
+Welcome to 9os!  (x86_64, busybox v1.36.1)
+
+
+9os login: root
+login[34]: root login on 'console'
+root@9os:~# sndtest; echo __RC0=$?
+sndtest: PASSED (109 checks, 0 failures)
+__RC0=0
+poweroffroot@9os:~# poweroff
+root@9os:~# 9os shutting down
+The system is going down NOW!
+Sent SIGTERM to all processes
+Sent SIGKILL to all processes
+Requesting system poweroff
+[ info] system halted

@@ -1,0 +1,4 @@
+c9cdf7408535ac384680c9730833422a69eb3b740d5633945bd4dfa9451bb63f  scripts/ci-tests.sh
+172d1bc45c8c7994f2e54793f51d48d61d03ca9d49280cc5189559638e6f66fb  scripts/qemu-test.py
+1aad38c9878b04db28aafcd7fe9d2418ef1a70b12bcd7d466cf545e5effa89ca  scripts/snd-qemu-tests.sh
+6b928b6c4518df1875ac7f3aaef482b3e04dbd50a35e62cb840bad4a9f2a6914  scripts/snd-wav-check.py

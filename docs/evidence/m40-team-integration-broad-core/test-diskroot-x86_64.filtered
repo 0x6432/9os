@@ -1,0 +1,185 @@
+9os booting (x86_64, C202311)
+[ info] Limine base revision 6, HHDM offset 0xffff800000000000, cmdline 'root=/dev/vda1'
+[ info] 20 memory map entries, 497 MiB usable
+[ info] pmm: buddy allocator ready, 490 MiB free (125547 pages, page array 7168 KiB)
+[ info] pmm: self-test passed
+[ info[0m] vmm: kernel page tables active (root 9e000)
+[ info] harden: smep smap nx, stack protector, ASLR on, user W^X warn, kernel W+X pages 0
+[[32m info] slab: 8 kmalloc caches (16..2048 bytes)
+[ info] slab: self-test passed
+[uacpi info] starting uACPI, version 6.1.1
+[uacpi info] RSDP 0x00000000000F52B0 00000014 v00 (BOCHS )
+[uacpi info] RSDT 0x000000001FFE24B1 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] DSDT 0x000000001FFE0040 00002251 v01 (BOCHS  BXPC    )
+[uacpi info] FACP 0x000000001FFE2291 000000F4 v03 (BOCHS  BXPC    )
+[uacpi info] APIC 0x000000001FFE2385 00000090 v03 (BOCHS  BXPC    )
+[uacpi info] HPET 0x000000001FFE2415 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] MCFG 0x000000001FFE244D 0000003C v01 (BOCHS  BXPC    )
+[uacpi info] WAET 0x000000001FFE2489 00000028 v01 (BOCHS  BXPC    )
+[uacpi info] FACS 0x000000001FFE0000 00000040
+[ info] acpi: tables ready
+[ info] sched: round robin, quantum 10 ms
+[ info] tsc: 2904.093 MHz
+[ info] apic: lapic fee00000, 1 ioapic(s), 5 overrides
+[ info] apic: lapic timer 62931 ticks per 1000 Hz period
+[ info] rtc: 2026-10-18 21:35:04 UTC
+[ info] smp: 4 CPUs online (3 APs started in 7660 us)
+[ info] pmm: per-CPU order-0 caches enabled (16 pages/CPU)
+[ info] pmm: per-CPU cache self-test passed
+[ info] slab: per-CPU magazines enabled (8 objects/cache/CPU, objects <=2048 bytes)
+[ info[0m] slab: per-CPU magazine self-test passed
+[uacpi info] successfully loaded 1 AML blob, 1740 ops in 22ms (avg 77927/s)
+[uacpi info] namespace initialization done in 7ms: 44 devices, 0 thermal zones
+[uacpi info] enabled 2 GPEs in block _GPE@[0->64]
+[ info[0m] acpi: namespace loaded and initialized
+[ info] vfs: tmpfs root mounted
+[ info] pci: 00:00.0 8086:29c0 class 0600
+[ info] pci: 00:01.0 1234:1111 class 0300
+[ info] pci: 00:02.0 1af4:1052 class 0900
+[ info] pci: 00:03.0 1af4:1052 class 0980
+[ info] pci: 00:04.0 1af4:1000 class 0200
+[ info] pci: 00:05.0 1af4:1059 class 0401
+[ info] pci: 00:06.0 1af4:1001 class 0100
+[ info] pci: 00:07.0 1af4:1001 class 0100
+[[32m info] pci: 00:1f.0 8086:2918 class 0601
+[ info] pci: 00:1f.2 8086:2922 class 0106
+[ info] pci: 00:1f.3 8086:2930 class 0c05
+[ info] input: QEMU Virtio Keyboard as /dev/input/event0
+[[32m info] virtio-input: QEMU Virtio Keyboard (MSI-X irq 49)
+[ info] input: QEMU Virtio Tablet as /dev/input/event1
+[ info] virtio-input: QEMU Virtio Tablet (MSI-X irq 50)
+[ info] virtio-blk: vda: 524288 sectors (256 MiB), flush, queue depth 128, MSI-X irq 51
+[ info] virtio-blk: vdb: 32768 sectors (16 MiB), flush, queue depth 128, MSI-X irq 52
+[ info] blk: vda1: sectors 2048-522239 (254 MiB)
+[ info] virtio-net: eth0: 52:54:00:12:34:56 mtu 1500, MSI-X irq 53
+[ info] virtio-snd: playback stream 0, stereo S16_LE 48000 Hz, MSI-X irq 54
+[ info] fbdev: /dev/fb0 1280x800, 32 bpp, pitch 5120
+[[32m info] drm: /dev/dri/card0 1280x800 (atomic KMS, PRIME)
+[ info] initramfs: unpacked 98 files (8544 KiB)
+[ info] input: AT Translated Set 2 keyboard as /dev/input/event2
+[ info] input: ps/2 keyboard (irq 1) + serial console (irq 4), interrupt-driven
+[ info] ext2: vda1: 65024 blocks of 4096 bytes, 2 groups, 64491/65024 inodes free
+[ info] vfs: root is /dev/vda1 (ext2)
+[ info] init: started /sbin/init (pid 1)
+
+Welcome to 9os!  (x86_64, busybox v1.36.1)
+
+
+9os login: root
+login[34]: root login on 'console'
+root@9os:~# grep -q '^/dev/vda1 / ext2 rw' /proc/mounts; echo __RC0=$?
+__RC0=0
+root@9os:~# blktest -v /dev/vdb 77; echo __RC1=$?
+blktest: verified ok
+__RC1=0
+root@9os:~# mountinfotest --mutate; echo __RC2=$?
+mountinfotest: 1196 checks, 0 failures
+__RC2=0
+root@9os:~# su user -s /bin/sh -c mountinfotest; echo __RC3=$?
+mountinfotest: 273 checks, 0 failures
+__RC3=0
+root@9os:~# grep -q ' /run tmpfs ' /proc/mounts && touch /run/9os-runtime-stale; echo __RC4=$?
+__RC4=0
+root@9os:~# libctest; echo __RC5=$?
+libctest: argc=1 argv[0]=libctest pid=44
+  uname: Linux 6.1.0-9os x86_64
+  [ok] big != NULL
+  [ok] m != MAP_FAILED
+  [ok] munmap(m, 8 << 20) == 0
+  [ok] f != NULL
+  [ok] strcmp(buf, "line 42\n") == 0
+  [ok] stat("/tmp/test.txt", &st) == 0 && st.st_size == 8
+  [ok] mkdir("/tmp/d", 0755) == 0
+  [ok] rename("/tmp/test.txt", "/tmp/d/t2") == 0
+  [ok] symlink("/tmp/d/t2", "/tmp/link") == 0
+  [ok] readlink("/tmp/link", buf, sizeof buf) == 9
+  /: . .. lost+found bin dev etc home lib linuxrc proc root sbin sys tmp usr var run
+  [ok] n >= 4
+  [ok] chdir("/tmp/d") == 0
+  [ok] getcwd(buf, sizeof buf) && strcmp(buf, "/tmp/d") == 0
+  [ok] pipe(p) == 0
+  [ok] read(p[0], buf, sizeof buf) == 12
+  [ok] waitpid(pid, &status, 0) == pid && WIFEXITED(status) && WEXITSTATUS(status) == 7
+  [ok] got_sig == SIGUSR1
+  [ok] waitpid(pid, &status, 0) == pid && WIFSIGNALED(status) && WTERMSIG(status) == SIGTERM
+  [ok] ms >= 50 && ms < 200
+libctest: PASSED (0 failures)
+__RC5=0
+root@9os:~# dyntest; echo __RC6=$?
+dyntest: 3 objects loaded; PASSED (11 checks, 0 failures)
+__RC6=0
+root@9os:~# mapprivtest; echo __RC7=$?
+mapprivtest: PASSED (10 checks, 0 failures)
+__RC7=0
+root@9os:~# filetest; echo __RC8=$?
+filetest: OK
+__RC8=0
+root@9os:~# vfstest; echo __RC9=$?
+vfstest: OK
+__RC9=0
+root@9os:~# TMPDIR=/root dircookietest /proc/self /sys/class; echo __RC10=$?
+DIRECTORY_COOKIES path=/root/dircookie-dpomIm
+DIRECTORY_COOKIES path=/root/dircookie-dpomIm
+DIRECTORY_COOKIES path=/proc/self
+DIRECTORY_COOKIES path=/sys/class
+dircookietest: 443 checks, 0 failures
+__RC10=0
+root@9os:~# vmtest; echo __RC11=$?
+oom: out of memory (0 of 125547 pages free): killed pid 72 (vmtest), rss 494800 KiB
+vmtest: pressure: reclaimed 2243 pages, oom kills 1
+vmtest: OK
+__RC11=0
+root@9os:~# sysfstest; echo __RC12=$?
+sysfstest: repeated lookup retained 36 KiB
+sysfstest: all passed (711 files, 200 dirs, 203 links)
+__RC12=0
+root@9os:~# permtest /tmp; echo __RC13=$?
+permtest: dac done (0)
+permtest: umask done (0)
+permtest: sticky done (0)
+permtest: chmod done (0)
+permtest: setgid dirs done (0)
+permtest: suid strip done (0)
+permtest: setuid exec done (0)
+permtest: caps done (0)
+permtest: set*id done (0)
+permtest: privileged syscalls done (0)
+permtest: sockets/ptys done (0)
+permtest: all passed
+__RC13=0
+root@9os:~# logintest; echo __RC14=$?
+logintest: all passed
+__RC14=0
+root@9os:~# mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2; echo __RC15=$?
+ext2test: ok
+__RC15=0
+root@9os:~# xattrtest /root; echo __RC16=$?
+xattrtest: 68 attributes in /root
+xattrtest: all passed
+__RC16=0
+root@9os:~# mkdir -p -m 755 /aclt && acltest /aclt; echo __RC17=$?
+acltest: all passed
+__RC17=0
+root@9os:~# locktest /root/lockf; echo __RC18=$?
+locktest: flock done
+locktest: posix done
+locktest: ofd done
+locktest: all passed
+__RC18=0
+root@9os:~# xattrtest -w /root; echo __RC19=$?
+xattrtest: all passed
+__RC19=0
+root@9os:~# acltest -w /aclt; echo __RC20=$?
+acltest: all passed
+__RC20=0
+root@9os:~# cp -a /usr /root/usr2 && echo persist > /root/keep && sync; echo __RC21=$?
+__RC21=0
+root@9os:~# grep -q '^violations 0' /proc/lockdep; echo __RC22=$?
+__RC22=0
+root@9os:~# poweroff
+root@9os:~# 9os shutting down
+The system is going down NOW!
+Sent SIGTERM to all processes
+Sent SIGKILL to all processes
+Requesting system poweroff
+[ info] system halted
