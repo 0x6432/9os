@@ -1,0 +1,23 @@
+{
+  "run": 39123100412,
+  "attempt": 1,
+  "head": "18ef21fc34945f482d262993aa33690070aa86d5",
+  "conclusion": "success",
+  "actual_original_logs_reviewed": true,
+  "all_arches": {
+    "main": "153/153",
+    "disk": "24/24 +7/7",
+    "fsck": "both pass",
+    "disk_shutdown": "clean",
+    "audio": "2/2 +2/2",
+    "UP": "10/10",
+    "MLFQ": "25/25",
+    "pollfiltertest": "199 zero failures root/user; MLFQ root/user",
+    "unixpolltest": "498 zero failures root/user"
+  },
+  "x86_additional": {
+    "SMP8_progress": "26/26",
+    "SMP8_scheduler": "11/11"
+  },
+  "scope": "Full-source compatibility only. PR41 fastALL6 already passed; parent coldPR40 plan FAILED. No reliability/M40 completion/merge waiver."
+}
