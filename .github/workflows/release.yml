@@ -139,6 +139,7 @@ jobs:
           python3 scripts/qemu-test.py $ARCH --smp 2 --sched mlfq --boot-timeout 300 \
             --log build/test-mlfq-$ARCH.log slabtest idletest nicetest afftest \
             balancetest pcputest smptest timetest vforktest orphantest \
+            "timeout 35 pollfiltertest" 'su user -s /bin/sh -c "timeout 35 pollfiltertest"' \
             "timeout 45 unixpolltest" "pollwakebench --unix" "pollwakebench --unix-inotify" \
             "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"' \
             "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
@@ -153,6 +154,7 @@ jobs:
           "su user -s /bin/sh -c pollwakebench" "timeout 45 unixpolltest"
           'su user -s /bin/sh -c "timeout 45 unixpolltest"' "pollwakebench --unix" "pollwakebench --unix-inotify"
           'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"' polltest timetest
+          "timeout 35 pollfiltertest" 'su user -s /bin/sh -c "timeout 35 pollfiltertest"'
           "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"'
           "grep -q '^violations 0' /proc/lockdep"
       - name: Eight-CPU scheduler and allocator stress

@@ -781,7 +781,7 @@ void wake_up(struct wait_queue *q) {
     sl_unlock_irqrestore(f);
 }
 
-/* Unfiltered waiters include select/epoll and blocking file operations. */
+/* Unfiltered waiters include select, nested/unknown epoll and blocking I/O. */
 void wake_up_poll(struct wait_queue *q, uint64_t key) {
     uint64_t f = sl_lock_irqsave();
     list_for_each_safe(it, tmp, &q->head) {

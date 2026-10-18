@@ -327,8 +327,17 @@ static const struct lock_class epoll_class = { "epoll", LR_MUTEX_EPOLL, true };
 
 static const struct file_ops epoll_fops;
 
-/* scan state: whether this scan took the BKL for a non-nobkl ->poll */
-struct ep_scan_ctx { bool took_bkl; int depth; };
+/* Keys are captured only while item_get() pins each file under the instance
+ * mutex. No file/inode pointer survives into a wait filter. Nested/unknown
+ * sources force a sticky global fallback; collisions only add wakeups. */
+struct ep_scan_ctx { bool took_bkl; int depth; uint64_t filter; };
+
+static uint64_t ep_wait_filter(const struct ep_scan_ctx *x) {
+    /* Empty/all-disabled lists retain conservative global waits. epoll_ctl
+     * still notifies globally; close/reuse is revalidated by item_get().
+     * This adds no new fd-close wake or registration-lifetime semantics. */
+    return x->filter ? x->filter : UINT64_MAX;
+}
 
 static unsigned ep_file_poll(struct file *f, struct ep_scan_ctx *x);
 
@@ -354,6 +363,8 @@ static int ep_scan_locked(struct epoll *ep, struct epoll_event_u *out, int max, 
         struct file *f = item_get(it);
         if (!f) { list_del(&it->node); kfree(it); continue; }
         if (it->disabled) { vfs_close(f); continue; }
+        if (f->fops && f->fops->poll_leaf) x->filter |= poll_file_key(f);
+        else x->filter = UINT64_MAX;
         unsigned raw = ep_file_poll(f, x) & (it->events | EPOLLERR | EPOLLHUP);
         unsigned latch = EPOLLOUT | (f->fops ? f->fops->poll_always : 0);
         vfs_close(f);
@@ -391,7 +402,7 @@ static unsigned ep_file_poll(struct file *f, struct ep_scan_ctx *x) {
 static unsigned ep_poll(struct file *f) {
     struct epoll *ep = f->priv;
     if (mutex_owned(&ep->mtx)) return 0;
-    struct ep_scan_ctx x = { false, 1 };
+    struct ep_scan_ctx x = { .depth = 1 };
     mutex_lock(&ep->mtx);
     int n = ep_scan_locked(ep, nullptr, 0, &x);
     mutex_unlock(&ep->mtx);
@@ -505,7 +516,7 @@ int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeou
     int64_t r;
     for (;;) {
         uint64_t pseq = poll_seq_read();
-        struct ep_scan_ctx x = { false, 1 };
+        struct ep_scan_ctx x = { .depth = 1 };
         mutex_lock(&ep->mtx);
         r = ep_scan_locked(ep, ev, max, &x);
         mutex_unlock(&ep->mtx);
@@ -513,7 +524,8 @@ int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeou
         if (r || timeout_ms == 0) break;
         uint64_t now = time_ns();
         if (now >= deadline) { r = 0; break; }
-        int w = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        int w = poll_wait_seq_masked(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now,
+                                    ep_wait_filter(&x));
         if (w == -EINTR) { r = -EINTR; break; }
     }
     if (r > 0 && copy_to_user(uev, ev, sizeof *ev * r)) r = -EFAULT;
