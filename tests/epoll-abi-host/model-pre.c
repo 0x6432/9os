@@ -53,7 +53,7 @@ static void *kmalloc(size_t n) { if(fault_alloc) return NULL; allocations++; ret
 static void kfree(void *p) { assert(allocations>0); allocations--; free(p); }
 static uint64_t time_ns(void) { uint64_t n=now; now+=step; return n; }
 static uint64_t poll_seq_read(void) { return ++seq; }
-static uint64_t ep_wait_filter(const struct ep_scan_ctx *x) { return x->filter; }
+static __attribute__((unused)) uint64_t ep_wait_filter(const struct ep_scan_ctx *x) { return x->filter; }
 static int ep_scan_locked(struct epoll *e,struct epoll_event_u *ev,int max,struct ep_scan_ctx *x) {
     assert(e->mtx.held && max>0 && x->depth==1); scans++; seen_mask=current->sig_mask;
     x->filter=0x42;
