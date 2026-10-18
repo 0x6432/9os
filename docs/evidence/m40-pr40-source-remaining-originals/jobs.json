@@ -333,18 +333,18 @@
         },
         {
           "name": "Uniprocessor M25 regressions",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 11,
           "started_at": "2026-10-18T11:32:36Z",
-          "completed_at": null
+          "completed_at": "2026-10-18T11:33:07Z"
         },
         {
           "name": "MLFQ M25 regressions",
-          "status": "pending",
+          "status": "in_progress",
           "conclusion": null,
           "number": 12,
-          "started_at": null,
+          "started_at": "2026-10-18T11:33:07Z",
           "completed_at": null
         },
         {

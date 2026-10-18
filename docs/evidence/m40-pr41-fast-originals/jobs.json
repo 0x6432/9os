@@ -545,18 +545,18 @@
         },
         {
           "name": "Real EGL Quick pixels, KWin, Konsole and Plasma on disk root",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 8,
           "started_at": "2026-10-18T11:26:13Z",
-          "completed_at": null
+          "completed_at": "2026-10-18T11:32:18Z"
         },
         {
           "name": "Physical KMS keyboard, UID1000 Konsole PTY and real Dolphin file model",
-          "status": "pending",
+          "status": "in_progress",
           "conclusion": null,
           "number": 9,
-          "started_at": null,
+          "started_at": "2026-10-18T11:32:18Z",
           "completed_at": null
         },
         {
