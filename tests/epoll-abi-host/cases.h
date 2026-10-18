@@ -31,6 +31,15 @@ static void boundary_cases(void) {
     check("pwait2 invalid time before bad fd",call2(-1,&out,1,&negsec,NULL,8),-EINVAL);
     check("pwait2 time copy before mask size",call2(epfd,&out,1,BADPTR,&mask,7),-EFAULT);
     check("pwait sigset before bad fd",call1(-1,&out,1,0,&mask,7),-EINVAL);
+    check("pwait sigset before max zero",call1(epfd,&out,0,0,BADPTR,8),-EFAULT);
+    check("pwait bad size before max zero",call1(epfd,&out,0,0,BADPTR,7),-EINVAL);
+    check("pwait2 sigset before max zero",call2(epfd,&out,0,&zero,BADPTR,8),-EFAULT);
+    check("pwait2 bad timespec before max zero",call2(epfd,&out,0,&negsec,BADPTR,8),-EINVAL);
+    check("pwait2 inaccessible mask",call2(epfd,&out,1,&zero,BADPTR,8),-EFAULT);
+    check("pwait2 bad size before inaccessible mask",call2(epfd,&out,1,&zero,BADPTR,7),-EINVAL);
+    struct timespec minsec={INT64_MIN,0}, minns={0,INT64_MIN};
+    check("pwait2 INT64_MIN seconds",call2(epfd,&out,1,&minsec,NULL,8),-EINVAL);
+    check("pwait2 INT64_MIN nanoseconds",call2(epfd,&out,1,&minns,NULL,8),-EINVAL);
     check("pwait valid zero",call1(epfd,&out,1,0,&mask,8),0);
     check("pwait2 valid zero",call2(epfd,&out,1,&zero,&mask,8),0);
     check("pwait max zero",call1(epfd,&out,0,0,NULL,8),-EINVAL);

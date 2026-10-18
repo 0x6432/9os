@@ -53,6 +53,12 @@ int main(void) {
     interrupted("pwait2 null timeout interrupted",NULL,0,true);
     interrupted("pwait INT_MAX milliseconds interrupted",NULL,INT32_MAX,false);
     interrupted("pwait negative other than -1 interrupted",NULL,-2,false);
+    struct timespec start, finish, shortwait={0,2000001};
+    clock_gettime(CLOCK_MONOTONIC,&start);
+    check("finite nanosecond timeout",call2(epfd,&out,1,&shortwait,NULL,0),0);
+    clock_gettime(CLOCK_MONOTONIC,&finish);
+    int64_t elapsed=(finish.tv_sec-start.tv_sec)*1000000000LL+finish.tv_nsec-start.tv_nsec;
+    check("timeout cannot expire before requested duration",elapsed>=2000001,1);
     close(efd); close(epfd);
     printf("native Linux reference: %d checks, %d failures (NOT 9os runtime proof)\n",checks,failures);
     return failures ? 1 : 0;
