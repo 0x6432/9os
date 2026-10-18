@@ -99,9 +99,33 @@ A separate supervisor retains the original **five-second process watchdog**
 without sharing the test child's 30-ms ITIMER_REAL signal timer. A deliberately
 signal-blocked hung child was killed/reaped with exit 124 by the unchanged
 supervisor at 5.001805 seconds in the native negative control. The outer native
-harness has a six-second cleanup limit only; the consumer deadline remains five
-seconds. `guest-watchdog-control.py` recreates that temporary child-only mutation
-without modifying the runtime source or any existing fixture.
+harness retains a six-second **failure** limit; the consumer deadline remains
+five seconds. `guest-watchdog-control.py` recreates that temporary child-only
+mutation without modifying the runtime source or any existing fixture. The
+original subprocess.run timeout did not clean grandchildren if the supervisor
+stalled; that medium-severity review finding is retained under
+`evidence/harness-cleanup/`, not erased by the normal control pass.
+
+The repaired runner uses `isolated_process.py`: Popen with a new session/process
+group and temporary Linux child-subreaper ownership. Exceptions kill/reap the
+whole control group and re-raise the original failure; there is no retry, rescue
+or longer acceptance window. Normal exit also rejects leftover control processes.
+Reaping is restricted to that isolated group, not unrelated harness children.
+The prior subreaper setting is restored. This Linux-native cleanup helper is not
+part of the portable guest consumer or a sandbox for processes escaping a group.
+
+```sh
+python3 -B tests/epoll-abi-host/guest-watchdog-control.py
+python3 -B tests/epoll-abi-host/test-guest-watchdog-cleanup.py
+```
+
+The second dedicated regression control SIGSTOPs a temporary supervisor while
+its signal-blocked child hangs. It requires the original six-second
+TimeoutExpired to be raised **after** both processes/group are gone and the
+adopted child has been reaped, without touching an unrelated live child or
+changing prior subreaper state. It catches this expected failure only for test
+assertions; normal native-control timeouts still fail. Exact first repaired-run
+logs are in `evidence/harness-cleanup/`.
 
 Native-only evidence: `guest-consumer-linux-reference.log` records **78 checks,
 0 failures**; `guest-watchdog-linux-control.log` records the expected watchdog

@@ -1,0 +1,9 @@
+host: Linux-6.18.49-x86_64-with-glibc2.34
+production-consumer sha256: 73f2714d5c39b744a2c6fee1432b5c01e9992462fd66fc5c84a17203805953cc
+temporary supervisor-stall control sha256: 4cce9df7655b9f92a3fe2e999f8805175d457f8a99c3ec9dcc4eecd493a0d6f9
+mutation: block/hang child; STOP supervisor before its original loop
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-function -D_FORTIFY_SOURCE=2 <tmp>/supervisor-stall.c -o <tmp>/supervisor-stall
+EXPECTED outer failure: TimeoutExpired, timeout=6, observed=6.007193s
+PASS: original six-second timeout propagated after supervisor kill and adopted child SIGKILL/reap
+PASS: control group absent; child absent/already reaped; unrelated child untouched; subreaper state restored
+Native Linux cleanup control only; not guest/kernel validation.
