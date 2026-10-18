@@ -1,0 +1,17 @@
+{
+  "head": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
+  "command": [
+    "scripts/ci-tests.sh",
+    "x86_64",
+    "--boot-timeout",
+    "300"
+  ],
+  "attempts": 1,
+  "retries": 0,
+  "host_selected_cpus": [
+    0,
+    1
+  ],
+  "scope": "Separate CORE ONLY standard multi-boot suite. NORMAL make, no frozen-image adapter. ISOs may repack BETWEEN boots for CMDLINE. Whole-fixture equality is recorded, NOT required or claimed. Kernel/initramfs/root/driver invariants required. No overlapping local VM/heavy build. No graphics/cold validation.",
+  "created": 1792314721.538687
+}
