@@ -1,0 +1,4 @@
+host: Linux-6.18.49-x86_64-with-glibc2.34
+compiler: cc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-epoll/tests/epoll-abi-host /data/9os-team-epoll/tests/epoll-abi-host/native.c -o <tmp>/normal -fsanitize=undefined -fno-sanitize-recover=all
+/tmp/9os-epoll-abi-40iq_bn8/normal: error while loading shared libraries: libubsan.so.1: cannot open shared object file: No such file or directory
