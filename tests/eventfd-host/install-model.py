@@ -21,7 +21,7 @@ if stem in ['qt-key-observer','qt-key-observer-mock']:
  assert '-shared' in a and '-fPIC' in a and '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
  assert '-Wl,--version-script=userland/tests/qt-key-observer/'+stem+'.map' in a
 if stem in ['trace-snapshot','snapshot-target','unixpolltest','epollabitest','epollrestarttest']:
- assert '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a
+ assert '-Werror' in a and '-D_FORTIFY_SOURCE=2' in a, 'strict flags missing for '+stem
 if stem=='qt-key-observer-caller':
  assert '-lqt-key-observer-mock' in a and '-Wl,-rpath,/usr/lib/9os-tests' in a
 p.write_text('fake compiler output\\n')
@@ -137,12 +137,14 @@ for consumer in ['epollabitest', 'epollrestarttest']:
   assert changed!=script
   assert not run(changed,consumer), 'epoll installer mutation survived: '+consumer+' '+label
  for missing,flags in [('-Werror','-D_FORTIFY_SOURCE=2'),('-D_FORTIFY_SOURCE=2','-Werror')]:
-  changed=script.replace('flags="-Werror -D_FORTIFY_SOURCE=2"','flags="'+flags+'"',1)
+  # Mutate only this target: an earlier strict consumer must still compile.
+  anchor='clang --target="$ARCH-linux-musl"'
+  changed=script.replace(anchor,'case "$test" in '+consumer+') flags="'+flags+'";; esac\n'+anchor,1)
   assert changed!=script
   try:
    run(changed,consumer)
-  except subprocess.CalledProcessError:
-   pass
+  except subprocess.CalledProcessError as error:
+   assert ('strict flags missing for '+consumer).encode() in error.stderr, 'wrong target rejected missing flag'
   else:
    raise AssertionError('epoll installer missing flag survived: '+consumer+' '+missing)
  print(consumer+': exact output; missing/duplicate/strict-flag mutations rejected')
