@@ -140,6 +140,7 @@ jobs:
             --log build/test-mlfq-$ARCH.log slabtest idletest nicetest afftest \
             balancetest pcputest smptest timetest vforktest orphantest \
             "timeout 45 unixpolltest" "pollwakebench --unix" "pollwakebench --unix-inotify" \
+            "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"' \
             "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
 
       - name: Eight-CPU RR poll progress
@@ -152,6 +153,7 @@ jobs:
           "su user -s /bin/sh -c pollwakebench" "timeout 45 unixpolltest"
           'su user -s /bin/sh -c "timeout 45 unixpolltest"' "pollwakebench --unix" "pollwakebench --unix-inotify"
           'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"' polltest timetest
+          "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"'
           "grep -q '^violations 0' /proc/lockdep"
       - name: Eight-CPU scheduler and allocator stress
         if: matrix.arch == 'x86_64'
