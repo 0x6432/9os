@@ -1,0 +1,17 @@
+{
+  "validation_branch": "notion/m40-epoll-leaf-two-cpu-validation",
+  "validation_head": "ad39a79",
+  "runtime_head": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
+  "prerequisite_run": 39114448950,
+  "prerequisite_all_six_reviewed": true,
+  "samples": [
+    "linux1",
+    "guest1",
+    "guest2",
+    "guest3"
+  ],
+  "attempts_each": 1,
+  "retries": 0,
+  "state": "prepared, not dispatched at this checkpoint",
+  "scope": "new separately pinned leaf-epoll hypothesis; no rescue of prior failures; no integration hold waiver"
+}
