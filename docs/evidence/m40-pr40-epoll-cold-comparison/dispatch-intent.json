@@ -1,0 +1,9 @@
+{
+  "branch": "notion/m40-epoll-leaf-two-cpu-validation",
+  "validation_head": "ad39a795cae2ade0083d451cdaf9edea3735ae33",
+  "runtime_head": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
+  "prerequisite_run": 39114448950,
+  "prior_runs": 0,
+  "requested_at": 1792318623.1325164,
+  "dispatch_attempts": 1
+}
