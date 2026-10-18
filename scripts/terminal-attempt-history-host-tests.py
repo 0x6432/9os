@@ -53,7 +53,7 @@ if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then exit 1;fi
         r = subprocess.run(['/bin/sh', '-eu', '-c', script], capture_output=True, text=True,
                            timeout=10, env={**os.environ, 'D':tmp, 'fixture_count':str(len(attempts)),
                                             'ALPINE_TERMINAL_QUERY':backend})
-        slots = {p.name.removeprefix('konsole-attempt-'):p.read_text() for p in root.glob('konsole-attempt-*')}
+        slots = {p.name.removeprefix('konsole-attempt-'):p.read_text() for p in root.glob('konsole-attempt-*') if p.is_file()}
         calls = (root/'calls').read_text().splitlines() if (root/'calls').exists() else []
         return r, slots, calls
 
@@ -75,6 +75,23 @@ class History(unittest.TestCase):
         self.assertIn('attempt=2', slots['incomplete-first'])
         self.assertIn('attempt=3', slots['incomplete-last'])
         self.assertNotIn('KONSOLE_FOCUSED_TERMINAL_READY', r.stdout)
+
+    def test_existing_retry_success_retains_failure_then_success_without_more_queries(self):
+        ready_terminal = TERMINAL.replace('focused=0', 'focused=1')
+        ready_witness = WITNESS.replace('focused_states=0', 'focused_states=1').replace('qualified=0', 'qualified=1').replace('protocol_error=1', 'protocol_error=0')
+        ready_final = FINAL.replace('models=0', 'models=1').replace('NOT_OBSERVED', 'OBSERVED')
+        r, slots, calls = execute([(1, TERMINAL+REMOTE+WITNESS+FINAL),
+                                    (0, ready_terminal+ready_witness+ready_final), (142, '')])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(calls), 2)
+        self.assertIn('attempt=1 rc=1', slots['first'])
+        self.assertIn('attempt=2 rc=0', slots['last'])
+        self.assertIn('focused=0', slots['terminal-first'])
+        self.assertIn('focused=1', slots['terminal-last'])
+        self.assertIn('protocol_error=1', slots['witness-first'])
+        self.assertIn('protocol_error=0', slots['witness-last'])
+        self.assertIn('attempt=1 rc=1', slots['remote-last'])
+        self.assertNotIn('alarm-first', slots)
 
     def test_no_pty_no_queries_no_fabricated_observations(self):
         r, slots, calls = execute([(1, TERMINAL)], pty=False)
@@ -141,6 +158,32 @@ class History(unittest.TestCase):
             self.assertIn('recording_failed=1', r.stdout)
             self.assertEqual(len(calls), 1)
             self.assertEqual(slots, {})
+
+    def test_missing_or_unwritable_recording_is_reported_not_accepted(self):
+        # Actual recorder I/O failures, not just an overridden return code.
+        for setup in ['mkdir "$D/konsole-attempt-meta"',
+                      'mkdir "$D/konsole-attempt-last"',
+                      'cat() { return 1; }']:
+            # Override cat only inside the recorder in the third case; queries
+            # still run the real synthetic helper and its original exit status.
+            functions = FUNCTIONS
+            if setup.startswith('cat()'):
+                functions = functions.replace('cat "$D/konsole-attempt-meta"', 'false')
+                setup = ''
+            for rc in [0, 1]:
+                r, _, calls = execute([(rc, TERMINAL)], functions=functions, override=setup)
+                self.assertEqual(r.returncode, 0 if rc==0 else 1, r.stderr)
+                self.assertIn('recording_failed=1', r.stdout)
+                self.assertEqual(len(calls), 1)
+
+    def test_legacy_cold_style_final_is_not_a_zero_count_witness(self):
+        r, slots, _ = execute([(1, TERMINAL+REMOTE+FINAL)])
+        self.assertEqual(r.returncode, 1, r.stderr)
+        self.assertIn('completion=present witness=unknown', slots['first'])
+        self.assertIn('remote_line=present', slots['remote-first'])
+        self.assertIn('terminal_first='+TERMINAL.strip(), slots['terminal-first'])
+        self.assertNotIn('witness-first', slots)
+        self.assertNotIn('qualified=0', slots['first'])
 
     def test_mutations_are_detected(self):
         variants = [

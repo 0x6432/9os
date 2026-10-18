@@ -85,7 +85,7 @@ record_terminal_attempt() {
   case $query_slot in first|*-first) [ ! -f "$D/konsole-attempt-$query_slot" ] || continue ;; esac
   # Prefix and suffix deliberately overlap for short logs; at most4096 raw
   # bytes regardless of query size/line length. No pipeline on the query itself.
-  { cat "$D/konsole-attempt-meta"; head -c 2048 "$D/konsole-focus"; tail -c 2048 "$D/konsole-focus"; } > "$D/konsole-attempt-$query_slot" || return 1
+  { cat "$D/konsole-attempt-meta" && head -c 2048 "$D/konsole-focus" && tail -c 2048 "$D/konsole-focus"; } > "$D/konsole-attempt-$query_slot" || return 1
  done
 }
 emit_terminal_attempts() {
@@ -321,7 +321,7 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
   kill -0 "$client" 2>/dev/null || break
   sleep .1
  done
- emit_terminal_attempts
+ emit_terminal_attempts || true
  cat "$D/konsole-focus" 2>/dev/null || true
  if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then
   echo 'alpine-plasma: FAIL interactive Konsole PTY/focused terminal readiness'
