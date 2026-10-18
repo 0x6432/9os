@@ -1,0 +1,50 @@
+{
+  "head": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
+  "guest_arch": "x86_64",
+  "guest_memory": "512M",
+  "guest_smp_samples": [
+    1,
+    4,
+    8
+  ],
+  "sample_count": 3,
+  "retries": 0,
+  "host_available_cpus": [
+    0,
+    1
+  ],
+  "host_selected_cpus": [
+    0,
+    1
+  ],
+  "commands": [
+    "pollwakebench",
+    "pollwakebench --inotify",
+    "pollwakebench --unix",
+    "pollwakebench --unix-inotify",
+    "pollwakebench --epoll",
+    "pollwakebench --epoll-inotify",
+    "pollwakebench --epoll-unix",
+    "pollwakebench --epoll-unix-inotify",
+    "su user -s /bin/sh -c \"pollwakebench\"",
+    "su user -s /bin/sh -c \"pollwakebench --inotify\"",
+    "su user -s /bin/sh -c \"pollwakebench --unix\"",
+    "su user -s /bin/sh -c \"pollwakebench --unix-inotify\"",
+    "su user -s /bin/sh -c \"pollwakebench --epoll\"",
+    "su user -s /bin/sh -c \"pollwakebench --epoll-inotify\"",
+    "su user -s /bin/sh -c \"pollwakebench --epoll-unix\"",
+    "su user -s /bin/sh -c \"pollwakebench --epoll-unix-inotify\"",
+    "pollfiltertest",
+    "su user -s /bin/sh -c pollfiltertest",
+    "unixpolltest",
+    "su user -s /bin/sh -c unixpolltest",
+    "socktest",
+    "ipctest",
+    "polltest",
+    "grep -q '^violations 0' /proc/lockdep"
+  ],
+  "boot_timeout": 120,
+  "command_timeout": 60,
+  "scope": "CORE ONLY, no graphics/cold proof. New restored host fixture, NOT matched-host performance comparison. All samples run independently once even after a failure.",
+  "created": 1792314519.6091316
+}
