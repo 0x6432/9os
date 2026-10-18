@@ -1,0 +1,7 @@
+e2fsck 1.46.5 (30-Dec-2021)
+Pass 1: Checking inodes, blocks, and sizes
+Pass 2: Checking directory structure
+Pass 3: Checking directory connectivity
+Pass 4: Checking reference counts
+Pass 5: Checking group summary information
+build/ci-x86_64/ext2.img.part: 12/32256 files (0.0% non-contiguous), 2025/32256 blocks

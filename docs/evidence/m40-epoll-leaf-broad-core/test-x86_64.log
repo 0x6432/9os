@@ -1,0 +1,880 @@
+9os booting (x86_64, C202311)
+[ info] Limine base revision 6, HHDM offset 0xffff800000000000, cmdline ''
+[ info] 20 memory map entries, 497 MiB usable
+[ info] pmm: buddy allocator ready, 490 MiB free (125573 pages, page array 7168 KiB)
+[ info] pmm: self-test passed
+[ info] vmm: kernel page tables active (root 9e000)
+[ info] harden: smep smap nx, stack protector, ASLR on, user W^X warn, kernel W+X pages 0
+[ info] slab: 8 kmalloc caches (16..2048 bytes)
+[ info] slab: self-test passed
+[uacpi info] starting uACPI, version 6.1.1
+[uacpi info] RSDP 0x00000000000F52B0 00000014 v00 (BOCHS )
+[uacpi info] RSDT 0x000000001FFE24B1 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] DSDT 0x000000001FFE0040 00002251 v01 (BOCHS  BXPC    )
+[uacpi info] FACP 0x000000001FFE2291 000000F4 v03 (BOCHS  BXPC    )
+[uacpi info] APIC 0x000000001FFE2385 00000090 v03 (BOCHS  BXPC    )
+[uacpi info] HPET 0x000000001FFE2415 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] MCFG 0x000000001FFE244D 0000003C v01 (BOCHS  BXPC    )
+[uacpi info] WAET 0x000000001FFE2489 00000028 v01 (BOCHS  BXPC    )
+[uacpi info] FACS 0x000000001FFE0000 00000040
+[ info] acpi: tables ready
+[ info] sched: round robin, quantum 10 ms
+[ info] tsc: 2513.041 MHz
+[ info] apic: lapic fee00000, 1 ioapic(s), 5 overrides
+[ info] apic: lapic timer 84684 ticks per 1000 Hz period
+[ info] rtc: 2026-10-18 09:12:04 UTC
+[ info] smp: 4 CPUs online (3 APs started in 9945 us)
+[ info] pmm: per-CPU order-0 caches enabled (16 pages/CPU)
+[ info[0m] pmm: per-CPU cache self-test passed
+[ info] slab: per-CPU magazines enabled (8 objects/cache/CPU, objects <=2048 bytes)
+[ info[0m] slab: per-CPU magazine self-test passed
+[uacpi info] successfully loaded 1 AML blob, 1740 ops in 36ms (avg 47107/s)
+[uacpi info] namespace initialization done in 10ms: 44 devices, 0 thermal zones
+[uacpi info] enabled 2 GPEs in block _GPE@[0->64]
+[ info] acpi: namespace loaded and initialized
+[ info[0m] vfs: tmpfs root mounted
+[ info] pci: 00:00.0 8086:29c0 class 0600
+[ info] pci: 00:01.0 1234:1111 class 0300
+[ info] pci: 00:02.0 1af4:1052 class 0900
+[ info] pci: 00:03.0 1af4:1052 class 0980
+[ info] pci: 00:04.0 1af4:1000 class 0200
+[ info] pci: 00:05.0 1af4:1059 class 0401
+[ info] pci: 00:06.0 1af4:1001 class 0100
+[ info] pci: 00:07.0 1af4:1001 class 0100
+[ info] pci: 00:1f.0 8086:2918 class 0601
+[ info] pci: 00:1f.2 8086:2922 class 0106
+[ info] pci: 00:1f.3 8086:2930 class 0c05
+[ info] input: QEMU Virtio Keyboard as /dev/input/event0
+[[32m info] virtio-input: QEMU Virtio Keyboard (MSI-X irq 49)
+[[32m info] input: QEMU Virtio Tablet as /dev/input/event1
+[ info] virtio-input: QEMU Virtio Tablet (MSI-X irq 50)
+[ info] virtio-blk: vda: 262144 sectors (128 MiB), flush, queue depth 128, MSI-X irq 51
+[ info] virtio-blk: vdb: 32768 sectors (16 MiB), flush, queue depth 128, MSI-X irq 52
+[ info] blk: vda1: sectors 2048-260095 (126 MiB)
+[ info] virtio-net: eth0: 52:54:00:12:34:56 mtu 1500, MSI-X irq 53
+[ info] virtio-snd: playback stream 0, stereo S16_LE 48000 Hz, MSI-X irq 54
+[ info] fbdev: /dev/fb0 1280x800, 32 bpp, pitch 5120
+[ info] drm: /dev/dri/card0 1280x800 (atomic KMS, PRIME)
+[ info] initramfs: unpacked 96 files (8445 KiB)
+[ info] input: AT Translated Set 2 keyboard as /dev/input/event2
+[ info] input: ps/2 keyboard (irq 1) + serial console (irq 4), interrupt-driven
+[ info] init: started /sbin/init (pid 1)
+
+Welcome to 9os!  (x86_64, busybox v1.36.1)
+
+
+9os login: root
+login[34]: root login on 'console'
+root@9os:~# libctest; echo __RC0=$?
+libctest: argc=1 argv[0]=libctest pid=37
+  uname: Linux 6.1.0-9os x86_64
+  [ok] big != NULL
+  [ok] m != MAP_FAILED
+  [ok] munmap(m, 8 << 20) == 0
+  [ok] f != NULL
+  [ok] strcmp(buf, "line 42\n") == 0
+  [ok] stat("/tmp/test.txt", &st) == 0 && st.st_size == 8
+  [ok] mkdir("/tmp/d", 0755) == 0
+  [ok] rename("/tmp/test.txt", "/tmp/d/t2") == 0
+  [ok] symlink("/tmp/d/t2", "/tmp/link") == 0
+  [ok] readlink("/tmp/link", buf, sizeof buf) == 9
+  /: . .. dev tmp bin sbin usr etc root proc sys home var linuxrc lib run
+  [ok] n >= 4
+  [ok] chdir("/tmp/d") == 0
+  [ok] getcwd(buf, sizeof buf) && strcmp(buf, "/tmp/d") == 0
+  [ok] pipe(p) == 0
+  [ok] read(p[0], buf, sizeof buf) == 12
+  [ok] waitpid(pid, &status, 0) == pid && WIFEXITED(status) && WEXITSTATUS(status) == 7
+  [ok] got_sig == SIGUSR1
+  [ok] waitpid(pid, &status, 0) == pid && WIFSIGNALED(status) && WTERMSIG(status) == SIGTERM
+  [ok] ms >= 50 && ms < 200
+libctest: PASSED (0 failures)
+__RC0=0
+root@9os:~# cowtest; echo __RC1=$?
+cowtest: fork of 32 MiB process 8.16 ms; 20 fork+exit 615.9 ms; pages copied 45
+cowtest: PASSED
+__RC1=0
+root@9os:~# vforktest; echo __RC2=$?
+vforktest: mode 0 completed 256/2000
+vforktest: mode 0 completed 512/2000
+vforktest: mode 0 completed 768/2000
+vforktest: mode 0 completed 1024/2000
+vforktest: mode 0 completed 1280/2000
+vforktest: mode 0 completed 1536/2000
+vforktest: mode 0 completed 1792/2000
+vforktest: mode 0 complete
+vforktest: mode 1 completed 256/256
+vforktest: mode 1 complete
+vforktest: mode 2 complete
+vforktest: PASSED (7892 checks, 0 failures)
+__RC2=0
+root@9os:~# orphantest; echo __RC3=$?
+orphantest: PASSED (40 checks, 0 failures)
+__RC3=0
+root@9os:~# ipctest; echo __RC4=$?
+eventfd ok
+timerfd ok (first expiry after 34.3 ms)
+signalfd ok
+epoll ok
+memfd ok
+seals ok
+unix sockets ok (stream throughput 831 MiB/s)
+ipctest: PASSED (106 checks, 0 failures)
+__RC4=0
+root@9os:~# ptytest; echo __RC5=$?
+ptytest: master 3, slave /dev/pts/0
+ptytest: PASSED (13 checks, 0 failures)
+__RC5=0
+root@9os:~# inotifytest; echo __RC6=$?
+inotifytest: PASSED (29 checks, 0 failures)
+__RC6=0
+root@9os:~# dyntest; echo __RC7=$?
+dyntest: 3 objects loaded; PASSED (11 checks, 0 failures)
+__RC7=0
+root@9os:~# mapprivtest; echo __RC8=$?
+mapprivtest: PASSED (10 checks, 0 failures)
+__RC8=0
+root@9os:~# smptest; echo __RC9=$?
+smptest: 4 CPUs online, running 4 threads
+  1 thread: 0.248 s   4 threads: 0.593 s   speed-up 1.67x (ideal 4)
+  threads ran on 4 distinct CPUs; contended mutex phase 0.029 s
+  mutex counter 80000, atomic counter 80000 (expected 80000)
+smptest: PASSED
+__RC9=0
+root@9os:~# faulttest; echo __RC10=$?
+faulttest: OK
+__RC10=0
+root@9os:~# pcputest; echo __RC11=$?
+  [ok] page_size == 4096 && count > 0
+  [ok] before >= 0
+  [ok] created == count
+  [ok] pthread_join(threads[i], 0) == 0
+  [ok] pthread_join(threads[i], 0) == 0
+  [ok] pthread_join(threads[i], 0) == 0
+  [ok] pthread_join(threads[i], 0) == 0
+pmm per-CPU hits: 13064 -> 17138; cached pages: 63
+  [ok] after > before
+  [ok] cached >= 0 && cached <= online * 16
+  [ok] stat_value("nr_free_pages") >= cached
+  [ok] stat_value("pmm_pcpu_free_hits") > 0
+pcputest: OK
+__RC11=0
+root@9os:~# slabtest; echo __RC12=$?
+  [ok] before >= 0
+  [ok] created == count
+  [ok] pthread_join(threads[i], 0) == 0
+  [ok] pthread_join(threads[i], 0) == 0
+  [ok] pthread_join(threads[i], 0) == 0
+  [ok] pthread_join(threads[i], 0) == 0
+slab per-CPU hits 36964 -> 42351, cached objects 109
+  [ok] after > before && cached >= 0
+  [ok] stat_value("slab_pcpu_free_hits") > 0 && stat_value("slab_pcpu_drained") > 0
+slabtest: OK
+__RC12=0
+root@9os:~# idletest; echo __RC13=$?
+  [ok] pin(0) == 0
+  [ok] snapshot(before) == online
+  [ok] elapsed >= 290000000 && elapsed < 5000000000ULL
+  [ok] snapshot(after) == online
+idle cpu1: ticks +0, idle ms +329, deadline sleeps +0
+  [ok] after[i].ticks - before[i].ticks < elapsed / 2000000
+  [ok] after[i].idle - before[i].idle > elapsed / 4000000
+  [ok] after[i].nohz > 0
+idle cpu2: ticks +0, idle ms +329, deadline sleeps +1
+  [ok] after[i].ticks - before[i].ticks < elapsed / 2000000
+  [ok] after[i].idle - before[i].idle > elapsed / 4000000
+  [ok] after[i].nohz > 0
+idle cpu3: ticks +0, idle ms +329, deadline sleeps +0
+  [ok] after[i].ticks - before[i].ticks < elapsed / 2000000
+  [ok] after[i].idle - before[i].idle > elapsed / 4000000
+  [ok] after[i].nohz > 0
+  [ok] fd >= 0
+  [ok] read(fd, &count, sizeof count) == -1 && errno == EAGAIN
+  [ok] timerfd_settime(fd, 0, &it, 0) == 0
+  [ok] poll(&p, 1, 2000) == 1 && (p.revents & POLLIN)
+  [ok] elapsed >= 14000000 && elapsed < 2000000000ULL
+  [ok] read(fd, &count, sizeof count) == sizeof count && count == 1
+  [ok] timerfd_settime(fd, TFD_TIMER_ABSTIME, &it, 0) == 0
+  [ok] poll(&p, 1, 2000) == 1
+  [ok] read(fd, &count, sizeof count) == sizeof count && count == 1
+  [ok] timerfd_settime(fd, 0, &it, 0) == 0
+  [ok] read(fd, &count, sizeof count) == sizeof count && count >= 8
+  [ok] timerfd_settime(fd, 0, &it, &old) == 0
+  [ok] old.it_interval.tv_nsec == 5000000
+  [ok] timerfd_gettime(fd, &cur) == 0 && cur.it_value.tv_sec == 0 && cur.it_value.tv_nsec == 0
+  [ok] poll(&p, 1, 20) == 0
+  [ok] poll(0, 0, 15) == 0
+  [ok] now_ns() - start >= 14000000
+  [ok] created == 0
+  [ok] poll(&p, 1, 2000) == 1
+  [ok] pthread_join(t, 0) == 0 && remote_result == 0
+  [ok] read(fd, &count, sizeof count) == sizeof count && count == 1
+  [ok] made == 8
+  [ok] __atomic_load_n(&group_ready, __ATOMIC_ACQUIRE) == made && !group_bad
+  [ok] snapshot(before) > 3
+  [ok] snapshot(after) > 3
+ineligible donor hint: cpu3 ticks +1, idle ms +266
+  [ok] after[3].ticks - before[3].ticks < elapsed / 2000000
+  [ok] after[3].idle - before[3].idle > elapsed / 4000000
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+idletest: OK
+__RC13=0
+root@9os:~# pipetest; echo __RC14=$?
+pipetest: OK
+__RC14=0
+root@9os:~# futextest; echo __RC15=$?
+futextest: mutex done
+futextest: ping-pong done
+futextest: condvar done
+futextest: errors done
+futextest: relative done
+futextest: absolute done
+futextest: timeouts done
+futextest: requeue done
+futextest: OK
+__RC15=0
+root@9os:~# futexoptest; echo __RC16=$?
+futexoptest: PASSED (128 checks, 0 failures)
+__RC16=0
+root@9os:~# timeout 30 futexbitsettest; echo __RC17=$?
+futexbitsettest: PASSED (52 checks, 0 failures)
+__RC17=0
+root@9os:~# su user -s /bin/sh -c "timeout 30 futexbitsettest"; echo __RC18=$?
+futexbitsettest: PASSED (52 checks, 0 failures)
+__RC18=0
+root@9os:~# timeout 30 futexrequeuetest; echo __RC19=$?
+futexrequeuetest: PASSED (63 checks, 0 failures)
+__RC19=0
+root@9os:~# su user -s /bin/sh -c "timeout 30 futexrequeuetest"; echo __RC20=$?
+futexrequeuetest: PASSED (63 checks, 0 failures)
+__RC20=0
+root@9os:~# efdtest; echo __RC21=$?
+efdtest: OK
+__RC21=0
+root@9os:~# timeout 30 eventfdwaketest; echo __RC22=$?
+eventfdwaketest: PASSED (51 checks, 0 failures)
+__RC22=0
+root@9os:~# su user -s /bin/sh -c "timeout 30 eventfdwaketest"; echo __RC23=$?
+eventfdwaketest: PASSED (51 checks, 0 failures)
+__RC23=0
+root@9os:~# timeout 35 pollfiltertest; echo __RC24=$?
+pollfiltertest: PASSED (199 checks, 0 failures)
+__RC24=0
+root@9os:~# su user -s /bin/sh -c "timeout 35 pollfiltertest"; echo __RC25=$?
+pollfiltertest: PASSED (199 checks, 0 failures)
+__RC25=0
+root@9os:~# timeout 45 unixpolltest; echo __RC26=$?
+unixpolltest: PASSED (498 checks, 0 failures)
+__RC26=0
+root@9os:~# su user -s /bin/sh -c "timeout 45 unixpolltest"; echo __RC27=$?
+unixpolltest: PASSED (498 checks, 0 failures)
+__RC27=0
+root@9os:~# socktest; echo __RC28=$?
+socktest: seqpacket done
+socktest: bulk done
+socktest: rights done
+socktest: close-race done
+socktest: accept done
+socktest: OK
+__RC28=0
+root@9os:~# polltest; echo __RC29=$?
+polltest: OK
+__RC29=0
+root@9os:~# timeout 10 alarmcputest; echo __RC30=$?
+alarmcputest: delivered SIGALRM in busy user loop on cpu0
+alarmcputest: delivered SIGALRM in busy user loop on cpu3
+alarmcputest: PASSED busy user timer delivery on allowed endpoint CPUs
+__RC30=0
+root@9os:~# su user -s /bin/sh -c "timeout 10 alarmcputest"; echo __RC31=$?
+alarmcputest: delivered SIGALRM in busy user loop on cpu0
+alarmcputest: delivered SIGALRM in busy user loop on cpu3
+alarmcputest: PASSED busy user timer delivery on allowed endpoint CPUs
+__RC31=0
+root@9os:~# pollwakebench; echo __RC32=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=6 producer_switches=0 waiter_switches=28 failures=0 inotify_waiters=0 transport=eventfd waiter_api=poll
+__RC32=0
+root@9os:~# pollwakebench --inotify; echo __RC33=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=9 producer_switches=0 waiter_switches=226 failures=0 inotify_waiters=24 transport=eventfd waiter_api=poll
+__RC33=0
+root@9os:~# pollwakebench --unix; echo __RC34=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=14 producer_switches=0 waiter_switches=340 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=poll
+__RC34=0
+root@9os:~# pollwakebench --unix-inotify; echo __RC35=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=13 producer_switches=0 waiter_switches=280 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=poll
+__RC35=0
+root@9os:~# pollwakebench --epoll; echo __RC36=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=6 producer_switches=0 waiter_switches=187 failures=0 inotify_waiters=0 transport=eventfd waiter_api=epoll_pwait
+__RC36=0
+root@9os:~# pollwakebench --epoll-inotify; echo __RC37=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=11 producer_switches=0 waiter_switches=485 failures=0 inotify_waiters=24 transport=eventfd waiter_api=epoll_pwait
+__RC37=0
+root@9os:~# pollwakebench --epoll-unix; echo __RC38=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=9 producer_switches=0 waiter_switches=279 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=epoll_pwait
+__RC38=0
+root@9os:~# pollwakebench --epoll-unix-inotify; echo __RC39=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=14 producer_switches=0 waiter_switches=545 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=epoll_pwait
+__RC39=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --epoll"; echo __RC40=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=6 producer_switches=0 waiter_switches=275 failures=0 inotify_waiters=0 transport=eventfd waiter_api=epoll_pwait
+__RC40=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --epoll-inotify"; echo __RC41=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=11 producer_switches=0 waiter_switches=492 failures=0 inotify_waiters=24 transport=eventfd waiter_api=epoll_pwait
+__RC41=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --epoll-unix"; echo __RC42=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=9 producer_switches=0 waiter_switches=277 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=epoll_pwait
+__RC42=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"; echo __RC43=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=13 producer_switches=0 waiter_switches=569 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=epoll_pwait
+__RC43=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --unix"; echo __RC44=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=15 producer_switches=0 waiter_switches=330 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=poll
+__RC44=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --unix-inotify"; echo __RC45=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=9 producer_switches=0 waiter_switches=38 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=poll
+__RC45=0
+root@9os:~# su user -s /bin/sh -c "pollwakebench --inotify"; echo __RC46=$?
+pollwakebench: transfers=1000 idle_waiters=24 wall_ms=9 producer_switches=0 waiter_switches=164 failures=0 inotify_waiters=24 transport=eventfd waiter_api=poll
+__RC46=0
+root@9os:~# fdtest; echo __RC47=$?
+fdtest: OK
+__RC47=0
+root@9os:~# filetest; echo __RC48=$?
+filetest: OK
+__RC48=0
+root@9os:~# vfstest; echo __RC49=$?
+vfstest: OK
+__RC49=0
+root@9os:~# dircookietest /proc/self /proc/self/fd /proc/self/task /sys/class; echo __RC50=$?
+DIRECTORY_COOKIES path=/tmp/dircookie-oDDgee
+DIRECTORY_COOKIES path=/tmp/dircookie-oDDgee
+DIRECTORY_COOKIES path=/proc/self
+DIRECTORY_COOKIES path=/proc/self/fd
+DIRECTORY_COOKIES path=/proc/self/task
+DIRECTORY_COOKIES path=/sys/class
+dircookietest: 486 checks, 0 failures
+__RC50=0
+root@9os:~# su user -s /bin/sh -c "dircookietest /proc/self /sys/class"; echo __RC51=$?
+DIRECTORY_COOKIES path=/tmp/dircookie-bMFlcD
+DIRECTORY_COOKIES path=/tmp/dircookie-bMFlcD
+DIRECTORY_COOKIES path=/proc/self
+DIRECTORY_COOKIES path=/sys/class
+dircookietest: 443 checks, 0 failures
+__RC51=0
+root@9os:~# vmtest; echo __RC52=$?
+oom: out of memory (0 of 125573 pages free): killed pid 4228 (vmtest), rss 486964 KiB
+vmtest: pressure: reclaimed 1277 pages, oom kills 1
+vmtest: OK
+__RC52=0
+root@9os:~# timetest; echo __RC53=$?
+process cputime +300 ms, thread +300 ms
+  [ok] c1 - c0 > 150e6 && c1 - c0 < 2000e6
+  [ok] t1 - t0 > 150e6
+self: utime 452 ms stime 189 ms minflt 18 nvcsw 0 nivcsw 0
+  [ok] ms(ru.ru_utime) >= 150
+  [ok] ms(ru.ru_stime) > 0
+  [ok] ru.ru_minflt > 0
+  [ok] ru.ru_nvcsw >= v0 + 5
+  [ok] r0 != (clock_t)-1
+  [ok] tm.tms_utime >= 15
+fresh child cputime: thread 0.4 ms, process 0.4 ms (wall since fork 2.2 ms)
+  [ok] v <= wall + 1e6 && w <= wall + 1e6
+fresh child cputime: thread 0.1 ms, process 0.1 ms (wall since fork 2.1 ms)
+  [ok] v <= wall + 1e6 && w <= wall + 1e6
+fresh child cputime: thread 0.1 ms, process 0.1 ms (wall since fork 1.8 ms)
+  [ok] v <= wall + 1e6 && w <= wall + 1e6
+  [ok] wait4(c, &st, 0, &cr) == c
+child: utime 250 ms stime 2 ms minflt 258
+  [ok] ms(cr.ru_utime) >= 120
+  [ok] cr.ru_minflt >= 256
+  [ok] ms(ru.ru_utime) >= 120
+  [ok] tm.tms_cutime >= 12
+/proc/self/stat utime 45 stime 38 cutime 25
+  [ok] f[11] >= 15 && f[13] >= 12
+timetest: OK
+__RC53=0
+root@9os:~# afftest; echo __RC54=$?
+cpus online: 4
+  [ok] sched_getaffinity(0, sizeof s, &s) == 0 && CPU_COUNT(&s) == n
+  [ok] sched_setaffinity(0, sizeof s, &s) == 0
+pinned to 0: stays
+  [ok] ok
+  [ok] sched_setaffinity(0, sizeof s, &s) == 0
+pinned to 1: stays
+  [ok] ok
+  [ok] sched_setaffinity(0, sizeof s, &s) == 0
+pinned to 2: stays
+  [ok] ok
+  [ok] sched_setaffinity(0, sizeof s, &s) == 0
+pinned to 3: stays
+  [ok] ok
+max backwards step across CPUs: 0.000 ms
+  [ok] worst < 0.001
+  [ok] sched_setaffinity(0, sizeof s, &s) != 0
+  [ok] sched_setaffinity(0, sizeof s, &s) == 0
+cpu0 samples 11003
+cpu1 samples 11037
+cpu2 samples 11965
+cpu3 samples 12954
+  [ok] any == n
+  [ok] used >= 2
+afftest: OK
+__RC54=0
+root@9os:~# nicetest; echo __RC55=$?
+  [ok] getpriority(PRIO_PROCESS, 0) == 0
+  [ok] setpriority(PRIO_PROCESS, 0, 5) == 0 && getpriority(PRIO_PROCESS, 0) == 5
+  [ok] sched_get_priority_max(SCHED_FIFO) == 99 && sched_get_priority_min(SCHED_RR) == 1
+  [ok] sched_get_priority_min(SCHED_OTHER) == 0 && sched_get_priority_max(SCHED_OTHER) == 0
+  [ok] sched_get_priority_max(99) == -1 && errno == EINVAL
+  [ok] sched_get_priority_min(-1) == -1 && errno == EINVAL
+  [ok] syscall(SYS_sched_setscheduler, 0, SCHED_FIFO, &bad) == -1 && errno == EINVAL
+  [ok] syscall(SYS_sched_setscheduler, 0, SCHED_RR, &bad) == -1 && errno == EINVAL
+  [ok] syscall(SYS_sched_setscheduler, 0, SCHED_OTHER, &bad) == -1 && errno == EINVAL
+  [ok] syscall(SYS_sched_getscheduler, 0) == SCHED_OTHER
+  spinner nice 0: wall 1000 ms, cpu 911 ms
+  spinner nice 10: wall 1000 ms, cpu 89 ms
+nice 0 vs nice 10 on cpu1: 911 ms vs 89 ms
+  [ok] hi * 2 > lo * 3
+  [ok] syscall(SYS_sched_setscheduler, 0, SCHED_FIFO, &sp) == 0
+  [ok] syscall(SYS_sched_getscheduler, 0) == SCHED_FIFO
+other thread iterations while FIFO spun: 0, after: 144965
+  [ok] during == 0
+  [ok] other_ran > 0
+nicetest: OK
+__RC55=0
+root@9os:~# balancetest; echo __RC56=$?
+  [ok] pin(0, 0) == 0
+  [ok] count == WORKERS
+  [ok] sched_getaffinity(tids[i], sizeof set, &set) == 0 && CPU_COUNT(&set) == 1 && CPU_ISSET(0, &set)
+  [ok] syscall(SYS_sched_getscheduler, tids[i]) == SCHED_OTHER
+  [ok] syscall(SYS_sched_getparam, tids[i], &sp) == 0 && sp.sched_priority == 0
+  [ok] sched_getaffinity(tids[i], sizeof set, &set) == 0 && CPU_COUNT(&set) == 1 && CPU_ISSET(0, &set)
+  [ok] syscall(SYS_sched_getscheduler, tids[i]) == SCHED_OTHER
+  [ok] syscall(SYS_sched_getparam, tids[i], &sp) == 0 && sp.sched_priority == 0
+  [ok] sched_getaffinity(tids[i], sizeof set, &set) == 0 && CPU_COUNT(&set) == 1 && CPU_ISSET(0, &set)
+  [ok] syscall(SYS_sched_getscheduler, tids[i]) == SCHED_OTHER
+  [ok] syscall(SYS_sched_getparam, tids[i], &sp) == 0 && sp.sched_priority == 0
+  [ok] sched_getaffinity(tids[i], sizeof set, &set) == 0 && CPU_COUNT(&set) == 1 && CPU_ISSET(0, &set)
+  [ok] syscall(SYS_sched_getscheduler, tids[i]) == SCHED_OTHER
+  [ok] syscall(SYS_sched_getparam, tids[i], &sp) == 0 && sp.sched_priority == 0
+  [ok] sched_getaffinity(tids[i], sizeof set, &set) == 0 && CPU_COUNT(&set) == 1 && CPU_ISSET(0, &set)
+  [ok] syscall(SYS_sched_getscheduler, tids[i]) == SCHED_OTHER
+  [ok] syscall(SYS_sched_getparam, tids[i], &sp) == 0 && sp.sched_priority == 0
+  [ok] sched_getaffinity(tids[i], sizeof set, &set) == 0 && CPU_COUNT(&set) == 1 && CPU_ISSET(0, &set)
+  [ok] syscall(SYS_sched_getscheduler, tids[i]) == SCHED_OTHER
+  [ok] syscall(SYS_sched_getparam, tids[i], &sp) == 0 && sp.sched_priority == 0
+  [ok] have_guard
+  [ok] __atomic_load_n(&guard_ready, __ATOMIC_ACQUIRE) == 1
+  [ok] fifo
+  [ok] before != ~0UL
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 1) == 0
+cpu1 balance migrations: 25 -> 28
+  [ok] after != ~0UL && after > before
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] pin(tids[i], 1) == 0
+  [ok] pin(tids[i], 0) == 0
+  [ok] policy(SCHED_OTHER, 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(workers[i], 0) == 0
+  [ok] pthread_join(blocker, 0) == 0
+  [ok] !__atomic_load_n(&guard_expired, __ATOMIC_ACQUIRE)
+  [ok] !__atomic_load_n(&bad_cpu, __ATOMIC_RELAXED)
+  [ok] sched_setaffinity(0, sizeof set, &set) == 0
+balancetest: OK
+__RC56=0
+root@9os:~# hardentest; echo __RC57=$?
+  features smep smap nx
+  stack_protector strong
+  stack_guard_random 1
+  randomize_va_space 2
+  wx_policy warn
+  kernel_wx_pages 0
+  wx_mappings 0
+  wx_denied 0
+  extable_fixups 0
+  uaccess_violations 0
+  PIE text  c4b90ab80 709f2cb80 1ba943b80
+  stack     7ffcecff7f70 7ffcdfa77f10 7ffe60f2a680
+  mmap      7ebf1f0bf000 7e9ce9915000 7e2ddf0d1000
+  brk       c4c5f6000 70a2c6000 1baa9c000
+  libc      7ebf1f158c90 7e9ce99aec90 7e2ddf16ac90
+  AT_RANDOM de15ba5cbf8fc7a8 98ddddf49051460d f8bb018d678d3473
+  extable fixups 0 -> 7
+[ info] harden: hardentest (pid 4259) created a writable+executable mapping
+  W+X mmap allowed, wx_mappings 0 -> 1
+  JIT cache rewrite/execute done
+hardentest: OK
+__RC57=0
+root@9os:~# irqtest; echo __RC58=$?
+irqtest:
+  [ok] snap() > 0
+  [ok] ncpu >= 1
+  [ok] uart != NULL
+  uart: serial on IO-APIC, 330 interrupts
+  [ok] uart->count > 0 && uart->handled > 0
+  [ok] strcmp(uart->kind, "MSI-X") && uart->kind[0]
+  [ok] kbd != NULL
+  2 virtio-input line(s), MSI-X
+  (no virtio-gpu: firmware framebuffer)
+  AP timer ticks in an idle second: 18 (3 APs)
+  [ok] ap < 60ul * (ncpu - 1)
+irqtest: PASS
+__RC58=0
+root@9os:~# permtest; echo __RC59=$?
+permtest: dac done (0)
+permtest: umask done (0)
+permtest: sticky done (0)
+permtest: chmod done (0)
+permtest: setgid dirs done (0)
+permtest: suid strip done (0)
+permtest: setuid exec done (0)
+permtest: caps done (0)
+permtest: set*id done (0)
+permtest: privileged syscalls done (0)
+permtest: sockets/ptys done (0)
+permtest: all passed
+__RC59=0
+root@9os:~# logintest; echo __RC60=$?
+logintest: all passed
+__RC60=0
+root@9os:~# ptracetest; echo __RC61=$?
+ptracetest: basic done
+ptracetest: breakpoint done
+ptracetest: hw done
+ptracetest: events done
+ptracetest: seize done
+ptracetest: exitkill done
+ptracetest: all passed
+__RC61=0
+root@9os:~# fallocatetest; echo __RC62=$?
+fallocatetest: explicit unsupported result, file unchanged (no false success)
+fallocatetest: 27 checks, 0 failures
+__RC62=0
+root@9os:~# ptracestoptest; echo __RC63=$?
+ptracestoptest: pending signal/continue done
+ptracestoptest: stopped kill done
+ptracestoptest: interrupt/detach preserves prior job stop done
+ptracestoptest: 728 checks, 0 failures
+__RC63=0
+root@9os:~# unixcredtest; echo __RC64=$?
+unixcredtest: type=2 split=0
+unixcredtest: type=1 split=0
+unixcredtest: type=2 split=1
+unixcredtest: type=1 split=1
+unixcredtest: 140 checks, 0 failures
+__RC64=0
+root@9os:~# procinfotest; echo __RC65=$?
+procinfotest: 183 checks, 0 failures
+__RC65=0
+root@9os:~# proctasktest; echo __RC66=$?
+proctasktest: 105 checks, 0 failures
+__RC66=0
+root@9os:~# mountinfotest --mutate; echo __RC67=$?
+mountinfotest: 868 checks, 0 failures
+__RC67=0
+root@9os:~# pimutextest; echo __RC68=$?
+pimutextest: explicit unsupported PI, using normal recursive mutex
+pimutextest: 11 checks, 0 failures
+__RC68=0
+root@9os:~# ioctlwidthtest; echo __RC69=$?
+ioctlwidthtest: 30 checks, 0 failures
+__RC69=0
+root@9os:~# locktest; echo __RC70=$?
+locktest: flock done
+locktest: posix done
+locktest: ofd done
+locktest: all passed
+__RC70=0
+root@9os:~# leasetest; echo __RC71=$?
+leasetest: all passed
+__RC71=0
+root@9os:~# asynctest; echo __RC72=$?
+asynctest: all passed
+__RC72=0
+root@9os:~# xattrtest; echo __RC73=$?
+xattrtest: 200 attributes in /tmp
+xattrtest: all passed
+__RC73=0
+root@9os:~# acltest; echo __RC74=$?
+acltest: all passed
+__RC74=0
+root@9os:~# sigqtest; echo __RC75=$?
+sigqtest: restart done
+sigqtest: queue done
+sigqtest: timers done
+sigqtest: robust thread done
+sigqtest: robust done
+sigqtest: pidfd done
+sigqtest: sigwait done
+sigqtest: all passed
+__RC75=0
+root@9os:~# sysfstest; echo __RC76=$?
+sysfstest: repeated lookup retained 32 KiB
+sysfstest: all passed (711 files, 200 dirs, 203 links)
+__RC76=0
+root@9os:~# sysfstest -u; echo __RC77=$?
+sysfstest: all passed (0 files, 0 dirs, 0 links)
+__RC77=0
+root@9os:~# uinputtest; echo __RC78=$?
+[ info] input: uinputtest dev as /dev/input/event3
+[ info] input: uinputtest dev removed
+[ info] input: uinputtest legacy as /dev/input/event3
+[ info] input: uinputtest legacy removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest churn as /dev/input/event3
+[ info] input: uinputtest churn removed
+[ info] input: uinputtest last as /dev/input/event3
+[ info] input: uinputtest last removed
+[ info] input: uinputtest ff as /dev/input/event3
+[ info] input: uinputtest ff removed
+uinputtest: all passed
+__RC78=0
+root@9os:~# timeout 35 evdevframetest; echo __RC79=$?
+[ info] input: 9os evdev frames 4447 as /dev/input/event3
+[ info] input: 9os evdev frames 4447 removed
+evdevframetest: PASSED (115 checks, 0 failures)
+__RC79=0
+root@9os:~# vttest; echo __RC80=$?
+[ info] input: vttest keyboard as /dev/input/event3
+[ info] input: vttest keyboard removed
+vttest: all passed
+__RC80=0
+root@9os:~# looptest; echo __RC81=$?
+[ info] ext2: loop0: 4096 blocks of 1024 bytes, 1 groups, 1013/1024 inodes free
+[ info] ext2: loop0: 4096 blocks of 1024 bytes, 1 groups, 1012/1024 inodes free
+looptest: all passed
+__RC81=0
+root@9os:~# sndtest; echo __RC82=$?
+sndtest: PASSED (109 checks, 0 failures)
+__RC82=0
+root@9os:~# udevshim -c && grep -q E:ID_INPUT_KEYBOARD=1 $(grep -l ID_INPUT_KEY= /run/udev/data/c13:*) && udevshim -q /dev/input/event0 | grep -qx ID_INPUT=1; e
+cho __RC83=$?
+__RC83=0
+root@9os:~# bash -c 'a=(1 2 3); s=0; for i in ${a[@]}; do s=$((s+i)); done; [ $s = 6 ]'; echo __RC84=$?
+__RC84=0
+root@9os:~# echo hello | gzip | gunzip | grep -q hello; echo __RC85=$?
+__RC85=0
+root@9os:~# touch /tmp/fa && setfacl -m u:1000:r,g:2000:rw /tmp/fa && getfacl -n /tmp/fa | grep -q '^user:1000:r--' && getfacl -c /tmp/fa | grep -q '^mask::rw-'
+ && setfacl -x u:1000 /tmp/fa && setfacl -b /tmp/fa && ! getfacl -c /tmp/fa | grep -q mask && mkdir /tmp/fd && setfacl -d -m u:1000:rwx /tmp/fd && getfacl -cdn 
+/tmp/fd | grep -q '^user:1000:rwx' && touch /tmp/fd/x && getfacl -cn /tmp/fd/x | grep -q '^user:1000:rwx' && rm -rf /tmp/fa /tmp/fd; echo __RC86=$?
+__RC86=0
+root@9os:~# T=/usr/libexec/libinput/libinput-test-suite; [ ! -x $T ] || { udevshim -d; chvt 2; $T -j1 --filter-group=udev > /tmp/li.log 2>&1; r=$?; chvt 1; kill
+ $(cat /run/udev/udevshim.pid); [ $r = 0 ] || grep -A12 'failed:' /tmp/li.log; [ $r = 0 ]; }; echo __RC87=$?
+__RC87=0
+root@9os:~# drmdemo; echo __RC88=$?
+drmdemo: driver 9os (9os KMS (atomic, dumb buffers, PRIME)), connector 31 type 15, mode 1280x800 1280x800@60
+drmdemo: 120 flips in 4.08 s (29.4 fps)
+drmdemo: PASSED (25 checks, 0 failures)
+__RC88=0
+root@9os:~# nettest; echo __RC89=$?
+nettest: tcp basic ok
+nettest: tcp errors ok
+nettest: tcp options ok
+nettest: tcp bulk ok (16 MiB in 772 ms, 20 MiB/s)
+nettest: tcp concurrent ok (1048 ms)
+nettest: tcp flow control ok
+nettest: tcp window scaling ok
+nettest: udp ok
+nettest: ip fragmentation ok
+nettest: icmp ok
+nettest: privileges and interfaces ok
+nettest: all passed
+__RC89=0
+root@9os:~# net2test; echo __RC90=$?
+net2test: sysctl ok
+net2test: tcp loss ok (8 MiB with 1/53 loss: SACK 436 ms, 109 rexmits; NewReno 560 ms, 111 rexmits)
+net2test: tun/tap and forwarding ok
+net2test: multicast ok
+net2test: netlink ok
+net2test: ipv6 loopback ok
+ipv6: tap60: duplicate address detected
+net2test: ipv6 over tap ok
+net2test: all passed
+__RC90=0
+root@9os:~# ping -c 2 -W 2 127.0.0.1; echo __RC91=$?
+PING 127.0.0.1 (127.0.0.1): 56 data bytes
+64 bytes from 127.0.0.1: seq=0 ttl=64 time=1.889 ms
+64 bytes from 127.0.0.1: seq=1 ttl=64 time=0.289 ms
+
+--- 127.0.0.1 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max = 0.289/1.089/1.889 ms
+__RC91=0
+root@9os:~# for i in 1 2 3 4 5 6 7 8 9 10; do ifconfig eth0 | grep -q 'inet addr:10.0.2.15' && break; sleep 1; done; ifconfig eth0 | grep -q 'inet addr:10.0.2.1
+5'; echo __RC92=$?
+__RC92=0
+root@9os:~# route -n | grep -q '^0.0.0.0 *10.0.2.2'; echo __RC93=$?
+__RC93=0
+root@9os:~# grep -q nameserver /etc/resolv.conf; echo __RC94=$?
+__RC94=0
+root@9os:~# nettest -x 10.0.2.2 48863; echo __RC95=$?
+nettest: external tcp echo ok (4 MiB round trip in 740 ms)
+nettest: external udp echo ok
+__RC95=0
+root@9os:~# wget -q -O - http://10.0.2.2:48863/hello | grep -qx 'hello from the host'; echo __RC96=$?
+__RC96=0
+root@9os:~# wget -q -O /root/big http://10.0.2.2:48863/big && md5sum /root/big | grep -q ab9e61411498c5977358f4ba72907b22 && rm /root/big; echo __RC97=$?
+__RC97=0
+root@9os:~# for i in 1 2 3 4 5 6 7 8 9 10; do ip -6 addr show eth0 | grep -q 'inet6 fec0::' && break; sleep 1; done; ip -6 addr show eth0 | grep -q 'inet6 fec0:
+:.*/64 scope site dynamic'; echo __RC98=$?
+__RC98=0
+root@9os:~# ip -6 route | grep -q '^default via fe80::2 dev eth0'; echo __RC99=$?
+__RC99=0
+root@9os:~# ping6 -c 2 -W 2 fec0::2; echo __RC100=$?
+PING fec0::2 (fec0::2): 56 data bytes
+64 bytes from fec0::2: seq=0 ttl=255 time=1.386 ms
+64 bytes from fec0::2: seq=1 ttl=255 time=3.343 ms
+
+--- fec0::2 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max = 1.386/2.364/3.343 ms
+__RC100=0
+root@9os:~# wget -q -O - http://[fec0::2]:48863/hello | grep -qx 'hello from the host'; echo __RC101=$?
+__RC101=0
+root@9os:~# ip addr show lo | grep -q 'inet6 ::1/128'; echo __RC102=$?
+__RC102=0
+root@9os:~# ip route | grep -q '^default via 10.0.2.2 dev eth0'; echo __RC103=$?
+__RC103=0
+root@9os:~# nettest -s 8080; echo __RC104=$?
+nettest: echo server on port 8080
+__RC104=0
+
+[host] python3 scripts/net-host-server.py --echo-check 54419
+echo-check: 1048576 of 1048576 bytes ok
+root@9os:~# blktest /dev/vdb; echo __RC106=$?
+blktest: ok (16 MiB, 40 reads, 277 writes)
+__RC106=0
+root@9os:~# ext2test /dev/vda1 /mnt; echo __RC107=$?
+[ info] ext2: vda1: 32256 blocks of 4096 bytes, 1 groups, 32245/32256 inodes free
+[ info] ext2: vda1: 32256 blocks of 4096 bytes, 1 groups, 31928/32256 inodes free
+ext2test: ok
+__RC107=0
+root@9os:~# mkdir -p /mnt && mount -t ext2 /dev/vda1 /mnt && xattrtest /mnt && acltest /mnt && locktest /mnt/lockf && umount /mnt; echo __RC108=$?
+[ info] ext2: vda1: 32256 blocks of 4096 bytes, 1 groups, 32245/32256 inodes free
+xattrtest: 68 attributes in /mnt
+xattrtest: all passed
+acltest: all passed
+locktest: flock done
+locktest: posix done
+locktest: ofd done
+locktest: all passed
+__RC108=0
+root@9os:~# blktest -w /dev/vdb 77; echo __RC109=$?
+blktest: wrote ok
+__RC109=0
+root@9os:~# grep -q '^violations 0' /proc/lockdep; echo __RC110=$?
+__RC110=0
+poweroffroot@9os:~# poweroff
+root@9os:~# 9os shutting down
+The system is going down NOW!
+Sent SIGTERM to all processes
+Sent SIGKILL to all processes
+Requesting system poweroff
+[ info] system halted

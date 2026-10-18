@@ -1,0 +1,26 @@
+{
+  "totals": [
+    "112/112 passed",
+    "24/24 passed",
+    "7/7 passed",
+    "2/2 passed",
+    "2/2 passed"
+  ],
+  "fsck": [
+    "PASS   e2fsck build/ci-x86_64/ext2.img",
+    "PASS   e2fsck build/ci-x86_64/root.img"
+  ],
+  "shutdown": [
+    "PASS   clean shutdown of the disk root"
+  ],
+  "result": {
+    "driver_rc": 0,
+    "whole_fixture_equal": false,
+    "changed": [
+      "build/x86_64/9os.iso"
+    ],
+    "input_invariants_valid": true,
+    "accepted": true,
+    "finished": 1792315010.7933705
+  }
+}

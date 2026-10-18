@@ -1,0 +1,10 @@
+{
+  "driver_rc": 0,
+  "whole_fixture_equal": false,
+  "changed": [
+    "build/x86_64/9os.iso"
+  ],
+  "input_invariants_valid": true,
+  "accepted": true,
+  "finished": 1792315010.7933705
+}
