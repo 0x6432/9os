@@ -1,0 +1,2 @@
+normal: /tmp/9os-epoll-filter-mzak0t4e/normal.c:175: main: Assertion `run(&e,out,2,&x)==0&&ep_wait_filter(&x)==UINT64_MAX&&x.depth==1&&nested.refs==0' failed.
+

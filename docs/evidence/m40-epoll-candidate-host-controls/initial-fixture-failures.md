@@ -1,0 +1,12 @@
+# Initial model fixture failures retained
+
+Firstnormal scanner modelFAILED atnested assertion: mockepoll_fops hadNULL
+pollcallback, unlikeproductionnonNULLep_poll, so realep_file_poll correctly
+tookgenericready fallbackbefore nestedscan. FixedtheMOCKcallback, preserving
+allassertionsandkernelcandidatecode. SubsequentGCC15groups/8mutants passed.
+
+FirstClangmodelcompileFAILED; diagnostic-onlyexecutionreported unusedcopied
+list_add inline underWerror. Addedactualprobeinsert/removeassertionsusingthat
+productionlistprimitive; didNOTremoveWerrororweakenassertions. Original
+failureanddiagnosticlogsretained. Initialmodelsource snapshotswerenotcaptured;
+logsareoriginal, currentmodelsourceisversioned. No guestpassclaimedfrommodels.

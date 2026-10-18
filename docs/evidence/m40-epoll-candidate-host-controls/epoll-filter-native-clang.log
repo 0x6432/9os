@@ -1,0 +1,17 @@
+pollfiltertest: PASSED (199 checks, 0 failures)
+poll filter exact-function model: 14 groups passed (mock locks/FDs only)
+poll filter model: rejected exclude-unfiltered
+poll filter model: rejected wake-unrelated
+poll filter model: rejected stale-epoch-enrolls
+poll filter model: rejected missing-publication
+poll filter model: rejected missing-reset
+poll filter model: rejected unsafe-wrapper
+poll filter model: rejected file-not-inode-alias-key
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/9os/tests/epoll-filter-host/model.py", line 118, in <module>
+    subprocess.run([os.environ.get('CC','cc'),'-O2','-Wall','-Wextra','-Werror','-Wno-unused-const-variable','-Wno-misleading-indentation','-Wno-unused-variable',str(c),'-o',str(exe)],check=True,capture_output=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/subprocess.py", line 577, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['clang', '-O2', '-Wall', '-Wextra', '-Werror', '-Wno-unused-const-variable', '-Wno-misleading-indentation', '-Wno-unused-variable', '/tmp/9os-epoll-filter-c_9tmutu/normal.c', '-o', '/tmp/9os-epoll-filter-c_9tmutu/normal']' returned non-zero exit status 1.

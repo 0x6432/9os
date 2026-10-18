@@ -1,0 +1,6 @@
+normal: compiler rejected exact-scanner fixture
+/tmp/9os-epoll-filter-2pid4hse/normal.c:22:20: error: unused function 'list_add' [-Werror,-Wunused-function]
+   22 | static inline void list_add(struct list_node *l, struct list_node *n) { __list_add(n, l, l->next); }
+      |                    ^~~~~~~~
+1 error generated.
+
