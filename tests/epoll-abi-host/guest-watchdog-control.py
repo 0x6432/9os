@@ -12,6 +12,7 @@ import platform
 import subprocess
 import tempfile
 import time
+from isolated_process import run_isolated
 
 if platform.machine() != 'x86_64':
     raise SystemExit('native x86_64 control only; no non-x86 test authorized')
@@ -37,7 +38,7 @@ with tempfile.TemporaryDirectory(prefix='9os-epollabitest-watchdog-') as tmp:
     print('compile:', ' '.join(cmd).replace(tmp,'<tmp>'),flush=True)
     subprocess.run(cmd,check=True)
     start=time.monotonic()
-    result=subprocess.run([str(exe)],capture_output=True,text=True,timeout=6)
+    result=run_isolated([str(exe)],timeout=6)
     elapsed=time.monotonic()-start
     print(result.stdout,end='',flush=True)
     print(result.stderr,end='',flush=True)
@@ -45,5 +46,5 @@ with tempfile.TemporaryDirectory(prefix='9os-epollabitest-watchdog-') as tmp:
     if result.returncode!=124 or 'FAIL five-second process watchdog' not in result.stderr or elapsed<5:
         raise SystemExit('FAIL: five-second watchdog negative control was not rejected accurately')
 print('PASS: original five-second supervisor rejected signal-blocked child hang',flush=True)
-print('Six-second outer harness is cleanup-only, not the consumer deadline.',flush=True)
+print('Six-second outer timeout remains a failure; isolated group kill/reap runs before re-raising exceptions.',flush=True)
 print('Native Linux control only; NOT 9os guest runtime validation.',flush=True)
