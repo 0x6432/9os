@@ -38,6 +38,65 @@ focused_terminal_query() {
   *) return 2 ;;
  esac
 }
+# Retain only existing query output, never issue another acceptance query.
+# Recording itself perturbs timing: NOT a startup cure or original-state proof.
+# Twelve fixed slots, each <= 5120 bytes (1024-byte classification + <=4096 raw).
+# The original last-query file/exit status remain authoritative for the gate.
+record_terminal_attempt() {
+ query_attempt=$((query_attempt+1))
+ # Exact lines only. Absence is unknown, NOT zero terminal/state/error counts.
+ # Keep first/last terminal lines even if raw head/tail clipping omits them.
+ query_flags=$(awk -v pid="$client" -v backend="${ALPINE_TERMINAL_QUERY:-atspi}" '
+  BEGIN { complete="unknown"; witness="unknown"; terminal="unknown"; remote="unknown" }
+  /^(DBUS_)?A11Y_TERMINAL focused=[01] showing=[01] visible=[01]$/ {
+   terminal="present"; if (first=="") first=$0; last=$0
+  }
+  /^DBUS_A11Y_ERROR reason=remote-call$/ { remote="present" }
+  $0 ~ "^DBUS_A11Y_WITNESS pid=" pid " terminals=[0-9]+ valid_states=[0-9]+ focused_states=[0-9]+ showing_states=[0-9]+ visible_states=[0-9]+ qualified=[0-9]+ protocol_error=[01]$" {
+   if (backend=="live-dbus") { witness="present"; witness_line=substr($0,1,512) }
+  }
+  $0 ~ "^terminal-dbus: pid=" pid " applications=[0-9]+ models=[0-9]+ visited=[0-9]+ (OBSERVED|NOT_OBSERVED) \\(diagnostic only\\)$" {
+   if (backend=="live-dbus") complete="present"
+  }
+  $0 ~ "^desktopa11y: pid=" pid " application=[0-9]+ models=[0-9]+ visited=[0-9]+ (PASSED|NOT_READY)$" {
+   if (backend=="atspi") complete="present"
+  }
+  END {
+   print "completion=" complete " witness=" witness " terminal_line=" terminal " remote_line=" remote
+   if (first!="") { print "terminal_first=" first; print "terminal_last=" last }
+   if (witness_line!="") print "witness_line=" witness_line
+  }' "$D/konsole-focus") || return 1
+ case $query_rc in
+  142) query_end=alarm-status ;; # status convention, not proof of signal cause
+  124) query_end=timeout-status ;;
+  137|143) query_end=signal-status ;;
+  *) query_end=exit-status ;;
+ esac
+ # Bound metadata even for malformed/unexpected helper output.
+ { printf 'attempt=%s rc=%s termination=%s\n%s\n' "$query_attempt" "$query_rc" "$query_end" "$query_flags"; } |
+  head -c 1024 > "$D/konsole-attempt-meta" || return 1
+ query_slots='first last'
+ case $query_flags in *terminal_line=present*) query_slots="$query_slots terminal-first terminal-last" ;; esac
+ case $query_flags in *remote_line=present*) query_slots="$query_slots remote-first remote-last" ;; esac
+ case $query_flags in *completion=unknown*) query_slots="$query_slots incomplete-first incomplete-last" ;; esac
+ case $query_flags in *witness=present*) query_slots="$query_slots witness-first witness-last" ;; esac
+ [ "$query_rc" != 142 ] || query_slots="$query_slots alarm-first alarm-last"
+ for query_slot in $query_slots;do
+  case $query_slot in first|*-first) [ ! -f "$D/konsole-attempt-$query_slot" ] || continue ;; esac
+  # Prefix and suffix deliberately overlap for short logs; at most4096 raw
+  # bytes regardless of query size/line length. No pipeline on the query itself.
+  { cat "$D/konsole-attempt-meta"; head -c 2048 "$D/konsole-focus"; tail -c 2048 "$D/konsole-focus"; } > "$D/konsole-attempt-$query_slot" || return 1
+ done
+}
+emit_terminal_attempts() {
+ echo "KONSOLE_QUERY_HISTORY attempts=$query_attempt recording_failed=$query_recording_failed raw=prefix2048+suffix2048 timing_perturbed=1"
+ for query_slot in first last terminal-first terminal-last remote-first remote-last incomplete-first incomplete-last witness-first witness-last alarm-first alarm-last;do
+  [ -f "$D/konsole-attempt-$query_slot" ] || continue
+  echo "KONSOLE_QUERY_ATTEMPT_BEGIN slot=$query_slot"
+  cat "$D/konsole-attempt-$query_slot"
+  printf '\nKONSOLE_QUERY_ATTEMPT_END slot=%s\n' "$query_slot"
+ done
+}
 # Diagnostic only: all samples are AFTER the immutable failure witness. Raw
 # stack words are not unwind frames. Each attach perturbs scheduling explicitly.
 register_failure_diagnostic() {
@@ -250,15 +309,19 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
  "$konsole_command" --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
  fi
  [ "${ALPINE_TERMINAL_QUERY:-atspi}" = atspi ] || echo KONSOLE_READINESS_BACKEND=live-dbus
+ query_attempt=0;query_recording_failed=0
  pty_ready=0;terminal_ready=0;deadline=$(( $(date +%s) + 120 ))
  while [ "$(date +%s)" -lt "$deadline" ];do
   if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then
    pty_ready=1
-   if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then terminal_ready=1;break;fi
+   if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then query_rc=0;else query_rc=$?;fi
+   record_terminal_attempt || query_recording_failed=1
+   if [ "$query_rc" = 0 ];then terminal_ready=1;break;fi
   fi
   kill -0 "$client" 2>/dev/null || break
   sleep .1
  done
+ emit_terminal_attempts
  cat "$D/konsole-focus" 2>/dev/null || true
  if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then
   echo 'alpine-plasma: FAIL interactive Konsole PTY/focused terminal readiness'
