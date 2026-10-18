@@ -1,0 +1,3112 @@
+[
+  {
+    "path": "bin",
+    "mode": "0o755",
+    "size": 8192
+  },
+  {
+    "path": "bin/acltest",
+    "mode": "0o755",
+    "size": 54248,
+    "sha256": "a25251b43ec81a9a7b5b459a104ebc95d560eb077760b88f6e968a5d2a720fde"
+  },
+  {
+    "path": "bin/afftest",
+    "mode": "0o755",
+    "size": 43712,
+    "sha256": "dcec260beb1e68d7424e1674b5faf9b1367da9bb53dccff99b0cd240470caabf"
+  },
+  {
+    "path": "bin/alarmcputest",
+    "mode": "0o755",
+    "size": 34120,
+    "sha256": "c7da37f4717c5ecb5a62fc40e2373683a6b2f3b6774ac1b5f69fecccd1ba7612"
+  },
+  {
+    "path": "bin/arch",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/ash",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/asynctest",
+    "mode": "0o755",
+    "size": 45144,
+    "sha256": "e75c4e35893c5c12eeadd3a49c4453345387fbd6ff52aafeed29de8aa9f193f2"
+  },
+  {
+    "path": "bin/balancetest",
+    "mode": "0o755",
+    "size": 78352,
+    "sha256": "c8c605e50bbcc62cb51dc648023c680645b71a547999590d4e0d7d7a634ee7fd"
+  },
+  {
+    "path": "bin/base32",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/base64",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/bash",
+    "mode": "0o755",
+    "size": 1333376,
+    "sha256": "6e1ac0e602fa9249ffe46ed02a8980f5a2601bf359ba7d003b72cc488cc6e7c6"
+  },
+  {
+    "path": "bin/blktest",
+    "mode": "0o755",
+    "size": 79448,
+    "sha256": "f041896886ca13cc75ae5ffa0e90b55444a4ad33122dcac1e9a391a9a4a71d86"
+  },
+  {
+    "path": "bin/busybox",
+    "mode": "0o4755",
+    "size": 2056952,
+    "sha256": "6ce3295fa1be475f780cd94719f89d316c1254d663d8057116f72bea7e419386"
+  },
+  {
+    "path": "bin/cat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/chattr",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/chgrp",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/chmod",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/chown",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/conspy",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/cowtest",
+    "mode": "0o755",
+    "size": 74936,
+    "sha256": "084ea9cc4b3097f65ad00fe7d28027eb3bdfa5e202408da1e0ad6e0adf9c01f2"
+  },
+  {
+    "path": "bin/cp",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/cpio",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/cttyhack",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/date",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/dd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/desktopa11y",
+    "mode": "0o755",
+    "size": 53464,
+    "sha256": "305886a020d13a256258f2edfb642de8142a787de8310e650a7289f658edde25"
+  },
+  {
+    "path": "bin/desktopframecheck",
+    "mode": "0o755",
+    "size": 42648,
+    "sha256": "3c774ad8ffa3f47ab5f3f934882f642cbf47c5646686d3b062027c7485fe0dd9"
+  },
+  {
+    "path": "bin/df",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/dircookietest",
+    "mode": "0o755",
+    "size": 48808,
+    "sha256": "583f130a4cd5c2a82d38ff08377170c320f98fe249187ae0fceb6e32fd9d3f57"
+  },
+  {
+    "path": "bin/dmesg",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/dnsdomainname",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/drmdemo",
+    "mode": "0o755",
+    "size": 38752,
+    "sha256": "45d5d0072e334f7e818035885c9fe3479e2f7c72d190a343b96c6610a9a59db2"
+  },
+  {
+    "path": "bin/dumpkmap",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/dyntest",
+    "mode": "0o755",
+    "size": 6608,
+    "sha256": "1271c706d5be70d589c7d13ba7054b3bc2672764fa03d0ffcfa69a47e4452eb3"
+  },
+  {
+    "path": "bin/echo",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/ed",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/efdtest",
+    "mode": "0o755",
+    "size": 40960,
+    "sha256": "996c5887bf3febb9a58dce872e96c6f352c0c04571ef84fd9a934032929888ca"
+  },
+  {
+    "path": "bin/egrep",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/evdevframetest",
+    "mode": "0o755",
+    "size": 44408,
+    "sha256": "2b14918ea15e3e6c5044edc920f28ca784a49f64e7869837f2da8fc0d4afb00e"
+  },
+  {
+    "path": "bin/eventfdwaketest",
+    "mode": "0o755",
+    "size": 48608,
+    "sha256": "ea3a35f8a94a49c05ff2b775245d4e3d08b1033ddf700db7aed73372b0fd26d5"
+  },
+  {
+    "path": "bin/evtest",
+    "mode": "0o755",
+    "size": 32992,
+    "sha256": "f581913b02768e61f30ca9a2c4376a1fedae368edc9e3a44e6072f8fbca4f15e"
+  },
+  {
+    "path": "bin/ext2test",
+    "mode": "0o755",
+    "size": 78144,
+    "sha256": "9576f06767b878e8d9cf8c3abb254ed69a2df6d88a4ba2f5e527bd46bd70289a"
+  },
+  {
+    "path": "bin/fallocatetest",
+    "mode": "0o755",
+    "size": 37640,
+    "sha256": "a18b287503f7ae16646f63634fbfd23fca1775d1eacc519ea7cb2171cfea990a"
+  },
+  {
+    "path": "bin/false",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/fatattr",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/faulttest",
+    "mode": "0o755",
+    "size": 45872,
+    "sha256": "379bbac86c4a943cc4eea8c5a68bc8fc258a9842a6bf7c13f5238a6eebb10f39"
+  },
+  {
+    "path": "bin/fbdemo",
+    "mode": "0o755",
+    "size": 78936,
+    "sha256": "6774b0fd5ea3b9f423bf59023c5f8b7241673302c777d0d99c11562f36152c10"
+  },
+  {
+    "path": "bin/fdflush",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/fdtest",
+    "mode": "0o755",
+    "size": 46008,
+    "sha256": "aa4be52fba224c4fe2e9993d574f2d661e6fdcbd430968f2e96097b121b235ad"
+  },
+  {
+    "path": "bin/fgrep",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/filetest",
+    "mode": "0o755",
+    "size": 43328,
+    "sha256": "791f0db7f8f2188b00cd72ac9448d7ca809d0d0af99d373b9d62774d14b0cc83"
+  },
+  {
+    "path": "bin/fsync",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/futexbitsettest",
+    "mode": "0o755",
+    "size": 50464,
+    "sha256": "719be68f64c31182ce97af6a339ce86f1e13465a2683d78a46d8d4332b2836a2"
+  },
+  {
+    "path": "bin/futexoptest",
+    "mode": "0o755",
+    "size": 51568,
+    "sha256": "2f0e509125103114bb2eb598eac0e915f9629ee0c183ec57b0db7cd4cd33f214"
+  },
+  {
+    "path": "bin/futexrequeuetest",
+    "mode": "0o755",
+    "size": 42312,
+    "sha256": "193221d4efaa631c84f1adb4d8b6f8003126214b484db0ce481c578dc625f411"
+  },
+  {
+    "path": "bin/futextest",
+    "mode": "0o755",
+    "size": 48776,
+    "sha256": "c5a5d5995652808385feacb39305914287d636912a1a3b33064730a7638c4783"
+  },
+  {
+    "path": "bin/getfacl",
+    "mode": "0o755",
+    "size": 59136,
+    "sha256": "c056e897f2d546b302dd1af0b456971940a79f7c09d65b9f71528d22f138f196"
+  },
+  {
+    "path": "bin/getopt",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/grep",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/gunzip",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/gzip",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/hardentest",
+    "mode": "0o755",
+    "size": 15792,
+    "sha256": "c6a65b60ed26e60994bf5d9614cc615715b8b77654c98ecf697a3af3a0ba29ec"
+  },
+  {
+    "path": "bin/hostname",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/hush",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/idletest",
+    "mode": "0o755",
+    "size": 77144,
+    "sha256": "c9ddd3f362d5b72f1af9e2fd8bfb4420ae2419eb48ecf7371761d82b14450940"
+  },
+  {
+    "path": "bin/inotifytest",
+    "mode": "0o755",
+    "size": 38168,
+    "sha256": "d6df145ce37895e9638c370e962a51b5c72bba92bb2483caf7d2ff85b256b63f"
+  },
+  {
+    "path": "bin/inputeventcapture",
+    "mode": "0o755",
+    "size": 39136,
+    "sha256": "1988e2abfc1fe3aba08d46833a39702fcf23d49f702cd15c311795fe873f8cb9"
+  },
+  {
+    "path": "bin/ioctlwidthtest",
+    "mode": "0o755",
+    "size": 34248,
+    "sha256": "2cec76daf5c618cadd6fffd17f85e7f8f342f425cdd040d730f895dd347abcfb"
+  },
+  {
+    "path": "bin/ionice",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/iostat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/ipcalc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/ipctest",
+    "mode": "0o755",
+    "size": 63600,
+    "sha256": "61e0c7515326b993a2e6daeec2ef74501b48513827d796b87820a73d280f5115"
+  },
+  {
+    "path": "bin/irqtest",
+    "mode": "0o755",
+    "size": 65904,
+    "sha256": "283b425a3497e51df7fcbe19329d28799fa90f85aef7d48635cdc4507433d676"
+  },
+  {
+    "path": "bin/kbd_mode",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/kill",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/leasetest",
+    "mode": "0o755",
+    "size": 52704,
+    "sha256": "e3e76a553620a003dd3fc92012be864ee8d3e37a9573ac70de03dc9a0b709d80"
+  },
+  {
+    "path": "bin/libctest",
+    "mode": "0o755",
+    "size": 56888,
+    "sha256": "75d130477cf24cc19e19a317a445f3c2b3788102f45c39dcbfa53e8e65a40afb"
+  },
+  {
+    "path": "bin/link",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/linux32",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/linux64",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/ln",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/locktest",
+    "mode": "0o755",
+    "size": 52080,
+    "sha256": "4e3791649e97a670fbc8e8a1ca8a6e0c9f6af1ca6f622265f85077509f74bbdd"
+  },
+  {
+    "path": "bin/login",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/logintest",
+    "mode": "0o755",
+    "size": 47984,
+    "sha256": "9a31c1007786d4de95c1a7566cefdb5b686505342ef601ac3c24f1f6ccfc3c94"
+  },
+  {
+    "path": "bin/looptest",
+    "mode": "0o755",
+    "size": 61464,
+    "sha256": "3f80d78c15cf77e2663e32d857db627c414f202f4565b97f03d2cfef2e596858"
+  },
+  {
+    "path": "bin/ls",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/lsattr",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/lzop",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/makemime",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/mapprivtest",
+    "mode": "0o755",
+    "size": 7680,
+    "sha256": "b91cf1a27b8d41e50492ea349286261e1dabcd1eae63dae32b92ad9331c0af72"
+  },
+  {
+    "path": "bin/mkdir",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/mknod",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/mktemp",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/more",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/mount",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/mountinfotest",
+    "mode": "0o755",
+    "size": 88632,
+    "sha256": "5cc7640ff6c18602ddd2cc0e39542c88bc6b551db41934fb425642186f2b9011"
+  },
+  {
+    "path": "bin/mountpoint",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/mpstat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/mt",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/mv",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/net2test",
+    "mode": "0o755",
+    "size": 165904,
+    "sha256": "f873cab97d384954229e1a8718465975c81f155ae86582a8f7fc833c82160b76"
+  },
+  {
+    "path": "bin/netstat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/nettest",
+    "mode": "0o755",
+    "size": 118776,
+    "sha256": "55d348b47f4cb115a78b14d8a1c295a4aa77b0c1f3cf1c1c3a696ae73f3b3e25"
+  },
+  {
+    "path": "bin/nice",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/nicetest",
+    "mode": "0o755",
+    "size": 49568,
+    "sha256": "2269261ef757eef11be6d26f0b0b7960b43661b381146f96a5d0f0f57b3336df"
+  },
+  {
+    "path": "bin/orphantest",
+    "mode": "0o755",
+    "size": 38648,
+    "sha256": "b852f8e10e4fc07cda8119083201982fb6a52dee1dd841d9e7067859749f27eb"
+  },
+  {
+    "path": "bin/pcputest",
+    "mode": "0o755",
+    "size": 70256,
+    "sha256": "0c8509345dddf6da750b21d14fa4557c29a61a60a83359d2bd56fb5b06c31e39"
+  },
+  {
+    "path": "bin/permtest",
+    "mode": "0o755",
+    "size": 108312,
+    "sha256": "701744e61bb96b227f155a9e00a532851e278df99c0f21f6198ab8f381001d6d"
+  },
+  {
+    "path": "bin/pidof",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/pimutextest",
+    "mode": "0o755",
+    "size": 37144,
+    "sha256": "dbdad1746144d0b73710ec022cc0af465d96bac491899e340ba2e25c85f33a97"
+  },
+  {
+    "path": "bin/ping",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/ping6",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/pipe_progress",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/pipetest",
+    "mode": "0o755",
+    "size": 45992,
+    "sha256": "d865d75bd41297ad321de1db0116b1d905cf3751ac94ae8fcd5e73c938258cb1"
+  },
+  {
+    "path": "bin/pollfiltertest",
+    "mode": "0o755",
+    "size": 56936,
+    "sha256": "af1e11a9fcb9db7ac649755a0ed4de34664f17030fa7174a7d9996cbd0fa946e"
+  },
+  {
+    "path": "bin/polltest",
+    "mode": "0o755",
+    "size": 49248,
+    "sha256": "0c0495865b2b226680b1126bfebc1fb26d5b1eadc53f060c448705eadd8d88d5"
+  },
+  {
+    "path": "bin/pollwakebench",
+    "mode": "0o755",
+    "size": 46520,
+    "sha256": "b8fff503983eb50c2d7ff2975a2a6fc75652d7381eb714915d57dd05d741b86a"
+  },
+  {
+    "path": "bin/printenv",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/procinfotest",
+    "mode": "0o755",
+    "size": 56680,
+    "sha256": "d1f07c346cc65466ed5015efeb5626c3a4c006128322a8daa765eee75f4dfb8e"
+  },
+  {
+    "path": "bin/proctasktest",
+    "mode": "0o755",
+    "size": 74624,
+    "sha256": "e7ae0d84426b0865624bbb7b7c3142b5ecb651eb75ee66cb0908bb1949c446a8"
+  },
+  {
+    "path": "bin/ps",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/ptracestoptest",
+    "mode": "0o755",
+    "size": 76200,
+    "sha256": "2d9f5b518db9cd87895f61a665975e9b6b6cfb69d07b766dd138d76c4af20c1b"
+  },
+  {
+    "path": "bin/ptracetest",
+    "mode": "0o755",
+    "size": 83728,
+    "sha256": "329a1a73e45083a333b972f675d9250e9ff291741df2aa9b5801d968ebb7df3f"
+  },
+  {
+    "path": "bin/ptytest",
+    "mode": "0o755",
+    "size": 44896,
+    "sha256": "f462f6044e26b800be318441cc9a8eb583ae1945cb623d6daf5b2d795ef9c8b7"
+  },
+  {
+    "path": "bin/pwd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/reformime",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/resume",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/rev",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/rm",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/rmdir",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/rpm",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/run-parts",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/schedtest",
+    "mode": "0o755",
+    "size": 67440,
+    "sha256": "347d817d042d8c3881b36d802f14dd9842315ef32db4c3922c42a2e70d18a30a"
+  },
+  {
+    "path": "bin/scriptreplay",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/sctrace",
+    "mode": "0o755",
+    "size": 43088,
+    "sha256": "0eb21b85996504651c509ea1204f8f915c175905b16719f8f72f33931adfcc03"
+  },
+  {
+    "path": "bin/sed",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/setarch",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/setfacl",
+    "mode": "0o755",
+    "size": 65288,
+    "sha256": "f80d4a9b4e430c3a108a32c68e803098f4a0f17f3b55560f48723662bdfff417"
+  },
+  {
+    "path": "bin/setpriv",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/setserial",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/sh",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/sigqtest",
+    "mode": "0o755",
+    "size": 72840,
+    "sha256": "0ae255815fe97bdf4ea91f5c3dd2ea90ca22703e7f8ba04343cd680c3dd13908"
+  },
+  {
+    "path": "bin/slabtest",
+    "mode": "0o755",
+    "size": 71616,
+    "sha256": "cbf435b79bfef6e0035d8e437e9cabf3697f04afc95fd2dd494f5f35b7af30fb"
+  },
+  {
+    "path": "bin/sleep",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/smptest",
+    "mode": "0o755",
+    "size": 42904,
+    "sha256": "40cd752667a904b29d04ef69f660b305ff98d496c4e32f93b50e7612a30b3612"
+  },
+  {
+    "path": "bin/sndtest",
+    "mode": "0o755",
+    "size": 38712,
+    "sha256": "09284931eb2228352482e2e4e3a06f4df9c48b9e8aa147975ba1ea5e9417c353"
+  },
+  {
+    "path": "bin/socktest",
+    "mode": "0o755",
+    "size": 52648,
+    "sha256": "6b7bdf408792504b7084b8b23ef4cf5fab57a280731eaaa72777d851e3e4f51a"
+  },
+  {
+    "path": "bin/stat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/stty",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/su",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/sync",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/sysbench",
+    "mode": "0o755",
+    "size": 38616,
+    "sha256": "d132318fdfe2ab2d3fc9a953f1333202fc5aec16a5677f7287d4732dc9639be6"
+  },
+  {
+    "path": "bin/sysfstest",
+    "mode": "0o755",
+    "size": 128928,
+    "sha256": "c28b9a281021a8a22fe893129ca1c1c5c2f4edf184795f781866db37305faac7"
+  },
+  {
+    "path": "bin/tar",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/timetest",
+    "mode": "0o755",
+    "size": 43928,
+    "sha256": "1ddedcd2e93bf303f08a9ce28c7ab4b7c50808e4db281a9b6851f80668df088b"
+  },
+  {
+    "path": "bin/touch",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/true",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/udevadm",
+    "mode": "0o777",
+    "size": 8,
+    "link": "udevshim"
+  },
+  {
+    "path": "bin/udevshim",
+    "mode": "0o755",
+    "size": 164776,
+    "sha256": "8d0885ba8b6245e01f6e44618c0883d64c3ad79b0b67d82a7c94b3bb803da9f2"
+  },
+  {
+    "path": "bin/uinputtest",
+    "mode": "0o755",
+    "size": 58704,
+    "sha256": "1e5032d3944809dda9144e999ea77822615565e6a06cb6790afbd726b375edba"
+  },
+  {
+    "path": "bin/umount",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/uname",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/unixcredtest",
+    "mode": "0o755",
+    "size": 47856,
+    "sha256": "2ec06d3221117ac39114419754b725e91ebc5209c813d5a2553ed5f509ecc117"
+  },
+  {
+    "path": "bin/unixpolltest",
+    "mode": "0o755",
+    "size": 45536,
+    "sha256": "838a03c68515ab6d5e2c6b78b9c53edba05151c4c569aa30cae7158344dadb43"
+  },
+  {
+    "path": "bin/usleep",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/vforktest",
+    "mode": "0o755",
+    "size": 36656,
+    "sha256": "ade6d72b5907f9acee280adb9b492dd30169aab722e1bbfb25c00d16cafd6a38"
+  },
+  {
+    "path": "bin/vfstest",
+    "mode": "0o755",
+    "size": 72528,
+    "sha256": "102a29ae02ce29710965f2249d923c140056eab64113f3331f1827b3fb7f524e"
+  },
+  {
+    "path": "bin/vi",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/vmtest",
+    "mode": "0o755",
+    "size": 82280,
+    "sha256": "1a6f6a9c2c7ed923a5eb0b05020be0a81358b7d3a346c637a15d0608dba96f7c"
+  },
+  {
+    "path": "bin/vttest",
+    "mode": "0o755",
+    "size": 50792,
+    "sha256": "ffc3ac28987c5fd0fb90b29834408a99e577585d1ff10c3adb6ae1b58cb5d5b9"
+  },
+  {
+    "path": "bin/watch",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "bin/xattrtest",
+    "mode": "0o755",
+    "size": 59520,
+    "sha256": "96b7d880a2579007332dfcb776f702dc52d3dfa6020edfd8273cd842105030fc"
+  },
+  {
+    "path": "bin/zcat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "dev",
+    "mode": "0o755",
+    "size": 6
+  },
+  {
+    "path": "etc",
+    "mode": "0o755",
+    "size": 184
+  },
+  {
+    "path": "etc/group",
+    "mode": "0o644",
+    "size": 172,
+    "sha256": "3a2edfc02bb06472c73d301dcb33db37e055759c3c5de1166ca11e387299ea17"
+  },
+  {
+    "path": "etc/hostname",
+    "mode": "0o644",
+    "size": 4,
+    "sha256": "0af45d6ba310c51cd78be522ddf39e374473c6f1cb4384e44a019cc33101052f"
+  },
+  {
+    "path": "etc/hosts",
+    "mode": "0o644",
+    "size": 48,
+    "sha256": "f1fd6d61b23822987acab276ff9701d6b29a77a20eb745dd03f74dbe5e0f179a"
+  },
+  {
+    "path": "etc/init.d",
+    "mode": "0o755",
+    "size": 17
+  },
+  {
+    "path": "etc/init.d/rcS",
+    "mode": "0o755",
+    "size": 1258,
+    "sha256": "7647bccc93f53e07969aacc7f4116f84b7668c9f8c3b1c51a3179c0271206217"
+  },
+  {
+    "path": "etc/inittab",
+    "mode": "0o644",
+    "size": 213,
+    "sha256": "ebec191ae72afd61ab1b99aaf6a8fb939d0502405e792a7df7713e8eaffcd2c0"
+  },
+  {
+    "path": "etc/passwd",
+    "mode": "0o644",
+    "size": 149,
+    "sha256": "51f0b4df71b3aad9d2b6638565398dc3470d3b3c5f45b85045246d5182b60833"
+  },
+  {
+    "path": "etc/profile",
+    "mode": "0o644",
+    "size": 258,
+    "sha256": "4354e447de5e6de7a1b5f1e9d8593ecfb3e69b207d9fc98b709bbdcc6965be1d"
+  },
+  {
+    "path": "etc/protocols",
+    "mode": "0o644",
+    "size": 41,
+    "sha256": "dd97f28220a7ffcb51b258c08c9dfa74f675d98a7566e361e5d97d4b5e2746fe"
+  },
+  {
+    "path": "etc/securetty",
+    "mode": "0o644",
+    "size": 24,
+    "sha256": "2c364a37542df76e281e329dee055cf25f6df9eb1831a5acf5fc758d8acde8a7"
+  },
+  {
+    "path": "etc/services",
+    "mode": "0o644",
+    "size": 164,
+    "sha256": "5ec98c8c75376af581207d52d406cd45c1ca2086feb04f5e523e85d54b5f02fe"
+  },
+  {
+    "path": "etc/shadow",
+    "mode": "0o640",
+    "size": 203,
+    "sha256": "79e7a1ef2ce4f27f98832e35cd13422bfb6303691a043c3f0bac5330c423e222"
+  },
+  {
+    "path": "etc/shells",
+    "mode": "0o644",
+    "size": 27,
+    "sha256": "ad5f5c3b2869d03b81350b3dc5bb115a59d84651c695ba5547529724eb88c47a"
+  },
+  {
+    "path": "home",
+    "mode": "0o755",
+    "size": 6
+  },
+  {
+    "path": "lib",
+    "mode": "0o755",
+    "size": 78
+  },
+  {
+    "path": "lib/ld-musl-x86_64.so.1",
+    "mode": "0o777",
+    "size": 7,
+    "link": "libc.so"
+  },
+  {
+    "path": "lib/libc.so",
+    "mode": "0o755",
+    "size": 720680,
+    "sha256": "497fbdce20522ba3df6df3cdc3da25aa2a95f2546bb0e48b9cb8eb8448528f82"
+  },
+  {
+    "path": "lib/libdemo.so",
+    "mode": "0o755",
+    "size": 3440,
+    "sha256": "ad9cd0824b2c02c36e881205f329ca22fdb05595c9e8230906403e262917fc48"
+  },
+  {
+    "path": "lib/udev",
+    "mode": "0o755",
+    "size": 35
+  },
+  {
+    "path": "lib/udev/hwdb.d",
+    "mode": "0o755",
+    "size": 25
+  },
+  {
+    "path": "lib/udev/hwdb.d/60-9os.hwdb",
+    "mode": "0o644",
+    "size": 231,
+    "sha256": "8c64cc806fa4e4bb35e2bf5322b2fd0bea626954b01cceb8ad6a1f7aa809a2a2"
+  },
+  {
+    "path": "lib/udev/rules.d",
+    "mode": "0o755",
+    "size": 26
+  },
+  {
+    "path": "lib/udev/rules.d/50-9os.rules",
+    "mode": "0o644",
+    "size": 349,
+    "sha256": "ce74f454d5f711ad3036f51f487f8cbe821d27a082ba4fda36ba607031ca000d"
+  },
+  {
+    "path": "linuxrc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "proc",
+    "mode": "0o755",
+    "size": 6
+  },
+  {
+    "path": "root",
+    "mode": "0o755",
+    "size": 6
+  },
+  {
+    "path": "sbin",
+    "mode": "0o755",
+    "size": 4096
+  },
+  {
+    "path": "sbin/acpid",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/adjtimex",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/arp",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/blkid",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/blockdev",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/bootchartd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/depmod",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/devmem",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/fbsplash",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/fdisk",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/findfs",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/freeramdisk",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/fsck",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/fsck.minix",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/fstrim",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/getty",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/halt",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/hdparm",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/hwclock",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/ifconfig",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/ifdown",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/ifenslave",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/ifup",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/init",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/insmod",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/ip",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/ipaddr",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/iplink",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/ipneigh",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/iproute",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/iprule",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/iptunnel",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/klogd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/loadkmap",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/logread",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/losetup",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/lsmod",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/makedevs",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/mdev",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/mkdosfs",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/mke2fs",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/mkfs.ext2",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/mkfs.minix",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/mkfs.vfat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/mkswap",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/modinfo",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/modprobe",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/nameif",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/pivot_root",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/poweroff",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/raidautorun",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/reboot",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/rmmod",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/route",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/run-init",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/runlevel",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/setconsole",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/slattach",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/start-stop-daemon",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/sulogin",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/swapoff",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/swapon",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/switch_root",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/sysctl",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/syslogd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/tunctl",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/udhcpc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/uevent",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/vconfig",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/watchdog",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sbin/zcip",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "sys",
+    "mode": "0o755",
+    "size": 6
+  },
+  {
+    "path": "tmp",
+    "mode": "0o755",
+    "size": 6
+  },
+  {
+    "path": "usr",
+    "mode": "0o755",
+    "size": 53
+  },
+  {
+    "path": "usr/bin",
+    "mode": "0o755",
+    "size": 4096
+  },
+  {
+    "path": "usr/bin/[",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/[[",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/ascii",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/awk",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/basename",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/bc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/beep",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/blkdiscard",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/bunzip2",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/bzcat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/bzip2",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/cal",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/chpst",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/chrt",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/chvt",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/cksum",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/clear",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/cmp",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/comm",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/crc32",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/crontab",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/cryptpw",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/cut",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/dc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/deallocvt",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/diff",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/dirname",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/dos2unix",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/dpkg",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/dpkg-deb",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/du",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/dumpleases",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/eject",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/env",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/envdir",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/envuidgid",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/epollabitest",
+    "mode": "0o755",
+    "size": 51768,
+    "sha256": "6507738331898fa01ac7fbfd646434b7c621236fcd6db139c087e0880b3dbd97"
+  },
+  {
+    "path": "usr/bin/epollrestarttest",
+    "mode": "0o755",
+    "size": 49928,
+    "sha256": "1e7929c0b399e39255557f480dd20225e23c3605c2dc843bfa163e5ed8758a66"
+  },
+  {
+    "path": "usr/bin/expand",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/expr",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/factor",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/fallocate",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/fgconsole",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/find",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/flock",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/fold",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/free",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/ftpget",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/ftpput",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/fuser",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/groups",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/hd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/head",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/hexdump",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/hexedit",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/hostid",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/id",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/install",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/ipcrm",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/ipcs",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/killall",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/last",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/less",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/logger",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/logname",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/lpq",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/lpr",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/lsof",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/lspci",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/lsscsi",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/lsusb",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/lzcat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/lzma",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/man",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/md5sum",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/mesg",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/microcom",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/mkfifo",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/mkpasswd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/nc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/nl",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/nmeter",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/nohup",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/nproc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/nsenter",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/nslookup",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/od",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/openvt",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/passwd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/paste",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/patch",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/pgrep",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/pkill",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/pmap",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/printf",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/pscan",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/pstree",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/pwdx",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/readlink",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/realpath",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/renice",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/reset",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/resize",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/rpm2cpio",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/runsv",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/runsvdir",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/rx",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/script",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/seq",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/setfattr",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/setkeycodes",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/setsid",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/setuidgid",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/sha1sum",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/sha256sum",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/sha3sum",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/sha512sum",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/showkey",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/shred",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/shuf",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/smemcap",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/softlimit",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/sort",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/split",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/ssl_client",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/strings",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/sum",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/sv",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/svc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/svok",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tac",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tail",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/taskset",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tcpsvd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tee",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/telnet",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/test",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tftp",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/time",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/timeout",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/top",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tr",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/traceroute",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/traceroute6",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tree",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/truncate",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/ts",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tsort",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/tty",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/ttysize",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/udhcpc6",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/udpsvd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/unexpand",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/uniq",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/unix2dos",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/unlink",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/unlzma",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/unshare",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/unxz",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/unzip",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/uptime",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/users",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/uudecode",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/uuencode",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/vlock",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/volname",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/w",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/wall",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/wc",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/wget",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/which",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/who",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/whoami",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/whois",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/xargs",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/xxd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/xz",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/xzcat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/bin/yes",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/lib",
+    "mode": "0o755",
+    "size": 6
+  },
+  {
+    "path": "usr/sbin",
+    "mode": "0o755",
+    "size": 4096
+  },
+  {
+    "path": "usr/sbin/add-shell",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/addgroup",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/adduser",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/arping",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/brctl",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/chat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/chpasswd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/chroot",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/crond",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/delgroup",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/deluser",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/dhcprelay",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/dnsd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ether-wake",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/fakeidentd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/fbset",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/fdformat",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/fsfreeze",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ftpd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/httpd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/i2cdetect",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/i2cdump",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/i2cget",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/i2cset",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/i2ctransfer",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ifplugd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/inetd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/killall5",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/loadfont",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/lpd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/mim",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/nanddump",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/nandwrite",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/nbd-client",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/nologin",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ntpd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/partprobe",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/popmaildir",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/powertop",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/rdate",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/rdev",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/readahead",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/readprofile",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/remove-shell",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/rtcwake",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/sendmail",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/setfont",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/setlogcons",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/svlogd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/telnetd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/tftpd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ubiattach",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ubidetach",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ubimkvol",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ubirename",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ubirmvol",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ubirsvol",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/ubiupdatevol",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/sbin/udhcpd",
+    "mode": "0o777",
+    "size": 12,
+    "link": "/bin/busybox"
+  },
+  {
+    "path": "usr/share",
+    "mode": "0o755",
+    "size": 20
+  },
+  {
+    "path": "usr/share/udhcpc",
+    "mode": "0o755",
+    "size": 28
+  },
+  {
+    "path": "usr/share/udhcpc/default.script",
+    "mode": "0o755",
+    "size": 699,
+    "sha256": "e432a77a2320c98d353fe60438abb04ec337349e8bd04a397fd12acda270df3f"
+  },
+  {
+    "path": "var",
+    "mode": "0o755",
+    "size": 17
+  },
+  {
+    "path": "var/log",
+    "mode": "0o755",
+    "size": 6
+  }
+]
