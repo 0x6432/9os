@@ -1,6 +1,26 @@
 {
-  "total_count": 3,
+  "total_count": 5,
   "artifacts": [
+    {
+      "id": 12135481141,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzNTQ4MTE0MQ==",
+      "name": "alpine-desktop-evidence-x86_64",
+      "size_in_bytes": 1351848,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12135481141",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12135481141/zip",
+      "expired": false,
+      "digest": "sha256:7fcf0faebc2e31b54c4a7ec99f84a48ebac9d4f20893e8fc034ab5c6c1d2e35e",
+      "created_at": "2026-10-18T11:35:37Z",
+      "updated_at": "2026-10-18T11:35:37Z",
+      "expires_at": "2027-01-16T11:24:22Z",
+      "workflow_run": {
+        "id": 39123100373,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-a11y-failure-witness",
+        "head_sha": "18ef21fc34945f482d262993aa33690070aa86d5"
+      }
+    },
     {
       "id": 12135126949,
       "node_id": "MDg6QXJ0aWZhY3QxMjEzNTEyNjk0OQ==",
@@ -12,6 +32,26 @@
       "digest": "sha256:d36d69470c2c523743941657eab073a4214c652ed3615b1e78856e01cf2eac51",
       "created_at": "2026-10-18T11:30:57Z",
       "updated_at": "2026-10-18T11:30:57Z",
+      "expires_at": "2027-01-16T11:24:22Z",
+      "workflow_run": {
+        "id": 39123100373,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-a11y-failure-witness",
+        "head_sha": "18ef21fc34945f482d262993aa33690070aa86d5"
+      }
+    },
+    {
+      "id": 12134939349,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzNDkzOTM0OQ==",
+      "name": "alpine-desktop-evidence-riscv64",
+      "size_in_bytes": 1427911,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12134939349",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12134939349/zip",
+      "expired": false,
+      "digest": "sha256:84eccef677ea6387a89623d2e296e0fc9bc3c56e9014484dcbe3b74e8e504ec0",
+      "created_at": "2026-10-18T11:35:21Z",
+      "updated_at": "2026-10-18T11:35:21Z",
       "expires_at": "2027-01-16T11:24:22Z",
       "workflow_run": {
         "id": 39123100373,
