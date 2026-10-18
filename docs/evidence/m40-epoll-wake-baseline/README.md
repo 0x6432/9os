@@ -12,3 +12,8 @@ Measurements informational, not statisticalrates or performancegates. Ready
 counter/20mssettling isNOTproofeverywaiterenrolled. Waitercontextswitches span
 startup/finalwakeaswellastransfers. No kernelchange,coldfix,graphicsvalidation,
 mergeorM40completionclaimed. Epollremainsglobalinthisbaseline.
+
+Finalhead f2aa0ab changes ONLY the host invalid-output guard after393a91d.
+Finalhead GCC/Clang eight-mode/CLI/deliverymutant controls pass. The synthetic
+bad-summary control verifies explicit rejection under shell errexit. Guest
+runtime/consumer/driver unchanged; original frozen fixture ZIP retained.
