@@ -171,3 +171,41 @@ actual selector and execute ALL eight existing positive/negative/mutation tests
 for BOTH backends and all Qt/Wayland trace-flag combinations. The repaired
 fixture passes8/8; these remain synthetic controls, not GUI proof. New-head CI
 is required; do not substitute the old-head desktop successes.
+
+
+## Bounded failure witness (development checkpoint, not a startup fix)
+
+The completed PR40 fixed cold plan39118634740 failed8/18 in its first9os sample,
+then accepted the other two18/18 each. Linux control accepted all17applicable.
+All fixtures remained valid. The failed query authenticated the terminal PID,
+observed role60 with focused0/showing1/visible1, then encountered a later sibling
+remote-call error. The plan remains failed and all integration holds remain.
+
+`DBUS_A11Y_WITNESS` distinguishes terminal-role observations, valid complete state
+replies, each individual state-bit count, qualified same-node terminals and
+protocol failure. It is emitted only after the existing final decision; early
+connection failures or interrupted processes have no final witness. Missing
+witness means incomplete/unknown, never zero observations. Aggregate state counts
+MUST NOT be combined across terminals or interpreted as same-node readiness.
+The existing `applications==1 && models==1 && !failed` acceptance is unchanged.
+No extra IPC, Qt/Wayland observer, retries, focus request or deadline change.
+The added counters/output may still perturb timing and do NOT demonstrate a fix.
+
+Three explicit synthetic IPC cases preserve an unfocused terminal before a later
+error, a terminal whose state call fails, and two terminals whose separate state
+bits must not be merged. Every old positive/negative remains. Native and signed
+x86-musl controls:30 real privateIPC cases, one explicit synthetic SIGALRM
+interruption (no final witness), seven CLI bounds. Five independent code mutants
+must fail semantic assertions (compiler/setup failures do not count): missing
+focus count, invalid state counted, hidden protocol error, merged terminal states,
+and skipped PID authentication. Run:
+
+```sh
+python3 tests/a11y-dbus-host/test-witness-mutations.py
+```
+
+Only tiny x86 C consumers are built locally. PR CI remains required for portable
+build/real application coverage. No local Qt/Mesa/LLVM/GLib library compilation.
+Neither these synthetic controls nor the counters prove GUI reliability; M40 and
+PR18/entire stack integration holds remain unfinished. No new cold experiment
+is authorized by this development checkpoint or dispatched by these tests.

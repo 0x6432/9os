@@ -8,11 +8,11 @@
 static const char *mode,*unique;
 static GDBusMethodInvocation *pending_role;
 static char *pending_path;
-static const char *root="/org/a11y/atspi/accessible/root",*app="/org/a11y/atspi/accessible/app",*frame="/org/a11y/atspi/accessible/frame",*terminal="/org/a11y/atspi/accessible/terminal",*menu="/org/a11y/atspi/accessible/menu";
+static const char *root="/org/a11y/atspi/accessible/root",*app="/org/a11y/atspi/accessible/app",*frame="/org/a11y/atspi/accessible/frame",*terminal="/org/a11y/atspi/accessible/terminal",*menu="/org/a11y/atspi/accessible/menu",*later="/org/a11y/atspi/accessible/later";
 static int is(const char*s){return !strcmp(mode,s);}
 static int paired(void){return is("paired-valid")||is("paired-role-error")||is("paired-children-error");}
 static void role_reply(GDBusMethodInvocation *inv,const char *path){
- unsigned role=!strcmp(path,app)?75:!strcmp(path,frame)?23:!strcmp(path,terminal)?(is("wrong-role")?61:60):!strcmp(path,menu)?34:0;
+ unsigned role=!strcmp(path,app)?75:!strcmp(path,frame)?23:(!strcmp(path,terminal)||!strcmp(path,later))?(is("wrong-role")?61:60):!strcmp(path,menu)?34:0;
  if(is("paired-role-error"))g_dbus_method_invocation_return_dbus_error(inv,"org.test.PairRoleError","explicit paired negative");
  else g_dbus_method_invocation_return_value(inv,g_variant_new("(u)",role));
 }
@@ -30,7 +30,7 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
   g_object_unref(reply);g_object_unref(inv);return;
  }
  if(!strcmp(name,"GetAddress")){g_dbus_method_invocation_return_value(inv,g_variant_new("(s)",is("bad-address")?"invalid":getenv("DBUS_SESSION_BUS_ADDRESS")));return;}
- if(is("remote-error")&&!strcmp(name,"GetRole")){g_dbus_method_invocation_return_dbus_error(inv,"org.test.QueryError","explicit negative");return;}
+ if((is("remote-error")||(is("unfocused-then-error")&&!strcmp(path,later)))&&!strcmp(name,"GetRole")){g_dbus_method_invocation_return_dbus_error(inv,"org.test.QueryError","explicit negative");return;}
  if(!strcmp(name,"GetRole")){
   if(paired()){
    if(pending_role){g_dbus_method_invocation_return_dbus_error(inv,"org.test.Overlap","more than one node in flight");return;}
@@ -40,11 +40,14 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
   role_reply(inv,path);return;
  }
  if(!strcmp(name,"GetState")){
+  if(is("terminal-state-error")){g_dbus_method_invocation_return_dbus_error(inv,"org.test.StateError","explicit state negative");return;}
   GVariantBuilder b;g_variant_builder_init(&b,G_VARIANT_TYPE("au"));
   guint32 bits=(1u<<12)|(1u<<25)|(1u<<30);
-  if(is("unfocused"))bits&=~(1u<<12);
+  if(is("unfocused")||is("unfocused-then-error"))bits&=~(1u<<12);
   if(is("hidden"))bits&=~(1u<<25);
   if(is("invisible"))bits&=~(1u<<30);
+  /* Independent terminals must never combine their state bits for success. */
+  if(is("split-state"))bits&=~(1u<<(!strcmp(path,terminal)?25:12));
   g_variant_builder_add(&b,"u",bits);if(!is("short-state"))g_variant_builder_add(&b,"u",0u);
   if(is("long-state"))g_variant_builder_add(&b,"u",0u);
   g_dbus_method_invocation_return_value(inv,g_variant_new("(au)",&b));return;
@@ -60,6 +63,7 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
    for(unsigned i=0;i<n;i++)g_variant_builder_add(&b,"(so)",unique,is("bad-path")?"/wrong":frame);
   }else if(!strcmp(path,frame)){
    g_variant_builder_add(&b,"(so)",is("foreign-child")?":1.999999":unique,is("cycle")?frame:is("menu-decoy")?menu:terminal);
+   if(is("unfocused-then-error")||is("split-state"))g_variant_builder_add(&b,"(so)",unique,later);
   }else if(!strcmp(path,menu))g_variant_builder_add(&b,"(so)",unique,terminal);
   if(is("paired-children-error")&&pending_role){
    g_variant_builder_clear(&b);
@@ -88,7 +92,7 @@ int main(int argc,char **argv){
  }
  GDBusNodeInfo *info=g_dbus_node_info_new_for_xml(xml,&e);if(!info)return 2;
  if(!g_dbus_connection_register_object(c,"/org/a11y/bus",info->interfaces[0],&table,NULL,NULL,&e))return 2;
- const char *paths[]={root,app,frame,terminal,menu};
+ const char *paths[]={root,app,frame,terminal,menu,later};
  for(unsigned i=0;i<G_N_ELEMENTS(paths);i++)if(!g_dbus_connection_register_object(c,paths[i],info->interfaces[1],&table,NULL,NULL,&e))return 2;
  printf("MOCK_SERVER_READY pid=%ld\n",(long)getpid());fflush(stdout);
  GMainLoop *loop=g_main_loop_new(NULL,FALSE);g_main_loop_run(loop);return 0;

@@ -35,6 +35,10 @@ static Obj *(*variant_new)(const char *,...);
 static void (*variant_unref)(Obj *),(*object_unref)(Obj *),(*error_free)(Error *);
 static Obj *bus;
 static unsigned target,nodes,models;
+/* Completed, authenticated observations only. These counters NEVER replace
+ * the same-node role/state predicate or rescue a protocol error. They add no
+ * IPC, retries or timing bounds; an alarm-killed process emits no final witness. */
+static unsigned terminals,valid_states,focused_states,showing_states,visible_states;
 static int failed;
 static const char *accessible="org.a11y.atspi.Accessible";
 struct Ref {char name[256],path[1024];};
@@ -110,12 +114,15 @@ static void walk(const struct Ref *r,unsigned depth){
  printf("DBUS_A11Y_NODE depth=%u node=%u role=%u\n",depth,nodes,role);
  if(role==33||role==34||role==35||role==41||role==63){variant_unref(a);return;}
  if(role==60){
+  terminals++;
   variant_unref(a);
   v=query(bus,r,accessible,"GetState",NULL,"(au)");if(!v)return;
   Obj *a=variant_child(v,0);variant_unref(v);
   if(variant_count(a)!=2){variant_unref(a);err("state-width");return;}
   c=variant_child(a,0);uint32_t bits=variant_uint(c);variant_unref(c);variant_unref(a);
   int focused=(bits>>12)&1,showing=(bits>>25)&1,visible=(bits>>30)&1;
+  valid_states++;focused_states+=(unsigned)focused;
+  showing_states+=(unsigned)showing;visible_states+=(unsigned)visible;
   printf("DBUS_A11Y_TERMINAL focused=%d showing=%d visible=%d\n",focused,showing,visible);
   if(focused&&showing&&visible)models++;
   return;
@@ -160,6 +167,9 @@ int main(int argc,char **argv){
  }
  object_unref(bus);
  int ok=!failed&&applications==1&&models==1;
+ /* Aggregate counts are diagnostic, not one terminal's combined state. Emit
+  * after the unchanged decision; partial/invalid replies never count as valid. */
+ printf("DBUS_A11Y_WITNESS pid=%u terminals=%u valid_states=%u focused_states=%u showing_states=%u visible_states=%u qualified=%u protocol_error=%d\n",target,terminals,valid_states,focused_states,showing_states,visible_states,models,failed);
  printf("terminal-dbus: pid=%u applications=%u models=%u visited=%u %s (diagnostic only)\n",target,applications,models,nodes,ok?"OBSERVED":"NOT_OBSERVED");
  return ok?0:1;
 }

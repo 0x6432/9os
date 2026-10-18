@@ -9,8 +9,11 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import select
 import shlex
+import signal
+import time
 import subprocess
 import tempfile
 
@@ -81,7 +84,8 @@ def main():
                          'many-apps', 'many-children', 'bad-path', 'foreign-child', 'cycle',
                          'menu-decoy', 'remote-error', 'blocked-role', 'address-signature',
                          'children-signature', 'role-signature', 'state-signature',
-                         'paired-role-error', 'paired-children-error', 'blocked-children']
+                         'paired-role-error', 'paired-children-error', 'blocked-children',
+                         'unfocused-then-error', 'terminal-state-error', 'split-state']
             positives = ['valid', 'paired-valid']
             for mode in [*positives, *negatives]:
                 server = subprocess.Popen([str(work/'server'), mode], env=env, stdout=subprocess.PIPE,
@@ -98,6 +102,35 @@ def main():
                         assert 'DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1' in result.stdout
                         assert 'applications=1 models=1' in result.stdout
                         assert f'pid={pid} target={pid}' in result.stdout
+                    witnesses = re.findall(r'^DBUS_A11Y_WITNESS (.*)$', result.stdout, re.M)
+                    # Early connection failures and alarm kills MUST NOT invent a
+                    # final witness. Every ordinary walk return has exactly one.
+                    if mode in ['bad-address', 'address-signature']:
+                        assert witnesses == [], (mode, witnesses)
+                    else:
+                        assert len(witnesses) == 1, (mode, result.stdout[-3000:])
+                        witness = dict(field.split('=') for field in witnesses[0].split())
+                        assert set(witness) == {'pid','terminals','valid_states','focused_states',
+                                                'showing_states','visible_states','qualified','protocol_error'}
+                        assert witness['pid'] == str(pid)
+                        values = tuple(int(witness[k]) for k in ['terminals','valid_states','focused_states',
+                                       'showing_states','visible_states','qualified','protocol_error'])
+                        expected = {
+                            'valid': (1,1,1,1,1,1,0), 'paired-valid': (1,1,1,1,1,1,0),
+                            'unfocused': (1,1,0,1,1,0,0), 'hidden': (1,1,1,0,1,0,0),
+                            'invisible': (1,1,1,1,0,0,0), 'wrong-pid': (0,0,0,0,0,0,0),
+                            'wrong-role': (0,0,0,0,0,0,0), 'empty': (0,0,0,0,0,0,0),
+                            'menu-decoy': (0,0,0,0,0,0,0),
+                            'short-state': (1,0,0,0,0,0,1), 'long-state': (1,0,0,0,0,0,1),
+                            'state-signature': (1,0,0,0,0,0,1),
+                            'terminal-state-error': (1,0,0,0,0,0,1),
+                            'unfocused-then-error': (1,1,0,1,1,0,1),
+                            'split-state': (2,2,1,1,2,0,0),
+                            # Existing walk stops after first qualified node; the second
+                            # application is still counted and fails the unchanged gate.
+                            'duplicate-app': (1,1,1,1,1,1,0),
+                        }.get(mode, (0,0,0,0,0,0,1))
+                        assert values == expected, (mode, values, expected, result.stdout[-3000:])
                     if mode == 'paired-valid':
                         lines = result.stdout.splitlines()
                         starts = [i for i, line in enumerate(lines)
@@ -114,11 +147,37 @@ def main():
                     print('PASS synthetic protocol', mode, flush=True)
                 finally:
                     stop(server)
+            server = subprocess.Popen([str(work/'server'), 'blocked-role'], env=env,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            try:
+                ready(server, 'MOCK_SERVER_READY')
+                capture = work/'interrupted.out'
+                with capture.open('w') as log:
+                    interrupted = subprocess.Popen([*consumer, str(server.pid)], env=env,
+                                                   stdout=log, stderr=subprocess.STDOUT)
+                    try:
+                        limit = time.monotonic() + 5
+                        while 'DBUS_A11Y_QUERY method=GetRole phase=begin ' not in capture.read_text():
+                            assert interrupted.poll() is None, capture.read_text()
+                            assert time.monotonic() < limit, 'synthetic blocked query was not reached'
+                            time.sleep(.005)
+                        interrupted.send_signal(signal.SIGALRM)
+                        assert interrupted.wait(timeout=2) == -signal.SIGALRM
+                    finally:
+                        stop(interrupted)
+                text = capture.read_text()
+                assert 'DBUS_A11Y_WITNESS' not in text and 'terminal-dbus:' not in text
+                if args.log_dir:
+                    (args.log_dir/'interrupted.out').write_text(text)
+                print('PASS synthetic process interruption: no fabricated final witness', flush=True)
+            finally:
+                stop(server)
             for argv in [[], ['1', '2'], [''], ['0'], ['-1'], ['1x'], ['2147483648']]:
                 result = subprocess.run([*consumer, *argv], env=env, capture_output=True, timeout=5)
                 assert result.returncode == 2, argv
+                assert b'DBUS_A11Y_WITNESS' not in result.stdout, argv
             count = len(positives) + len(negatives)
-            print(f'{count}/{count} real private IPC controls + 7 CLI bounds ({args.consumer}); synthetic only, not Qt or GUI proof')
+            print(f'{count}/{count} real private IPC controls + 1 process interruption + 7 CLI bounds ({args.consumer}); synthetic only, not Qt or GUI proof')
         finally:
             stop(daemon)
 

@@ -183,6 +183,7 @@ jobs:
           python3 scripts/trace-snapshot-integration-host-tests.py
           python3 tests/a11y-dbus-host/test-native.py --consumer native
           python3 tests/a11y-dbus-host/test-native.py --consumer signed-musl
+          python3 tests/a11y-dbus-host/test-witness-mutations.py
           python3 scripts/a11y-dbus-integration-host-tests.py
           python3 scripts/terminal-backend-host-tests.py
       - name: Build kernel/image and tiny ABI tests only; never compile desktop libraries
