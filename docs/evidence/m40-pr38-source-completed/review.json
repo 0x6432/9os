@@ -1,0 +1,55 @@
+[
+  {
+    "job_log": "39062201090-117482371826.log",
+    "totals": [
+      "145/145 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "15/15 passed"
+    ],
+    "fsck_pass_lines": [
+      "2026-10-17T21:35:49.9598195Z PASS   e2fsck build/ci-aarch64/ext2.img",
+      "2026-10-17T21:38:45.9161385Z PASS   e2fsck build/ci-aarch64/root.img"
+    ],
+    "clean_shutdown": true
+  },
+  {
+    "job_log": "39062201090-117482371899.log",
+    "totals": [
+      "145/145 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "15/15 passed",
+      "16/16 passed",
+      "11/11 passed"
+    ],
+    "fsck_pass_lines": [
+      "2026-10-17T21:38:57.0690597Z PASS   e2fsck build/ci-x86_64/ext2.img",
+      "2026-10-17T21:40:51.4868745Z PASS   e2fsck build/ci-x86_64/root.img"
+    ],
+    "clean_shutdown": true
+  },
+  {
+    "job_log": "39062201090-117482371908.log",
+    "totals": [
+      "145/145 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "15/15 passed"
+    ],
+    "fsck_pass_lines": [
+      "2026-10-17T21:39:29.8243236Z PASS   e2fsck build/ci-riscv64/ext2.img",
+      "2026-10-17T21:42:25.1015932Z PASS   e2fsck build/ci-riscv64/root.img"
+    ],
+    "clean_shutdown": true
+  }
+]

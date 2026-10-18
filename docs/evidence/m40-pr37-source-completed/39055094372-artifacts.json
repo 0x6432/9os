@@ -1,0 +1,125 @@
+{
+  "total_count": 6,
+  "artifacts": [
+    {
+      "id": 12113500707,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExMzUwMDcwNw==",
+      "name": "iso-x86_64",
+      "size_in_bytes": 66200917,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12113500707",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12113500707/zip",
+      "expired": false,
+      "digest": "sha256:c84edc660504fe6dadb50820df8dec0dcd29b3946492138edf0e4ce8e792e86e",
+      "created_at": "2026-10-17T20:11:08Z",
+      "updated_at": "2026-10-17T20:11:08Z",
+      "expires_at": "2026-10-31T20:11:01Z",
+      "workflow_run": {
+        "id": 39055094372,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-snapshot-map-selection",
+        "head_sha": "1bb8bc3c538dae207bcc5264d0fe9edb4d7a4345"
+      }
+    },
+    {
+      "id": 12113311449,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExMzMxMTQ0OQ==",
+      "name": "test-log-x86_64",
+      "size_in_bytes": 35984,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12113311449",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12113311449/zip",
+      "expired": false,
+      "digest": "sha256:65589139ca475e5b3cd069b6f46a9e3b0ad1114afa639d8c3d9f8582d53737de",
+      "created_at": "2026-10-17T20:11:01Z",
+      "updated_at": "2026-10-17T20:11:01Z",
+      "expires_at": "2027-01-15T17:44:50Z",
+      "workflow_run": {
+        "id": 39055094372,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-snapshot-map-selection",
+        "head_sha": "1bb8bc3c538dae207bcc5264d0fe9edb4d7a4345"
+      }
+    },
+    {
+      "id": 12112733413,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExMjczMzQxMw==",
+      "name": "iso-aarch64",
+      "size_in_bytes": 64366088,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12112733413",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12112733413/zip",
+      "expired": false,
+      "digest": "sha256:2ba7faf36a6d7fa99485a21d1013d55e2fdd9a371239694d2b2246679c118f44",
+      "created_at": "2026-10-17T20:07:46Z",
+      "updated_at": "2026-10-17T20:07:46Z",
+      "expires_at": "2026-10-31T20:07:41Z",
+      "workflow_run": {
+        "id": 39055094372,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-snapshot-map-selection",
+        "head_sha": "1bb8bc3c538dae207bcc5264d0fe9edb4d7a4345"
+      }
+    },
+    {
+      "id": 12112589363,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExMjU4OTM2Mw==",
+      "name": "test-log-aarch64",
+      "size_in_bytes": 32349,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12112589363",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12112589363/zip",
+      "expired": false,
+      "digest": "sha256:8984333875a70cd1236ddadd827b9bd39e85c1b8286ab27601684fd842684efb",
+      "created_at": "2026-10-17T20:07:41Z",
+      "updated_at": "2026-10-17T20:07:41Z",
+      "expires_at": "2027-01-15T17:44:50Z",
+      "workflow_run": {
+        "id": 39055094372,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-snapshot-map-selection",
+        "head_sha": "1bb8bc3c538dae207bcc5264d0fe9edb4d7a4345"
+      }
+    },
+    {
+      "id": 12111406621,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExMTQwNjYyMQ==",
+      "name": "iso-riscv64",
+      "size_in_bytes": 61707972,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12111406621",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12111406621/zip",
+      "expired": false,
+      "digest": "sha256:8140cd766b483e681127d50d49773a1817582203ce51b41db9f8428feb39666c",
+      "created_at": "2026-10-17T19:01:55Z",
+      "updated_at": "2026-10-17T19:01:55Z",
+      "expires_at": "2026-10-31T19:01:52Z",
+      "workflow_run": {
+        "id": 39055094372,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-snapshot-map-selection",
+        "head_sha": "1bb8bc3c538dae207bcc5264d0fe9edb4d7a4345"
+      }
+    },
+    {
+      "id": 12111112885,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExMTExMjg4NQ==",
+      "name": "test-log-riscv64",
+      "size_in_bytes": 102120,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12111112885",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12111112885/zip",
+      "expired": false,
+      "digest": "sha256:9491fa2f8cdc63c07b8b798a79fb5cdcca925281efad609136fe04977c6654f8",
+      "created_at": "2026-10-17T19:01:51Z",
+      "updated_at": "2026-10-17T19:01:51Z",
+      "expires_at": "2027-01-15T17:44:50Z",
+      "workflow_run": {
+        "id": 39055094372,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-snapshot-map-selection",
+        "head_sha": "1bb8bc3c538dae207bcc5264d0fe9edb4d7a4345"
+      }
+    }
+  ]
+}

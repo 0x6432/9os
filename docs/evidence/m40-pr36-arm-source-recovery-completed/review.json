@@ -1,0 +1,19 @@
+[
+  {
+    "job_log": "39052890218-117483770924.log",
+    "totals": [
+      "139/139 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "12/12 passed"
+    ],
+    "fsck_pass_lines": [
+      "2026-10-17T21:05:28.0067358Z PASS   e2fsck build/ci-aarch64/ext2.img",
+      "2026-10-17T21:07:55.6549309Z PASS   e2fsck build/ci-aarch64/root.img"
+    ],
+    "clean_shutdown": true
+  }
+]

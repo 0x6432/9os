@@ -1,0 +1,125 @@
+{
+  "total_count": 6,
+  "artifacts": [
+    {
+      "id": 12115287787,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExNTI4Nzc4Nw==",
+      "name": "test-log-riscv64",
+      "size_in_bytes": 102482,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12115287787",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12115287787/zip",
+      "expired": false,
+      "digest": "sha256:8fd86d5f608ac37f621e88246aec04f9c27e160290c4f5b97511a35d2372af7a",
+      "created_at": "2026-10-17T21:44:56Z",
+      "updated_at": "2026-10-17T21:44:56Z",
+      "expires_at": "2027-01-15T19:22:41Z",
+      "workflow_run": {
+        "id": 39062201090,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-unix-wake-study",
+        "head_sha": "e0bc041024445770aad61fa70824527b0395a58f"
+      }
+    },
+    {
+      "id": 12115183008,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExNTE4MzAwOA==",
+      "name": "iso-riscv64",
+      "size_in_bytes": 61736677,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12115183008",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12115183008/zip",
+      "expired": false,
+      "digest": "sha256:d9dcc199231d809a9bb0716d8db16778c667b0dba0a516512fd6124e8c898f60",
+      "created_at": "2026-10-17T21:45:02Z",
+      "updated_at": "2026-10-17T21:45:02Z",
+      "expires_at": "2026-10-31T21:44:57Z",
+      "workflow_run": {
+        "id": 39062201090,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-unix-wake-study",
+        "head_sha": "e0bc041024445770aad61fa70824527b0395a58f"
+      }
+    },
+    {
+      "id": 12115158046,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExNTE1ODA0Ng==",
+      "name": "iso-x86_64",
+      "size_in_bytes": 66227479,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12115158046",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12115158046/zip",
+      "expired": false,
+      "digest": "sha256:c9976cda8feedefac75bb7d147967c34920de045b2b8ac0778bb460a8048d856",
+      "created_at": "2026-10-17T21:44:34Z",
+      "updated_at": "2026-10-17T21:44:34Z",
+      "expires_at": "2026-10-31T21:44:28Z",
+      "workflow_run": {
+        "id": 39062201090,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-unix-wake-study",
+        "head_sha": "e0bc041024445770aad61fa70824527b0395a58f"
+      }
+    },
+    {
+      "id": 12114973047,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExNDk3MzA0Nw==",
+      "name": "test-log-aarch64",
+      "size_in_bytes": 32630,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12114973047",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12114973047/zip",
+      "expired": false,
+      "digest": "sha256:1e9143ba55e0af36f8762b5779cae031cdf94f544292ef6a0b7d76b6ee73e5d1",
+      "created_at": "2026-10-17T21:40:55Z",
+      "updated_at": "2026-10-17T21:40:55Z",
+      "expires_at": "2027-01-15T19:22:41Z",
+      "workflow_run": {
+        "id": 39062201090,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-unix-wake-study",
+        "head_sha": "e0bc041024445770aad61fa70824527b0395a58f"
+      }
+    },
+    {
+      "id": 12114868601,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExNDg2ODYwMQ==",
+      "name": "test-log-x86_64",
+      "size_in_bytes": 36519,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12114868601",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12114868601/zip",
+      "expired": false,
+      "digest": "sha256:36f047bde9b7536f2b9d092ee4611c8bfbec57cf390c90c29fccf4d372d6e9ee",
+      "created_at": "2026-10-17T21:44:28Z",
+      "updated_at": "2026-10-17T21:44:28Z",
+      "expires_at": "2027-01-15T19:22:41Z",
+      "workflow_run": {
+        "id": 39062201090,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-unix-wake-study",
+        "head_sha": "e0bc041024445770aad61fa70824527b0395a58f"
+      }
+    },
+    {
+      "id": 12114484696,
+      "node_id": "MDg6QXJ0aWZhY3QxMjExNDQ4NDY5Ng==",
+      "name": "iso-aarch64",
+      "size_in_bytes": 64395375,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12114484696",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12114484696/zip",
+      "expired": false,
+      "digest": "sha256:05f465a2c90885c1e6173dc314823d04f5deb60a4479b0e29128960fbb596b20",
+      "created_at": "2026-10-17T21:41:00Z",
+      "updated_at": "2026-10-17T21:41:00Z",
+      "expires_at": "2026-10-31T21:40:55Z",
+      "workflow_run": {
+        "id": 39062201090,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-unix-wake-study",
+        "head_sha": "e0bc041024445770aad61fa70824527b0395a58f"
+      }
+    }
+  ]
+}

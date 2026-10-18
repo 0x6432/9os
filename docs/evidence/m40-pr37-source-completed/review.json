@@ -1,0 +1,38 @@
+[
+  {
+    "job_log": "39055094372-117461363604.log",
+    "totals": [
+      "139/139 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "12/12 passed",
+      "10/10 passed",
+      "11/11 passed"
+    ],
+    "fsck_pass_lines": [
+      "2026-10-17T20:05:30.1249567Z PASS   e2fsck build/ci-x86_64/ext2.img",
+      "2026-10-17T20:07:20.7829583Z PASS   e2fsck build/ci-x86_64/root.img"
+    ],
+    "clean_shutdown": true
+  },
+  {
+    "job_log": "39055094372-117461363612.log",
+    "totals": [
+      "139/139 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "12/12 passed"
+    ],
+    "fsck_pass_lines": [
+      "2026-10-17T20:02:28.8149945Z PASS   e2fsck build/ci-aarch64/ext2.img",
+      "2026-10-17T20:05:27.0334243Z PASS   e2fsck build/ci-aarch64/root.img"
+    ],
+    "clean_shutdown": true
+  }
+]
