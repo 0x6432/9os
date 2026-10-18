@@ -125,6 +125,7 @@ jobs:
           "su user -s /bin/sh -c pollwakebench" "pollwakebench --inotify"
           "pollwakebench --unix" "pollwakebench --unix-inotify"
           'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"'
+          "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"'
           'su user -s /bin/sh -c "pollwakebench --inotify"' alpine-qtsmoke
           "su user -s /bin/sh -c alpine-qtsmoke"
           "host:python3 scripts/alpine-pixel-check.py build/test-alpine-smp8-$ARCH.log"

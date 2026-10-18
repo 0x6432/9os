@@ -13,7 +13,7 @@ python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 2048M --boot-tim
     "timeout 35 evdevframetest" \
     fallocatetest ptracestoptest unixcredtest procinfotest proctasktest mountinfotest pimutextest ioctlwidthtest "timeout 30 futexbitsettest" \
     'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 30 futexrequeuetest" 'su user -s /bin/sh -c "timeout 30 futexrequeuetest"' "timeout 10 alarmcputest" \
-    'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench "pollwakebench --inotify" "pollwakebench --unix" "pollwakebench --unix-inotify" 'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"' 'su user -s /bin/sh -c "pollwakebench --inotify"' \
+    'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench "pollwakebench --inotify" "pollwakebench --unix" "pollwakebench --unix-inotify" "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"' 'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"' 'su user -s /bin/sh -c "pollwakebench --inotify"' \
     'su user -s /bin/sh -c pollwakebench' \
     'dircookietest /proc/self /proc/self/fd /proc/self/task /sys/class' 'su user -s /bin/sh -c "dircookietest /proc/self /sys/class"' \
     'su user -s /bin/sh -c procinfotest' 'su user -s /bin/sh -c proctasktest' alpine-proctask-smoke 'su user -s /bin/sh -c alpine-proctask-smoke' \
