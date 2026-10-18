@@ -68,3 +68,44 @@ non-x86 behavior have not been executed by this work. No heavy/VM slot was
 requested or used. Parent owns CI wiring, guest validation, push and integration;
 these tests are not wired into a shared workflow here. PR40 cold remains failed;
 there is no cold cure or M40 completion claim.
+
+## Standalone guest consumer (not yet guest-validated)
+
+`userland/tests/epollabitest.c` is a single-file public-ABI consumer derived from
+the preserved native source and shared cases at `6f0fcef`. It needs only libc,
+with no project include path or generated/binary input:
+
+```sh
+cc -std=gnu11 -O2 -Wall -Wextra -Werror -D_FORTIFY_SOURCE=2 \
+  userland/tests/epollabitest.c -o /tmp/epollabitest
+/tmp/epollabitest
+```
+
+The source supports the public Linux x86_64, aarch64 and riscv64 64-bit ABIs:
+it uses signed 64-bit raw timespec fields, libc's architecture-correct epoll-event
+layout with compile-time checks, an explicit 8-byte kernel sigset, and public
+syscall-number fallbacks for older libc headers. It introduces no threading or
+additional link dependency. The normal mkroot standalone-source mechanism can
+compile it; Alpine's explicit build/runtime lists and all CI wiring remain
+parent-owned and **were not edited**.
+
+The same raw errno/precedence/huge-timeout checks are retained. Signal restoration
+checks now compare all 64 kernel-visible signal members (not libc padding), with
+an extra blocked SIGUSR1 seed to exercise preservation of a nontrivial old mask.
+The finite timeout measures the syscall interval **before any console I/O**, so
+slow serial output cannot conceal an immediate/early return.
+
+A separate supervisor retains the original **five-second process watchdog**
+without sharing the test child's 30-ms ITIMER_REAL signal timer. A deliberately
+signal-blocked hung child was killed/reaped with exit 124 by the unchanged
+supervisor at 5.001805 seconds in the native negative control. The outer native
+harness has a six-second cleanup limit only; the consumer deadline remains five
+seconds. `guest-watchdog-control.py` recreates that temporary child-only mutation
+without modifying the runtime source or any existing fixture.
+
+Native-only evidence: `guest-consumer-linux-reference.log` records **78 checks,
+0 failures**; `guest-watchdog-linux-control.log` records the expected watchdog
+rejection. Both include exact source hashes. These are **not guest results**.
+No kernel build, musl/Alpine build, VM, non-x86 compilation/execution or sanitizer
+run was performed for this addition. Parent must run signed build, source/runtime,
+MLFQ/SMP and cross-architecture CI; no guest pass is claimed here.

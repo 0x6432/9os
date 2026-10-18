@@ -22,3 +22,12 @@ new unsanitized executions of the extended fixtures produced:
 - `fixed-extended-model-unsanitized.log`: `python3 tests/epoll-abi-host/run.py --mode model --mutations`; exit 0, **119 checks, 0 failures**, and all **7 regression mutations rejected by explicit check mismatches**. Missing-runtime failures above remain preserved and do not count as sanitizer passes. The only stub adjustment after the failed dynamic-UBSan attempt marks `ep_wait_filter` potentially unused so the deliberate lost-filter mutation remains compilable under `-Werror`.
 
 No shared workflows were changed. Parent must decide CI wiring/guest validation.
+
+## Standalone runtime-consumer addition
+
+- `guest-consumer-linux-reference.log`: first native x86 Linux compile/run of `userland/tests/epollabitest.c` (SHA256 `73f2714d5c39b744a2c6fee1432b5c01e9992462fd66fc5c84a17203805953cc`). `cc -std=gnu11 -O2 -Wall -Wextra -Werror -D_FORTIFY_SOURCE=2`, exit 0; **78 checks, 0 failures**. Internal process watchdog remains five seconds; outer six-second harness is cleanup-only. Native Linux reference, not a guest pass.
+- `guest-watchdog-linux-control.log`: first `python3 tests/epoll-abi-host/guest-watchdog-control.py`; harness exit 0, temporary signal-blocked child-hang variant correctly exits **124**, prints the five-second-watchdog failure and is reaped. Exact mutation source is reproducible from the script and hash in the log. Only the child call site is changed; the supervisor remains production-consumer text. This expected negative-control rejection is not a spontaneous guest failure.
+
+The original native/model sources, all baseline failures, fixed logs and missing
+UBSan-runtime failures above remain unchanged. No guest/kernel/non-x86 or CI
+validation was attempted. Shared scripts/workflows were not edited.
