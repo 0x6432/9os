@@ -1,0 +1,19 @@
+host: Linux-6.18.49-x86_64-with-glibc2.34
+compiler: cc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
+exact no_restart sha256: 802f770c4b97be696c1f74c84cac61f2cbfd2d6f52d7beda5e1a944b3a9a0d85
+normal legacy_present=1
+exact no_restart host policy: 461 checks, 0 failures (classification only)
+normal legacy_present=0
+exact no_restart host policy: 461 checks, 0 failures (classification only)
+rejected restore-original-policy legacy_present=1: 3 mismatches; first: FAIL nr=232 no_restart=0 expected=1
+rejected restore-original-policy legacy_present=0: 2 mismatches; first: FAIL nr=281 no_restart=0 expected=1
+rejected omit-epoll-wait legacy_present=1: 1 mismatches; first: FAIL nr=232 no_restart=0 expected=1
+rejected omit-epoll-pwait legacy_present=1: 1 mismatches; first: FAIL nr=281 no_restart=0 expected=1
+rejected omit-epoll-pwait legacy_present=0: 1 mismatches; first: FAIL nr=281 no_restart=0 expected=1
+rejected omit-epoll-pwait2 legacy_present=1: 1 mismatches; first: FAIL nr=441 no_restart=0 expected=1
+rejected omit-epoll-pwait2 legacy_present=0: 1 mismatches; first: FAIL nr=441 no_restart=0 expected=1
+rejected restart-ppoll-regression legacy_present=1: 1 mismatches; first: FAIL nr=271 no_restart=0 expected=1
+rejected restart-ppoll-regression legacy_present=0: 1 mismatches; first: FAIL nr=271 no_restart=0 expected=1
+rejected change-ordinary-read-policy legacy_present=1: 1 mismatches; first: FAIL nr=0 no_restart=1 expected=0
+rejected change-ordinary-read-policy legacy_present=0: 1 mismatches; first: FAIL nr=0 no_restart=1 expected=0
+required syscall macro presence inspected in all three headers; NOT cross-build proof

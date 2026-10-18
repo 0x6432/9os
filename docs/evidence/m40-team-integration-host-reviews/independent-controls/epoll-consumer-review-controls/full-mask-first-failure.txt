@@ -1,0 +1,1 @@
+Initial independent fixture, NOT production consumer: compiled successfully; exit2 before mutations. The fixture used libc sigaddset on every1..64; glibc reserves32/33. Unmodified consumer had already passed78checks/0failures in0.184119s. Original failing fixture preserved; corrected control uses explicit raw public bit positions, not weakened comparisons.

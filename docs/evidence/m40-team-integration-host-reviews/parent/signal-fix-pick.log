@@ -1,0 +1,7 @@
+[notion/m40-team-integration 7155ff6] fix(signal): exclude epoll waits from caught-SA_RESTART policy
+ Date: Sun Oct 18 21:22:48 2026 +0000
+ 6 files changed, 270 insertions(+), 1 deletion(-)
+ create mode 100644 tests/epoll-restart-host/evidence/fixed-policy-host.log
+ create mode 100644 tests/epoll-restart-host/evidence/native-linux-after-policy-edit.log
+ create mode 100644 tests/epoll-restart-host/evidence/original-policy-host-negative.log
+ create mode 100644 tests/epoll-restart-host/run.py

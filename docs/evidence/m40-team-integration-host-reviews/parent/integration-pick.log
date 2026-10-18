@@ -1,0 +1,43 @@
+[notion/m40-team-integration c2ed596] Retain bounded first and last readiness query diagnostics
+ Date: Sun Oct 18 21:06:32 2026 +0000
+ 2 files changed, 237 insertions(+), 1 deletion(-)
+ create mode 100644 scripts/terminal-attempt-history-host-tests.py
+[notion/m40-team-integration a4e4722] Keep diagnostic I/O errors separate from readiness outcomes
+ Date: Sun Oct 18 21:08:22 2026 +0000
+ 2 files changed, 46 insertions(+), 3 deletions(-)
+[notion/m40-team-integration 54b459d] Bind read-only UDisks root acceptance to scoped typed property readbacks
+ Date: Sun Oct 18 21:07:09 2026 +0000
+ 4 files changed, 376 insertions(+)
+ create mode 100755 tests/udisks-host/mock-command.py
+ create mode 100755 tests/udisks-host/test-readbacks.py
+ create mode 100644 userland/alpine/desktop-overlay/usr/share/9os/udisks-property-check.py
+[notion/m40-team-integration c18fcb0] Exercise detached UDisks identity decoys and document fixed-scope limits
+ Date: Sun Oct 18 21:11:19 2026 +0000
+ 4 files changed, 110 insertions(+), 4 deletions(-)
+ create mode 100644 tests/udisks-host/README.md
+[notion/m40-team-integration 5650005] test(epoll): preserve Linux ABI reference and first syscall-model failures
+ Date: Sun Oct 18 21:05:35 2026 +0000
+ 9 files changed, 506 insertions(+)
+ create mode 100644 tests/epoll-abi-host/cases.h
+ create mode 100644 tests/epoll-abi-host/evidence/README.md
+ create mode 100644 tests/epoll-abi-host/evidence/baseline-model.log
+ create mode 100644 tests/epoll-abi-host/evidence/baseline-syscalls.c.txt
+ create mode 100644 tests/epoll-abi-host/evidence/linux-reference.log
+ create mode 100644 tests/epoll-abi-host/model-post.c
+ create mode 100644 tests/epoll-abi-host/model-pre.c
+ create mode 100644 tests/epoll-abi-host/native.c
+ create mode 100644 tests/epoll-abi-host/run.py
+[notion/m40-team-integration 9dc54a1] fix(epoll): validate Linux masks and preserve nanosecond timeout range
+ Date: Sun Oct 18 21:08:03 2026 +0000
+ 10 files changed, 274 insertions(+), 22 deletions(-)
+ create mode 100644 tests/epoll-abi-host/evidence/fixed-extended-model-dynamic-ubsan-failed.log
+ create mode 100644 tests/epoll-abi-host/evidence/fixed-model.log
+ create mode 100644 tests/epoll-abi-host/evidence/linux-extended-dynamic-ubsan-failed.log
+ create mode 100644 tests/epoll-abi-host/evidence/run-dynamic-ubsan.py.txt
+[notion/m40-team-integration 17a936e] test(epoll): record boundary conformance and mutation coverage limits
+ Date: Sun Oct 18 21:09:17 2026 +0000
+ 6 files changed, 305 insertions(+), 1 deletion(-)
+ create mode 100644 tests/epoll-abi-host/README.md
+ create mode 100644 tests/epoll-abi-host/evidence/fixed-extended-model-unsanitized.log
+ create mode 100644 tests/epoll-abi-host/evidence/linux-extended-unsanitized.log
+ create mode 100644 tests/epoll-abi-host/evidence/scope-audit.log

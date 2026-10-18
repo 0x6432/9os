@@ -1,0 +1,16 @@
+backend=atspi rc=1 calls=1
+attempt=1 rc=1 termination=exit-status
+completion=unknown witness=unknown terminal_line=present remote_line=present
+terminal_first=DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_ERROR reason=remote-call
+backend=live-dbus rc=1 calls=1
+attempt=1 rc=1 termination=exit-status
+completion=unknown witness=unknown terminal_line=present remote_line=unknown
+terminal_first=A11Y_TERMINAL focused=0 showing=1 visible=1
+terminal_last=A11Y_TERMINAL focused=0 showing=1 visible=1
+A11Y_TERMINAL focused=0 showing=1 visible=1
+A11Y_TERMINAL focused=0 showing=1 visible=1

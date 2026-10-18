@@ -1,0 +1,10 @@
+Upstream URL: https://raw.githubusercontent.com/d-bus/dbus/master/tools/dbus-print-message.c
+Upstream text SHA256: d3d47bf347d71332988c708ff1e9b128d7fefe386bbd06b3b00e8cbad56fbf75
+Exact extracted indentation/print_hex/print_ay SHA256: 3e79bd6cc3c7ee54f6738890aa5ebdf3c74e0f0d79f0b5521d3ce8bfb3b0217d
+Compiled source: /data/team-coordination/udisks-review-print-ay.c
+'/dev/vda' nul: accepted=True, expected=True
+'/dev/vda1' nul: accepted=True, expected=True
+'/dev/vda' no-nul: accepted=False, expected=False
+'/dev/vda' internal-nul: accepted=False, expected=False
+'/dev/vda"junk' nul: accepted=False, expected=False
+5 exact upstream print_ay + production-helper observations confirmed. Mock iterator only; not the packaged guest printer, DBus transport, or UDisks service.

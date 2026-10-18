@@ -1,0 +1,7 @@
+[notion/m40-team-integration 9ae2ed7] test(epoll): add standalone portable guest ABI conformance consumer
+ Date: Sun Oct 18 21:17:04 2026 +0000
+ 6 files changed, 433 insertions(+)
+ create mode 100644 tests/epoll-abi-host/evidence/guest-consumer-linux-reference.log
+ create mode 100644 tests/epoll-abi-host/evidence/guest-watchdog-linux-control.log
+ create mode 100644 tests/epoll-abi-host/guest-watchdog-control.py
+ create mode 100644 userland/tests/epollabitest.c

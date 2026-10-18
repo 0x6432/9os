@@ -1,0 +1,10 @@
+typed ay positive: accepted=True; expected=True
+typed aay positive: accepted=True; expected=True
+wrong ay identity: accepted=False; expected=False
+string pretending ay: accepted=False; expected=False
+quoted-identity suffix: accepted=False; expected=False
+nested variant: accepted=False; expected=False
+valid multiple mountpoints intentional reject: accepted=False; expected=False
+additional body record: accepted=False; expected=False
+unvalidated header suffix accepted: accepted=True; expected=True
+9 independent parser observations confirmed. No DBus bus, daemon, disk or guest used.

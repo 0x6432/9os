@@ -1,0 +1,138 @@
+host: Linux-6.18.49-x86_64-with-glibc2.34
+compiler: cc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
+extracted syscall sha256: 10432fbf63f499757e0f20e269d5894ea9a57e19d2644a794b6eb74f40974feb
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-integration/tests/epoll-abi-host <tmp>/normal.c -o <tmp>/normal
+PASS pwait nonnull sigset size=0 got=-22 want=-22
+PASS pwait2 nonnull sigset size=0 got=-22 want=-22
+PASS pwait null sigset ignores size=0 got=0 want=0
+PASS pwait2 null sigset ignores size=0 got=0 want=0
+PASS pwait nonnull sigset size=1 got=-22 want=-22
+PASS pwait2 nonnull sigset size=1 got=-22 want=-22
+PASS pwait null sigset ignores size=1 got=0 want=0
+PASS pwait2 null sigset ignores size=1 got=0 want=0
+PASS pwait nonnull sigset size=7 got=-22 want=-22
+PASS pwait2 nonnull sigset size=7 got=-22 want=-22
+PASS pwait null sigset ignores size=7 got=0 want=0
+PASS pwait2 null sigset ignores size=7 got=0 want=0
+PASS pwait nonnull sigset size=9 got=-22 want=-22
+PASS pwait2 nonnull sigset size=9 got=-22 want=-22
+PASS pwait null sigset ignores size=9 got=0 want=0
+PASS pwait2 null sigset ignores size=9 got=0 want=0
+PASS pwait nonnull sigset size=16 got=-22 want=-22
+PASS pwait2 nonnull sigset size=16 got=-22 want=-22
+PASS pwait null sigset ignores size=16 got=0 want=0
+PASS pwait2 null sigset ignores size=16 got=0 want=0
+PASS pwait nonnull sigset size=128 got=-22 want=-22
+PASS pwait2 nonnull sigset size=128 got=-22 want=-22
+PASS pwait null sigset ignores size=128 got=0 want=0
+PASS pwait2 null sigset ignores size=128 got=0 want=0
+PASS pwait nonnull sigset size=18446744073709551615 got=-22 want=-22
+PASS pwait2 nonnull sigset size=18446744073709551615 got=-22 want=-22
+PASS pwait null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait2 null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait inaccessible mask got=-14 want=-14
+PASS pwait bad size before inaccessible mask got=-22 want=-22
+PASS pwait2 inaccessible timespec got=-14 want=-14
+PASS pwait2 negative seconds got=-22 want=-22
+PASS pwait2 negative nanoseconds got=-22 want=-22
+PASS pwait2 billion nanoseconds got=-22 want=-22
+PASS pwait2 INT64_MAX nanoseconds got=-22 want=-22
+PASS pwait2 invalid time before bad fd got=-22 want=-22
+PASS pwait2 time copy before mask size got=-14 want=-14
+PASS pwait sigset before bad fd got=-22 want=-22
+PASS pwait sigset before max zero got=-14 want=-14
+PASS pwait bad size before max zero got=-22 want=-22
+PASS pwait2 sigset before max zero got=-14 want=-14
+PASS pwait2 bad timespec before max zero got=-22 want=-22
+PASS pwait2 inaccessible mask got=-14 want=-14
+PASS pwait2 bad size before inaccessible mask got=-22 want=-22
+PASS pwait2 INT64_MIN seconds got=-22 want=-22
+PASS pwait2 INT64_MIN nanoseconds got=-22 want=-22
+PASS pwait valid zero got=0 want=0
+PASS pwait2 valid zero got=0 want=0
+PASS pwait max zero got=-22 want=-22
+PASS pwait2 max zero got=-22 want=-22
+PASS pwait invalid fd got=-9 want=-9
+PASS pwait2 invalid timespec even ready got=-22 want=-22
+PASS pwait2 huge valid ready got=1 want=1
+PASS pwait2 wrap-zero valid ready got=1 want=1
+PASS pwait2 wrap-negative valid ready got=1 want=1
+PASS pwait2 null timeout ready got=1 want=1
+PASS one nanosecond (no millisecond rounding) got=-4 want=-4
+PASS exact wait ns got=1 want=1
+PASS exactly one enrollment got=1 want=1
+PASS 999999 nanoseconds got=-4 want=-4
+PASS exact wait ns got=999999 want=999999
+PASS exactly one enrollment got=1 want=1
+PASS 1000001 nanoseconds got=-4 want=-4
+PASS exact wait ns got=1000001 want=1000001
+PASS exactly one enrollment got=1 want=1
+PASS INT_MAX-ms plus 1 ms got=-4 want=-4
+PASS exact wait ns got=2147483648000000 want=2147483648000000
+PASS exactly one enrollment got=1 want=1
+PASS int-ms wrap to zero got=-4 want=-4
+PASS exact wait ns got=4294967296000000000 want=4294967296000000000
+PASS exactly one enrollment got=1 want=1
+PASS ktime maximum got=-4 want=-4
+PASS exact wait ns got=9223372036731319018 want=9223372036731319018
+PASS exactly one enrollment got=1 want=1
+PASS ktime overflow by one ns got=-4 want=-4
+PASS exact wait ns got=9223372036731319018 want=9223372036731319018
+PASS exactly one enrollment got=1 want=1
+PASS INT64_MAX seconds got=-4 want=-4
+PASS exact wait ns got=9223372036731319018 want=9223372036731319018
+PASS exactly one enrollment got=1 want=1
+PASS pwait negative is infinite got=-4 want=-4
+PASS infinite sentinel got=-1 want=-1
+PASS pwait int max got=-4 want=-4
+PASS pwait int max ns got=2147483647000000 want=2147483647000000
+PASS pwait2 NULL is infinite got=-4 want=-4
+PASS pwait2 infinite sentinel got=-1 want=-1
+PASS spurious wake then EINTR got=-4 want=-4
+PASS original deadline first wait got=500 want=500
+PASS original deadline after wake got=400 want=400
+PASS filter preserved first got=66 want=66
+PASS filter preserved second got=66 want=66
+PASS epoch resampled got=1 want=1
+PASS temporary mask in scan got=-262401 want=-262401
+PASS temporary mask while waiting got=-262401 want=-262401
+PASS EINTR mask deferred got=1 want=1
+PASS EINTR saved mask got=11259375 want=11259375
+PASS finite timeout got=0 want=0
+PASS timeout after exact deadline got=123457289 want=123457289
+PASS timeout mask restored got=11259375 want=11259375
+PASS no deferred restoration on timeout got=0 want=0
+PASS copyout fault got=-14 want=-14
+PASS copyout fault mask restored got=11259375 want=11259375
+PASS allocation failure got=-12 want=-12
+PASS allocation failure mask untouched got=11259375 want=11259375
+PASS non-epoll fd got=-22 want=-22
+PASS non-epoll mask untouched got=11259375 want=11259375
+PASS ready mask wait got=1 want=1
+PASS ready mask restored got=11259375 want=11259375
+PASS ready data preserved got=42 want=42
+PASS ready avoids enrollment got=0 want=0
+PASS invalid size no side effects got=-22 want=-22
+PASS invalid size no scan got=0 want=0
+PASS invalid size mask untouched got=11259375 want=11259375
+PASS invalid size no deferred restoration got=0 want=0
+PASS scan time charged to original deadline got=-4 want=-4
+PASS scan cost deducted got=450 want=450
+PASS deadline addition saturates got=-4 want=-4
+PASS finite saturated deadline not infinite got=10 want=10
+PASS epoll_wait wrapper got=0 want=0
+exact-production syscall model: 119 checks, 0 failures (mock runtime only)
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-integration/tests/epoll-abi-host <tmp>/ignore-sigset-size.c -o <tmp>/ignore-sigset-size
+rejected ignore-sigset-size: 22 mismatches; first: FAIL pwait nonnull sigset size=0 got=0 want=-22
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-integration/tests/epoll-abi-host <tmp>/accept-billion-ns.c -o <tmp>/accept-billion-ns
+rejected accept-billion-ns: 2 mismatches; first: FAIL pwait2 billion nanoseconds got=-4 want=-22
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-integration/tests/epoll-abi-host <tmp>/truncate-to-milliseconds.c -o <tmp>/truncate-to-milliseconds
+rejected truncate-to-milliseconds: 20 mismatches; first: FAIL one nanosecond (no millisecond rounding) got=0 want=-4
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-integration/tests/epoll-abi-host <tmp>/overflow-seconds.c -o <tmp>/overflow-seconds
+rejected overflow-seconds: 1 mismatches; first: FAIL exact wait ns got=-1 want=9223372036731319018
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-integration/tests/epoll-abi-host <tmp>/lose-original-deadline.c -o <tmp>/lose-original-deadline
+rejected lose-original-deadline: 6 mismatches; first: FAIL exact wait ns got=9223372036854775807 want=9223372036731319018
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-integration/tests/epoll-abi-host <tmp>/lose-filter.c -o <tmp>/lose-filter
+rejected lose-filter: 2 mismatches; first: FAIL filter preserved first got=-1 want=66
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-integration/tests/epoll-abi-host <tmp>/restore-mask-too-early.c -o <tmp>/restore-mask-too-early
+rejected restore-mask-too-early: 2 mismatches; first: FAIL EINTR mask deferred got=0 want=1
