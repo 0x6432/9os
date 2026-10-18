@@ -1,0 +1,17 @@
+
+/data/matched-elf/lib/ld-musl-x86_64.so.1:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+00000000000682e7 <tss_set+0x12a>:
+   682e7:	c3                   	ret
+   682e8:	e9 ea d8 ff ff       	jmp    65bd7 <pthread_barrierattr_setpshared+0xb8>
+   682ed:	41 54                	push   %r12
+   682ef:	b8 02 00 00 00       	mov    $0x2,%eax
+   682f4:	55                   	push   %rbp
+   682f5:	48 89 f5             	mov    %rsi,%rbp
+   682f8:	be 00 88 08 00       	mov    $0x88800,%esi
+   682fd:	53                   	push   %rbx
+   682fe:	48 81 ec 90 00 00 00 	sub    $0x90,%rsp
+   68305:	0f 05                	syscall

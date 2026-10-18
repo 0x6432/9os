@@ -1,0 +1,122 @@
+{
+  "run": 39118634740,
+  "runtime": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
+  "validation_head": "ad39a795cae2ade0083d451cdaf9edea3735ae33",
+  "actual_original_logs_reviewed": true,
+  "whole_plan": "FAILED",
+  "samples": {
+    "linux1": {
+      "host_available_cpus": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "host_selected_cpus": [
+        0,
+        1
+      ],
+      "sample": "linux1",
+      "started": 1792318985.471943,
+      "accepted": true,
+      "fixture_before": true,
+      "fixture_after": true,
+      "driver_rc": 1,
+      "raw_rc": 0,
+      "totals": [
+        "17/18 passed"
+      ],
+      "failures": [
+        "FAIL   grep -q \"^violations 0\" /proc/lockdep"
+      ],
+      "finished": 1792319138.9755158
+    },
+    "guest1": {
+      "host_available_cpus": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "host_selected_cpus": [
+        0,
+        1
+      ],
+      "sample": "guest1",
+      "started": 1792319140.7923055,
+      "accepted": false,
+      "fixture_before": true,
+      "fixture_after": true,
+      "driver_rc": 1,
+      "raw_rc": 1,
+      "totals": [
+        "8/18 passed"
+      ],
+      "failures": [
+        "FAIL   for i in $(seq 700);do grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 \"$(cat /tmp/plasma-kms.pid)\" 2>/dev/null || break;sleep 1;done;grep -x KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -x ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }",
+        "FAIL   host:python3 scripts/qemu-screenshot.py /tmp/9os-kms-VySqzd/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-before.png",
+        "FAIL   host:python3 scripts/qemu-ready-type.py --log /home/runner/work/9os/9os/build/m40-cold/guest1.log --ready-step 3 --qmp /tmp/9os-kms-VySqzd/qmp.sock 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\\n'",
+        "FAIL   for i in $(seq 20);do test ! -e /tmp/kms-input-ok || break;sleep 1;done;cat /tmp/kms-tty;test \"$(cat /tmp/kms-input-ok)\" = kms-input-ok && grep -q \"^/dev/pts/\" /tmp/kms-tty && test \"$(cat /tmp/kms-uid)\" = 1000",
+        "FAIL   host:python3 scripts/qemu-screenshot.py /tmp/9os-kms-VySqzd/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-after.png",
+        "FAIL   test \"$(cat /tmp/kms-input-ok)\" = kms-input-ok && test \"$(cat /tmp/kms-uid)\" = 1000 && touch /tmp/kms-input-done",
+        "FAIL   for i in $(seq 300);do grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log && break;kill -0 \"$(cat /tmp/plasma-kms.pid)\" 2>/dev/null || break;sleep 1;done;grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log || { tail -n 100 /tmp/plasma-kms.log;false; }",
+        "FAIL   host:python3 scripts/qemu-dolphin-capture.py /tmp/9os-kms-VySqzd/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-dolphin.png",
+        "FAIL   grep -Eq \"^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$\" /tmp/plasma-kms.log && touch /tmp/dolphin-capture-done",
+        "FAIL   for i in $(seq 150);do test ! -f /tmp/plasma-kms.status || break;sleep 1;done;cat /tmp/plasma-kms.log;test \"$(cat /tmp/plasma-kms.status)\" = 0 && grep -qx \"alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit\" /tmp/plasma-kms.log"
+      ],
+      "finished": 1792319725.1922133
+    },
+    "guest2": {
+      "host_available_cpus": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "host_selected_cpus": [
+        0,
+        1
+      ],
+      "sample": "guest2",
+      "started": 1792319727.0854762,
+      "accepted": true,
+      "fixture_before": true,
+      "fixture_after": true,
+      "driver_rc": 0,
+      "raw_rc": 0,
+      "totals": [
+        "18/18 passed"
+      ],
+      "failures": [],
+      "finished": 1792320338.3187077
+    },
+    "guest3": {
+      "host_available_cpus": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "host_selected_cpus": [
+        0,
+        1
+      ],
+      "sample": "guest3",
+      "started": 1792320340.0177839,
+      "accepted": true,
+      "fixture_before": true,
+      "fixture_after": true,
+      "driver_rc": 0,
+      "raw_rc": 0,
+      "totals": [
+        "18/18 passed"
+      ],
+      "failures": [],
+      "finished": 1792320887.6699598
+    }
+  },
+  "guest1_witness": "PID931 PTY1/terminal0; authenticated role60 state focused0/showing1/visible1; later sibling GetRole/GetChildren remote-call failures",
+  "guest1_snapshots": "all3 rc0, PC/SP covered1/1 selected2, chunks937/937/939, zero truncation/error/malformed",
+  "accepted_raw_streams": "Linux, guest2, guest3 each390events/262edges/128taps zero repeats/drops/error",
+  "scope": "2 successful samples, not a reliability rate or cure. Prior failed plans remain failed. PR18/stack integration hold remains; M40 unfinished."
+}

@@ -1,0 +1,23 @@
+
+/data/matched-elf/lib/ld-musl-x86_64.so.1:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000055ef7 <syscall+0x58>:
+   55ef7:	48 89 c7             	mov    %rax,%rdi
+   55efa:	e8 5b c3 fe ff       	call   4225a <fetestexcept+0x29c>
+   55eff:	48 83 c4 58          	add    $0x58,%rsp
+   55f03:	c3                   	ret
+   55f04:	41 57                	push   %r15
+   55f06:	41 56                	push   %r14
+   55f08:	41 55                	push   %r13
+   55f0a:	49 89 d5             	mov    %rdx,%r13
+   55f0d:	41 54                	push   %r12
+   55f0f:	55                   	push   %rbp
+   55f10:	53                   	push   %rbx
+   55f11:	89 fb                	mov    %edi,%ebx
+   55f13:	48                   	rex.W
+   55f14:	81                   	.byte 0x81
+   55f15:	ec                   	in     (%dx),%al
+   55f16:	88                   	.byte 0x88

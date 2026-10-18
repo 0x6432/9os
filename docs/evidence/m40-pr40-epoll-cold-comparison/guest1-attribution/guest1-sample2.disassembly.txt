@@ -1,0 +1,20 @@
+
+/data/matched-elf/usr/lib/libQt6Core.so.6.8.3:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+00000000001c6c00 <QObject::~QObject()@@Qt_6>:
+  1c6c00:	f3 0f 1e fa          	endbr64
+  1c6c04:	41 57                	push   %r15
+  1c6c06:	41 56                	push   %r14
+  1c6c08:	41 55                	push   %r13
+  1c6c0a:	41 54                	push   %r12
+  1c6c0c:	55                   	push   %rbp
+  1c6c0d:	53                   	push   %rbx
+  1c6c0e:	48 83 ec 78          	sub    $0x78,%rsp
+  1c6c12:	48 8b 05 7f 70 45 00 	mov    0x45707f(%rip),%rax        # 61dc98 <vtable for QObject@@Qt_6+0x5080>
+  1c6c19:	4c 8b 47 08          	mov    0x8(%rdi),%r8
+  1c6c1d:	64                   	fs
+  1c6c1e:	4c                   	rex.WR
+  1c6c1f:	8b                   	.byte 0x8b

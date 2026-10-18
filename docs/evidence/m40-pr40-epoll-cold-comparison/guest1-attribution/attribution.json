@@ -1,0 +1,52 @@
+[
+  {
+    "guest": "guest1",
+    "sample": 1,
+    "runtime_pc": "0x7eb3350d8ef7",
+    "mapped_path": "/lib/ld-musl-x86_64.so.1",
+    "mapped_start": "7eb335097000",
+    "mapped_offset": "00014000",
+    "exact_locked_member": "lib/ld-musl-x86_64.so.1",
+    "elf_sha256": "1cc5c3f502179e2a4befae29658fb109102effefc75742893aa4a449fd3fbb03",
+    "elf_vaddr": "0x55ef7",
+    "elf_file_offset": "0x55ef7",
+    "load_bias": "0x7eb335083000",
+    "containing_dynamic_symbols": [
+      "syscall"
+    ],
+    "scope": "single stopped thread AFTER irreversible failure; NO unwind, causal or pre-failure state claim"
+  },
+  {
+    "guest": "guest1",
+    "sample": 2,
+    "runtime_pc": "0x7eb33350ec00",
+    "mapped_path": "/usr/lib/libQt6Core.so.6",
+    "mapped_start": "7eb3333f9000",
+    "mapped_offset": "000b1000",
+    "exact_locked_member": "usr/lib/libQt6Core.so.6.8.3",
+    "elf_sha256": "a4d2c35d3481f5317ae4c1a6a0297056d323277282e44fe1856fca2bebcefa29",
+    "elf_vaddr": "0x1c6c00",
+    "elf_file_offset": "0x1c6c00",
+    "load_bias": "0x7eb333348000",
+    "containing_dynamic_symbols": [
+      "QObject::~QObject()@@Qt_6",
+      "QObject::~QObject()@@Qt_6"
+    ],
+    "scope": "single stopped thread AFTER irreversible failure; NO unwind, causal or pre-failure state claim"
+  },
+  {
+    "guest": "guest1",
+    "sample": 3,
+    "runtime_pc": "0x7eb3350eb2e7",
+    "mapped_path": "/lib/ld-musl-x86_64.so.1",
+    "mapped_start": "7eb335097000",
+    "mapped_offset": "00014000",
+    "exact_locked_member": "lib/ld-musl-x86_64.so.1",
+    "elf_sha256": "1cc5c3f502179e2a4befae29658fb109102effefc75742893aa4a449fd3fbb03",
+    "elf_vaddr": "0x682e7",
+    "elf_file_offset": "0x682e7",
+    "load_bias": "0x7eb335083000",
+    "containing_dynamic_symbols": [],
+    "scope": "single stopped thread AFTER irreversible failure; NO unwind, causal or pre-failure state claim"
+  }
+]

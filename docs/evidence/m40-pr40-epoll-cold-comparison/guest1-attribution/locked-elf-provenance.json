@@ -1,0 +1,18 @@
+[
+  {
+    "package": {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/qt6-qtbase-6.8.3-r0.apk",
+      "sha256": "fe0436c99902bfc2b304ad223b7436bec580abfa06058d6f24daa926cae128ea"
+    },
+    "member": "usr/lib/libQt6Core.so.6.8.3",
+    "elf_sha256": "a4d2c35d3481f5317ae4c1a6a0297056d323277282e44fe1856fca2bebcefa29"
+  },
+  {
+    "package": {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r12.apk",
+      "sha256": "4990a5e0ba312e478f94cfe431a70efef1538004eb361c8ae424516848be45bb"
+    },
+    "member": "lib/ld-musl-x86_64.so.1",
+    "elf_sha256": "1cc5c3f502179e2a4befae29658fb109102effefc75742893aa4a449fd3fbb03"
+  }
+]
