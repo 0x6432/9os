@@ -8,8 +8,8 @@
   "display_title": "WIP: distinguish terminal-state and protocol-error failure witnesses",
   "run_number": 72,
   "event": "pull_request",
-  "status": "in_progress",
-  "conclusion": null,
+  "status": "completed",
+  "conclusion": "success",
   "workflow_id": 385847972,
   "check_suite_id": 106019978494,
   "check_suite_node_id": "CS_kwDOU686j88AAAAYr0h8_g",
@@ -41,7 +41,7 @@
     }
   ],
   "created_at": "2026-10-18T11:24:22Z",
-  "updated_at": "2026-10-18T11:24:34Z",
+  "updated_at": "2026-10-18T11:40:20Z",
   "actor": {
     "login": "0x6432",
     "id": 337322482,

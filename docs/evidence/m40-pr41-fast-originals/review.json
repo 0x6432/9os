@@ -1,0 +1,47 @@
+{
+  "run": 39123100373,
+  "head": "18ef21fc34945f482d262993aa33690070aa86d5",
+  "actual_original_logs_reviewed": true,
+  "jobs": [
+    {
+      "id": 117662561948,
+      "name": "alpine (riscv64)",
+      "conclusion": "success"
+    },
+    {
+      "id": 117662562070,
+      "name": "desktop (x86_64)",
+      "conclusion": "success"
+    },
+    {
+      "id": 117662562160,
+      "name": "alpine (x86_64)",
+      "conclusion": "success"
+    },
+    {
+      "id": 117662562166,
+      "name": "desktop (aarch64)",
+      "conclusion": "success"
+    },
+    {
+      "id": 117662562175,
+      "name": "desktop (riscv64)",
+      "conclusion": "success"
+    },
+    {
+      "id": 117662562177,
+      "name": "alpine (aarch64)",
+      "conclusion": "success"
+    }
+  ],
+  "ALL3_runtime": "59/59 +UP9/9; x86 SMP8 37/37",
+  "ALL3_desktop": "33/33 +physical16/16",
+  "actual_genuine_witness_PIDs": {
+    "x86_64": 605,
+    "riscv64": 612,
+    "aarch64": 869
+  },
+  "each_witness": "terminals1 valid_states1 focused_states1 showing_states1 visible_states1 qualified1 protocol_error0",
+  "x86_protocol": "native/signed30cases +1interruption +7CLI; all5mutants rejected",
+  "scope": "ordinary observer-present fast graphics validation, NOT observer-off cold reliability; no newcoldexperiment; PR40cold remainsFAILED; source PR41 stillpending"
+}
