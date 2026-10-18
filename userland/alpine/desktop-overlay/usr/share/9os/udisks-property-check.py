@@ -11,12 +11,13 @@ import re
 import sys
 
 MAX_REPLY = 65536
+IDENTITIES = {'Device': ('/dev/vda', '/dev/vda1'), 'MountPoints': ('/',)}
 
 
 def check_reply(property_name, expected, reply):
-    if property_name not in ('Device', 'MountPoints'):
+    if property_name not in IDENTITIES:
         raise ValueError('unsupported property')
-    if expected not in ('/dev/vda', '/dev/vda1', '/'):
+    if expected not in IDENTITIES[property_name]:
         raise ValueError('unsupported identity')
     header, separator, body = reply.partition('\n')
     if not separator or not header.startswith('method return '):

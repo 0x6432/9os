@@ -14,6 +14,8 @@ if name == 'id':
 elif name == 'timeout':
     assert args[:4] in ([ '-s', 'KILL', '40', 'dbus-send'],
                        [ '-s', 'KILL', '6', 'dbus-send']), args
+    assert args[2] == ('40' if args[-1] ==
+                       'org.freedesktop.DBus.ObjectManager.GetManagedObjects' else '6'), args
     os.execvp(args[3], args[3:])
 elif name == 'dbus-send':
     log = Path(os.environ['UDISKS_TEST_LOG'])

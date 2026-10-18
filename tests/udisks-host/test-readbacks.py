@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Native, command-mocked tests for the *real* overlay's read-only consumer."""
-import copy
 import importlib.util
 import json
 import os
@@ -210,6 +209,26 @@ class ReadbackTests(unittest.TestCase):
                 self.assertIn('property readback rejected', result.stderr)
                 self.assertEqual(len(calls), index + 1)
 
+    def test_detached_identity_and_root_decoys_do_not_pass(self):
+        # A valid-shaped ObjectManager reply with the expected vda1 object empty,
+        # but the Device/Filesystem/MountPoints fragments on a *different* object.
+        # The original global greps still all pass; scoped Get must reject it.
+        vda1 = PREFIX + '/block_devices/vda1'
+        decoy = ENUM.replace('object path "' + vda1 + '"',
+                             'object path "' + PREFIX + '/block_devices/other"')
+        position = decoy.rfind('   ]\n')
+        decoy = (decoy[:position] + '      ,dict entry(\n'
+                 '         object path "' + vda1 + '"\n'
+                 '         array [\n         ]\n      )\n' + decoy[position:])
+        config = good_config()
+        config['replies'][0]['stdout'] = decoy
+        config['replies'][2] = {
+            'status': 1, 'stderr': 'org.freedesktop.DBus.Error.UnknownInterface\n'}
+        result, calls = self.run_probe(config)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('UnknownInterface', result.stderr)
+        self.assertEqual(len(calls), 3)  # all six original greps passed
+
     def test_malformed_readbacks(self):
         valid = device_reply('/dev/vda1')
         malformed = [
@@ -263,7 +282,8 @@ class ReadbackTests(unittest.TestCase):
         self.assertEqual(len(calls), 4)
 
     def test_helper_rejects_unknown_contract_and_io_errors(self):
-        for prop, identity in [('Size', '/'), ('Device', '/dev/sda')]:
+        for prop, identity in [('Size', '/'), ('Device', '/dev/sda'),
+                               ('Device', '/'), ('MountPoints', '/dev/vda')]:
             with self.subTest(property=prop, identity=identity):
                 with self.assertRaises(ValueError):
                     MODULE.check_reply(prop, identity, device_reply(identity))
