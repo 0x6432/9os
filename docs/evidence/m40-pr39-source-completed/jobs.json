@@ -1,0 +1,624 @@
+{
+  "total_count": 5,
+  "jobs": [
+    {
+      "id": 117625403420,
+      "run_id": 39110491794,
+      "workflow_name": "build-and-release",
+      "head_branch": "notion/m40-epoll-wake-measurement",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39110491794",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbYwU4HA",
+      "head_sha": "f2aa0ab7dfde2306f4fbb84248ce3e8355455542",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117625403420",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39110491794/job/117625403420",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T08:11:28Z",
+      "started_at": "2026-10-18T08:11:31Z",
+      "completed_at": "2026-10-18T08:11:34Z",
+      "name": "stamp",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T08:11:32Z",
+          "completed_at": "2026-10-18T08:11:32Z"
+        },
+        {
+          "name": "Run echo \"ts=$(date -u +%Y%m%d-%H%M%S)\" >> \"$GITHUB_OUTPUT\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T08:11:32Z",
+          "completed_at": "2026-10-18T08:11:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T08:11:32Z",
+          "completed_at": "2026-10-18T08:11:32Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117625403420",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004652,
+      "runner_name": "GitHub Actions 1000004652",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117625423009,
+      "run_id": 39110491794,
+      "workflow_name": "build-and-release",
+      "head_branch": "notion/m40-epoll-wake-measurement",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39110491794",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbYwWEoQ",
+      "head_sha": "f2aa0ab7dfde2306f4fbb84248ce3e8355455542",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117625423009",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39110491794/job/117625423009",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T08:11:34Z",
+      "started_at": "2026-10-18T08:11:38Z",
+      "completed_at": "2026-10-18T09:34:15Z",
+      "name": "build (aarch64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T08:11:38Z",
+          "completed_at": "2026-10-18T08:11:39Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T08:11:39Z",
+          "completed_at": "2026-10-18T08:11:40Z"
+        },
+        {
+          "name": "Install host packages",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T08:11:40Z",
+          "completed_at": "2026-10-18T08:12:16Z"
+        },
+        {
+          "name": "Install QEMU (Alpine edge, same as the dev sandbox)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T08:12:16Z",
+          "completed_at": "2026-10-18T08:12:19Z"
+        },
+        {
+          "name": "Cache downloads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T08:12:19Z",
+          "completed_at": "2026-10-18T08:12:22Z"
+        },
+        {
+          "name": "Fetch Limine + uACPI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T08:12:22Z",
+          "completed_at": "2026-10-18T08:12:26Z"
+        },
+        {
+          "name": "Allocator and scheduler host regressions",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-18T08:12:26Z",
+          "completed_at": "2026-10-18T08:12:26Z"
+        },
+        {
+          "name": "Build userland (musl, BusyBox, Bash, ports)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T08:12:26Z",
+          "completed_at": "2026-10-18T09:24:32Z"
+        },
+        {
+          "name": "Build kernel + ISO",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T09:24:32Z",
+          "completed_at": "2026-10-18T09:24:45Z"
+        },
+        {
+          "name": "Boot tests in QEMU",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T09:24:45Z",
+          "completed_at": "2026-10-18T09:32:31Z"
+        },
+        {
+          "name": "Uniprocessor M25 regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T09:32:31Z",
+          "completed_at": "2026-10-18T09:33:09Z"
+        },
+        {
+          "name": "MLFQ M25 regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T09:33:09Z",
+          "completed_at": "2026-10-18T09:34:05Z"
+        },
+        {
+          "name": "Eight-CPU RR poll progress",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13,
+          "started_at": "2026-10-18T09:34:05Z",
+          "completed_at": "2026-10-18T09:34:05Z"
+        },
+        {
+          "name": "Eight-CPU scheduler and allocator stress",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14,
+          "started_at": "2026-10-18T09:34:05Z",
+          "completed_at": "2026-10-18T09:34:05Z"
+        },
+        {
+          "name": "Upload test log",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T09:34:05Z",
+          "completed_at": "2026-10-18T09:34:06Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-18T09:34:06Z",
+          "completed_at": "2026-10-18T09:34:10Z"
+        },
+        {
+          "name": "Post Cache downloads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-18T09:34:10Z",
+          "completed_at": "2026-10-18T09:34:13Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 32,
+          "started_at": "2026-10-18T09:34:13Z",
+          "completed_at": "2026-10-18T09:34:13Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-10-18T09:34:13Z",
+          "completed_at": "2026-10-18T09:34:13Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117625423009",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004659,
+      "runner_name": "GitHub Actions 1000004659",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117625423041,
+      "run_id": 39110491794,
+      "workflow_name": "build-and-release",
+      "head_branch": "notion/m40-epoll-wake-measurement",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39110491794",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbYwWEwQ",
+      "head_sha": "f2aa0ab7dfde2306f4fbb84248ce3e8355455542",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117625423041",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39110491794/job/117625423041",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T08:11:34Z",
+      "started_at": "2026-10-18T08:11:38Z",
+      "completed_at": "2026-10-18T09:47:22Z",
+      "name": "build (x86_64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T08:11:38Z",
+          "completed_at": "2026-10-18T08:11:39Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T08:11:39Z",
+          "completed_at": "2026-10-18T08:11:40Z"
+        },
+        {
+          "name": "Install host packages",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T08:11:40Z",
+          "completed_at": "2026-10-18T08:12:22Z"
+        },
+        {
+          "name": "Install QEMU (Alpine edge, same as the dev sandbox)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T08:12:22Z",
+          "completed_at": "2026-10-18T08:12:25Z"
+        },
+        {
+          "name": "Cache downloads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T08:12:25Z",
+          "completed_at": "2026-10-18T08:12:28Z"
+        },
+        {
+          "name": "Fetch Limine + uACPI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T08:12:28Z",
+          "completed_at": "2026-10-18T08:12:31Z"
+        },
+        {
+          "name": "Allocator and scheduler host regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T08:12:31Z",
+          "completed_at": "2026-10-18T08:13:23Z"
+        },
+        {
+          "name": "Build userland (musl, BusyBox, Bash, ports)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T08:13:23Z",
+          "completed_at": "2026-10-18T09:35:15Z"
+        },
+        {
+          "name": "Build kernel + ISO",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T09:35:15Z",
+          "completed_at": "2026-10-18T09:35:32Z"
+        },
+        {
+          "name": "Boot tests in QEMU",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T09:35:32Z",
+          "completed_at": "2026-10-18T09:44:22Z"
+        },
+        {
+          "name": "Uniprocessor M25 regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T09:44:22Z",
+          "completed_at": "2026-10-18T09:44:51Z"
+        },
+        {
+          "name": "MLFQ M25 regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T09:44:51Z",
+          "completed_at": "2026-10-18T09:45:40Z"
+        },
+        {
+          "name": "Eight-CPU RR poll progress",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T09:45:40Z",
+          "completed_at": "2026-10-18T09:46:24Z"
+        },
+        {
+          "name": "Eight-CPU scheduler and allocator stress",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T09:46:24Z",
+          "completed_at": "2026-10-18T09:47:09Z"
+        },
+        {
+          "name": "Upload test log",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T09:47:09Z",
+          "completed_at": "2026-10-18T09:47:10Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-18T09:47:10Z",
+          "completed_at": "2026-10-18T09:47:15Z"
+        },
+        {
+          "name": "Post Cache downloads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-18T09:47:15Z",
+          "completed_at": "2026-10-18T09:47:20Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 32,
+          "started_at": "2026-10-18T09:47:20Z",
+          "completed_at": "2026-10-18T09:47:20Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-10-18T09:47:20Z",
+          "completed_at": "2026-10-18T09:47:20Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117625423041",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004660,
+      "runner_name": "GitHub Actions 1000004660",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117625423097,
+      "run_id": 39110491794,
+      "workflow_name": "build-and-release",
+      "head_branch": "notion/m40-epoll-wake-measurement",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39110491794",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbYwWE-Q",
+      "head_sha": "f2aa0ab7dfde2306f4fbb84248ce3e8355455542",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117625423097",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39110491794/job/117625423097",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-18T08:11:34Z",
+      "started_at": "2026-10-18T08:11:44Z",
+      "completed_at": "2026-10-18T10:17:55Z",
+      "name": "build (riscv64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T08:11:45Z",
+          "completed_at": "2026-10-18T08:11:46Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T08:11:46Z",
+          "completed_at": "2026-10-18T08:11:47Z"
+        },
+        {
+          "name": "Install host packages",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T08:11:47Z",
+          "completed_at": "2026-10-18T08:12:18Z"
+        },
+        {
+          "name": "Install QEMU (Alpine edge, same as the dev sandbox)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T08:12:18Z",
+          "completed_at": "2026-10-18T08:12:21Z"
+        },
+        {
+          "name": "Cache downloads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T08:12:21Z",
+          "completed_at": "2026-10-18T08:12:25Z"
+        },
+        {
+          "name": "Fetch Limine + uACPI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T08:12:25Z",
+          "completed_at": "2026-10-18T08:12:28Z"
+        },
+        {
+          "name": "Allocator and scheduler host regressions",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-18T08:12:28Z",
+          "completed_at": "2026-10-18T08:12:28Z"
+        },
+        {
+          "name": "Build userland (musl, BusyBox, Bash, ports)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T08:12:28Z",
+          "completed_at": "2026-10-18T10:06:00Z"
+        },
+        {
+          "name": "Build kernel + ISO",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T10:06:00Z",
+          "completed_at": "2026-10-18T10:06:21Z"
+        },
+        {
+          "name": "Boot tests in QEMU",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T10:06:21Z",
+          "completed_at": "2026-10-18T10:16:00Z"
+        },
+        {
+          "name": "Uniprocessor M25 regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T10:16:00Z",
+          "completed_at": "2026-10-18T10:16:36Z"
+        },
+        {
+          "name": "MLFQ M25 regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T10:16:36Z",
+          "completed_at": "2026-10-18T10:17:41Z"
+        },
+        {
+          "name": "Eight-CPU RR poll progress",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13,
+          "started_at": "2026-10-18T10:17:41Z",
+          "completed_at": "2026-10-18T10:17:41Z"
+        },
+        {
+          "name": "Eight-CPU scheduler and allocator stress",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14,
+          "started_at": "2026-10-18T10:17:41Z",
+          "completed_at": "2026-10-18T10:17:41Z"
+        },
+        {
+          "name": "Upload test log",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T10:17:41Z",
+          "completed_at": "2026-10-18T10:17:43Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-18T10:17:43Z",
+          "completed_at": "2026-10-18T10:17:48Z"
+        },
+        {
+          "name": "Post Cache downloads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-18T10:17:48Z",
+          "completed_at": "2026-10-18T10:17:53Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 32,
+          "started_at": "2026-10-18T10:17:53Z",
+          "completed_at": "2026-10-18T10:17:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-10-18T10:17:53Z",
+          "completed_at": "2026-10-18T10:17:53Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117625423097",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000004661,
+      "runner_name": "GitHub Actions 1000004661",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117649660560,
+      "run_id": 39110491794,
+      "workflow_name": "build-and-release",
+      "head_branch": "notion/m40-epoll-wake-measurement",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39110491794",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbZHdakA",
+      "head_sha": "f2aa0ab7dfde2306f4fbb84248ce3e8355455542",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117649660560",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39110491794/job/117649660560",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T10:17:56Z",
+      "started_at": "2026-10-18T10:17:56Z",
+      "completed_at": "2026-10-18T10:17:56Z",
+      "name": "release",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117649660560",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

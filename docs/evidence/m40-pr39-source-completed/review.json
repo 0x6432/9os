@@ -1,0 +1,61 @@
+[
+  {
+    "job_log": "job-117625423009.log",
+    "totals": [
+      "153/153 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "23/23 passed"
+    ],
+    "fsck": [
+      "2026-10-18T09:29:42.1438614Z PASS   e2fsck build/ci-aarch64/ext2.img",
+      "2026-10-18T09:31:55.8077466Z PASS   e2fsck build/ci-aarch64/root.img"
+    ],
+    "shutdown": [
+      "2026-10-18T09:31:53.6396200Z PASS   clean shutdown of the disk root"
+    ]
+  },
+  {
+    "job_log": "job-117625423041.log",
+    "totals": [
+      "153/153 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "23/23 passed",
+      "24/24 passed",
+      "11/11 passed"
+    ],
+    "fsck": [
+      "2026-10-18T09:41:36.7951908Z PASS   e2fsck build/ci-x86_64/ext2.img",
+      "2026-10-18T09:43:47.1452157Z PASS   e2fsck build/ci-x86_64/root.img"
+    ],
+    "shutdown": [
+      "2026-10-18T09:43:44.8993150Z PASS   clean shutdown of the disk root"
+    ]
+  },
+  {
+    "job_log": "job-117625423097.log",
+    "totals": [
+      "153/153 passed",
+      "24/24 passed",
+      "7/7 passed",
+      "2/2 passed",
+      "2/2 passed",
+      "10/10 passed",
+      "23/23 passed"
+    ],
+    "fsck": [
+      "2026-10-18T10:12:36.6160145Z PASS   e2fsck build/ci-riscv64/ext2.img",
+      "2026-10-18T10:15:12.0370031Z PASS   e2fsck build/ci-riscv64/root.img"
+    ],
+    "shutdown": [
+      "2026-10-18T10:15:11.3174103Z PASS   clean shutdown of the disk root"
+    ]
+  }
+]
