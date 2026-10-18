@@ -1,0 +1,85 @@
+{
+  "total_count": 4,
+  "artifacts": [
+    {
+      "id": 12135296933,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzNTI5NjkzMw==",
+      "name": "test-log-riscv64",
+      "size_in_bytes": 102935,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12135296933",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12135296933/zip",
+      "expired": false,
+      "digest": "sha256:d9db39250be6e94f9c6528a09f58d29b3e5a77fbd82b8a5444c05b75dc3ecff2",
+      "created_at": "2026-10-18T11:32:23Z",
+      "updated_at": "2026-10-18T11:32:23Z",
+      "expires_at": "2027-01-16T09:12:53Z",
+      "workflow_run": {
+        "id": 39114448942,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-epoll-leaf-wake-study",
+        "head_sha": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4"
+      }
+    },
+    {
+      "id": 12134938992,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzNDkzODk5Mg==",
+      "name": "iso-riscv64",
+      "size_in_bytes": 61740697,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12134938992",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12134938992/zip",
+      "expired": false,
+      "digest": "sha256:4906483c96a59cbcce1771e09dae70c2708ef2113540b856d055cc17eb7cf9d5",
+      "created_at": "2026-10-18T11:32:28Z",
+      "updated_at": "2026-10-18T11:32:28Z",
+      "expires_at": "2026-11-01T11:32:23Z",
+      "workflow_run": {
+        "id": 39114448942,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-epoll-leaf-wake-study",
+        "head_sha": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4"
+      }
+    },
+    {
+      "id": 12133911150,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzMzkxMTE1MA==",
+      "name": "test-log-x86_64",
+      "size_in_bytes": 37003,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12133911150",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12133911150/zip",
+      "expired": false,
+      "digest": "sha256:515a3e735e0e071b99b628e7c682ff5f78de6178837e9b84a945283646c2931f",
+      "created_at": "2026-10-18T10:38:18Z",
+      "updated_at": "2026-10-18T10:38:18Z",
+      "expires_at": "2027-01-16T09:12:53Z",
+      "workflow_run": {
+        "id": 39114448942,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-epoll-leaf-wake-study",
+        "head_sha": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4"
+      }
+    },
+    {
+      "id": 12133507612,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzMzUwNzYxMg==",
+      "name": "iso-x86_64",
+      "size_in_bytes": 66236518,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12133507612",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12133507612/zip",
+      "expired": false,
+      "digest": "sha256:399399e8fd7781e2a3e2158030bbf74b8cc1e20c678985ad4533854718b52330",
+      "created_at": "2026-10-18T10:38:22Z",
+      "updated_at": "2026-10-18T10:38:22Z",
+      "expires_at": "2026-11-01T10:38:18Z",
+      "workflow_run": {
+        "id": 39114448942,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-epoll-leaf-wake-study",
+        "head_sha": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4"
+      }
+    }
+  ]
+}
