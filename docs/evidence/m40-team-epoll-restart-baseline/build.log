@@ -1,0 +1,121 @@
+  CC  kernel/core/boot.c
+  CC  kernel/core/cred.c
+  CC  kernel/core/device.c
+  CC  kernel/core/exec.c
+  CC  kernel/core/irq.c
+  CC  kernel/core/lockdep.c
+  CC  kernel/core/main.c
+  CC  kernel/core/mutex.c
+  CC  kernel/core/printk.c
+  CC  kernel/core/process.c
+  CC  kernel/core/ptrace.c
+  CC  kernel/core/sched.c
+  CC  kernel/core/signal.c
+  CC  kernel/core/smp.c
+  CC  kernel/core/sys_cred.c
+  CC  kernel/core/sys_fs.c
+  CC  kernel/core/sys_mm.c
+  CC  kernel/core/sys_proc.c
+  CC  kernel/core/sys_timer.c
+  CC  kernel/core/syscall.c
+  CC  kernel/core/time.c
+  CC  kernel/mm/buddy.c
+  CC  kernel/mm/filemap.c
+  CC  kernel/mm/mm.c
+  CC  kernel/mm/slab.c
+  CC  kernel/mm/uaccess.c
+  CC  kernel/lib/fdt.c
+  CC  kernel/lib/rbtree.c
+  CC  kernel/lib/string.c
+  CC  kernel/lib/vsnprintf.c
+  CC  kernel/drivers/drm.c
+  CC  kernel/drivers/evdev.c
+  CC  kernel/drivers/fbcon.c
+  CC  kernel/drivers/fbdev.c
+  CC  kernel/drivers/font8x16.c
+  CC  kernel/drivers/loop.c
+  CC  kernel/drivers/pci.c
+  CC  kernel/drivers/tty.c
+  CC  kernel/drivers/uinput.c
+  CC  kernel/drivers/virtio.c
+  CC  kernel/drivers/virtio_blk.c
+  CC  kernel/drivers/virtio_gpu.c
+  CC  kernel/drivers/virtio_input.c
+  CC  kernel/drivers/virtio_net.c
+  CC  kernel/drivers/virtio_snd.c
+  CC  kernel/drivers/vt.c
+  CC  kernel/block/blk.c
+  CC  kernel/fs/acl.c
+  CC  kernel/fs/anonfd.c
+  CC  kernel/fs/devices.c
+  CC  kernel/fs/ext2.c
+  CC  kernel/fs/fasync.c
+  CC  kernel/fs/initramfs.c
+  CC  kernel/fs/locks.c
+  CC  kernel/fs/pipe.c
+  CC  kernel/fs/procfs.c
+  CC  kernel/fs/sysfs.c
+  CC  kernel/fs/tmpfs.c
+  CC  kernel/fs/vfs.c
+  CC  kernel/fs/xattr.c
+  CC  kernel/net/arp.c
+  CC  kernel/net/core.c
+  CC  kernel/net/dgram.c
+  CC  kernel/net/inet.c
+  CC  kernel/net/ip.c
+  CC  kernel/net/ip6.c
+  CC  kernel/net/mcast.c
+  CC  kernel/net/netlink.c
+  CC  kernel/net/ring.c
+  CC  kernel/net/socket.c
+  CC  kernel/net/tcp.c
+  CC  kernel/net/tun.c
+  CC  kernel/net/unix.c
+  CC  kernel/acpi/uacpi_glue.c
+  CC  kernel/arch/x86_64/apic.c
+  CC  kernel/arch/x86_64/entry.c
+  CC  kernel/arch/x86_64/gdt.c
+  CC  kernel/arch/x86_64/idt.c
+  CC  kernel/arch/x86_64/paging.c
+  CC  kernel/arch/x86_64/ps2.c
+  CC  kernel/arch/x86_64/rtc.c
+  CC  kernel/arch/x86_64/serial.c
+  CC  kernel/arch/x86_64/signal_frame.c
+  CC  kernel/arch/x86_64/thread.c
+  CC  kernel/arch/x86_64/user.c
+  AS  kernel/arch/x86_64/isr.S
+  AS  kernel/arch/x86_64/switch.S
+  AS  kernel/arch/x86_64/syscall_entry.S
+  AS  kernel/arch/x86_64/uaccess.S
+  CC  third_party/uACPI/source/default_handlers.c
+  CC  third_party/uACPI/source/event.c
+  CC  third_party/uACPI/source/interpreter.c
+  CC  third_party/uACPI/source/io.c
+  CC  third_party/uACPI/source/mutex.c
+  CC  third_party/uACPI/source/namespace.c
+  CC  third_party/uACPI/source/notify.c
+  CC  third_party/uACPI/source/opcodes.c
+  CC  third_party/uACPI/source/opregion.c
+  CC  third_party/uACPI/source/osi.c
+  CC  third_party/uACPI/source/registers.c
+  CC  third_party/uACPI/source/resources.c
+  CC  third_party/uACPI/source/shareable.c
+  CC  third_party/uACPI/source/sleep.c
+  CC  third_party/uACPI/source/stdlib.c
+  CC  third_party/uACPI/source/tables.c
+  CC  third_party/uACPI/source/types.c
+  CC  third_party/uACPI/source/uacpi.c
+  CC  third_party/uACPI/source/utilities.c
+python3 scripts/rootfs-stamp.py "userland/root-x86_64" "build/x86_64/rootfs.stamp"
+(cd userland/root-x86_64 && find . -print0 | cpio -0 -o -H newc -R 0:0 --quiet) > build/x86_64/initramfs.cpio
+ld.lld -m elf_x86_64 -nostdlib -static -z max-page-size=0x1000 --no-dynamic-linker -T kernel/arch/x86_64/linker.ld build/x86_64/kernel/core/boot.c.o build/x86_64/kernel/core/cred.c.o build/x86_64/kernel/core/device.c.o build/x86_64/kernel/core/exec.c.o build/x86_64/kernel/core/irq.c.o build/x86_64/kernel/core/lockdep.c.o build/x86_64/kernel/core/main.c.o build/x86_64/kernel/core/mutex.c.o build/x86_64/kernel/core/printk.c.o build/x86_64/kernel/core/process.c.o build/x86_64/kernel/core/ptrace.c.o build/x86_64/kernel/core/sched.c.o build/x86_64/kernel/core/signal.c.o build/x86_64/kernel/core/smp.c.o build/x86_64/kernel/core/sys_cred.c.o build/x86_64/kernel/core/sys_fs.c.o build/x86_64/kernel/core/sys_mm.c.o build/x86_64/kernel/core/sys_proc.c.o build/x86_64/kernel/core/sys_timer.c.o build/x86_64/kernel/core/syscall.c.o build/x86_64/kernel/core/time.c.o build/x86_64/kernel/mm/buddy.c.o build/x86_64/kernel/mm/filemap.c.o build/x86_64/kernel/mm/mm.c.o build/x86_64/kernel/mm/slab.c.o build/x86_64/kernel/mm/uaccess.c.o build/x86_64/kernel/lib/fdt.c.o build/x86_64/kernel/lib/rbtree.c.o build/x86_64/kernel/lib/string.c.o build/x86_64/kernel/lib/vsnprintf.c.o build/x86_64/kernel/drivers/drm.c.o build/x86_64/kernel/drivers/evdev.c.o build/x86_64/kernel/drivers/fbcon.c.o build/x86_64/kernel/drivers/fbdev.c.o build/x86_64/kernel/drivers/font8x16.c.o build/x86_64/kernel/drivers/loop.c.o build/x86_64/kernel/drivers/pci.c.o build/x86_64/kernel/drivers/tty.c.o build/x86_64/kernel/drivers/uinput.c.o build/x86_64/kernel/drivers/virtio.c.o build/x86_64/kernel/drivers/virtio_blk.c.o build/x86_64/kernel/drivers/virtio_gpu.c.o build/x86_64/kernel/drivers/virtio_input.c.o build/x86_64/kernel/drivers/virtio_net.c.o build/x86_64/kernel/drivers/virtio_snd.c.o build/x86_64/kernel/drivers/vt.c.o build/x86_64/kernel/block/blk.c.o build/x86_64/kernel/fs/acl.c.o build/x86_64/kernel/fs/anonfd.c.o build/x86_64/kernel/fs/devices.c.o build/x86_64/kernel/fs/ext2.c.o build/x86_64/kernel/fs/fasync.c.o build/x86_64/kernel/fs/initramfs.c.o build/x86_64/kernel/fs/locks.c.o build/x86_64/kernel/fs/pipe.c.o build/x86_64/kernel/fs/procfs.c.o build/x86_64/kernel/fs/sysfs.c.o build/x86_64/kernel/fs/tmpfs.c.o build/x86_64/kernel/fs/vfs.c.o build/x86_64/kernel/fs/xattr.c.o build/x86_64/kernel/net/arp.c.o build/x86_64/kernel/net/core.c.o build/x86_64/kernel/net/dgram.c.o build/x86_64/kernel/net/inet.c.o build/x86_64/kernel/net/ip.c.o build/x86_64/kernel/net/ip6.c.o build/x86_64/kernel/net/mcast.c.o build/x86_64/kernel/net/netlink.c.o build/x86_64/kernel/net/ring.c.o build/x86_64/kernel/net/socket.c.o build/x86_64/kernel/net/tcp.c.o build/x86_64/kernel/net/tun.c.o build/x86_64/kernel/net/unix.c.o build/x86_64/kernel/acpi/uacpi_glue.c.o build/x86_64/kernel/arch/x86_64/apic.c.o build/x86_64/kernel/arch/x86_64/entry.c.o build/x86_64/kernel/arch/x86_64/gdt.c.o build/x86_64/kernel/arch/x86_64/idt.c.o build/x86_64/kernel/arch/x86_64/paging.c.o build/x86_64/kernel/arch/x86_64/ps2.c.o build/x86_64/kernel/arch/x86_64/rtc.c.o build/x86_64/kernel/arch/x86_64/serial.c.o build/x86_64/kernel/arch/x86_64/signal_frame.c.o build/x86_64/kernel/arch/x86_64/thread.c.o build/x86_64/kernel/arch/x86_64/user.c.o build/x86_64/kernel/arch/x86_64/isr.S.o build/x86_64/kernel/arch/x86_64/switch.S.o build/x86_64/kernel/arch/x86_64/syscall_entry.S.o build/x86_64/kernel/arch/x86_64/uaccess.S.o build/x86_64/third_party/uACPI/source/default_handlers.c.o build/x86_64/third_party/uACPI/source/event.c.o build/x86_64/third_party/uACPI/source/interpreter.c.o build/x86_64/third_party/uACPI/source/io.c.o build/x86_64/third_party/uACPI/source/mutex.c.o build/x86_64/third_party/uACPI/source/namespace.c.o build/x86_64/third_party/uACPI/source/notify.c.o build/x86_64/third_party/uACPI/source/opcodes.c.o build/x86_64/third_party/uACPI/source/opregion.c.o build/x86_64/third_party/uACPI/source/osi.c.o build/x86_64/third_party/uACPI/source/registers.c.o build/x86_64/third_party/uACPI/source/resources.c.o build/x86_64/third_party/uACPI/source/shareable.c.o build/x86_64/third_party/uACPI/source/sleep.c.o build/x86_64/third_party/uACPI/source/stdlib.c.o build/x86_64/third_party/uACPI/source/tables.c.o build/x86_64/third_party/uACPI/source/types.c.o build/x86_64/third_party/uACPI/source/uacpi.c.o build/x86_64/third_party/uACPI/source/utilities.c.o -o build/x86_64/kernel.elf
+rm -rf build/x86_64/iso && mkdir -p build/x86_64/iso/boot/limine build/x86_64/iso/EFI/BOOT
+cp build/x86_64/kernel.elf build/x86_64/initramfs.cpio build/x86_64/iso/boot/
+cp build/x86_64/limine.conf build/x86_64/iso/boot/limine/limine.conf
+cp third_party/limine-bin/limine-bios.sys third_party/limine-bin/limine-bios-cd.bin third_party/limine-bin/limine-uefi-cd.bin build/x86_64/iso/boot/limine/
+cp third_party/limine-bin/BOOTX64.EFI third_party/limine-bin/BOOTAA64.EFI third_party/limine-bin/BOOTRISCV64.EFI build/x86_64/iso/EFI/BOOT/
+xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin -no-emul-boot \
+    -boot-load-size 4 -boot-info-table -hfsplus -apm-block-size 2048 \
+    --efi-boot boot/limine/limine-uefi-cd.bin -efi-boot-part --efi-boot-image \
+    --protective-msdos-label build/x86_64/iso -o build/x86_64/9os.iso 2>/dev/null
+if [ x86_64 = x86_64 ]; then third_party/limine-bin/limine bios-install build/x86_64/9os.iso 2>/dev/null; fi

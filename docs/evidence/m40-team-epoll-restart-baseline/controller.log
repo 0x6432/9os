@@ -1,0 +1,412 @@
+9os booting (x86_64, C202311)
+[ info[0m] Limine base revision 6, HHDM offset 0xffff800000000000, cmdline ''
+[[32m info] 20 memory map entries, 497 MiB usable
+[ info] pmm: buddy allocator ready, 490 MiB free (125581 pages, page array 7168 KiB)
+[ info] pmm: self-test passed
+[ info] vmm: kernel page tables active (root 9e000)
+[ info] harden: smep smap nx, stack protector, ASLR on, user W^X warn, kernel W+X pages 0
+[ info[0m] slab: 8 kmalloc caches (16..2048 bytes)
+[ info] slab: self-test passed
+[uacpi info] starting uACPI, version 6.1.1
+[uacpi info] RSDP 0x00000000000F52C0 00000014 v00 (BOCHS )
+[uacpi info] RSDT 0x000000001FFE248F 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] DSDT 0x000000001FFE0040 0000222F v01 (BOCHS  BXPC    )
+[uacpi info] FACP 0x000000001FFE226F 000000F4 v03 (BOCHS  BXPC    )
+[uacpi info] APIC 0x000000001FFE2363 00000090 v03 (BOCHS  BXPC    )
+[uacpi info] HPET 0x000000001FFE23F3 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] MCFG 0x000000001FFE242B 0000003C v01 (BOCHS  BXPC    )
+[uacpi info] WAET 0x000000001FFE2467 00000028 v01 (BOCHS  BXPC    )
+[uacpi info] FACS 0x000000001FFE0000 00000040
+[ info] acpi: tables ready
+[ info] sched: round robin, quantum 10 ms
+[ info] tsc: 5329.203 MHz
+[ info] apic: lapic fee00000, 1 ioapic(s), 5 overrides
+[ info] apic: lapic timer 239617 ticks per 1000 Hz period
+[ info[0m] rtc: 2026-10-18 21:22:30 UTC
+[ info] smp: 4 CPUs online (3 APs started in 20693 us)
+[[32m info] pmm: per-CPU order-0 caches enabled (16 pages/CPU)
+[ info] pmm: per-CPU cache self-test passed
+[ info] slab: per-CPU magazines enabled (8 objects/cache/CPU, objects <=2048 bytes)
+[ info] slab: per-CPU magazine self-test passed
+[uacpi info] successfully loaded 1 AML blob, 1734 ops in 19ms (avg 90947/s)
+[uacpi info] namespace initialization done in 5ms: 42 devices, 0 thermal zones
+[uacpi info] enabled 2 GPEs in block _GPE@[0->64]
+[[32m info] acpi: namespace loaded and initialized
+[ info] vfs: tmpfs root mounted
+[ info] pci: 00:00.0 8086:29c0 class 0600
+[ info] pci: 00:01.0 1234:1111 class 0300
+[ info] pci: 00:02.0 1af4:1052 class 0900
+[ info] pci: 00:03.0 1af4:1052 class 0980
+[ info] pci: 00:04.0 1af4:1000 class 0200
+[ info] pci: 00:05.0 1af4:1059 class 0401
+[ info] pci: 00:1f.0 8086:2918 class 0601
+[ info] pci: 00:1f.2 8086:2922 class 0106
+[ info] pci: 00:1f.3 8086:2930 class 0c05
+[ info] input: QEMU Virtio Keyboard as /dev/input/event0
+[ info] virtio-input: QEMU Virtio Keyboard (MSI-X irq 49)
+[ info] input: QEMU Virtio Tablet as /dev/input/event1
+[ info] virtio-input: QEMU Virtio Tablet (MSI-X irq 50)
+[ info] virtio-net: eth0: 52:54:00:12:34:56 mtu 1500, MSI-X irq 51
+[ info] virtio-snd: playback stream 0, stereo S16_LE 48000 Hz, MSI-X irq 52
+[ info] fbdev: /dev/fb0 1280x800, 32 bpp, pitch 5120
+[ info] drm: /dev/dri/card0 1280x800 (atomic KMS, PRIME)
+[ info] initramfs: unpacked 98 files (8544 KiB)
+[ info] input: AT Translated Set 2 keyboard as /dev/input/event2
+[ info] input: ps/2 keyboard (irq 1) + serial console (irq 4), interrupt-driven
+[ info] init: started /sbin/init (pid 1)
+
+Welcome to 9os!  (x86_64, busybox v1.36.1)
+
+
+9os login: root
+login[34]: root login on 'console'
+root@9os:~# timeout 10 epollrestarttest; echo __RC0=$?
+CASE api=epoll_wait restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_wait restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=0 temporary_mask=1 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=1 temporary_mask=1 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=0 temporary_mask=1 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=1 temporary_mask=1 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+PASS close epoll got=0 want=0
+PASS restore entry mask got=0 want=0
+epollrestarttest: FAILED (72 checks, 5 failures; finite100ms, signal20ms, watchdog5s)
+__RC0=1
+root@9os:~# su user -s /bin/sh -c "timeout 10 epollrestarttest"; echo __RC1=$?
+CASE api=epoll_wait restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_wait restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=0 temporary_mask=1 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=1 temporary_mask=1 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=0 temporary_mask=1 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=1 temporary_mask=1 wait_ms=100 signal_ms=20
+FAIL caught signal returns EINTR even with SA_RESTART got=0 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+PASS close epoll got=0 want=0
+PASS restore entry mask got=0 want=0
+epollrestarttest: FAILED (72 checks, 5 failures; finite100ms, signal20ms, watchdog5s)
+__RC1=1
+root@9os:~# timeout 10 epollabitest; echo __RC2=$?
+PASS pwait nonnull sigset size=0 got=-22 want=-22
+PASS pwait2 nonnull sigset size=0 got=-22 want=-22
+PASS pwait null sigset ignores size=0 got=0 want=0
+PASS pwait2 null sigset ignores size=0 got=0 want=0
+PASS pwait nonnull sigset size=1 got=-22 want=-22
+PASS pwait2 nonnull sigset size=1 got=-22 want=-22
+PASS pwait null sigset ignores size=1 got=0 want=0
+PASS pwait2 null sigset ignores size=1 got=0 want=0
+PASS pwait nonnull sigset size=7 got=-22 want=-22
+PASS pwait2 nonnull sigset size=7 got=-22 want=-22
+PASS pwait null sigset ignores size=7 got=0 want=0
+PASS pwait2 null sigset ignores size=7 got=0 want=0
+PASS pwait nonnull sigset size=9 got=-22 want=-22
+PASS pwait2 nonnull sigset size=9 got=-22 want=-22
+PASS pwait null sigset ignores size=9 got=0 want=0
+PASS pwait2 null sigset ignores size=9 got=0 want=0
+PASS pwait nonnull sigset size=16 got=-22 want=-22
+PASS pwait2 nonnull sigset size=16 got=-22 want=-22
+PASS pwait null sigset ignores size=16 got=0 want=0
+PASS pwait2 null sigset ignores size=16 got=0 want=0
+PASS pwait nonnull sigset size=128 got=-22 want=-22
+PASS pwait2 nonnull sigset size=128 got=-22 want=-22
+PASS pwait null sigset ignores size=128 got=0 want=0
+PASS pwait2 null sigset ignores size=128 got=0 want=0
+PASS pwait nonnull sigset size=18446744073709551615 got=-22 want=-22
+PASS pwait2 nonnull sigset size=18446744073709551615 got=-22 want=-22
+PASS pwait null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait2 null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait inaccessible mask got=-14 want=-14
+PASS pwait bad size before inaccessible mask got=-22 want=-22
+PASS pwait2 inaccessible timespec got=-14 want=-14
+PASS pwait2 negative seconds got=-22 want=-22
+PASS pwait2 negative nanoseconds got=-22 want=-22
+PASS pwait2 billion nanoseconds got=-22 want=-22
+PASS pwait2 INT64_MAX nanoseconds got=-22 want=-22
+PASS pwait2 invalid time before bad fd got=-22 want=-22
+PASS pwait2 time copy before mask size got=-14 want=-14
+PASS pwait sigset before bad fd got=-22 want=-22
+PASS pwait sigset before max zero got=-14 want=-14
+PASS pwait bad size before max zero got=-22 want=-22
+PASS pwait2 sigset before max zero got=-14 want=-14
+PASS pwait2 bad timespec before max zero got=-22 want=-22
+PASS pwait2 inaccessible mask got=-14 want=-14
+PASS pwait2 bad size before inaccessible mask got=-22 want=-22
+PASS pwait2 INT64_MIN seconds got=-22 want=-22
+PASS pwait2 INT64_MIN nanoseconds got=-22 want=-22
+PASS pwait valid zero got=0 want=0
+PASS pwait2 valid zero got=0 want=0
+PASS pwait max zero got=-22 want=-22
+PASS pwait2 max zero got=-22 want=-22
+PASS pwait invalid fd got=-9 want=-9
+PASS pwait2 invalid timespec even ready got=-22 want=-22
+PASS pwait2 huge valid ready got=1 want=1
+PASS pwait2 wrap-zero valid ready got=1 want=1
+PASS pwait2 wrap-negative valid ready got=1 want=1
+PASS pwait2 null timeout ready got=1 want=1
+PASS boundary calls preserve original signal mask got=1 want=1
+PASS pwait2 huge valid interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 int-ms-wrap-zero interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 int-ms-wrap-negative interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 null timeout interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait INT_MAX milliseconds interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait negative other than -1 interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS finite nanosecond timeout got=0 want=0
+PASS timeout cannot expire before requested duration got=1 want=1
+PASS finite timeout preserves original signal mask got=1 want=1
+epollabitest: 78 checks, 0 failures
+__RC2=0
+root@9os:~# su user -s /bin/sh -c "timeout 10 epollabitest"; echo __RC3=$?
+PASS pwait nonnull sigset size=0 got=-22 want=-22
+PASS pwait2 nonnull sigset size=0 got=-22 want=-22
+PASS pwait null sigset ignores size=0 got=0 want=0
+PASS pwait2 null sigset ignores size=0 got=0 want=0
+PASS pwait nonnull sigset size=1 got=-22 want=-22
+PASS pwait2 nonnull sigset size=1 got=-22 want=-22
+PASS pwait null sigset ignores size=1 got=0 want=0
+PASS pwait2 null sigset ignores size=1 got=0 want=0
+PASS pwait nonnull sigset size=7 got=-22 want=-22
+PASS pwait2 nonnull sigset size=7 got=-22 want=-22
+PASS pwait null sigset ignores size=7 got=0 want=0
+PASS pwait2 null sigset ignores size=7 got=0 want=0
+PASS pwait nonnull sigset size=9 got=-22 want=-22
+PASS pwait2 nonnull sigset size=9 got=-22 want=-22
+PASS pwait null sigset ignores size=9 got=0 want=0
+PASS pwait2 null sigset ignores size=9 got=0 want=0
+PASS pwait nonnull sigset size=16 got=-22 want=-22
+PASS pwait2 nonnull sigset size=16 got=-22 want=-22
+PASS pwait null sigset ignores size=16 got=0 want=0
+PASS pwait2 null sigset ignores size=16 got=0 want=0
+PASS pwait nonnull sigset size=128 got=-22 want=-22
+PASS pwait2 nonnull sigset size=128 got=-22 want=-22
+PASS pwait null sigset ignores size=128 got=0 want=0
+PASS pwait2 null sigset ignores size=128 got=0 want=0
+PASS pwait nonnull sigset size=18446744073709551615 got=-22 want=-22
+PASS pwait2 nonnull sigset size=18446744073709551615 got=-22 want=-22
+PASS pwait null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait2 null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait inaccessible mask got=-14 want=-14
+PASS pwait bad size before inaccessible mask got=-22 want=-22
+PASS pwait2 inaccessible timespec got=-14 want=-14
+PASS pwait2 negative seconds got=-22 want=-22
+PASS pwait2 negative nanoseconds got=-22 want=-22
+PASS pwait2 billion nanoseconds got=-22 want=-22
+PASS pwait2 INT64_MAX nanoseconds got=-22 want=-22
+PASS pwait2 invalid time before bad fd got=-22 want=-22
+PASS pwait2 time copy before mask size got=-14 want=-14
+PASS pwait sigset before bad fd got=-22 want=-22
+PASS pwait sigset before max zero got=-14 want=-14
+PASS pwait bad size before max zero got=-22 want=-22
+PASS pwait2 sigset before max zero got=-14 want=-14
+PASS pwait2 bad timespec before max zero got=-22 want=-22
+PASS pwait2 inaccessible mask got=-14 want=-14
+PASS pwait2 bad size before inaccessible mask got=-22 want=-22
+PASS pwait2 INT64_MIN seconds got=-22 want=-22
+PASS pwait2 INT64_MIN nanoseconds got=-22 want=-22
+PASS pwait valid zero got=0 want=0
+PASS pwait2 valid zero got=0 want=0
+PASS pwait max zero got=-22 want=-22
+PASS pwait2 max zero got=-22 want=-22
+PASS pwait invalid fd got=-9 want=-9
+PASS pwait2 invalid timespec even ready got=-22 want=-22
+PASS pwait2 huge valid ready got=1 want=1
+PASS pwait2 wrap-zero valid ready got=1 want=1
+PASS pwait2 wrap-negative valid ready got=1 want=1
+PASS pwait2 null timeout ready got=1 want=1
+PASS boundary calls preserve original signal mask got=1 want=1
+PASS pwait2 huge valid interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 int-ms-wrap-zero interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 int-ms-wrap-negative interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 null timeout interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait INT_MAX milliseconds interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait negative other than -1 interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS finite nanosecond timeout got=0 want=0
+PASS timeout cannot expire before requested duration got=1 want=1
+PASS finite timeout preserves original signal mask got=1 want=1
+epollabitest: 78 checks, 0 failures
+__RC3=0
+root@9os:~# grep -q '^violations 0' /proc/lockdep; echo __RC4=$?
+__RC4=0
+root@9os:~# poweroff
+root@9os:~# 9os shutting down
+The system is going down NOW!
+Sent SIGTERM to all processes
+Sent SIGKILL to all processes
+Requesting system poweroff
+[ info] system halted
+
+==== 9os test summary (x86_64, SMP=4) ====
+PASS   boot
+FAIL   timeout 10 epollrestarttest
+FAIL   su user -s /bin/sh -c "timeout 10 epollrestarttest"
+PASS   timeout 10 epollabitest
+PASS   su user -s /bin/sh -c "timeout 10 epollabitest"
+PASS   grep -q '^violations 0' /proc/lockdep
+4/6 passed

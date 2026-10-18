@@ -1,0 +1,6 @@
+[notion/m40-team-integration 509c26c] test(epoll): preserve finite caught-SA_RESTART regression before policy fix
+ Date: Sun Oct 18 21:19:47 2026 +0000
+ 3 files changed, 241 insertions(+)
+ create mode 100644 tests/epoll-restart-host/README.md
+ create mode 100644 tests/epoll-restart-host/evidence/native-linux-before-fix.log
+ create mode 100644 userland/tests/epollrestarttest.c

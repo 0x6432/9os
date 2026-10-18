@@ -1,0 +1,2 @@
+One pre-policy-fix x86_64 core-only VM, SMP4, 512M, default RR.
+Run exactly once after build and pinned fixture hashes: epollrestarttest as root and UID1000, epollabitest as root and UID1000, lockdep zero. Each consumer has original internal fixed5-second watchdog; outer timeout10 and driver commandtimeout20, boot120. No retry or rescue. Any failure remains failure. Baseline excludes signal.c no_restart fix. Diagnostic/ABI/UDisks development commits present but desktop absent. Not graphics or cold reliability validation.
