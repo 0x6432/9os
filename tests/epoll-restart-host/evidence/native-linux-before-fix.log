@@ -1,0 +1,88 @@
+Linux 6.18.49 x86_64 GNU/Linux
+cc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
+COMMAND: cc -std=gnu11 -O2 -Wall -Wextra -Werror userland/tests/epollrestarttest.c -o /data/epollrestarttest-before-fix
+COMMAND: timeout 7 /data/epollrestarttest-before-fix
+CASE api=epoll_wait restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_wait restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=0 temporary_mask=1 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait restart=1 temporary_mask=1 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=0 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=0 temporary_mask=1 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=1 temporary_mask=0 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=0 want=0
+PASS watchdog remains unblocked got=0 want=0
+CASE api=epoll_pwait2 restart=1 temporary_mask=1 wait_ms=100 signal_ms=20
+PASS caught signal returns EINTR even with SA_RESTART got=-4 want=-4
+PASS exactly one handler got=1 want=1
+PASS handler blocks its own signal got=1 want=1
+PASS handler retains sentinel mask got=1 want=1
+PASS full original mask restored after sigreturn got=1 want=1
+PASS original SIGUSR1 membership restored got=1 want=1
+PASS watchdog remains unblocked got=0 want=0
+PASS close epoll got=0 want=0
+PASS restore entry mask got=0 want=0
+epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+exit=0; native Linux reference ONLY; no guest run or policy edit
