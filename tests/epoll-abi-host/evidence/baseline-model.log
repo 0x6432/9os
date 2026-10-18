@@ -1,0 +1,103 @@
+host: Linux-6.18.49-x86_64-with-glibc2.34
+extracted syscall sha256: 61a84aab45caaf6e082bb5fb8ebb3c96ae478cae60718e90b609804daebe1a8c
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/data/9os-team-epoll/tests/epoll-abi-host <tmp>/model.c -o <tmp>/model
+FAIL pwait nonnull sigset size=0 got=0 want=-22
+FAIL pwait2 nonnull sigset size=0 got=0 want=-22
+PASS pwait null sigset ignores size=0 got=0 want=0
+PASS pwait2 null sigset ignores size=0 got=0 want=0
+FAIL pwait nonnull sigset size=1 got=0 want=-22
+FAIL pwait2 nonnull sigset size=1 got=0 want=-22
+PASS pwait null sigset ignores size=1 got=0 want=0
+PASS pwait2 null sigset ignores size=1 got=0 want=0
+FAIL pwait nonnull sigset size=7 got=0 want=-22
+FAIL pwait2 nonnull sigset size=7 got=0 want=-22
+PASS pwait null sigset ignores size=7 got=0 want=0
+PASS pwait2 null sigset ignores size=7 got=0 want=0
+FAIL pwait nonnull sigset size=9 got=0 want=-22
+FAIL pwait2 nonnull sigset size=9 got=0 want=-22
+PASS pwait null sigset ignores size=9 got=0 want=0
+PASS pwait2 null sigset ignores size=9 got=0 want=0
+FAIL pwait nonnull sigset size=16 got=0 want=-22
+FAIL pwait2 nonnull sigset size=16 got=0 want=-22
+PASS pwait null sigset ignores size=16 got=0 want=0
+PASS pwait2 null sigset ignores size=16 got=0 want=0
+FAIL pwait nonnull sigset size=128 got=0 want=-22
+FAIL pwait2 nonnull sigset size=128 got=0 want=-22
+PASS pwait null sigset ignores size=128 got=0 want=0
+PASS pwait2 null sigset ignores size=128 got=0 want=0
+FAIL pwait nonnull sigset size=18446744073709551615 got=0 want=-22
+FAIL pwait2 nonnull sigset size=18446744073709551615 got=0 want=-22
+PASS pwait null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait2 null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait inaccessible mask got=-14 want=-14
+FAIL pwait bad size before inaccessible mask got=-14 want=-22
+PASS pwait2 inaccessible timespec got=-14 want=-14
+FAIL pwait2 negative seconds got=-4 want=-22
+FAIL pwait2 negative nanoseconds got=0 want=-22
+FAIL pwait2 billion nanoseconds got=-4 want=-22
+FAIL pwait2 INT64_MAX nanoseconds got=-4 want=-22
+FAIL pwait2 invalid time before bad fd got=-9 want=-22
+PASS pwait2 time copy before mask size got=-14 want=-14
+FAIL pwait sigset before bad fd got=-9 want=-22
+PASS pwait valid zero got=0 want=0
+PASS pwait2 valid zero got=0 want=0
+PASS pwait max zero got=-22 want=-22
+PASS pwait2 max zero got=-22 want=-22
+PASS pwait invalid fd got=-9 want=-9
+FAIL pwait2 invalid timespec even ready got=1 want=-22
+PASS pwait2 huge valid ready got=1 want=1
+PASS pwait2 wrap-zero valid ready got=1 want=1
+PASS pwait2 wrap-negative valid ready got=1 want=1
+PASS pwait2 null timeout ready got=1 want=1
+PASS one nanosecond (no millisecond rounding) got=-4 want=-4
+FAIL exact wait ns got=1000000 want=1
+PASS exactly one enrollment got=1 want=1
+PASS 999999 nanoseconds got=-4 want=-4
+FAIL exact wait ns got=1000000 want=999999
+PASS exactly one enrollment got=1 want=1
+PASS 1000001 nanoseconds got=-4 want=-4
+FAIL exact wait ns got=2000000 want=1000001
+PASS exactly one enrollment got=1 want=1
+PASS INT_MAX-ms plus 1 ms got=-4 want=-4
+FAIL exact wait ns got=-1 want=2147483648000000
+PASS exactly one enrollment got=1 want=1
+FAIL int-ms wrap to zero got=0 want=-4
+FAIL exact wait ns got=0 want=4294967296000000000
+FAIL exactly one enrollment got=0 want=1
+PASS ktime maximum got=-4 want=-4
+FAIL exact wait ns got=2077252343000000 want=9223372036731319018
+PASS exactly one enrollment got=1 want=1
+PASS ktime overflow by one ns got=-4 want=-4
+FAIL exact wait ns got=2077252343000000 want=9223372036731319018
+PASS exactly one enrollment got=1 want=1
+FAIL INT64_MAX seconds got=0 want=-4
+FAIL exact wait ns got=0 want=9223372036731319018
+FAIL exactly one enrollment got=0 want=1
+PASS pwait negative is infinite got=-4 want=-4
+PASS infinite sentinel got=-1 want=-1
+PASS pwait int max got=-4 want=-4
+PASS pwait int max ns got=2147483647000000 want=2147483647000000
+PASS pwait2 NULL is infinite got=-4 want=-4
+PASS pwait2 infinite sentinel got=-1 want=-1
+PASS spurious wake then EINTR got=-4 want=-4
+FAIL original deadline first wait got=1000000 want=500
+FAIL original deadline after wake got=999900 want=400
+PASS filter preserved first got=66 want=66
+PASS filter preserved second got=66 want=66
+PASS epoch resampled got=1 want=1
+PASS temporary mask in scan got=-262401 want=-262401
+PASS temporary mask while waiting got=-262401 want=-262401
+PASS EINTR mask deferred got=1 want=1
+PASS EINTR saved mask got=11259375 want=11259375
+PASS finite timeout got=0 want=0
+FAIL timeout after exact deadline got=124456789 want=123457289
+PASS timeout mask restored got=11259375 want=11259375
+PASS no deferred restoration on timeout got=0 want=0
+PASS copyout fault got=-14 want=-14
+PASS copyout fault mask restored got=11259375 want=11259375
+PASS allocation failure got=-12 want=-12
+PASS allocation failure mask untouched got=11259375 want=11259375
+PASS non-epoll fd got=-22 want=-22
+PASS non-epoll mask untouched got=11259375 want=11259375
+PASS epoll_wait wrapper got=0 want=0
+exact-production syscall model: 99 checks, 37 failures (mock runtime only)
