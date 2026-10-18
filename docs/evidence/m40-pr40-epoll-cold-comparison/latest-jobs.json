@@ -109,34 +109,34 @@
         },
         {
           "name": "Prepare immutable one-control three-guest plan",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 12,
           "started_at": "2026-10-18T10:22:39Z",
-          "completed_at": null
+          "completed_at": "2026-10-18T10:23:05Z"
         },
         {
           "name": "Exactly one signed Linux control",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 13,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T10:23:05Z",
+          "completed_at": "2026-10-18T10:25:38Z"
         },
         {
           "name": "Run actions/upload-artifact@v4",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 14,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T10:25:38Z",
+          "completed_at": "2026-10-18T10:25:40Z"
         },
         {
           "name": "Planned 9os cold boot 1 of 3",
-          "status": "pending",
+          "status": "in_progress",
           "conclusion": null,
           "number": 15,
-          "started_at": null,
+          "started_at": "2026-10-18T10:25:40Z",
           "completed_at": null
         },
         {
