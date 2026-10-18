@@ -1,5 +1,5 @@
 {
-  "total_count": 4,
+  "total_count": 5,
   "jobs": [
     {
       "id": 117637255306,
@@ -244,11 +244,11 @@
       "head_sha": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
       "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117637272534",
       "html_url": "https://github.com/0x6432/9os/actions/runs/39114448942/job/117637272534",
-      "status": "in_progress",
-      "conclusion": null,
+      "status": "completed",
+      "conclusion": "success",
       "created_at": "2026-10-18T09:12:59Z",
       "started_at": "2026-10-18T09:13:01Z",
-      "completed_at": null,
+      "completed_at": "2026-10-18T11:34:22Z",
       "name": "build (aarch64)",
       "steps": [
         {
@@ -341,59 +341,67 @@
         },
         {
           "name": "MLFQ M25 regressions",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 12,
           "started_at": "2026-10-18T11:33:07Z",
-          "completed_at": null
+          "completed_at": "2026-10-18T11:34:10Z"
         },
         {
           "name": "Eight-CPU RR poll progress",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "skipped",
           "number": 13,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T11:34:10Z",
+          "completed_at": "2026-10-18T11:34:10Z"
         },
         {
           "name": "Eight-CPU scheduler and allocator stress",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "skipped",
           "number": 14,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T11:34:10Z",
+          "completed_at": "2026-10-18T11:34:10Z"
         },
         {
           "name": "Upload test log",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 15,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T11:34:10Z",
+          "completed_at": "2026-10-18T11:34:10Z"
         },
         {
           "name": "Run actions/upload-artifact@v4",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 16,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T11:34:10Z",
+          "completed_at": "2026-10-18T11:34:16Z"
         },
         {
           "name": "Post Cache downloads",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 31,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T11:34:16Z",
+          "completed_at": "2026-10-18T11:34:20Z"
         },
         {
           "name": "Post Run actions/checkout@v4",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "number": 32,
-          "started_at": null,
-          "completed_at": null
+          "started_at": "2026-10-18T11:34:20Z",
+          "completed_at": "2026-10-18T11:34:21Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-10-18T11:34:21Z",
+          "completed_at": "2026-10-18T11:34:21Z"
         }
       ],
       "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117637272534",
@@ -584,6 +592,33 @@
       "runner_name": "GitHub Actions 1000004787",
       "runner_group_id": 0,
       "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 117664567164,
+      "run_id": 39114448942,
+      "workflow_name": "build-and-release",
+      "head_branch": "notion/m40-epoll-leaf-wake-study",
+      "run_url": "https://api.github.com/repos/0x6432/9os/actions/runs/39114448942",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOU686j88AAAAbZVrPfA",
+      "head_sha": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
+      "url": "https://api.github.com/repos/0x6432/9os/actions/jobs/117664567164",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/39114448942/job/117664567164",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-18T11:34:22Z",
+      "started_at": "2026-10-18T11:34:22Z",
+      "completed_at": "2026-10-18T11:34:22Z",
+      "name": "release",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/0x6432/9os/check-runs/117664567164",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
     }
   ]
 }

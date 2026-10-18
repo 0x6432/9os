@@ -1,6 +1,26 @@
 {
-  "total_count": 4,
+  "total_count": 6,
   "artifacts": [
+    {
+      "id": 12135480970,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzNTQ4MDk3MA==",
+      "name": "test-log-aarch64",
+      "size_in_bytes": 33082,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12135480970",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12135480970/zip",
+      "expired": false,
+      "digest": "sha256:d737596649b85b70f773709337a03dfd821fa96a4ac2c947631146ce680408d7",
+      "created_at": "2026-10-18T11:34:10Z",
+      "updated_at": "2026-10-18T11:34:10Z",
+      "expires_at": "2027-01-16T09:12:53Z",
+      "workflow_run": {
+        "id": 39114448942,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-epoll-leaf-wake-study",
+        "head_sha": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4"
+      }
+    },
     {
       "id": 12135296933,
       "node_id": "MDg6QXJ0aWZhY3QxMjEzNTI5NjkzMw==",
@@ -33,6 +53,26 @@
       "created_at": "2026-10-18T11:32:28Z",
       "updated_at": "2026-10-18T11:32:28Z",
       "expires_at": "2026-11-01T11:32:23Z",
+      "workflow_run": {
+        "id": 39114448942,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-epoll-leaf-wake-study",
+        "head_sha": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4"
+      }
+    },
+    {
+      "id": 12134869568,
+      "node_id": "MDg6QXJ0aWZhY3QxMjEzNDg2OTU2OA==",
+      "name": "iso-aarch64",
+      "size_in_bytes": 64401904,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12134869568",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12134869568/zip",
+      "expired": false,
+      "digest": "sha256:aa39bf18bf0a925a549459e0a795a0d910a37bf3818b43db170e19f56bb0aab2",
+      "created_at": "2026-10-18T11:34:15Z",
+      "updated_at": "2026-10-18T11:34:15Z",
+      "expires_at": "2026-11-01T11:34:11Z",
       "workflow_run": {
         "id": 39114448942,
         "repository_id": 1403992719,

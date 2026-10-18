@@ -8,8 +8,8 @@
   "display_title": "WIP: filter direct epoll leaf waits with conservative topology fallback",
   "run_number": 146,
   "event": "pull_request",
-  "status": "in_progress",
-  "conclusion": null,
+  "status": "completed",
+  "conclusion": "success",
   "workflow_id": 375353395,
   "check_suite_id": 105997270948,
   "check_suite_node_id": "CS_kwDOU686j88AAAAYre3_pA",
@@ -41,7 +41,7 @@
     }
   ],
   "created_at": "2026-10-18T09:12:53Z",
-  "updated_at": "2026-10-18T09:13:02Z",
+  "updated_at": "2026-10-18T11:34:23Z",
   "actor": {
     "login": "0x6432",
     "id": 337322482,

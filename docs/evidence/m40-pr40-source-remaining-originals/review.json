@@ -1,0 +1,26 @@
+{
+  "run": 39114448942,
+  "attempt": 1,
+  "head": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
+  "conclusion": "success",
+  "actual_original_logs_reviewed": true,
+  "x86_original_folder": "m40-pr40-source-x86-completed",
+  "arm_job": 117637272534,
+  "risc_job": 117637272532,
+  "each_architecture": {
+    "main": "153/153",
+    "disk": "24/24 +7/7",
+    "e2fsck": "both pass",
+    "disk_shutdown": "clean",
+    "audio": "2/2 +2/2",
+    "UP": "10/10",
+    "MLFQ": "25/25",
+    "pollfiltertest": "199 checks zero failures root/user; MLFQ root/user",
+    "unixpolltest": "498 checks zero failures root/user"
+  },
+  "x86_additional": {
+    "SMP8_progress": "26/26",
+    "SMP8_scheduler": "11/11"
+  },
+  "scope": "full-source compatibility, NOT observer-off cold reliability; fixed cold plan FAILED; holds remain"
+}

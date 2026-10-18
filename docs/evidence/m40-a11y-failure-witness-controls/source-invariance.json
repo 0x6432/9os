@@ -1,0 +1,9 @@
+{
+  "head": "18ef21fc34945f482d262993aa33690070aa86d5",
+  "parent_runtime": "cdfd3a5173837c4713ec577248b1a7bd36ebe6b4",
+  "production_C_changes": "10 added lines only: comments, process-local counters, final witness print; removing additions yields exact parent bytes",
+  "removed_or_changed_existing_C_lines": 0,
+  "kernel_qemu_driver_physical_driver_probe": "byte unchanged",
+  "acceptance": "same original predicate, role/state/auth/signature bounds, calls, timeouts, signal/drain and return paths",
+  "scope": "source invariance check, not runtime timing equivalence or GUI proof"
+}
