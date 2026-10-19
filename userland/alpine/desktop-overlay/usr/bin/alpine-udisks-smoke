@@ -39,8 +39,10 @@ check_property() {
   else property_checker_rc=$?;fi
  fi
  # Diagnostic only: <=3072 bytes + <=512-byte safe fallback per call, at most
- # three calls. Neither recording failure nor missing evidence changes acceptance.
- if python3 /usr/share/9os/udisks-readback-evidence.py "$property_call" "$property_command_rc" "$property_checker_rc" "$property_reply";then :;else
+ # three calls. Isolate only recorder-runtime stderr; its error is represented
+ # by the safe fallback, never by arbitrary text in the host sentinel. Original
+ # DBus/checker stderr above is untouched. No diagnostic acceptance veto.
+ if python3 /usr/share/9os/udisks-readback-evidence.py "$property_call" "$property_command_rc" "$property_checker_rc" "$property_reply" 2>/dev/null;then :;else
   printf '\nudisks_readback_v1 call=%s path=%s interface=%s property=%s bus=system destination=org.freedesktop.UDisks2 method=org.freedesktop.DBus.Properties.Get command_status=%s checker_status=%s recording=error typed=unknown capture=unknown complete=unknown truncated=unknown unknown=1 captured_bytes=unknown data_hex=unknown\n' \
    "$property_call" "$object" "$interface" "$property" "$property_command_rc" "$property_checker_rc" || true
  fi

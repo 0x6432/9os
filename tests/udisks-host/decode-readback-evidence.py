@@ -45,6 +45,14 @@ def parse_line(line):
             raise ValueError('status')
     if fields['recording'] not in ('ok', 'error') or fields['typed'] not in ('passed', 'failed', 'unknown'):
         raise ValueError('outcome')
+    derived_typed = ('unknown' if fields['checker_status'] == 'unknown' else
+                     'passed' if fields['checker_status'] == '0' else 'failed')
+    if fields['command_status'] != '0' and (fields['checker_status'] != 'unknown' or fields['typed'] != 'unknown'):
+        raise ValueError('checker after failed command')
+    if fields['recording'] == 'ok' and fields['typed'] != derived_typed:
+        raise ValueError('typed outcome contradicts status')
+    if fields['recording'] == 'error' and fields['typed'] not in ('unknown', derived_typed):
+        raise ValueError('recording error fabricated typed outcome')
     if fields['capture'] not in ('complete', 'truncated', 'empty', 'unknown'):
         raise ValueError('capture')
     if any(fields[k] not in ('0', '1', 'unknown') for k in ('complete', 'truncated', 'unknown')):
