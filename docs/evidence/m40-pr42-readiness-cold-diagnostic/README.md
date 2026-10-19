@@ -17,3 +17,9 @@ Independent service review inspected allthreeoriginaldesktopjoblogs ANDZIPmember
 Known latent caveat disclosed beforedispatch: source permits a referencepath ending /FAIL; a mock earlier-failed attempt followed by normal success can make rawretainedhistory trigger the unchangedhostsentinel. This was NOT observed in currentALL3guestlogs. Do NOT weakenparser orrescueany resultingfailedsample; recordtheoriginalfailure and distinguishdiagnostic-textcollision from an inferredstartupcause. A separatelyisolated repairbranch is developing reversible sentinel-safe historytransport; it does NOT modify this pinned07fdruntime/manualbranch or activefixture. Currentcohort answers its own declared diagnosticquestion, not the futurefix's acceptance. Reviewreport documents an optional lock-map assumptionerror; original per-propertyrawbytes and independent transient reviewerstdout are not all retained, a scope limitation ratherthan an invented archive.
 
 Still NOT DISPATCHED at this evidence checkpoint; parent must reverifyzero branchruns immediatelybefore its sole dispatch. Allintegrationholds unchanged.
+
+## Sole dispatch recorded
+
+Run39215973931, https://github.com/0x6432/9os/actions/runs/39215973931 , dispatched EXACTLYONCE after freshzero-prior-branch-runs check and bothcompletedcurrent-headgates, independentreview and durablepre-dispatchcheckpointf54b7d2. Validationae0ed93/runtime07fd. InitialobservedstateQUEUED; no sampleoutcome yet. Do not POST/rerun/addsamples. Allholdspriorfailuresunchanged.
+
+Two isolated follow-up branches now address the new retained-textsentinel collision and bounded actualUDiskspreply evidence. They do NOT modify PR42head, thismanualbranch, remotecheckout or activefixtures. Their development/testresults are separate from thiscohort and require independentreview/new-headCI before integration.

@@ -1,0 +1,13 @@
+{
+  "requested_at": "2026-10-19T07:26:14.547306+00:00",
+  "validation_branch": "notion/m40-team-readiness-cold-validation",
+  "validation_head": "ae0ed93cc17743a6d879f089d4aee1cfb217e16e",
+  "runtime_head": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21",
+  "review_evidence_commit": "f54b7d2da6b97a809699f9eaa5a8da292d5278bd",
+  "zero_prior_runs_verified": true,
+  "post_attempts": 1,
+  "state": "DISPATCHED_EXACTLY_ONCE",
+  "run_id": 39215973931,
+  "run_url": "https://github.com/0x6432/9os/actions/runs/39215973931",
+  "observed_status": "queued"
+}
