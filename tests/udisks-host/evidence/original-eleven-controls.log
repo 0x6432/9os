@@ -1,0 +1,16 @@
+test_detached_identity_and_root_decoys_do_not_pass (__main__.ReadbackTests.test_detached_identity_and_root_decoys_do_not_pass) ... ok
+test_helper_rejects_unknown_contract_and_io_errors (__main__.ReadbackTests.test_helper_rejects_unknown_contract_and_io_errors) ... ok
+test_malformed_readbacks (__main__.ReadbackTests.test_malformed_readbacks) ... ok
+test_mount_array_shape_and_injection_fail_closed (__main__.ReadbackTests.test_mount_array_shape_and_injection_fail_closed) ... ok
+test_original_gates_remain_mandatory (__main__.ReadbackTests.test_original_gates_remain_mandatory) ... ok
+test_positive_calls_and_uid (__main__.ReadbackTests.test_positive_calls_and_uid) ... ok
+test_printer_indentation_and_line_endings (__main__.ReadbackTests.test_printer_indentation_and_line_endings) ... ok
+test_scoped_readbacks_reject_unrelated_global_fragments (__main__.ReadbackTests.test_scoped_readbacks_reject_unrelated_global_fragments) ... ok
+test_successful_but_empty_replies_fail (__main__.ReadbackTests.test_successful_but_empty_replies_fail) ... ok
+test_transport_failures_at_every_stage (__main__.ReadbackTests.test_transport_failures_at_every_stage) ... ok
+test_wrong_uid_never_contacts_bus (__main__.ReadbackTests.test_wrong_uid_never_contacts_bus) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 12.769s
+
+OK
