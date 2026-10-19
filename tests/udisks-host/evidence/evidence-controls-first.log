@@ -1,0 +1,22 @@
+test_actual_byte_roundtrip_and_original_calls (__main__.EvidenceTests.test_actual_byte_roundtrip_and_original_calls) ... ok
+test_binary_nul_newline_sentinel_payload_is_only_lowercase_hex (__main__.EvidenceTests.test_binary_nul_newline_sentinel_payload_is_only_lowercase_hex) ... ok
+test_capture_boundary_does_not_add_an_acceptance_limit (__main__.EvidenceTests.test_capture_boundary_does_not_add_an_acceptance_limit) ... ok
+test_capture_io_failure_after_checker_cannot_veto_success (__main__.EvidenceTests.test_capture_io_failure_after_checker_cannot_veto_success) ... ok
+test_checker_rejection_still_failed_but_complete_raw_bytes_recoverable (__main__.EvidenceTests.test_checker_rejection_still_failed_but_complete_raw_bytes_recoverable) ... ok
+test_decoder_rejects_metadata_corruption_and_never_promotes_unknown (__main__.EvidenceTests.test_decoder_rejects_metadata_corruption_and_never_promotes_unknown) ... ok
+test_empty_successful_file_is_not_complete_reply (__main__.EvidenceTests.test_empty_successful_file_is_not_complete_reply) ... ok
+test_failed_command_partial_or_empty_remains_unknown_and_original_status (__main__.EvidenceTests.test_failed_command_partial_or_empty_remains_unknown_and_original_status) ... ok
+test_invalid_metadata_never_echoed (__main__.EvidenceTests.test_invalid_metadata_never_echoed) ... ok
+test_missing_file_never_fabricates_zero_bytes (__main__.EvidenceTests.test_missing_file_never_fabricates_zero_bytes) ... ok
+test_missing_recorder_explicit_fallback_preserves_success (__main__.EvidenceTests.test_missing_recorder_explicit_fallback_preserves_success) ... ok
+test_offline_decoder_roundtrip_from_timestamped_artifact_style (__main__.EvidenceTests.test_offline_decoder_roundtrip_from_timestamped_artifact_style) ... ok
+test_original_stderr_not_recoded_or_hidden (__main__.EvidenceTests.test_original_stderr_not_recoded_or_hidden) ... ok
+test_partial_record_then_error_remains_safe_and_hard_bounded (__main__.EvidenceTests.test_partial_record_then_error_remains_safe_and_hard_bounded) ... ok
+test_production_checker_bytecode_source_and_original_query_bounds_unchanged (__main__.EvidenceTests.test_production_checker_bytecode_source_and_original_query_bounds_unchanged) ... ok
+test_reader_requests_at_most_cap_plus_one (__main__.EvidenceTests.test_reader_requests_at_most_cap_plus_one) ... ok
+test_recorder_exit_error_does_not_mask_any_original_outcome (__main__.EvidenceTests.test_recorder_exit_error_does_not_mask_any_original_outcome) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 7.535s
+
+OK
