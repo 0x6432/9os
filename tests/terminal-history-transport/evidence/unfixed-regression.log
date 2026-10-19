@@ -1,0 +1,15 @@
+$ PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-transport-host-tests.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.050s
+
+OK
+exit=0
+
+$ PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-attempt-history-host-tests.py
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 2.017s
+
+OK
+exit=0
