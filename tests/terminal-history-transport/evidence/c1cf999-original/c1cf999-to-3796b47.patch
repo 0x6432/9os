@@ -1,0 +1,92 @@
+diff --git a/scripts/terminal-history-transport-host-tests.py b/scripts/terminal-history-transport-host-tests.py
+index 11c5d67..1f01ba4 100644
+--- a/scripts/terminal-history-transport-host-tests.py
++++ b/scripts/terminal-history-transport-host-tests.py
+@@ -23,7 +23,7 @@ def strict_accept(body, rc=0, panic=False):
+ def collision_run(functions=H.FUNCTIONS):
+     return H.execute([(1, COLLISION.decode()+H.TERMINAL+H.WITNESS+H.FINAL),
+                       (0, H.TERMINAL.replace('focused=0','focused=1')+
+-                       H.WITNESS.replace('qualified=0','qualified=1')+
++                       H.WITNESS.replace('focused_states=0','focused_states=1').replace('qualified=0','qualified=1').replace('protocol_error=1','protocol_error=0')+
+                        H.FINAL.replace('models=0','models=1').replace('NOT_OBSERVED','OBSERVED'))],
+                      functions=functions)
+ 
+diff --git a/tests/terminal-history-transport/evidence/unfixed-production-loop.stdout b/tests/terminal-history-transport/evidence/unfixed-production-loop.stdout
+index be58166..1976ddf 100644
+--- a/tests/terminal-history-transport/evidence/unfixed-production-loop.stdout
++++ b/tests/terminal-history-transport/evidence/unfixed-production-loop.stdout
+@@ -20,12 +20,12 @@ attempt=2 rc=0 termination=exit-status backend=live-dbus pid=777
+ completion=present witness=present terminal_line=present remote_line=unknown
+ terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+ terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+ DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+ 
+ KONSOLE_QUERY_ATTEMPT_END slot=last
+@@ -50,12 +50,12 @@ attempt=2 rc=0 termination=exit-status backend=live-dbus pid=777
+ completion=present witness=present terminal_line=present remote_line=unknown
+ terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+ terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+ DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+ 
+ KONSOLE_QUERY_ATTEMPT_END slot=terminal-last
+@@ -80,16 +80,16 @@ attempt=2 rc=0 termination=exit-status backend=live-dbus pid=777
+ completion=present witness=present terminal_line=present remote_line=unknown
+ terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+ terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+ DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+ 
+ KONSOLE_QUERY_ATTEMPT_END slot=witness-last
+ DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+-DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=1 protocol_error=1
++DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+ terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+ RESULT pty=1 terminal=1
+diff --git a/tests/terminal-history-transport/evidence/unfixed-regression.log b/tests/terminal-history-transport/evidence/unfixed-regression.log
+index 4e33af9..e62d087 100644
+--- a/tests/terminal-history-transport/evidence/unfixed-regression.log
++++ b/tests/terminal-history-transport/evidence/unfixed-regression.log
+@@ -1,10 +1,15 @@
++$ PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-transport-host-tests.py
+ ..
+ ----------------------------------------------------------------------
+-Ran 2 tests in 0.052s
++Ran 2 tests in 0.050s
+ 
+ OK
++exit=0
++
++$ PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-attempt-history-host-tests.py
+ .............
+ ----------------------------------------------------------------------
+-Ran 13 tests in 2.188s
++Ran 13 tests in 2.017s
+ 
+ OK
++exit=0

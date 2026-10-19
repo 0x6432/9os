@@ -1,0 +1,6 @@
+source=07fda66bd9a7904e77b7f3e1051df243ee1e4d21
+synthetic production-loop shell_rc=0
+queries=2
+strict_source_bound_parser_accepts=False
+first_slot_preserves_FAIL_path=True
+NOT an actual guest failure; no VM/controller execution or parser edit

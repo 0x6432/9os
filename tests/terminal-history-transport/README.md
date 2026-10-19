@@ -111,3 +111,13 @@ slot hashes are in `fixed-production-loop.stdout` and
 **124,381 bytes**, below 131,072 bytes, with 61,440 slot bytes plus at most
 1024 scratch bytes on disk. The `.stdout` artifact is hex-framed; use the decoder
 rather than treating its content as readable raw helper text.
+
+## Original first-checkpoint correction
+
+The initially published first checkpoint was c1cf999, not 3796b47. It contained
+an inconsistent later rc0 mock witness. The worker incorrectly amended that
+already-pushed checkpoint when correcting the fixture. See `PROVENANCE.md` for
+exact changes, the coordination error, unchanged outcomes and append-only policy;
+`evidence/c1cf999-original/` preserves the original fixture and outputs verbatim.
+Neither version is actual guest/cold evidence. No implementation change accompanies
+this provenance correction.
