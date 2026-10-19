@@ -13,6 +13,7 @@ TOP = Path(__file__).resolve().parents[2]
 OVERLAY = TOP / 'userland/alpine/desktop-overlay'
 PROBE = OVERLAY / 'usr/bin/alpine-udisks-smoke'
 CHECK = OVERLAY / 'usr/share/9os/udisks-property-check.py'
+EVIDENCE = OVERLAY / 'usr/share/9os/udisks-readback-evidence.py'
 SPEC = importlib.util.spec_from_file_location('udisks_property_check', CHECK)
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
@@ -106,14 +107,16 @@ def good_config():
 
 
 class ReadbackTests(unittest.TestCase):
-    def run_probe(self, config):
+    def run_probe(self, config, recorder=EVIDENCE, probe_text=None):
         with tempfile.TemporaryDirectory(prefix='udisks-host-') as temp:
             root = Path(temp)
             for name in ('dbus-send', 'timeout', 'id'):
                 (root / name).symlink_to(Path(__file__).with_name('mock-command.py'))
             probe = root / 'alpine-udisks-smoke'
             # Change only the installed helper path, not any runtime probe logic.
-            probe.write_text(PROBE.read_text().replace('/usr/share/9os/udisks-property-check.py', str(CHECK)))
+            probe.write_text((PROBE.read_text() if probe_text is None else probe_text)
+                             .replace('/usr/share/9os/udisks-property-check.py', str(CHECK))
+                             .replace('/usr/share/9os/udisks-readback-evidence.py', str(recorder)))
             config_path, log = root / 'config.json', root / 'calls.jsonl'
             config_path.write_text(json.dumps(config))
             env = dict(os.environ, PATH=str(root) + ':' + os.environ['PATH'],
@@ -132,7 +135,19 @@ class ReadbackTests(unittest.TestCase):
         result, calls = self.run_probe(good_config())
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls, CALLS)
-        self.assertEqual(result.stdout, 'alpine-udisks: real disk/partition/root filesystem enumerated uid=1000\n')
+        expected_records = ''
+        for call, reply in enumerate(good_config()['replies'][1:], 1):
+            args = CALLS[call]
+            expected_records += (f'udisks_readback_v1 call={call} path={args[4]} '
+                                 f'interface={args[6][7:]} property={args[7][7:]} '
+                                 'bus=system destination=org.freedesktop.UDisks2 '
+                                 'method=org.freedesktop.DBus.Properties.Get '
+                                 'command_status=0 checker_status=0 recording=ok typed=passed '
+                                 'capture=complete complete=1 truncated=0 unknown=0 '
+                                 f'captured_bytes={len(reply["stdout"].encode())} '
+                                 f'data_hex={reply["stdout"].encode().hex()}\n')
+        self.assertEqual(result.stdout, expected_records +
+                         'alpine-udisks: real disk/partition/root filesystem enumerated uid=1000\n')
 
     def test_wrong_uid_never_contacts_bus(self):
         for uid in ('0', '999', '1001'):

@@ -81,3 +81,10 @@ service gates and all unrelated desktop acceptance gates. No local VM,
 non-x86 execution, Qt/Mesa/LLVM/GLib build, fixture mutation or cold experiment
 was run for this change. No cold-start fix, reliable desktop, or M40 completion
 is claimed; the PR18→41 holds and original PR40 cold failure remain unchanged.
+
+## Diagnostic reply-byte evidence follow-up
+
+`READBACK-EVIDENCE.md` specifies the new bounded lowercase-hex transport, its
+unknown/failure flags, offline decoder, extra controls and required real-guest
+validation. It changes neither this fixed-scope typed acceptance nor any original
+failure/hold. No archive bytes are retroactively invented for PR42.
