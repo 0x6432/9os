@@ -1,0 +1,115 @@
+== alpine (aarch64) (117796202720) success
+2026-10-18T21:35:28.1996902Z epollabitest: 78 checks, 0 failures
+2026-10-18T21:35:29.2899927Z epollabitest: 78 checks, 0 failures
+2026-10-18T21:35:30.3538256Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T21:35:31.5019803Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T21:36:23.8537223Z 63/63 passed
+2026-10-18T21:37:05.7082263Z 9/9 passed
+== desktop (aarch64) (117796202945) success
+2026-10-18T21:38:11.7011635Z alpine-udisks: real disk/partition/root filesystem enumerated uid=1000
+2026-10-18T21:39:51.4106703Z 33/33 passed
+2026-10-18T21:40:33.5593503Z alpine-udisks: real disk/partition/root filesystem enumerated uid=1000
+2026-10-18T21:44:00.2231040Z 16/16 passed
+== alpine (riscv64) (117796202958) success
+2026-10-18T21:35:44.4698846Z epollabitest: 78 checks, 0 failures
+2026-10-18T21:35:45.6668713Z epollabitest: 78 checks, 0 failures
+2026-10-18T21:35:46.8443599Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T21:35:48.1137037Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T21:36:46.4294899Z 63/63 passed
+2026-10-18T21:37:44.4192719Z 9/9 passed
+== desktop (x86_64) (117796202967) success
+2026-10-18T21:38:36.6595831Z alpine-udisks: real disk/partition/root filesystem enumerated uid=1000
+2026-10-18T21:40:25.8734142Z 33/33 passed
+2026-10-18T21:41:16.6444663Z alpine-udisks: real disk/partition/root filesystem enumerated uid=1000
+2026-10-18T21:44:40.3414334Z 16/16 passed
+== desktop (riscv64) (117796202979) success
+2026-10-18T21:38:42.7537608Z alpine-udisks: real disk/partition/root filesystem enumerated uid=1000
+2026-10-18T21:40:45.0879773Z 33/33 passed
+2026-10-18T21:41:38.0074359Z alpine-udisks: real disk/partition/root filesystem enumerated uid=1000
+2026-10-18T21:45:32.3072407Z 16/16 passed
+== alpine (x86_64) (117796202995) success
+2026-10-18T21:35:18.7019443Z epollabitest: exact output; missing/duplicate/strict-flag mutations rejected
+2026-10-18T21:35:18.7019747Z epollrestarttest: exact output; missing/duplicate/strict-flag mutations rejected
+2026-10-18T21:35:31.2749477Z epollabitest: FAIL five-second process watchdog
+2026-10-18T21:35:37.5278767Z PASS: original six-second timeout propagated after supervisor kill and adopted child SIGKILL/reap
+2026-10-18T21:38:06.9871741Z epollabitest: 78 checks, 0 failures
+2026-10-18T21:38:07.7555888Z epollabitest: 78 checks, 0 failures
+2026-10-18T21:38:08.4885206Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T21:38:09.3224289Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T21:38:57.1619104Z 63/63 passed
+2026-10-18T21:39:37.8692252Z 9/9 passed
+2026-10-18T21:39:56.2105456Z epollabitest: 78 checks, 0 failures
+2026-10-18T21:39:56.9678532Z epollabitest: 78 checks, 0 failures
+2026-10-18T21:39:57.7065590Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T21:39:58.5251393Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T21:40:39.3025558Z 41/41 passed
+== build (aarch64) (117796230622) success
+2026-10-18T22:44:36.1282955Z epollabitest: 78 checks, 0 failures
+2026-10-18T22:44:37.1883335Z epollabitest: 78 checks, 0 failures
+2026-10-18T22:44:38.2184787Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T22:44:39.3745452Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T22:48:46.8142331Z 157/157 passed
+2026-10-18T22:48:47.4869170Z PASS   e2fsck build/ci-aarch64/ext2.img
+2026-10-18T22:49:56.8345975Z 24/24 passed
+2026-10-18T22:50:59.4174627Z 7/7 passed
+2026-10-18T22:50:59.4229633Z PASS   clean shutdown of the disk root
+2026-10-18T22:51:01.4636985Z PASS   e2fsck build/ci-aarch64/root.img
+2026-10-18T22:51:20.5923999Z 2/2 passed
+2026-10-18T22:51:20.6096994Z snd-wav: 16384 stereo frames match generated 500 Hz waveform exactly
+2026-10-18T22:51:37.6737766Z 2/2 passed
+2026-10-18T22:52:15.6385258Z 10/10 passed
+2026-10-18T22:53:06.4026499Z epollabitest: 78 checks, 0 failures
+2026-10-18T22:53:07.4534644Z epollabitest: 78 checks, 0 failures
+2026-10-18T22:53:08.4724830Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T22:53:09.5842815Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T22:53:16.4424751Z 29/29 passed
+== build (riscv64) (117796230676) success
+2026-10-18T22:45:25.0794593Z epollabitest: 78 checks, 0 failures
+2026-10-18T22:45:25.9735469Z epollabitest: 78 checks, 0 failures
+2026-10-18T22:45:26.8342324Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T22:45:27.7948634Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T22:50:19.5450888Z 157/157 passed
+2026-10-18T22:50:20.2313759Z PASS   e2fsck build/ci-riscv64/ext2.img
+2026-10-18T22:51:34.1913633Z 24/24 passed
+2026-10-18T22:52:37.9453043Z 7/7 passed
+2026-10-18T22:52:37.9506673Z PASS   clean shutdown of the disk root
+2026-10-18T22:52:39.7971841Z PASS   e2fsck build/ci-riscv64/root.img
+2026-10-18T22:53:01.0308298Z 2/2 passed
+2026-10-18T22:53:01.0478508Z snd-wav: 16384 stereo frames match generated 500 Hz waveform exactly
+2026-10-18T22:53:20.6420235Z 2/2 passed
+2026-10-18T22:54:01.3568820Z 10/10 passed
+2026-10-18T22:54:54.5393472Z epollabitest: 78 checks, 0 failures
+2026-10-18T22:54:55.4286661Z epollabitest: 78 checks, 0 failures
+2026-10-18T22:54:56.2946237Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T22:54:57.2524201Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T22:55:03.9953814Z 29/29 passed
+== build (x86_64) (117796230700) success
+2026-10-18T21:36:05.9715799Z epollabitest: exact output; missing/duplicate/strict-flag mutations rejected
+2026-10-18T21:36:05.9716888Z epollrestarttest: exact output; missing/duplicate/strict-flag mutations rejected
+2026-10-18T21:36:20.3945978Z epollabitest: FAIL five-second process watchdog
+2026-10-18T21:36:26.5109516Z PASS: original six-second timeout propagated after supervisor kill and adopted child SIGKILL/reap
+2026-10-18T23:45:49.6435701Z epollabitest: 78 checks, 0 failures
+2026-10-18T23:45:50.9220188Z epollabitest: 78 checks, 0 failures
+2026-10-18T23:45:52.1816312Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T23:45:53.5372030Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T23:51:03.5190187Z 157/157 passed
+2026-10-18T23:51:03.6120350Z PASS   e2fsck build/ci-x86_64/ext2.img
+2026-10-18T23:52:07.1461156Z 24/24 passed
+2026-10-18T23:53:08.3462689Z 7/7 passed
+2026-10-18T23:53:08.3524195Z PASS   clean shutdown of the disk root
+2026-10-18T23:53:09.2183790Z PASS   e2fsck build/ci-x86_64/root.img
+2026-10-18T23:53:26.5022567Z 2/2 passed
+2026-10-18T23:53:26.5257710Z snd-wav: 16384 stereo frames match generated 500 Hz waveform exactly
+2026-10-18T23:53:43.1618116Z 2/2 passed
+2026-10-18T23:54:11.6305711Z 10/10 passed
+2026-10-18T23:55:04.0047636Z epollabitest: 78 checks, 0 failures
+2026-10-18T23:55:05.2847838Z epollabitest: 78 checks, 0 failures
+2026-10-18T23:55:06.5557667Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T23:55:07.9164350Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T23:55:15.1862673Z 29/29 passed
+2026-10-18T23:55:55.9988200Z epollabitest: 78 checks, 0 failures
+2026-10-18T23:55:57.2789123Z epollabitest: 78 checks, 0 failures
+2026-10-18T23:55:58.5505748Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T23:55:59.9106196Z epollrestarttest: PASSED (72 checks, 0 failures; finite100ms, signal20ms, watchdog5s)
+2026-10-18T23:56:13.2737201Z 30/30 passed
+2026-10-18T23:57:07.5369002Z 11/11 passed

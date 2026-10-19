@@ -1,0 +1,21 @@
+not downloading non-validation artifact iso-x86_64 66283219
+not downloading non-validation artifact iso-aarch64 64464969
+not downloading non-validation artifact iso-riscv64 61801772
+saved alpine (aarch64) job-117796202720.log 370743
+saved desktop (aarch64) job-117796202945.log 1878053
+saved alpine (riscv64) job-117796202958.log 606572
+saved desktop (x86_64) job-117796202967.log 1843804
+saved desktop (riscv64) job-117796202979.log 2123281
+saved alpine (x86_64) job-117796202995.log 560071
+saved alpine-evidence-aarch64 12152040279.zip 37401
+saved alpine-desktop-evidence-aarch64 12151762243.zip 1404546
+saved alpine-desktop-evidence-riscv64 12151722599.zip 1430429
+saved alpine-evidence-x86_64 12151687155.zip 66998
+saved alpine-desktop-evidence-x86_64 12151532724.zip 1382379
+saved alpine-evidence-riscv64 12151458941.zip 64783
+saved build (aarch64) job-117796230622.log 466750
+saved build (riscv64) job-117796230676.log 1306396
+saved build (x86_64) job-117796230700.log 580735
+saved test-log-x86_64 12155352495.zip 40309
+saved test-log-riscv64 12153617915.zip 104995
+saved test-log-aarch64 12153144852.zip 35251

@@ -1,0 +1,125 @@
+{
+  "total_count": 6,
+  "artifacts": [
+    {
+      "id": 12152040279,
+      "node_id": "MDg6QXJ0aWZhY3QxMjE1MjA0MDI3OQ==",
+      "name": "alpine-evidence-aarch64",
+      "size_in_bytes": 37401,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12152040279",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12152040279/zip",
+      "expired": false,
+      "digest": "sha256:465e437d0a16e8b33d6e99c4a036392594381128b0f77b47ac62c66acbdfde90",
+      "created_at": "2026-10-18T21:37:06Z",
+      "updated_at": "2026-10-18T21:37:06Z",
+      "expires_at": "2027-01-16T21:34:19Z",
+      "workflow_run": {
+        "id": 39168427970,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-team-integration",
+        "head_sha": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21"
+      }
+    },
+    {
+      "id": 12151762243,
+      "node_id": "MDg6QXJ0aWZhY3QxMjE1MTc2MjI0Mw==",
+      "name": "alpine-desktop-evidence-aarch64",
+      "size_in_bytes": 1404546,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151762243",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151762243/zip",
+      "expired": false,
+      "digest": "sha256:5dc9f4a47cd935e11431a91f3c405685afcf6be4748768d909f9b891ac77e06c",
+      "created_at": "2026-10-18T21:44:01Z",
+      "updated_at": "2026-10-18T21:44:01Z",
+      "expires_at": "2027-01-16T21:34:19Z",
+      "workflow_run": {
+        "id": 39168427970,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-team-integration",
+        "head_sha": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21"
+      }
+    },
+    {
+      "id": 12151722599,
+      "node_id": "MDg6QXJ0aWZhY3QxMjE1MTcyMjU5OQ==",
+      "name": "alpine-desktop-evidence-riscv64",
+      "size_in_bytes": 1430429,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151722599",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151722599/zip",
+      "expired": false,
+      "digest": "sha256:fe8f855584a74b41e4029f9641bd4ec0f811efc4064e8aa17986070e41666c28",
+      "created_at": "2026-10-18T21:45:33Z",
+      "updated_at": "2026-10-18T21:45:33Z",
+      "expires_at": "2027-01-16T21:34:19Z",
+      "workflow_run": {
+        "id": 39168427970,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-team-integration",
+        "head_sha": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21"
+      }
+    },
+    {
+      "id": 12151687155,
+      "node_id": "MDg6QXJ0aWZhY3QxMjE1MTY4NzE1NQ==",
+      "name": "alpine-evidence-x86_64",
+      "size_in_bytes": 66998,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151687155",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151687155/zip",
+      "expired": false,
+      "digest": "sha256:36876065c527f046b4823f4588c8b4f4606dbc4413dda9ce68f366933fcdd017",
+      "created_at": "2026-10-18T21:40:40Z",
+      "updated_at": "2026-10-18T21:40:40Z",
+      "expires_at": "2027-01-16T21:34:19Z",
+      "workflow_run": {
+        "id": 39168427970,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-team-integration",
+        "head_sha": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21"
+      }
+    },
+    {
+      "id": 12151532724,
+      "node_id": "MDg6QXJ0aWZhY3QxMjE1MTUzMjcyNA==",
+      "name": "alpine-desktop-evidence-x86_64",
+      "size_in_bytes": 1382379,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151532724",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151532724/zip",
+      "expired": false,
+      "digest": "sha256:3fc41076ffd278fba538cb03052c1bac542961b6c4b6feaab49f3485b7ed9e5b",
+      "created_at": "2026-10-18T21:44:41Z",
+      "updated_at": "2026-10-18T21:44:41Z",
+      "expires_at": "2027-01-16T21:34:19Z",
+      "workflow_run": {
+        "id": 39168427970,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-team-integration",
+        "head_sha": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21"
+      }
+    },
+    {
+      "id": 12151458941,
+      "node_id": "MDg6QXJ0aWZhY3QxMjE1MTQ1ODk0MQ==",
+      "name": "alpine-evidence-riscv64",
+      "size_in_bytes": 64783,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151458941",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12151458941/zip",
+      "expired": false,
+      "digest": "sha256:6de3e2b351943166d15783670281ad23d919da84839c9741daa7d460089223f9",
+      "created_at": "2026-10-18T21:37:45Z",
+      "updated_at": "2026-10-18T21:37:45Z",
+      "expires_at": "2027-01-16T21:34:19Z",
+      "workflow_run": {
+        "id": 39168427970,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-team-integration",
+        "head_sha": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21"
+      }
+    }
+  ]
+}
