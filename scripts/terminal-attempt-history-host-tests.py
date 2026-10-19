@@ -148,7 +148,7 @@ class History(unittest.TestCase):
         for slot, content in slots.items():
             self.assertLessEqual(len(content.encode()), 1024 if slot=='meta' else 5120, slot)
         self.assertLessEqual(sum(len(s.encode()) for s in slots.values()), 12*5120+1024)
-        self.assertLess(len(r.stdout.encode()), 65000)
+        self.assertLess(len(r.stdout.encode()), 128*1024)  # hex history framing/payload bound
         self.assertIn('terminal_first='+TERMINAL.strip(), slots['terminal-last'])
         self.assertIn('witness_line='+WITNESS.strip(), slots['witness-last'])
         self.assertIn('attempt=1 ', slots['alarm-first'])
