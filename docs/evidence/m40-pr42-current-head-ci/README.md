@@ -19,3 +19,7 @@ x86_64 job117796230700, aarch64 job117796230622, riscv64 job117796230676:
 Expected intentional native negative-control output contains `epollabitest: FAIL five-second process watchdog`; its supervisory harness requires exit124 after5s. The separate stalled-supervisor control requires TimeoutExpired at6s and verifies groupkill/reap, unrelatedchild andsubreaperstate. These expected rejection logs are NOT hidden spontaneous testfailures or deadline waivers. Original inheritedpolicy/model/cleanup failures remain preserved elsewhere.
 
 Allordinarydesktopjobs retain existinginstrumentation/observers. None proves observer-off coldreliability. PR40 cold remainsFAILED, allPR18→42integrationholds unchanged, M40unfinished. No merge/readiness/branchdeletion/newcold dispatch occurred while reviewing thisevidence. Evidencebranch NEVERMERGE.
+
+## Exact PR merge-tree provenance
+
+PR CI checkout3d82350d34b472b40271c571fe88b9702a23ed2b merges runtime07fd with base18ef. A fresh token-free PRmerge fetch confirmed its complete Git tree is IDENTICAL to currentruntime07fda66bd9a7904e77b7f3e1051df243ee1e4d21. TreeSHAs and equality recorded in ci-merge-tree-proof.json. This is not a substitute for joblogs; it links the alreadyreviewed CIcheckout to the exactproducttree. No build/testrerun or productchange.

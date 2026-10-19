@@ -1,0 +1,8 @@
+{
+  "runtime_head": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21",
+  "runtime_tree": "d141e052e0f7b4533efbb1210d97c929d9d5277d",
+  "pr42_merge_head": "3d82350d34b472b40271c571fe88b9702a23ed2b",
+  "pr42_merge_tree": "d141e052e0f7b4533efbb1210d97c929d9d5277d",
+  "identical_trees": true,
+  "scope": "GitHub PR CI checks merge snapshot; identical to current runtime tree, no test rerun or product change"
+}
