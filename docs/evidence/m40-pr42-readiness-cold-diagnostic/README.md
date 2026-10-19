@@ -29,3 +29,7 @@ Two isolated follow-up branches now address the new retained-textsentinel collis
 Prerequisite artifact12169792308 andLinux artifact12169847710 originals retained. SignedLinux control ACCEPTED17/18applicable: exactsolemissing9oslockdep, driver_rc1/raw_rc0, bothfixturehashchecksTRUE. Hostallowed[0,1,2,3], fixedselected[0,1], guestSMP4/3072M/nohostmemorycap. Raw390events, zero repeats/drops/errors. RuntimeplanJSON pins07fd, validationae0, exactfourfixedsamples, retries0. No controlretry.
 
 At thischeckpoint guest1 is running; guest2/3 outcomes unknown/pending, not counted aspasses. Allthree remain independentlyplanned afteracceptedLinux regardlessofearlierguestfailure. No earlyglobalpassclaim orholdrelease.
+
+## First 9os guest — original accepted sample
+
+Original artifact12170487393 preserved. Guest1 ACCEPTED18/18, driver_rc0/raw_rc0, fixture_before/after TRUE. Raw capture390events/262keyedges/128taps, dropped0/explicit_repeats0. Original result and safely PNG-filtered stdout retained; full original ZIP remains authoritative. This is one predeclared accepted sample, not a cold cure or reliability rate. Guest2 running and guest3 pending at observation; whole-cohort outcome unknown. No rerun, extra sample, product/manualhead mutation or hold waiver.

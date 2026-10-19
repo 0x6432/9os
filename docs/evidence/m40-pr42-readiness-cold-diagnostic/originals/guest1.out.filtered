@@ -1,0 +1,2158 @@
+9os booting (x86_64, C202311)
+[[32m info[0m] Limine base revision 6, HHDM offset 0xffff800000000000, cmdline 'root=/dev/vda1'
+[ info] 25 memory map entries, 2550 MiB usable
+[ info] pmm: buddy allocator ready, 2480 MiB free (634934 pages, page array 71680 KiB)
+[ info] pmm: self-test passed
+[ info] vmm: kernel page tables active (root 9e000)
+[ info] harden: smep smap nx, stack protector, ASLR on, user W^X warn, kernel W+X pages 0
+[[32m info] slab: 8 kmalloc caches (16..2048 bytes)
+[ info] slab: self-test passed
+[uacpi info] starting uACPI, version 6.1.1
+[uacpi info] RSDP 0x00000000000F52A0 00000014 v00 (BOCHS )
+[uacpi info] RSDT 0x000000007FFE24A0 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] DSDT 0x000000007FFE0040 00002240 v01 (BOCHS  BXPC    )
+[uacpi info] FACP 0x000000007FFE2280 000000F4 v03 (BOCHS  BXPC    )
+[uacpi info] APIC 0x000000007FFE2374 00000090 v03 (BOCHS  BXPC    )
+[uacpi info] HPET 0x000000007FFE2404 00000038 v01 (BOCHS  BXPC    )
+[uacpi info] MCFG 0x000000007FFE243C 0000003C v01 (BOCHS  BXPC    )
+[uacpi info] WAET 0x000000007FFE2478 00000028 v01 (BOCHS  BXPC    )
+[uacpi info] FACS 0x000000007FFE0000 00000040
+[ info] acpi: tables ready
+[ info[0m] sched: round robin, quantum 10 ms
+[ info] tsc: 2456.259 MHz
+[ info] apic: lapic fee00000, 1 ioapic(s), 5 overrides
+[ info] apic: lapic timer 77378 ticks per 1000 Hz period
+[ info] rtc: 2026-10-19 07:37:01 UTC
+[ info] smp: 4 CPUs online (3 APs started in 10483 us)
+[ info] pmm: per-CPU order-0 caches enabled (16 pages/CPU)
+[ info] pmm: per-CPU cache self-test passed
+[ info] slab: per-CPU magazines enabled (8 objects/cache/CPU, objects <=2048 bytes)
+[ info] slab: per-CPU magazine self-test passed
+[uacpi info] successfully loaded 1 AML blob, 1737 ops in 24ms (avg 70185/s)
+[uacpi info] namespace initialization done in 8ms: 43 devices, 0 thermal zones
+[uacpi info] enabled 2 GPEs in block _GPE@[0->64]
+[ info] acpi: namespace loaded and initialized
+[ info] vfs: tmpfs root mounted
+[ info[0m] pci: 00:00.0 8086:29c0 class 0600
+[ info[0m] pci: 00:01.0 1234:1111 class 0300
+[ info] pci: 00:02.0 1af4:1052 class 0900
+[ info] pci: 00:03.0 1af4:1052 class 0980
+[ info] pci: 00:04.0 1af4:1000 class 0200
+[ info] pci: 00:05.0 1af4:1059 class 0401
+[ info] pci: 00:06.0 1af4:1001 class 0100
+[ info[0m] pci: 00:1f.0 8086:2918 class 0601
+[ info] pci: 00:1f.2 8086:2922 class 0106
+[ info] pci: 00:1f.3 8086:2930 class 0c05
+[ info] input: QEMU Virtio Keyboard as /dev/input/event0
+[ info] virtio-input: QEMU Virtio Keyboard (MSI-X irq 49)
+[[32m info] input: QEMU Virtio Tablet as /dev/input/event1
+[[32m info] virtio-input: QEMU Virtio Tablet (MSI-X irq 50)
+[ info] virtio-blk: vda: 7340032 sectors (3584 MiB), flush, queue depth 128, MSI-X irq 51
+[ info] blk: vda1: sectors 2048-7337983 (3582 MiB)
+[ info] virtio-net: eth0: 52:54:00:12:34:56 mtu 1500, MSI-X irq 52
+[ info] virtio-snd: playback stream 0, stereo S16_LE 48000 Hz, MSI-X irq 53
+[ info] fbdev: /dev/fb0 1280x800, 32 bpp, pitch 5120
+[ info] drm: /dev/dri/card0 1280x800 (atomic KMS, PRIME)
+[ info] initramfs: unpacked 3804 files (527967 KiB)
+[ info] input: AT Translated Set 2 keyboard as /dev/input/event2
+[ info] input: ps/2 keyboard (irq 1) + serial console (irq 4), interrupt-driven
+[ info] ext2: vda1: 916992 blocks of 4096 bytes, 28 groups, 171176/229376 inodes free
+[ info] vfs: root is /dev/vda1 (ext2)
+[ info] init: started /sbin/init (pid 1)
+
+Welcome to 9os!  (x86_64, busybox v1.37.0)
+
+
+Welcome to Alpine Linux 3.22
+Kernel 6.1.0-9os on x86_64 (/dev/console)
+
+9os login: root
+Welcome to Alpine!
+
+The Alpine Wiki contains a large amount of how-to guides and general
+information about administrating Alpine systems.
+See <https://wiki.alpinelinux.org/>.
+
+You can setup the system with the command: setup-alpine
+
+You may change this message by editing /etc/motd.
+
+login[34]: root login on 'console'
+root@9os:~# timeout 20 trace-snapshot-selftest && su user -s /bin/sh -c "timeout 20 trace-snapshot-selftest" && timeout 30 qt-key-observer-selftest && su user -
+s /bin/sh -c "timeout 30 qt-key-observer-selftest" && alpine-desktop-services; echo __RC0=$?
+trace-snapshot-selftest: PASS synthetic busy
+trace-snapshot-selftest: PASS synthetic blocked
+trace-snapshot-selftest: PASS synthetic stopped
+trace-snapshot-selftest: PASSED 3/3 synthetic process controls; not GUI proof
+trace-snapshot-selftest: PASS synthetic busy
+trace-snapshot-selftest: PASS synthetic blocked
+trace-snapshot-selftest: PASS synthetic stopped
+trace-snapshot-selftest: PASSED 3/3 synthetic process controls; not GUI proof
+qt-key-observer: PASSED C surrogate forwarding/returns, bound, non-Qt child safety (not GUI proof)
+qt-key-observer: PASSED C surrogate forwarding/returns, bound, non-Qt child safety (not GUI proof)
+dbus[154]: Unknown username "avahi" in message bus configuration file
+dbus[154]: Unknown username "pulse" in message bus configuration file
+method return time=1792395437.260517 sender=org.freedesktop.DBus -> destination=:1.0 serial=3 reply_serial=2
+   array [
+      string "org.freedesktop.DBus"
+      string ":1.0"
+   ]
+starting version 3.2.14
+alpine-desktop-services: real system DBus and eudev ready
+__RC0=0
+root@9os:~# su user -s /bin/sh -c alpine-udisks-smoke; echo __RC1=$?
+alpine-udisks: real disk/partition/root filesystem enumerated uid=1000
+__RC1=0
+root@9os:~# (if ALPINE_TERMINAL_QUERY=live-dbus ALPINE_PLASMA_OUTPUT=kms ALPINE_PLASMA_SERIAL_PNG=0 ALPINE_PLASMA_INTERACTIVE=1 ALPINE_PLASMA_FILEMANAGER=1 ALPI
+NE_PLASMA_INPUT_DONE_FILE=/tmp/kms-input-done ALPINE_DOLPHIN_DONE_FILE=/tmp/dolphin-capture-done alpine-plasma-user-probe >/tmp/plasma-kms.log 2>&1;then echo 0;
+else echo $?;fi >/tmp/plasma-kms.status.tmp;mv /tmp/plasma-kms.status.tmp /tmp/plasma-kms.status) & echo $! >/tmp/plasma-kms.pid; echo __RC2=$?
+__RC2=0
+root@9os:~# for i in $(seq 700);do grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sle
+ep 1;done;grep -x KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -x ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.l
+og; false; }; echo __RC3=$?
+[[32m info] harden: kwin_wayland (pid 312) created a writable+executable mapping
+[ info] harden: plasmashell (pid 391) created a writable+executable mapping
+[ info] harden: kioworker (pid 894) created a writable+executable mapping
+[ info] harden: kconf_update (pid 965) created a writable+executable mapping
+KONSOLE_FOCUSED_TERMINAL_READY
+ALPINE_PLASMA_INPUT_READY
+__RC3=0
+root@9os:~# test ! -e /tmp/kms-input-ok && test ! -e /tmp/kms-tty && test ! -e /tmp/kms-uid && test ! -e /tmp/kms-input-done && test ! -e /tmp/dolphin-capture-d
+one; echo __RC4=$?
+__RC4=0
+root@9os:~# input-capture-session /tmp/physical-events.log /tmp/physical-events.status 45 & for i in $(seq 50);do grep -q "^INPUT_CAPTURE_READY devices=" /tmp/p
+hysical-events.log 2>/dev/null && break;sleep .1;done;grep "^INPUT_CAPTURE_READY devices=" /tmp/physical-events.log; echo __RC5=$?
+INPUT_CAPTURE_READY devices=3
+__RC5=0
+
+[host] python3 scripts/qemu-screenshot.py /tmp/9os-kms-8K1Dvk/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-before.png
+PASS: physical QEMU display captured 1280x800; input requires separate PTY proof
+
+[host] python3 scripts/qemu-ready-type.py --log /home/runner/work/9os/9os/build/m40-cold/guest1.log --ready-step 3 --qmp /tmp/9os-kms-8K1Dvk/qmp.sock 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\n'
+root@9os:~# for i in $(seq 20);do test ! -e /tmp/kms-input-ok || break;sleep 1;done;cat /tmp/kms-tty;test "$(cat /tmp/kms-input-ok)" = kms-input-ok && grep -q "
+^/dev/pts/" /tmp/kms-tty && test "$(cat /tmp/kms-uid)" = 1000; echo __RC8=$?
+/dev/pts/0
+__RC8=0
+
+[host] python3 scripts/qemu-screenshot.py /tmp/9os-kms-8K1Dvk/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-after.png
+PASS: physical QEMU display captured 1280x800; input requires separate PTY proof
+root@9os:~# for i in $(seq 75);do test ! -f /tmp/physical-events.status || break;sleep 1;done;cat /tmp/physical-events.log;test "$(cat /tmp/physical-events.stat
+us)" = 0; echo __RC10=$?
+INPUT_CAPTURE_DEVICE index=0 named=1 monotonic=1 name=QEMU Virtio Keyboard
+INPUT_CAPTURE_DEVICE index=1 named=1 monotonic=1 name=QEMU Virtio Tablet
+INPUT_CAPTURE_DEVICE index=2 named=1 monotonic=1 name=AT Translated Set 2 keyboard
+INPUT_CAPTURE_READY devices=3
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=274361 type=1 code=20 value=1 received_ns=327286872023
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=274641 type=1 code=20 value=0 received_ns=327286872023
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=274656 type=0 code=0 value=0 received_ns=327286872023
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=399264 type=1 code=20 value=1 received_ns=327399612483
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=399284 type=1 code=20 value=0 received_ns=327399612483
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=399286 type=0 code=0 value=0 received_ns=327399612483
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=518169 type=1 code=21 value=1 received_ns=327522631856
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=518191 type=1 code=21 value=0 received_ns=327522631856
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=518193 type=0 code=0 value=0 received_ns=327522631856
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=635924 type=1 code=57 value=1 received_ns=327639656134
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=635964 type=1 code=57 value=0 received_ns=327639656134
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=635966 type=0 code=0 value=0 received_ns=327639656134
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=784380 type=1 code=42 value=1 received_ns=327788211281
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=784453 type=1 code=52 value=1 received_ns=327788211281
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=784457 type=1 code=52 value=0 received_ns=327788211281
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=784459 type=1 code=42 value=0 received_ns=327788211281
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=784461 type=0 code=0 value=0 received_ns=327788211281
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=918949 type=1 code=57 value=1 received_ns=327929094850
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=918977 type=1 code=57 value=0 received_ns=327929094850
+INPUT_CAPTURE_EVENT device=0 sec=327 usec=918980 type=0 code=0 value=0 received_ns=327929094850
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=16330 type=1 code=53 value=1 received_ns=328032821101
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=16349 type=1 code=53 value=0 received_ns=328032821101
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=16352 type=0 code=0 value=0 received_ns=328032821101
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=167918 type=1 code=20 value=1 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=167936 type=1 code=20 value=0 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=167938 type=0 code=0 value=0 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=268785 type=1 code=50 value=1 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=268803 type=1 code=50 value=0 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=268805 type=0 code=0 value=0 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=427763 type=1 code=25 value=1 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=427781 type=1 code=25 value=0 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=427783 type=0 code=0 value=0 received_ns=328522998897
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=539157 type=1 code=53 value=1 received_ns=328748634753
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=539176 type=1 code=53 value=0 received_ns=328748634753
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=539178 type=0 code=0 value=0 received_ns=328748634753
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=643813 type=1 code=37 value=1 received_ns=328748634753
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=643837 type=1 code=37 value=0 received_ns=328748634753
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=643841 type=0 code=0 value=0 received_ns=328748634753
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=800051 type=1 code=50 value=1 received_ns=329009822093
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=800070 type=1 code=50 value=0 received_ns=329009822093
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=800072 type=0 code=0 value=0 received_ns=329009822093
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=935974 type=1 code=31 value=1 received_ns=329009822093
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=935999 type=1 code=31 value=0 received_ns=329009822093
+INPUT_CAPTURE_EVENT device=0 sec=328 usec=936002 type=0 code=0 value=0 received_ns=329009822093
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=40603 type=1 code=12 value=1 received_ns=329074401449
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=40622 type=1 code=12 value=0 received_ns=329074401449
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=40624 type=0 code=0 value=0 received_ns=329074401449
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=158917 type=1 code=20 value=1 received_ns=329160127037
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=158937 type=1 code=20 value=0 received_ns=329160127037
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=158939 type=0 code=0 value=0 received_ns=329160127037
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=284152 type=1 code=20 value=1 received_ns=329285546860
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=284172 type=1 code=20 value=0 received_ns=329285546860
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=284174 type=0 code=0 value=0 received_ns=329285546860
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=396826 type=1 code=21 value=1 received_ns=329402833997
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=396844 type=1 code=21 value=0 received_ns=329402833997
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=396847 type=0 code=0 value=0 received_ns=329402833997
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=529048 type=1 code=39 value=1 received_ns=329695270312
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=529065 type=1 code=39 value=0 received_ns=329695270312
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=529067 type=0 code=0 value=0 received_ns=329695270312
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=636607 type=1 code=57 value=1 received_ns=329695270312
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=636627 type=1 code=57 value=0 received_ns=329695270312
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=636629 type=0 code=0 value=0 received_ns=329695270312
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=798881 type=1 code=23 value=1 received_ns=329848725751
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=798900 type=1 code=23 value=0 received_ns=329848725751
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=798902 type=0 code=0 value=0 received_ns=329848725751
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=894573 type=1 code=32 value=1 received_ns=329913571759
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=894592 type=1 code=32 value=0 received_ns=329913571759
+INPUT_CAPTURE_EVENT device=0 sec=329 usec=894593 type=0 code=0 value=0 received_ns=329913571759
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=35314 type=1 code=57 value=1 received_ns=330108073477
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=35340 type=1 code=57 value=0 received_ns=330108073477
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=35344 type=0 code=0 value=0 received_ns=330108073477
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=126309 type=1 code=12 value=1 received_ns=330261162242
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=126333 type=1 code=12 value=0 received_ns=330261162242
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=126336 type=0 code=0 value=0 received_ns=330261162242
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=262040 type=1 code=22 value=1 received_ns=330362366935
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=262735 type=1 code=22 value=0 received_ns=330362366935
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=262749 type=0 code=0 value=0 received_ns=330362366935
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=369510 type=1 code=57 value=1 received_ns=330371485277
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=369528 type=1 code=57 value=0 received_ns=330371485277
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=369531 type=0 code=0 value=0 received_ns=330371485277
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=502209 type=1 code=42 value=1 received_ns=330511177210
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=502226 type=1 code=52 value=1 received_ns=330511177210
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=502229 type=1 code=52 value=0 received_ns=330511177210
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=502231 type=1 code=42 value=0 received_ns=330511177210
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=502232 type=0 code=0 value=0 received_ns=330511177210
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=617862 type=1 code=57 value=1 received_ns=330648403319
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=617889 type=1 code=57 value=0 received_ns=330648403319
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=617892 type=0 code=0 value=0 received_ns=330648403319
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=777649 type=1 code=53 value=1 received_ns=330826239310
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=777670 type=1 code=53 value=0 received_ns=330826239310
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=777673 type=0 code=0 value=0 received_ns=330826239310
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=873472 type=1 code=20 value=1 received_ns=330877730785
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=873488 type=1 code=20 value=0 received_ns=330877730785
+INPUT_CAPTURE_EVENT device=0 sec=330 usec=873490 type=0 code=0 value=0 received_ns=330877730785
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=20924 type=1 code=50 value=1 received_ns=331033901450
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=20943 type=1 code=50 value=0 received_ns=331033901450
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=20946 type=0 code=0 value=0 received_ns=331033901450
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=126982 type=1 code=25 value=1 received_ns=331127447259
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=126998 type=1 code=25 value=0 received_ns=331127447259
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=127025 type=0 code=0 value=0 received_ns=331127447259
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=249702 type=1 code=53 value=1 received_ns=331270557423
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=249719 type=1 code=53 value=0 received_ns=331270557423
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=249722 type=0 code=0 value=0 received_ns=331270557423
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=392394 type=1 code=37 value=1 received_ns=331417847575
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=392418 type=1 code=37 value=0 received_ns=331417847575
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=392420 type=0 code=0 value=0 received_ns=331417847575
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=502424 type=1 code=50 value=1 received_ns=331502705878
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=502449 type=1 code=50 value=0 received_ns=331502705878
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=502452 type=0 code=0 value=0 received_ns=331502705878
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=621761 type=1 code=31 value=1 received_ns=331638951372
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=621779 type=1 code=31 value=0 received_ns=331638951372
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=621782 type=0 code=0 value=0 received_ns=331638951372
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=748568 type=1 code=12 value=1 received_ns=331766775149
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=748590 type=1 code=12 value=0 received_ns=331766775149
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=748593 type=0 code=0 value=0 received_ns=331766775149
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=852756 type=1 code=22 value=1 received_ns=331856875154
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=852789 type=1 code=22 value=0 received_ns=331856875154
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=852792 type=0 code=0 value=0 received_ns=331856875154
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=990250 type=1 code=23 value=1 received_ns=332026420298
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=990269 type=1 code=23 value=0 received_ns=332026420298
+INPUT_CAPTURE_EVENT device=0 sec=331 usec=990271 type=0 code=0 value=0 received_ns=332026420298
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=122374 type=1 code=32 value=1 received_ns=332138595462
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=122393 type=1 code=32 value=0 received_ns=332138595462
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=122395 type=0 code=0 value=0 received_ns=332138595462
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=277873 type=1 code=39 value=1 received_ns=332285833274
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=277889 type=1 code=39 value=0 received_ns=332285833274
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=277891 type=0 code=0 value=0 received_ns=332285833274
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=403215 type=1 code=57 value=1 received_ns=332435852723
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=403241 type=1 code=57 value=0 received_ns=332435852723
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=403244 type=0 code=0 value=0 received_ns=332435852723
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=538714 type=1 code=18 value=1 received_ns=332566675109
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=538733 type=1 code=18 value=0 received_ns=332566675109
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=538772 type=0 code=0 value=0 received_ns=332566675109
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=651763 type=1 code=46 value=1 received_ns=332652066713
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=651781 type=1 code=46 value=0 received_ns=332652066713
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=651783 type=0 code=0 value=0 received_ns=332652066713
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=768845 type=1 code=35 value=1 received_ns=332804971924
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=768862 type=1 code=35 value=0 received_ns=332804971924
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=768864 type=0 code=0 value=0 received_ns=332804971924
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=906115 type=1 code=24 value=1 received_ns=332925367081
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=906142 type=1 code=24 value=0 received_ns=332925367081
+INPUT_CAPTURE_EVENT device=0 sec=332 usec=906145 type=0 code=0 value=0 received_ns=332925367081
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=30042 type=1 code=57 value=1 received_ns=333059041005
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=30060 type=1 code=57 value=0 received_ns=333059041005
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=30063 type=0 code=0 value=0 received_ns=333059041005
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=146461 type=1 code=37 value=1 received_ns=333151459756
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=146488 type=1 code=37 value=0 received_ns=333151459756
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=146491 type=0 code=0 value=0 received_ns=333151459756
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=279551 type=1 code=50 value=1 received_ns=333294687032
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=279576 type=1 code=50 value=0 received_ns=333294687032
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=279581 type=0 code=0 value=0 received_ns=333294687032
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=412168 type=1 code=31 value=1 received_ns=333421691537
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=412185 type=1 code=31 value=0 received_ns=333421691537
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=412187 type=0 code=0 value=0 received_ns=333421691537
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=535436 type=1 code=12 value=1 received_ns=333555747941
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=535459 type=1 code=12 value=0 received_ns=333555747941
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=535462 type=0 code=0 value=0 received_ns=333555747941
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=645553 type=1 code=23 value=1 received_ns=333649889321
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=645571 type=1 code=23 value=0 received_ns=333649889321
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=645574 type=0 code=0 value=0 received_ns=333649889321
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=792550 type=1 code=49 value=1 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=792577 type=1 code=49 value=0 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=792580 type=0 code=0 value=0 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=906868 type=1 code=25 value=1 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=906886 type=1 code=25 value=0 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=333 usec=906888 type=0 code=0 value=0 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=26420 type=1 code=22 value=1 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=26446 type=1 code=22 value=0 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=26449 type=0 code=0 value=0 received_ns=334045389497
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=152282 type=1 code=20 value=1 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=152300 type=1 code=20 value=0 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=152302 type=0 code=0 value=0 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=284262 type=1 code=12 value=1 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=284279 type=1 code=12 value=0 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=284281 type=0 code=0 value=0 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=400438 type=1 code=24 value=1 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=400462 type=1 code=24 value=0 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=400480 type=0 code=0 value=0 received_ns=334449571368
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=523464 type=1 code=37 value=1 received_ns=334530860168
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=523481 type=1 code=37 value=0 received_ns=334530860168
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=523483 type=0 code=0 value=0 received_ns=334530860168
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=654351 type=1 code=57 value=1 received_ns=334683085960
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=654373 type=1 code=57 value=0 received_ns=334683085960
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=654376 type=0 code=0 value=0 received_ns=334683085960
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=803078 type=1 code=42 value=1 received_ns=334812891963
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=803100 type=1 code=52 value=1 received_ns=334812891963
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=803103 type=1 code=52 value=0 received_ns=334812891963
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=803105 type=1 code=42 value=0 received_ns=334812891963
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=803107 type=0 code=0 value=0 received_ns=334812891963
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=915149 type=1 code=57 value=1 received_ns=334918007328
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=915166 type=1 code=57 value=0 received_ns=334918007328
+INPUT_CAPTURE_EVENT device=0 sec=334 usec=915168 type=0 code=0 value=0 received_ns=334918007328
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=22516 type=1 code=53 value=1 received_ns=335030723500
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=22537 type=1 code=53 value=0 received_ns=335030723500
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=22539 type=0 code=0 value=0 received_ns=335030723500
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=173030 type=1 code=20 value=1 received_ns=335185163835
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=173050 type=1 code=20 value=0 received_ns=335185163835
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=173052 type=0 code=0 value=0 received_ns=335185163835
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=347243 type=1 code=50 value=1 received_ns=335350435147
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=347263 type=1 code=50 value=0 received_ns=335350435147
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=347266 type=0 code=0 value=0 received_ns=335350435147
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=434885 type=1 code=25 value=1 received_ns=335476927625
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=434903 type=1 code=25 value=0 received_ns=335476927625
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=434905 type=0 code=0 value=0 received_ns=335476927625
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=560600 type=1 code=53 value=1 received_ns=335585993249
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=560629 type=1 code=53 value=0 received_ns=335585993249
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=560632 type=0 code=0 value=0 received_ns=335585993249
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=671865 type=1 code=37 value=1 received_ns=335675706768
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=671884 type=1 code=37 value=0 received_ns=335675706768
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=671886 type=0 code=0 value=0 received_ns=335675706768
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=787821 type=1 code=50 value=1 received_ns=335789944682
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=787841 type=1 code=50 value=0 received_ns=335789944682
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=787843 type=0 code=0 value=0 received_ns=335789944682
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=906148 type=1 code=31 value=1 received_ns=335921930711
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=906168 type=1 code=31 value=0 received_ns=335921930711
+INPUT_CAPTURE_EVENT device=0 sec=335 usec=906170 type=0 code=0 value=0 received_ns=335921930711
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=26979 type=1 code=12 value=1 received_ns=336036459153
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=27030 type=1 code=12 value=0 received_ns=336036459153
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=27032 type=0 code=0 value=0 received_ns=336036459153
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=143369 type=1 code=23 value=1 received_ns=336161479045
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=143388 type=1 code=23 value=0 received_ns=336161479045
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=143390 type=0 code=0 value=0 received_ns=336161479045
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=268546 type=1 code=49 value=1 received_ns=336271120518
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=268608 type=1 code=49 value=0 received_ns=336271120518
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=268628 type=0 code=0 value=0 received_ns=336271120518
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=406120 type=1 code=25 value=1 received_ns=336410936072
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=406147 type=1 code=25 value=0 received_ns=336410936072
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=406151 type=0 code=0 value=0 received_ns=336410936072
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=522427 type=1 code=22 value=1 received_ns=336523901321
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=522448 type=1 code=22 value=0 received_ns=336523901321
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=522450 type=0 code=0 value=0 received_ns=336523901321
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=653096 type=1 code=20 value=1 received_ns=336691382996
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=653117 type=1 code=20 value=0 received_ns=336691382996
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=653120 type=0 code=0 value=0 received_ns=336691382996
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=771452 type=1 code=12 value=1 received_ns=336795008212
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=771476 type=1 code=12 value=0 received_ns=336795008212
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=771479 type=0 code=0 value=0 received_ns=336795008212
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=886249 type=1 code=24 value=1 received_ns=336913295884
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=886276 type=1 code=24 value=0 received_ns=336913295884
+INPUT_CAPTURE_EVENT device=0 sec=336 usec=886279 type=0 code=0 value=0 received_ns=336913295884
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=23393 type=1 code=37 value=1 received_ns=337066771204
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=23414 type=1 code=37 value=0 received_ns=337066771204
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=23417 type=0 code=0 value=0 received_ns=337066771204
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=131173 type=1 code=52 value=1 received_ns=337155455261
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=131192 type=1 code=52 value=0 received_ns=337155455261
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=131195 type=0 code=0 value=0 received_ns=337155455261
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=259791 type=1 code=20 value=1 received_ns=337271890118
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=259810 type=1 code=20 value=0 received_ns=337271890118
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=259812 type=0 code=0 value=0 received_ns=337271890118
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=400565 type=1 code=50 value=1 received_ns=337402634094
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=400594 type=1 code=50 value=0 received_ns=337402634094
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=400597 type=0 code=0 value=0 received_ns=337402634094
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=506232 type=1 code=25 value=1 received_ns=337521776263
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=506249 type=1 code=25 value=0 received_ns=337521776263
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=506252 type=0 code=0 value=0 received_ns=337521776263
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=629111 type=1 code=39 value=1 received_ns=337634399963
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=629129 type=1 code=39 value=0 received_ns=337634399963
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=629131 type=0 code=0 value=0 received_ns=337634399963
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=768126 type=1 code=57 value=1 received_ns=337777326453
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=768145 type=1 code=57 value=0 received_ns=337777326453
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=768147 type=0 code=0 value=0 received_ns=337777326453
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=880009 type=1 code=50 value=1 received_ns=337881426327
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=880027 type=1 code=50 value=0 received_ns=337881426327
+INPUT_CAPTURE_EVENT device=0 sec=337 usec=880030 type=0 code=0 value=0 received_ns=337881426327
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=14464 type=1 code=47 value=1 received_ns=338017013882
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=14484 type=1 code=47 value=0 received_ns=338017013882
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=14487 type=0 code=0 value=0 received_ns=338017013882
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=130505 type=1 code=57 value=1 received_ns=338137193710
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=130525 type=1 code=57 value=0 received_ns=338137193710
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=130527 type=0 code=0 value=0 received_ns=338137193710
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=251753 type=1 code=53 value=1 received_ns=338328772577
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=251771 type=1 code=53 value=0 received_ns=338328772577
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=251773 type=0 code=0 value=0 received_ns=338328772577
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=373903 type=1 code=20 value=1 received_ns=338375267803
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=373921 type=1 code=20 value=0 received_ns=338375267803
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=373924 type=0 code=0 value=0 received_ns=338375267803
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=517711 type=1 code=50 value=1 received_ns=338527595303
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=517731 type=1 code=50 value=0 received_ns=338527595303
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=517733 type=0 code=0 value=0 received_ns=338527595303
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=646777 type=1 code=25 value=1 received_ns=338657970657
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=646794 type=1 code=25 value=0 received_ns=338657970657
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=646796 type=0 code=0 value=0 received_ns=338657970657
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=782027 type=1 code=53 value=1 received_ns=338786289648
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=782053 type=1 code=53 value=0 received_ns=338786289648
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=782058 type=0 code=0 value=0 received_ns=338786289648
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=882582 type=1 code=37 value=1 received_ns=338889779912
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=882602 type=1 code=37 value=0 received_ns=338889779912
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=882605 type=0 code=0 value=0 received_ns=338889779912
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=994552 type=1 code=50 value=1 received_ns=339013571233
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=994577 type=1 code=50 value=0 received_ns=339013571233
+INPUT_CAPTURE_EVENT device=0 sec=338 usec=994581 type=0 code=0 value=0 received_ns=339013571233
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=140993 type=1 code=31 value=1 received_ns=339158886899
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=141017 type=1 code=31 value=0 received_ns=339158886899
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=141021 type=0 code=0 value=0 received_ns=339158886899
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=287942 type=1 code=12 value=1 received_ns=339297162607
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=287966 type=1 code=12 value=0 received_ns=339297162607
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=287969 type=0 code=0 value=0 received_ns=339297162607
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=408262 type=1 code=23 value=1 received_ns=339419344669
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=408281 type=1 code=23 value=0 received_ns=339419344669
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=408283 type=0 code=0 value=0 received_ns=339419344669
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=501723 type=1 code=49 value=1 received_ns=339512317868
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=501742 type=1 code=49 value=0 received_ns=339512317868
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=501744 type=0 code=0 value=0 received_ns=339512317868
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=636241 type=1 code=25 value=1 received_ns=339638708671
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=636259 type=1 code=25 value=0 received_ns=339638708671
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=636261 type=0 code=0 value=0 received_ns=339638708671
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=751829 type=1 code=22 value=1 received_ns=339800069920
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=751847 type=1 code=22 value=0 received_ns=339800069920
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=751850 type=0 code=0 value=0 received_ns=339800069920
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=860284 type=1 code=20 value=1 received_ns=339860954109
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=860301 type=1 code=20 value=0 received_ns=339860954109
+INPUT_CAPTURE_EVENT device=0 sec=339 usec=860303 type=0 code=0 value=0 received_ns=339860954109
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=608 type=1 code=12 value=1 received_ns=340010135417
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=626 type=1 code=12 value=0 received_ns=340010135417
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=628 type=0 code=0 value=0 received_ns=340010135417
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=136398 type=1 code=24 value=1 received_ns=340316699968
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=136416 type=1 code=24 value=0 received_ns=340316699968
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=136418 type=0 code=0 value=0 received_ns=340316699968
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=247439 type=1 code=37 value=1 received_ns=340316699968
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=247479 type=1 code=37 value=0 received_ns=340316699968
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=247482 type=0 code=0 value=0 received_ns=340316699968
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=366223 type=1 code=52 value=1 received_ns=340531845241
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=366241 type=1 code=52 value=0 received_ns=340531845241
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=366243 type=0 code=0 value=0 received_ns=340531845241
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=531347 type=1 code=20 value=1 received_ns=340531845241
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=531375 type=1 code=20 value=0 received_ns=340531845241
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=531378 type=0 code=0 value=0 received_ns=340531845241
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=616416 type=1 code=50 value=1 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=616436 type=1 code=50 value=0 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=616438 type=0 code=0 value=0 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=791018 type=1 code=25 value=1 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=791038 type=1 code=25 value=0 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=791041 type=0 code=0 value=0 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=865637 type=1 code=57 value=1 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=865656 type=1 code=57 value=0 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=865659 type=0 code=0 value=0 received_ns=340872751557
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=998534 type=1 code=53 value=1 received_ns=341031109882
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=998553 type=1 code=53 value=0 received_ns=341031109882
+INPUT_CAPTURE_EVENT device=0 sec=340 usec=998555 type=0 code=0 value=0 received_ns=341031109882
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=94381 type=1 code=20 value=1 received_ns=341113107840
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=94399 type=1 code=20 value=0 received_ns=341113107840
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=94402 type=0 code=0 value=0 received_ns=341113107840
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=245747 type=1 code=50 value=1 received_ns=341264461630
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=245773 type=1 code=50 value=0 received_ns=341264461630
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=245776 type=0 code=0 value=0 received_ns=341264461630
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=348632 type=1 code=25 value=1 received_ns=341361759025
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=348649 type=1 code=25 value=0 received_ns=341361759025
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=348651 type=0 code=0 value=0 received_ns=341361759025
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=460755 type=1 code=53 value=1 received_ns=341463212340
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=460774 type=1 code=53 value=0 received_ns=341463212340
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=460777 type=0 code=0 value=0 received_ns=341463212340
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=648435 type=1 code=37 value=1 received_ns=341656806748
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=648460 type=1 code=37 value=0 received_ns=341656806748
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=648463 type=0 code=0 value=0 received_ns=341656806748
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=713025 type=1 code=50 value=1 received_ns=341717358088
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=713045 type=1 code=50 value=0 received_ns=341717358088
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=713048 type=0 code=0 value=0 received_ns=341717358088
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=824681 type=1 code=31 value=1 received_ns=341825344685
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=824699 type=1 code=31 value=0 received_ns=341825344685
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=824701 type=0 code=0 value=0 received_ns=341825344685
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=964421 type=1 code=12 value=1 received_ns=341983236989
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=964439 type=1 code=12 value=0 received_ns=341983236989
+INPUT_CAPTURE_EVENT device=0 sec=341 usec=964441 type=0 code=0 value=0 received_ns=341983236989
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=86625 type=1 code=23 value=1 received_ns=342106547675
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=86642 type=1 code=23 value=0 received_ns=342106547675
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=86644 type=0 code=0 value=0 received_ns=342106547675
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=201864 type=1 code=49 value=1 received_ns=342225527900
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=201900 type=1 code=49 value=0 received_ns=342225527900
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=201903 type=0 code=0 value=0 received_ns=342225527900
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=343992 type=1 code=25 value=1 received_ns=342382166005
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=344018 type=1 code=25 value=0 received_ns=342382166005
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=344021 type=0 code=0 value=0 received_ns=342382166005
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=450299 type=1 code=22 value=1 received_ns=342497965066
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=450316 type=1 code=22 value=0 received_ns=342497965066
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=450318 type=0 code=0 value=0 received_ns=342497965066
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=630226 type=1 code=20 value=1 received_ns=342635037907
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=630246 type=1 code=20 value=0 received_ns=342635037907
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=630249 type=0 code=0 value=0 received_ns=342635037907
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=736943 type=1 code=12 value=1 received_ns=342753880239
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=736971 type=1 code=12 value=0 received_ns=342753880239
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=736973 type=0 code=0 value=0 received_ns=342753880239
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=838055 type=1 code=24 value=1 received_ns=342875570218
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=838074 type=1 code=24 value=0 received_ns=342875570218
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=838076 type=0 code=0 value=0 received_ns=342875570218
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=971179 type=1 code=37 value=1 received_ns=342989712442
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=971197 type=1 code=37 value=0 received_ns=342989712442
+INPUT_CAPTURE_EVENT device=0 sec=342 usec=971198 type=0 code=0 value=0 received_ns=342989712442
+INPUT_CAPTURE_EVENT device=0 sec=343 usec=87246 type=1 code=28 value=1 received_ns=343114820569
+INPUT_CAPTURE_EVENT device=0 sec=343 usec=87272 type=1 code=28 value=0 received_ns=343114820569
+INPUT_CAPTURE_EVENT device=0 sec=343 usec=87276 type=0 code=0 value=0 received_ns=343114820569
+INPUT_CAPTURE_DONE events=390 repeats=0 dropped=0 error=0
+__RC10=0
+[2]+  Done                       input-capture-session /tmp/physical-events.log /tmp/physical-events.status 45
+root@9os:~# test "$(cat /tmp/kms-input-ok)" = kms-input-ok && test "$(cat /tmp/kms-uid)" = 1000 && touch /tmp/kms-input-done; echo __RC11=$?
+__RC11=0
+root@9os:~# for i in $(seq 300);do grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma
+-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/plasma-kms.log || { tail -n 100 /tmp/pla
+sma-kms.log;false; }; echo __RC12=$?
+__RC12=0
+
+[host] python3 scripts/qemu-dolphin-capture.py /tmp/9os-kms-8K1Dvk/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-dolphin.png
+PASS: actual physical display shows Dolphin with after.txt and new.txt, not before.txt
+PASS: physical Dolphin presentation observed on fresh capture 1
+root@9os:~# grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/plasma-kms.log && touch /tmp/dolphin-capture-done; echo __RC14=$?
+__RC14=0
+root@9os:~# for i in $(seq 150);do test ! -f /tmp/plasma-kms.status || break;sleep 1;done;cat /tmp/plasma-kms.log;test "$(cat /tmp/plasma-kms.status)" = 0 && gr
+ep -qx "alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit" /tmp/plasma-kms.log; echo __RC15=$?
+[
+  {
+    "identifier": "1:1:AT_Translated_Set_2_keyboard",
+    "name": "AT Translated Set 2 keyboard",
+    "type": "keyboard",
+    "repeat_delay": 600,
+    "repeat_rate": 25,
+    "xkb_layout_names": [
+      "English (US)"
+    ],
+    "xkb_active_layout_index": 0,
+    "xkb_active_layout_name": "English (US)",
+    "libinput": {
+      "send_events": "enabled"
+    },
+    "vendor": 1,
+    "product": 1
+  },
+  {
+    "identifier": "1575:3:QEMU_Virtio_Tablet",
+    "name": "QEMU Virtio Tablet",
+    "type": "pointer",
+    "scroll_factor": 1.0,
+    "libinput": {
+      "send_events": "enabled",
+      "natural_scroll": "disabled",
+      "left_handed": "disabled",
+      "middle_emulation": "disabled",
+      "calibration_matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "vendor": 1575,
+    "product": 3
+  },
+  {
+    "identifier": "1575:1:QEMU_Virtio_Keyboard",
+    "name": "QEMU Virtio Keyboard",
+    "type": "keyboard",
+    "repeat_delay": 600,
+    "repeat_rate": 25,
+    "xkb_layout_names": [
+      "English (US)"
+    ],
+    "xkb_active_layout_index": 0,
+    "xkb_active_layout_name": "English (US)",
+    "libinput": {
+      "send_events": "enabled"
+    },
+    "vendor": 1575,
+    "product": 1
+  }
+]
+PLASMA_PRESENTATION_MODE=callback
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+PLASMA_DESKTOPS=desktops=1 panels=1
+method return time=1792395580.504186 sender=:1.14 -> destination=:1.63 serial=290 reply_serial=2
+   string "PLASMA_WALLPAPER_CONFIGURED=1"
+KWin Support Information:
+The following information should be used when requesting support on e.g. https://discuss.kde.org.
+It provides information about the currently running instance, which options are used,
+what OpenGL driver and which effects are running.
+Please post the information provided underneath this introductory text to a paste bin service
+like https://paste.kde.org instead of pasting into support threads.
+
+==========================
+
+Version
+=======
+KWin version: 6.3.6
+Qt Version: 6.8.3
+Qt compile version: 6.8.3
+XCB compile version: 1.17.0
+
+Operation Mode: Wayland
+
+Build Options
+=============
+KWIN_BUILD_DECORATIONS: yes
+KWIN_BUILD_TABBOX: yes
+KWIN_BUILD_ACTIVITIES: yes
+HAVE_X11_XCB: yes
+HAVE_GLX: yes
+
+Decoration
+==========
+Plugin: org.kde.breeze
+Theme: 
+Plugin recommends border size: None
+onAllDesktopsAvailable: false
+alphaChannelSupported: true
+closeOnDoubleClickOnMenu: false
+decorationButtonsLeft: 0, 2
+decorationButtonsRight: 6, 3, 4, 5
+borderSize: 0
+gridUnit: 12
+font: Noto Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+smallSpacing: 3
+largeSpacing: 12
+
+Output backend
+==============
+Name: KWin::Wayland::WaylandBackend
+
+Cursor
+======
+themeName: breeze_cursors
+themeSize: 24
+
+Options
+=======
+focusPolicy: ClickToFocus
+xwaylandCrashPolicy: 1
+xwaylandMaxCrashCount: 3
+nextFocusPrefersMouse: false
+clickRaise: true
+autoRaise: false
+autoRaiseInterval: 0
+delayFocusInterval: 0
+shadeHover: false
+shadeHoverInterval: 250
+separateScreenFocus: true
+placement: 5
+activationDesktopPolicy: SwitchToOtherDesktop
+focusPolicyIsReasonable: true
+borderSnapZone: 10
+windowSnapZone: 10
+centerSnapZone: 0
+snapOnlyWhenOverlapping: false
+edgeBarrier: 100
+cornerBarrier: 1
+rollOverDesktops: false
+focusStealingPreventionLevel: 1
+operationTitlebarDblClick: 5000
+operationMaxButtonLeftClick: 5000
+operationMaxButtonMiddleClick: 5015
+operationMaxButtonRightClick: 5014
+commandActiveTitlebar1: MouseRaise
+commandActiveTitlebar2: MouseNothing
+commandActiveTitlebar3: MouseOperationsMenu
+commandInactiveTitlebar1: MouseActivateAndRaise
+commandInactiveTitlebar2: MouseNothing
+commandInactiveTitlebar3: MouseOperationsMenu
+commandWindow1: MouseActivateRaiseOnReleaseAndPassClick
+commandWindow2: MouseActivateAndPassClick
+commandWindow3: MouseActivateAndPassClick
+commandWindowWheel: MouseNothing
+commandAll1: MouseUnrestrictedMove
+commandAll2: MouseToggleRaiseAndLower
+commandAll3: MouseUnrestrictedResize
+keyCmdAllModKey: 16777250
+doubleClickBorderToMaximize: true
+condensedTitle: false
+electricBorderMaximize: true
+electricBorderTiling: true
+electricBorderCornerRatio: 0.25
+borderlessMaximizedWindows: false
+killPingTimeout: 5000
+compositingMode: 4
+useCompositing: true
+hiddenPreviews: 1
+glSmoothScale: 2
+glStrictBinding: true
+glStrictBindingFollowsDriver: true
+glPreferBufferSwap: AutoSwapStrategy
+glPlatformInterface: 2
+windowsBlockCompositing: true
+allowTearing: true
+interactiveWindowMoveEnabled: true
+
+Screen Edges
+============
+desktopSwitching: false
+desktopSwitchingMovingClients: false
+cursorPushBackDistance: 1x1
+actionTopLeft: 0
+actionTop: 0
+actionTopRight: 0
+actionRight: 0
+actionBottomRight: 0
+actionBottom: 0
+actionBottomLeft: 0
+actionLeft: 0
+
+Screens
+=======
+Number of Screens: 1
+
+Screen 0:
+---------
+Name: WL-0
+Enabled: 1
+Geometry: 0,0,1280x800
+Physical size: -1x-1mm
+Scale: 1
+Refresh Rate: 60000
+Adaptive Sync: incapable
+
+Compositing
+===========
+Compositing is active
+Compositing Type: QPainter
+
+Loaded Effects:
+---------------
+outputlocator
+zoom
+screenedge
+highlightwindow
+kscreen
+
+Currently Active Effects:
+-------------------------
+
+Effect Settings:
+----------------
+outputlocator:
+
+zoom:
+zoomFactor: 1.2
+mousePointer: 0
+mouseTracking: 0
+focusTrackingEnabled: false
+textCaretTrackingEnabled: false
+focusDelay: 350
+moveFactor: 20
+targetZoom: 1
+
+screenedge:
+
+highlightwindow:
+
+kscreen:
+
+
+Loaded Plugins:
+---------------
+BounceKeysPlugin
+KeyNotificationPlugin
+StickyKeysPlugin
+buttonsrebind
+krunnerintegration
+nightlight
+screencast
+
+Available Plugins:
+------------------
+BounceKeysPlugin
+KeyNotificationPlugin
+StickyKeysPlugin
+buttonsrebind
+krunnerintegration
+nightlight
+screencast
+
+{
+  "id": 1,
+  "type": "root",
+  "orientation": "horizontal",
+  "percent": null,
+  "urgent": false,
+  "marks": [],
+  "focused": false,
+  "layout": "splith",
+  "border": "none",
+  "current_border_width": 0,
+  "rect": {
+    "x": 0,
+    "y": 0,
+    "width": 1280,
+    "height": 800
+  },
+  "deco_rect": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0
+  },
+  "window_rect": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0
+  },
+  "geometry": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0
+  },
+  "name": "root",
+  "window": null,
+  "nodes": [
+    {
+      "id": 2147483647,
+      "type": "output",
+      "orientation": "horizontal",
+      "percent": null,
+      "urgent": false,
+      "marks": [],
+      "focused": false,
+      "layout": "output",
+      "border": "none",
+      "current_border_width": 0,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 800
+      },
+      "deco_rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "window_rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "name": "__i3",
+      "window": null,
+      "nodes": [
+        {
+          "id": 2147483646,
+          "type": "workspace",
+          "orientation": "horizontal",
+          "percent": null,
+          "urgent": false,
+          "marks": [],
+          "focused": false,
+          "layout": "splith",
+          "border": "none",
+          "current_border_width": 0,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 800
+          },
+          "deco_rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "window_rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "geometry": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "name": "__i3_scratch",
+          "window": null,
+          "nodes": [],
+          "floating_nodes": [],
+          "focus": [],
+          "fullscreen_mode": 1,
+          "sticky": false,
+          "floating": null,
+          "scratchpad_state": null
+        }
+      ],
+      "floating_nodes": [],
+      "focus": [
+        2147483646
+      ],
+      "fullscreen_mode": 0,
+      "sticky": false,
+      "floating": null,
+      "scratchpad_state": null
+    },
+    {
+      "id": 3,
+      "type": "output",
+      "orientation": "none",
+      "percent": 1.0,
+      "urgent": false,
+      "marks": [],
+      "focused": false,
+      "layout": "output",
+      "border": "none",
+      "current_border_width": 0,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 800
+      },
+      "deco_rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "window_rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "name": "Virtual-1",
+      "window": null,
+      "nodes": [
+        {
+          "id": 4,
+          "type": "workspace",
+          "orientation": "horizontal",
+          "percent": null,
+          "urgent": false,
+          "marks": [],
+          "focused": false,
+          "layout": "splith",
+          "border": "none",
+          "current_border_width": 0,
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 800
+          },
+          "deco_rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "window_rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "geometry": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          },
+          "name": "1",
+          "window": null,
+          "nodes": [
+            {
+              "id": 5,
+              "type": "con",
+              "orientation": "none",
+              "percent": 1.0,
+              "urgent": false,
+              "marks": [],
+              "focused": true,
+              "layout": "none",
+              "border": "none",
+              "current_border_width": 2,
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 1280,
+                "height": 800
+              },
+              "deco_rect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0
+              },
+              "window_rect": {
+                "x": 0,
+                "y": 0,
+                "width": 1280,
+                "height": 800
+              },
+              "geometry": {
+                "x": 0,
+                "y": 0,
+                "width": 800,
+                "height": 600
+              },
+              "name": "KDE Wayland Compositor WL-0 — Press right control key to grab pointer",
+              "window": null,
+              "nodes": [],
+              "floating_nodes": [],
+              "focus": [],
+              "fullscreen_mode": 0,
+              "sticky": false,
+              "floating": "auto_off",
+              "scratchpad_state": "none",
+              "pid": 302,
+              "app_id": null,
+              "visible": true,
+              "max_render_time": 0,
+              "allow_tearing": false,
+              "shell": "xdg_shell",
+              "inhibit_idle": false,
+              "idle_inhibitors": {
+                "user": "none",
+                "application": "none"
+              }
+            }
+          ],
+          "floating_nodes": [],
+          "focus": [
+            5
+          ],
+          "fullscreen_mode": 1,
+          "sticky": false,
+          "floating": null,
+          "scratchpad_state": null,
+          "num": 1,
+          "output": "Virtual-1",
+          "representation": "H[(null)]"
+        }
+      ],
+      "floating_nodes": [],
+      "focus": [
+        4
+      ],
+      "fullscreen_mode": 0,
+      "sticky": false,
+      "floating": null,
+      "scratchpad_state": null,
+      "primary": false,
+      "make": "NOS",
+      "model": "9os virtual",
+      "serial": "9OS0001",
+      "modes": [
+        {
+          "width": 1280,
+          "height": 800,
+          "refresh": 60000,
+          "picture_aspect_ratio": "none"
+        }
+      ],
+      "non_desktop": false,
+      "active": true,
+      "dpms": true,
+      "power": true,
+      "scale": 1.0,
+      "scale_filter": "nearest",
+      "transform": "normal",
+      "adaptive_sync_status": "disabled",
+      "current_workspace": "1",
+      "current_mode": {
+        "width": 1280,
+        "height": 800,
+        "refresh": 60000,
+        "picture_aspect_ratio": "none"
+      },
+      "max_render_time": 0,
+      "allow_tearing": false
+    }
+  ],
+  "floating_nodes": [],
+  "focus": [
+    3
+  ],
+  "fullscreen_mode": 0,
+  "sticky": false,
+  "floating": null,
+  "scratchpad_state": null
+}
+kf.coreaddons: The operating system is unable to promise 16875624 bytes for mapped cache, abandoning the cache for crash-safety.
+kf.coreaddons: Couldn't establish file backed memory mapping, will fallback to anonymous memory
+Could not load a session backend. Session management operations such as shutdown will not be operational. This is a setup issue.
+kf.plasma.quick: Applet preload policy set to 1
+file:///usr/share/plasma/plasmoids/org.kde.desktopcontainment/contents/ui/main.qml:178:25: QML FolderViewDropArea (parent or ancestor of QQuickLayoutAttached): Binding loop detected for property "minimumWidth":
+file:///usr/share/plasma/plasmoids/org.kde.desktopcontainment/contents/ui/main.qml:201:9
+Toolbox not loading, toolbox package is either invalid or disabled.
+file:///usr/share/plasma/plasmoids/org.kde.plasma.kickoff/contents/ui/main.qml:310:13: QML Image: Cannot open: file:///usr/share/plasma/plasmoids/org.kde.plasma.kickoff/contents/ui/start-here-kde-symbolic
+org.kde.plasma.kicker: Entry is not valid "preferred://browser" 0x7eb0c263e7a0
+org.kde.plasma.kicker: Entry is not valid "org.kde.kontact.desktop" 0x7eb0c263eb50
+org.kde.plasma.kicker: Entry is not valid "systemsettings.desktop" 0x7eb0c263ece0
+org.kde.plasma.kicker: Entry is not valid "org.kde.discover.desktop" 0x7eb0c263eb60
+kpipewire_logging: error: "Failed to connect to PipeWire" 0
+received error while creating the stream "Failed to connect to PipeWire" Media monitor will not work.
+kde.plasmashell: Activity added twice "593c5435-1a15-4cc8-9dcf-6aa444177225"
+org.kde.plasma.kicker: Entry is not valid "preferred://browser" 0x7eb0c47499d0
+org.kde.plasma.kicker: Entry is not valid "org.kde.kontact.desktop" 0x7eb0bcb2f310
+org.kde.plasma.kicker: Entry is not valid "systemsettings.desktop" 0x7eb0c4749310
+org.kde.plasma.kicker: Entry is not valid "org.kde.discover.desktop" 0x7eb0c47497a0
+org.kde.plasma.kicker: Entry is not valid "preferred://browser" 0x7eb0c4749860
+org.kde.plasma.kicker: Entry is not valid "org.kde.kontact.desktop" 0x7eb0c4749910
+org.kde.plasma.kicker: Entry is not valid "systemsettings.desktop" 0x7eb0c47499e0
+org.kde.plasma.kicker: Entry is not valid "org.kde.discover.desktop" 0x7eb0c4749c10
+kpipewire_logging: error: "Failed to connect to PipeWire" 0
+received error while creating the stream "Failed to connect to PipeWire" Media monitor will not work.
+wayland-presentation-proxy: child_pid=312
+Accepting client connections on sockets: QList("9os-plasma")
+kwin_screencast: Failed to connect PipeWire context
+desktopframecheck: 1280x800 wallpaper colors=41089 panel colors=3128
+kf.coreaddons: The operating system is unable to promise 16875624 bytes for mapped cache, abandoning the cache for crash-safety.
+kf.coreaddons: Couldn't establish file backed memory mapping, will fallback to anonymous memory
+Could not load a session backend. Session management operations such as shutdown will not be operational. This is a setup issue.
+kf.plasma.quick: Applet preload policy set to 1
+file:///usr/share/plasma/plasmoids/org.kde.desktopcontainment/contents/ui/main.qml:178:25: QML FolderViewDropArea (parent or ancestor of QQuickLayoutAttached): Binding loop detected for property "minimumWidth":
+file:///usr/share/plasma/plasmoids/org.kde.desktopcontainment/contents/ui/main.qml:201:9
+Toolbox not loading, toolbox package is either invalid or disabled.
+file:///usr/share/plasma/plasmoids/org.kde.plasma.kickoff/contents/ui/main.qml:310:13: QML Image: Cannot open: file:///usr/share/plasma/plasmoids/org.kde.plasma.kickoff/contents/ui/start-here-kde-symbolic
+org.kde.plasma.kicker: Entry is not valid "preferred://browser" 0x7eb0c263e7a0
+org.kde.plasma.kicker: Entry is not valid "org.kde.kontact.desktop" 0x7eb0c263eb50
+org.kde.plasma.kicker: Entry is not valid "systemsettings.desktop" 0x7eb0c263ece0
+org.kde.plasma.kicker: Entry is not valid "org.kde.discover.desktop" 0x7eb0c263eb60
+kpipewire_logging: error: "Failed to connect to PipeWire" 0
+received error while creating the stream "Failed to connect to PipeWire" Media monitor will not work.
+kde.plasmashell: Activity added twice "593c5435-1a15-4cc8-9dcf-6aa444177225"
+org.kde.plasma.kicker: Entry is not valid "preferred://browser" 0x7eb0c47499d0
+org.kde.plasma.kicker: Entry is not valid "org.kde.kontact.desktop" 0x7eb0bcb2f310
+org.kde.plasma.kicker: Entry is not valid "systemsettings.desktop" 0x7eb0c4749310
+org.kde.plasma.kicker: Entry is not valid "org.kde.discover.desktop" 0x7eb0c47497a0
+org.kde.plasma.kicker: Entry is not valid "preferred://browser" 0x7eb0c4749860
+org.kde.plasma.kicker: Entry is not valid "org.kde.kontact.desktop" 0x7eb0c4749910
+org.kde.plasma.kicker: Entry is not valid "systemsettings.desktop" 0x7eb0c47499e0
+org.kde.plasma.kicker: Entry is not valid "org.kde.discover.desktop" 0x7eb0c4749c10
+kpipewire_logging: error: "Failed to connect to PipeWire" 0
+received error while creating the stream "Failed to connect to PipeWire" Media monitor will not work.
+kpipewire_logging: error: "Failed to connect to PipeWire" 0
+received error while creating the stream "Failed to connect to PipeWire" Media monitor will not work.
+kpipewire_logging: error: "Failed to connect to PipeWire" 0
+received error while creating the stream "Failed to connect to PipeWire" Media monitor will not work.
+org.kde.pulseaudio: No object for name "auto_null.monitor"
+kpipewire_logging: error: "Failed to connect to PipeWire" 0
+received error while creating the stream "Failed to connect to PipeWire" Media monitor will not work.
+wayland-presentation-proxy: child_pid=312
+Accepting client connections on sockets: QList("9os-plasma")
+kwin_screencast: Failed to connect PipeWire context
+KONSOLE_READINESS_BACKEND=live-dbus
+KONSOLE_QUERY_HISTORY attempts=2 recording_failed=0 raw=prefix2048+suffix2048 timing_perturbed=1
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=first
+attempt=1 rc=1 termination=exit-status backend=live-dbus pid=1032
+completion=present witness=present terminal_line=unknown remote_line=present
+witness_line=DBUS_A11Y_WITNESS pid=1032 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=288397439647
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=288509844467
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=289421719306
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=289679391842
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=289701081252
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=289805632546
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=289839681109
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=289982358375
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=289995201622
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=290005286129
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=290058945077
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290192881859
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=290222352155
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=290235521870
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=290627452594
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290725949565
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290763056231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290833834920
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291160645622
+DBUS_A11Y_QUERY method=phase=end ok=1 mono_ns=290627452594
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290725949565
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290763056231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290833834920
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291160645622
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=291333172319
+DBUS_A11Y_NODE depth=2 node=3 role=34
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=291434864896
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=291458323114
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291694170479
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=291747943715
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=291776137180
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=291813775136
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=292187490615
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=292195196489
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=292254442343
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=292297652388
+DBUS_A11Y_QUERY method=GetRole phase=end ok=0 mono_ns=293812067049
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=0 mono_ns=293895186175
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_WITNESS pid=1032 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=1032 applications=1 models=0 visited=6 NOT_OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=first
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=last
+attempt=2 rc=0 termination=exit-status backend=live-dbus pid=1032
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=303239455188
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=303304711538
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=303741850655
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=303907998445
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=303909079713
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=303962544958
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=304204730874
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=304571312112
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304572342060
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304573485639
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=304879544542
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=304973321161
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305098328579
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305108880662
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=305611359332
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=306255862015
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306324897650
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306416769982
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=306706609570
+DBUS_A11Y_QUERY method=ath=/org/a11y/atspi/accessible/2147483773 mono_ns=306845949759
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=306857993523
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307089160131
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307132502464
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307165332177
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307265611295
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307395026237
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307398167472
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307416028665
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307436092597
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307654449422
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307935355573
+DBUS_A11Y_NODE depth=4 node=6 role=53
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308047687217
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308068641995
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=308199315923
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=308203538129
+DBUS_A11Y_NODE depth=5 node=7 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308204245502
+DBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=308493280303
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=1032 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=last
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=terminal-first
+attempt=2 rc=0 termination=exit-status backend=live-dbus pid=1032
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=303239455188
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=303304711538
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=303741850655
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=303907998445
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=303909079713
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=303962544958
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=304204730874
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=304571312112
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304572342060
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304573485639
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=304879544542
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=304973321161
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305098328579
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305108880662
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=305611359332
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=306255862015
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306324897650
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306416769982
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=306706609570
+DBUS_A11Y_QUERY method=ath=/org/a11y/atspi/accessible/2147483773 mono_ns=306845949759
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=306857993523
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307089160131
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307132502464
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307165332177
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307265611295
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307395026237
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307398167472
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307416028665
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307436092597
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307654449422
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307935355573
+DBUS_A11Y_NODE depth=4 node=6 role=53
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308047687217
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308068641995
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=308199315923
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=308203538129
+DBUS_A11Y_NODE depth=5 node=7 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308204245502
+DBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=308493280303
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=1032 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=terminal-first
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=terminal-last
+attempt=2 rc=0 termination=exit-status backend=live-dbus pid=1032
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=303239455188
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=303304711538
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=303741850655
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=303907998445
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=303909079713
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=303962544958
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=304204730874
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=304571312112
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304572342060
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304573485639
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=304879544542
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=304973321161
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305098328579
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305108880662
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=305611359332
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=306255862015
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306324897650
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306416769982
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=306706609570
+DBUS_A11Y_QUERY method=ath=/org/a11y/atspi/accessible/2147483773 mono_ns=306845949759
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=306857993523
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307089160131
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307132502464
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307165332177
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307265611295
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307395026237
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307398167472
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307416028665
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307436092597
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307654449422
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307935355573
+DBUS_A11Y_NODE depth=4 node=6 role=53
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308047687217
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308068641995
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=308199315923
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=308203538129
+DBUS_A11Y_NODE depth=5 node=7 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308204245502
+DBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=308493280303
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=1032 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=terminal-last
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=remote-first
+attempt=1 rc=1 termination=exit-status backend=live-dbus pid=1032
+completion=present witness=present terminal_line=unknown remote_line=present
+witness_line=DBUS_A11Y_WITNESS pid=1032 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=288397439647
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=288509844467
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=289421719306
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=289679391842
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=289701081252
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=289805632546
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=289839681109
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=289982358375
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=289995201622
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=290005286129
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=290058945077
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290192881859
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=290222352155
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=290235521870
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=290627452594
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290725949565
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290763056231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290833834920
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291160645622
+DBUS_A11Y_QUERY method=phase=end ok=1 mono_ns=290627452594
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290725949565
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290763056231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290833834920
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291160645622
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=291333172319
+DBUS_A11Y_NODE depth=2 node=3 role=34
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=291434864896
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=291458323114
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291694170479
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=291747943715
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=291776137180
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=291813775136
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=292187490615
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=292195196489
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=292254442343
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=292297652388
+DBUS_A11Y_QUERY method=GetRole phase=end ok=0 mono_ns=293812067049
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=0 mono_ns=293895186175
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_WITNESS pid=1032 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=1032 applications=1 models=0 visited=6 NOT_OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=remote-first
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=remote-last
+attempt=1 rc=1 termination=exit-status backend=live-dbus pid=1032
+completion=present witness=present terminal_line=unknown remote_line=present
+witness_line=DBUS_A11Y_WITNESS pid=1032 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=288397439647
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=288509844467
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=289421719306
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=289679391842
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=289701081252
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=289805632546
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=289839681109
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=289982358375
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=289995201622
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=290005286129
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=290058945077
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290192881859
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=290222352155
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=290235521870
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=290627452594
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290725949565
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290763056231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290833834920
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291160645622
+DBUS_A11Y_QUERY method=phase=end ok=1 mono_ns=290627452594
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290725949565
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290763056231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290833834920
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291160645622
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=291333172319
+DBUS_A11Y_NODE depth=2 node=3 role=34
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=291434864896
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=291458323114
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291694170479
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=291747943715
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=291776137180
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=291813775136
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=292187490615
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=292195196489
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=292254442343
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=292297652388
+DBUS_A11Y_QUERY method=GetRole phase=end ok=0 mono_ns=293812067049
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=0 mono_ns=293895186175
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_WITNESS pid=1032 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=1032 applications=1 models=0 visited=6 NOT_OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=remote-last
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=witness-first
+attempt=1 rc=1 termination=exit-status backend=live-dbus pid=1032
+completion=present witness=present terminal_line=unknown remote_line=present
+witness_line=DBUS_A11Y_WITNESS pid=1032 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=288397439647
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=288509844467
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=289421719306
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=289679391842
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=289701081252
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=289805632546
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=289839681109
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=289982358375
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=289995201622
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=290005286129
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=290058945077
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290192881859
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=290222352155
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=290235521870
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=290627452594
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290725949565
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290763056231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290833834920
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291160645622
+DBUS_A11Y_QUERY method=phase=end ok=1 mono_ns=290627452594
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=290725949565
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290763056231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=290833834920
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291160645622
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=291333172319
+DBUS_A11Y_NODE depth=2 node=3 role=34
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=291434864896
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=291458323114
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=291694170479
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=291747943715
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=291776137180
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=291813775136
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=292187490615
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=292195196489
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=292254442343
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=292297652388
+DBUS_A11Y_QUERY method=GetRole phase=end ok=0 mono_ns=293812067049
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=0 mono_ns=293895186175
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_WITNESS pid=1032 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=1032 applications=1 models=0 visited=6 NOT_OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=witness-first
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=witness-last
+attempt=2 rc=0 termination=exit-status backend=live-dbus pid=1032
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=303239455188
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=303304711538
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=303741850655
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=303907998445
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=303909079713
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=303962544958
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=304204730874
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=304571312112
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304572342060
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304573485639
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=304879544542
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=304973321161
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305098328579
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305108880662
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=305611359332
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=306255862015
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306324897650
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306416769982
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=306706609570
+DBUS_A11Y_QUERY method=ath=/org/a11y/atspi/accessible/2147483773 mono_ns=306845949759
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=306857993523
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307089160131
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307132502464
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307165332177
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307265611295
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307395026237
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307398167472
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307416028665
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307436092597
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307654449422
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307935355573
+DBUS_A11Y_NODE depth=4 node=6 role=53
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308047687217
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308068641995
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=308199315923
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=308203538129
+DBUS_A11Y_NODE depth=5 node=7 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308204245502
+DBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=308493280303
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=1032 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=witness-last
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=303239455188
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=303304711538
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=303741850655
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=303907998445
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=303909079713
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=303962544958
+DBUS_A11Y_OWNER bus=:1.0 pid=407 target=1032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=304204730874
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=304571312112
+DBUS_A11Y_OWNER bus=:1.2 pid=1032 target=1032
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304572342060
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/root mono_ns=304573485639
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=304879544542
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=304973321161
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305098328579
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483761 mono_ns=305108880662
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=305611359332
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=306255862015
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306324897650
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483778 mono_ns=306416769982
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=306706609570
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=306825965802
+DBUS_A11Y_NODE depth=2 node=3 role=34
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=306845949759
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483773 mono_ns=306857993523
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307089160131
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307132502464
+DBUS_A11Y_NODE depth=2 node=4 role=20
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307165332177
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483770 mono_ns=307265611295
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307395026237
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307398167472
+DBUS_A11Y_NODE depth=3 node=5 role=30
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307416028665
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483769 mono_ns=307436092597
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=307654449422
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=307935355573
+DBUS_A11Y_NODE depth=4 node=6 role=53
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308047687217
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308068641995
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=308199315923
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=308203538129
+DBUS_A11Y_NODE depth=5 node=7 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/2147483768 mono_ns=308204245502
+DBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=308493280303
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=1032 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=1032 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+/dev/pts/0
+KDE_INTERACTIVE_PTY
+KONSOLE_FOCUSED_TERMINAL_READY
+alpine-plasma: real wallpaper/panel rendered; independent host acceptance required
+[
+  {
+    "identifier": "1:1:AT_Translated_Set_2_keyboard",
+    "name": "AT Translated Set 2 keyboard",
+    "type": "keyboard",
+    "repeat_delay": 600,
+    "repeat_rate": 25,
+    "xkb_layout_names": [
+      "English (US)"
+    ],
+    "xkb_active_layout_index": 0,
+    "xkb_active_layout_name": "English (US)",
+    "libinput": {
+      "send_events": "enabled"
+    },
+    "vendor": 1,
+    "product": 1
+  },
+  {
+    "identifier": "1575:3:QEMU_Virtio_Tablet",
+    "name": "QEMU Virtio Tablet",
+    "type": "pointer",
+    "scroll_factor": 1.0,
+    "libinput": {
+      "send_events": "enabled",
+      "natural_scroll": "disabled",
+      "left_handed": "disabled",
+      "middle_emulation": "disabled",
+      "calibration_matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "vendor": 1575,
+    "product": 3
+  },
+  {
+    "identifier": "1575:1:QEMU_Virtio_Keyboard",
+    "name": "QEMU Virtio Keyboard",
+    "type": "keyboard",
+    "repeat_delay": 600,
+    "repeat_rate": 25,
+    "xkb_layout_names": [
+      "English (US)"
+    ],
+    "xkb_active_layout_index": 0,
+    "xkb_active_layout_name": "English (US)",
+    "libinput": {
+      "send_events": "enabled"
+    },
+    "vendor": 1575,
+    "product": 1
+  }
+]
+00:00:00.000 [INFO] [sway/main.c:295] Sway version 1.10.1
+00:00:00.002 [INFO] [sway/main.c:296] wlroots version 0.18.2
+00:00:00.012 [INFO] [sway/main.c:81] Linux 9os 6.1.0-9os #1 9os Oct 19 2026 x86_64 Linux
+00:00:00.044 [INFO] [sway/main.c:97] Contents of /etc/os-release:
+00:00:00.045 [INFO] [sway/main.c:81] NAME="Alpine Linux"
+00:00:00.045 [INFO] [sway/main.c:81] ID=alpine
+00:00:00.045 [INFO] [sway/main.c:81] VERSION_ID=3.22.6
+00:00:00.045 [INFO] [sway/main.c:81] PRETTY_NAME="Alpine Linux v3.22"
+00:00:00.045 [INFO] [sway/main.c:81] HOME_URL="https://alpinelinux.org/"
+00:00:00.045 [INFO] [sway/main.c:81] BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+00:00:00.045 [INFO] [sway/main.c:69] LD_LIBRARY_PATH=
+00:00:00.046 [INFO] [sway/main.c:69] LD_PRELOAD=
+00:00:00.046 [INFO] [sway/main.c:69] PATH=/bin:/sbin:/usr/bin:/usr/sbin
+00:00:00.046 [INFO] [sway/main.c:69] SWAYSOCK=
+00:00:00.046 [INFO] [sway/main.c:332] Starting sway version 1.10.1
+00:00:00.046 [DEBUG] [sway/server.c:218] Initializing Wayland server
+00:00:00.055 [INFO] [wlr] [backend/backend.c:350] Loading user-specified backends due to WLR_BACKENDS: drm,libinput
+00:00:00.064 [INFO] [wlr] [libseat] [libseat/libseat.c:62] Seat opened with backend 'seatd'
+00:00:00.065 [INFO] [wlr] [libseat] [libseat/backend/seatd.c:212] Enabling seat
+00:00:00.065 [INFO] [wlr] [backend/session/session.c:108] Successfully loaded libseat session
+00:00:00.269 [INFO] [wlr] [backend/backend.c:256] Found 1 GPUs
+00:00:00.360 [INFO] [wlr] [backend/drm/backend.c:185] Initializing DRM backend for /dev/dri/card0 (9os)
+00:00:00.361 [DEBUG] [wlr] [backend/drm/drm.c:111] Using atomic DRM interface
+00:00:00.362 [DEBUG] [wlr] [backend/drm/drm.c:131] ADDFB2 modifiers supported
+00:00:00.362 [INFO] [wlr] [backend/drm/drm.c:310] Found 1 DRM CRTCs
+00:00:00.365 [INFO] [wlr] [backend/drm/drm.c:268] Found 2 DRM planes
+00:00:00.372 [INFO] [wlr] [util/env.c:25] Loading WLR_RENDERER option: pixman
+00:00:00.373 [INFO] [wlr] [render/pixman/renderer.c:328] Creating pixman renderer
+00:00:00.378 [DEBUG] [wlr] [render/allocator/allocator.c:132] Trying to create drm dumb allocator
+00:00:00.379 [DEBUG] [wlr] [render/allocator/allocator.c:45] drmModeCreateLease failed, falling back to plain open
+00:00:00.435 [DEBUG] [wlr] [render/allocator/drm_dumb.c:228] Created DRM dumb allocator
+00:00:00.442 [DEBUG] [wlr] [types/wlr_drm_lease_v1.c:637] Creating wlr_drm_lease_device_v1 for /dev/dri/card0
+00:00:00.448 [INFO] [wlr] [backend/headless/backend.c:67] Creating headless backend
+00:00:00.756 [INFO] [sway/config.c:422] Loading config from /tmp/alpine-plasma-bgoMNm/sway.conf
+00:00:00.756 [DEBUG] [sway/config.c:797] Read line 1: default_border none
+00:00:00.757 [INFO] [sway/commands.c:381] Config command: default_border none
+00:00:00.758 [INFO] [sway/commands.c:404] After replacement: default_border none
+00:00:00.759 [DEBUG] [sway/config.c:797] Read line 2: default_floating_border none
+00:00:00.759 [INFO] [sway/commands.c:381] Config command: default_floating_border none
+00:00:00.759 [INFO] [sway/commands.c:404] After replacement: default_floating_border none
+00:00:00.760 [DEBUG] [sway/config.c:797] Read line 3: for_window [app_id="kwin_wayland"] fullscreen enable
+00:00:00.760 [INFO] [sway/commands.c:381] Config command: for_window [app_id="kwin_wayland"] fullscreen enable
+00:00:00.760 [INFO] [sway/commands.c:404] After replacement: for_window [app_id="kwin_wayland"] fullscreen enable
+00:00:00.761 [DEBUG] [sway/criteria.c:726] Found pair: app_id=kwin_wayland
+00:00:00.769 [DEBUG] [sway/commands/for_window.c:34] for_window: '[app_id="kwin_wayland"]' -> 'fullscreen enable' added
+00:00:01.647 [DEBUG] [sway/input/input-manager.c:190] no fallback seat config - creating default
+00:00:01.648 [DEBUG] [sway/config/seat.c:65] Adding non-wildcard seat config
+00:00:01.649 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:01.649 [DEBUG] [sway/input/input-manager.c:629] applying seat config for seat seat0
+00:00:01.650 [DEBUG] [sway/input/input-manager.c:629] applying seat config for seat seat0
+00:00:01.650 [DEBUG] [sway/config/output.c:1155] spawn_swaybg cmd[0] = swaybg
+00:00:01.796 [INFO] [sway/realtime.c:35] Failed to set scheduling priority to 1
+00:00:01.814 [DEBUG] [sway/server.c:460] Initializing Xwayland (lazy=1)
+00:00:01.870 [ERROR] [sway/config/output.c:1080] failed to execute 'swaybg' (background configuration probably not applied): No such file or directory
+00:00:01.910 [INFO] [wlr] [xwayland/sockets.c:119] Created /tmp/.X11-unix ourselves -- other users will be unable to create X11 UNIX sockets of their own
+00:00:02.593 [INFO] [sway/server.c:487] Starting backend on wayland display 'wayland-1'
+00:00:02.611 [INFO] [wlr] [backend/drm/drm.c:1703] Scanning DRM connectors on /dev/dri/card0
+00:00:02.685 [INFO] [wlr] [backend/drm/drm.c:1754] Found connector 'Virtual-1'
+00:00:02.686 [INFO] [wlr] [backend/drm/drm.c:1779] 'Virtual-1' connected
+00:00:02.686 [DEBUG] [wlr] [backend/drm/drm.c:1569] Current CRTC: -1
+00:00:02.686 [INFO] [wlr] [backend/drm/drm.c:1583] Detected modes:
+00:00:02.687 [INFO] [wlr] [backend/drm/drm.c:1613]   1280x800 @ 60.000 Hz (preferred)
+00:00:02.687 [INFO] [wlr] [backend/drm/drm.c:1633] Physical size: 338x211
+00:00:02.695 [DEBUG] [wlr] [backend/drm/drm.c:1345] Reallocating CRTCs
+00:00:02.696 [DEBUG] [wlr] [backend/drm/drm.c:1408]   Connector Virtual-1 (connected): no CRTC (no change)
+00:00:02.696 [INFO] [wlr] [backend/drm/drm.c:1815] connector Virtual-1: Requesting modeset
+00:00:02.697 [DEBUG] [sway/desktop/output.c:564] New output 0x7e39d05ed350: Virtual-1 (non-desktop: 0)
+00:00:02.701 [DEBUG] [wlr] [backend/libinput/backend.c:88] Starting libinput backend
+00:00:03.134 [DEBUG] [wlr] [backend/libinput/events.c:69] Adding QEMU Virtio Keyboard [1575:1]
+00:00:03.137 [DEBUG] [sway/input/input-manager.c:240] adding device: '1575:1:QEMU_Virtio_Keyboard'
+00:00:03.138 [DEBUG] [sway/input/seat.c:949] adding device 1575:1:QEMU_Virtio_Keyboard to seat seat0
+00:00:03.239 [DEBUG] [sway/input/keyboard.c:910] Created keyboard group 0x7e39d018aab0
+00:00:03.239 [DEBUG] [sway/input/keyboard.c:933] Adding keyboard 1575:1:QEMU_Virtio_Keyboard to group 0x7e39d018aab0
+00:00:03.272 [DEBUG] [wlr] [backend/libinput/events.c:69] Adding QEMU Virtio Tablet [1575:3]
+00:00:03.273 [DEBUG] [sway/input/input-manager.c:240] adding device: '1575:3:QEMU_Virtio_Tablet'
+00:00:03.274 [DEBUG] [sway/input/seat.c:949] adding device 1575:3:QEMU_Virtio_Tablet to seat seat0
+00:00:03.278 [DEBUG] [wlr] [xcursor/wlr_xcursor.c:224] Loaded cursor theme 'default' at size 24 (26 available cursors)
+00:00:03.280 [DEBUG] [sway/input/seat.c:698] Applying input mapping to 1575:3:QEMU_Virtio_Tablet
+00:00:03.281 [DEBUG] [wlr] [backend/libinput/events.c:69] Adding AT Translated Set 2 keyboard [1:1]
+00:00:03.281 [DEBUG] [sway/input/input-manager.c:240] adding device: '1:1:AT_Translated_Set_2_keyboard'
+00:00:03.281 [DEBUG] [sway/input/seat.c:949] adding device 1:1:AT_Translated_Set_2_keyboard to seat seat0
+00:00:03.384 [DEBUG] [sway/input/keyboard.c:885] Adding keyboard 1:1:AT_Translated_Set_2_keyboard to group 0x7e39d018aab0
+00:00:03.415 [DEBUG] [wlr] [backend/libinput/backend.c:125] libinput successfully initialized
+00:00:03.416 [INFO] [wlr] [backend/headless/backend.c:17] Starting headless backend
+00:00:03.417 [DEBUG] [sway/config/output.c:870] Committing 1 outputs
+00:00:03.418 [DEBUG] [sway/config/output.c:633] Output state for Virtual-1
+00:00:03.419 [DEBUG] [sway/config/output.c:635]     enabled:       yes
+00:00:03.419 [DEBUG] [sway/config/output.c:639]     render_format: XR24
+00:00:03.419 [DEBUG] [sway/config/output.c:647]     mode:          1280x800@60000mHz (preferred)
+00:00:03.419 [DEBUG] [sway/config/output.c:657]     scale:         1.000000
+00:00:03.419 [DEBUG] [sway/config/output.c:660]     subpixel:      rgb
+00:00:03.421 [DEBUG] [wlr] [types/wlr_output_swapchain_manager.c:160] Preparing test commit for 1 outputs with explicit modifiers
+00:00:03.421 [DEBUG] [wlr] [backend/drm/drm.c:1345] Reallocating CRTCs
+00:00:03.421 [DEBUG] [wlr] [backend/drm/drm.c:1408]   Connector Virtual-1 (connected, needs CRTC): no CRTC → CRTC 33
+00:00:03.422 [DEBUG] [wlr] [render/swapchain.c:106] Allocating new swapchain buffer
+00:00:03.450 [DEBUG] [wlr] [render/allocator/drm_dumb.c:105] Allocated 1280x800 DRM dumb buffer
+00:00:03.457 [DEBUG] [wlr] [types/wlr_output_swapchain_manager.c:181] Test commit for 1 outputs succeeded
+00:00:03.460 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 1280x800
+00:00:03.500 [DEBUG] [sway/config/output.c:930] Commit of 1 outputs succeeded
+00:00:03.500 [DEBUG] [sway/config/output.c:936] Finalizing config for Virtual-1
+00:00:03.503 [DEBUG] [wlr] [xcursor/wlr_xcursor.c:224] Loaded cursor theme 'default' at size 24 (26 available cursors)
+00:00:03.504 [DEBUG] [wlr] [render/swapchain.c:106] Allocating new swapchain buffer
+00:00:03.505 [DEBUG] [wlr] [render/allocator/drm_dumb.c:105] Allocated 64x64 DRM dumb buffer
+00:00:03.505 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 64x64
+00:00:03.508 [DEBUG] [sway/tree/workspace.c:294] Workspace: Generating new workspace name for output Virtual-1
+00:00:03.508 [DEBUG] [sway/tree/output.c:163] Creating default workspace 1
+00:00:03.508 [DEBUG] [sway/tree/workspace.c:65] Adding workspace 1 for output Virtual-1
+00:00:03.510 [DEBUG] [sway/desktop/layer_shell.c:96] Usable area changed, rearranging output
+00:00:03.510 [DEBUG] [sway/tree/arrange.c:262] Usable area for ws: 1280x800@0,0
+00:00:03.511 [DEBUG] [sway/tree/arrange.c:296] Arranging workspace '1' at 0.000000, 0.000000
+00:00:03.511 [DEBUG] [sway/tree/arrange.c:262] Usable area for ws: 1280x800@0,0
+00:00:03.512 [DEBUG] [sway/tree/arrange.c:296] Arranging workspace '1' at 0.000000, 0.000000
+00:00:03.513 [DEBUG] [sway/desktop/transaction.c:799] Transaction 0x7e39d01c1540 committing with 2 instructions
+00:00:03.514 [DEBUG] [sway/desktop/transaction.c:695] Applying transaction 0x7e39d01c1540
+00:00:03.516 [DEBUG] [sway/input/seat.c:698] Applying input mapping to 1575:3:QEMU_Virtio_Tablet
+00:00:03.517 [INFO] [sway/server.c:499] Running compositor on wayland display 'wayland-1'
+00:00:03.518 [DEBUG] [wlr] [render/swapchain.c:106] Allocating new swapchain buffer
+00:00:03.540 [DEBUG] [wlr] [render/allocator/drm_dumb.c:105] Allocated 1280x800 DRM dumb buffer
+00:00:03.540 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 1280x800
+00:00:03.563 [DEBUG] [sway/ipc-server.c:196] New client: fd 38
+00:00:03.585 [INFO] [sway/ipc-server.c:570] IPC Client 38 disconnected
+00:00:18.032 [DEBUG] [wlr] [types/wlr_compositor.c:771] New wlr_surface 0x7e39d017c630 (res 0x7e39d01a72e0)
+00:00:18.059 [DEBUG] [wlr] [types/xdg_shell/wlr_xdg_surface.c:401] new xdg_surface 0x7e39d01b3de0 (res 0x7e39d01a7370)
+00:00:18.061 [DEBUG] [sway/desktop/xdg_shell.c:548] New xdg_shell toplevel title='(null)' app_id='(null)'
+00:00:18.066 [DEBUG] [wlr] [types/wlr_compositor.c:771] New wlr_surface 0x7e39d017ca40 (res 0x7e39d01a79a0)
+00:00:18.075 [DEBUG] [wlr] [types/wlr_xdg_decoration_v1.c:216] new xdg_toplevel_decoration 0x7e39d01295e0 (res 0x7e39d01a7be0)
+00:00:31.559 [DEBUG] [sway/tree/arrange.c:262] Usable area for ws: 1280x800@0,0
+00:00:31.562 [DEBUG] [sway/tree/arrange.c:296] Arranging workspace '1' at 0.000000, 0.000000
+00:00:31.563 [DEBUG] [sway/tree/arrange.c:76] Arranging 0x7ffcb0f95028 horizontally
+00:00:31.594 [DEBUG] [sway/desktop/transaction.c:799] Transaction 0x7e39d01c1540 committing with 3 instructions
+00:00:31.826 [DEBUG] [sway/desktop/transaction.c:757] Transaction 0x7e39d01c1540 timed out (1 waiting)
+00:00:31.853 [DEBUG] [sway/desktop/transaction.c:695] Applying transaction 0x7e39d01c1540
+00:00:32.466 [DEBUG] [wlr] [render/swapchain.c:106] Allocating new swapchain buffer
+00:00:32.540 [DEBUG] [wlr] [render/allocator/drm_dumb.c:105] Allocated 64x64 DRM dumb buffer
+00:00:32.540 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 64x64
+00:00:32.636 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:00:32.636 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:01:51.306 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:01:51.309 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:01:52.821 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:01:52.841 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:01:56.437 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:01:56.442 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:02:04.139 [DEBUG] [sway/ipc-server.c:196] New client: fd 46
+00:02:04.310 [INFO] [sway/ipc-server.c:570] IPC Client 46 disconnected
+00:02:04.899 [DEBUG] [sway/ipc-server.c:196] New client: fd 46
+00:02:05.084 [INFO] [sway/ipc-server.c:570] IPC Client 46 disconnected
+00:02:06.134 [DEBUG] [wlr] [types/output/render.c:146] Disabling direct scan-out on output 'Virtual-1' (locks: 1)
+00:02:06.145 [DEBUG] [wlr] [types/output/output.c:890] Direct scan-out disabled by lock
+00:02:06.201 [DEBUG] [wlr] [types/output/render.c:146] Enabling direct scan-out on output 'Virtual-1' (locks: 0)
+00:02:11.435 [DEBUG] [wlr] [types/output/render.c:146] Disabling direct scan-out on output 'Virtual-1' (locks: 1)
+00:02:11.486 [DEBUG] [wlr] [types/output/output.c:890] Direct scan-out disabled by lock
+00:02:11.591 [DEBUG] [wlr] [types/output/render.c:146] Enabling direct scan-out on output 'Virtual-1' (locks: 0)
+00:02:12.741 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:02:12.744 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:02:15.972 [DEBUG] [wlr] [types/output/render.c:146] Disabling direct scan-out on output 'Virtual-1' (locks: 1)
+00:02:15.978 [DEBUG] [wlr] [types/output/output.c:890] Direct scan-out disabled by lock
+00:02:16.156 [DEBUG] [wlr] [types/output/render.c:146] Enabling direct scan-out on output 'Virtual-1' (locks: 0)
+00:02:20.519 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:02:20.524 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:02:20.651 [DEBUG] [wlr] [types/output/render.c:146] Disabling direct scan-out on output 'Virtual-1' (locks: 1)
+00:02:20.667 [DEBUG] [wlr] [types/output/output.c:890] Direct scan-out disabled by lock
+00:02:21.397 [DEBUG] [wlr] [types/output/render.c:146] Enabling direct scan-out on output 'Virtual-1' (locks: 0)
+00:02:21.401 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:02:21.405 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:02:21.684 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:02:21.698 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:02:22.108 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:02:22.120 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:02:22.975 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:02:22.975 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:02:24.379 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:02:24.383 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:02:26.813 [DEBUG] [wlr] [types/output/render.c:146] Disabling direct scan-out on output 'Virtual-1' (locks: 1)
+00:02:26.839 [DEBUG] [wlr] [types/output/output.c:890] Direct scan-out disabled by lock
+00:02:26.978 [DEBUG] [wlr] [types/output/render.c:146] Enabling direct scan-out on output 'Virtual-1' (locks: 0)
+00:02:27.614 [DEBUG] [wlr] [types/output/render.c:146] Disabling direct scan-out on output 'Virtual-1' (locks: 1)
+00:02:27.619 [DEBUG] [wlr] [types/output/output.c:890] Direct scan-out disabled by lock
+00:02:27.778 [DEBUG] [wlr] [types/output/render.c:146] Enabling direct scan-out on output 'Virtual-1' (locks: 0)
+00:03:23.395 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:03:23.534 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:03:25.033 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:03:25.104 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:03:27.054 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:03:27.064 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:03:29.088 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:03:29.136 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:23.710 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:24.126 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:25.110 [DEBUG] [wlr] [render/swapchain.c:106] Allocating new swapchain buffer
+00:04:25.162 [DEBUG] [wlr] [render/allocator/drm_dumb.c:105] Allocated 64x64 DRM dumb buffer
+00:04:25.164 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 64x64
+00:04:25.171 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:25.172 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:25.657 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:25.683 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:26.657 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:26.749 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:27.293 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:27.345 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:27.828 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:27.918 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:28.309 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:28.393 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:29.167 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:29.208 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:30.374 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:30.450 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:30.712 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:30.797 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:32.240 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:32.240 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:32.974 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:33.012 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:33.278 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:33.339 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:33.943 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:34.005 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:34.346 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:34.384 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:35.349 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:35.396 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:35.889 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:35.898 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:36.719 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:36.747 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:37.493 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:37.529 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:37.939 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:38.033 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:42.114 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:42.161 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:42.508 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:42.584 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:42.944 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:42.987 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:43.287 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:43.333 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:43.621 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:43.653 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+00:04:43.816 [DEBUG] [sway/ipc-server.c:196] New client: fd 47
+00:04:44.075 [INFO] [sway/ipc-server.c:570] IPC Client 47 disconnected
+00:04:44.196 [DEBUG] [wlr] [backend/drm/fb.c:147] Failed to get DMA-BUF from buffer
+00:04:44.232 [DEBUG] [wlr] [backend/drm/drm.c:744] connector Virtual-1: Failed to import buffer for scan-out
+QLayout: Cannot add a null widget to QHBoxLayout/
+ALPINE_PLASMA_INPUT_READY
+DOLPHIN_CLIENT_PID=1844 uid=1000
+DOLPHIN_URL_READY service=org.kde.dolphin-1844 object=/dolphin/Dolphin_1
+A11Y_PHASE init
+A11Y_APPLICATIONS=3
+A11Y_APP_PID=407
+A11Y_APP_PID=1032
+A11Y_APP_PID=1844
+A11Y_MODEL directory=/tmp/alpine-dolphin-hlNENj/files rows=1
+A11Y_NAME +before.txt matches=1
+A11Y_NAME -after.txt matches=0
+A11Y_NAME -new.txt matches=0
+desktopa11y: pid=1844 application=1 models=1 visited=25 PASSED
+A11Y_PHASE init
+A11Y_APPLICATIONS=3
+A11Y_APP_PID=407
+A11Y_APP_PID=1032
+A11Y_APP_PID=1844
+A11Y_MODEL directory=/tmp/alpine-dolphin-hlNENj/files rows=2
+A11Y_NAME +after.txt matches=1
+A11Y_NAME +new.txt matches=1
+A11Y_NAME -before.txt matches=0
+desktopa11y: pid=1844 application=1 models=1 visited=25 PASSED
+DOLPHIN_WINDOW_ACTIVE=1
+copy fb 43 res 0 cursor sw
+commits 95 zero-copy 0 copy 95
+DOLPHIN_MODEL_READY uid=1000 service=org.kde.dolphin-1844 object=/dolphin/Dolphin_1
+method return time=1792395914.086555 sender=:1.119 -> destination=:1.170 serial=64 reply_serial=2
+alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit
+org.kde.dolphin: Could not load default global viewproperties
+org.kde.dolphin: Could not load default global viewproperties
+Skipped method "changeUrl" : Type not registered with QtDBus in parameter list: QUrl
+Skipped method "slotTerminalDirectoryChanged" : Type not registered with QtDBus in parameter list: QUrl
+Unsupported return type 65612 DolphinTabPage* in method "openNewTab"
+Skipped method "openNewTabAndActivate" : Type not registered with QtDBus in parameter list: QUrl
+Skipped method "openNewWindow" : Type not registered with QtDBus in parameter list: QUrl
+Unsupported return type 4097 QPixmap in method "grab"
+Unsupported return type 4097 QPixmap in method "grab"
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.1' (uid=1000 pid=312 comm="kwin_wayland --wayland-display /tmp/alpine-plasma-")
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.2' (uid=1000 pid=362 comm="/usr/libexec/xdg-desktop-portal")
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.2' (uid=1000 pid=362 comm="/usr/libexec/xdg-desktop-portal")
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+fuse: device not found, try 'modprobe fuse' first
+error: fuse init failed: Can't mount path /tmp/alpine-plasma-bgoMNm/doc
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:37:53.664: Document portal fuse mount point unknown: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name :1.4 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:37:53.680: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.2' (uid=1000 pid=362 comm="/usr/libexec/xdg-desktop-portal")
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.24' (uid=1000 pid=407 comm="/usr/libexec/xdg-desktop-portal-gtk")
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[536]: Activating service name='org.a11y.atspi.Registry' requested by ':1.0' (uid=1000 pid=407 comm="/usr/libexec/xdg-desktop-portal-gtk")
+dbus-daemon[536]: Successfully activated service 'org.a11y.atspi.Registry'
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:22.377: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:22.622: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:22.891: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:23.033: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:23.170: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:23.330: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:23.575: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:24.613: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:25.270: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:26.594: Failed connect to PipeWire: Couldn't connect to PipeWire
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:26.910: Choosing gtk.portal for org.freedesktop.impl.portal.Wallpaper as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:27.426: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:27.599: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:362): xdg-desktop-portal-WARNING **: 07:38:28.988: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activating service name='org.kde.ActivityManager' requested by ':1.14' (uid=1000 pid=391 comm="plasmashell --replace --no-respawn")
+kf.windowsystem: virtual void KX11Extras::connectNotify(const QMetaMethod&) may only be used on X11
+kf.windowsystem: virtual void KX11Extras::connectNotify(const QMetaMethod&) may only be used on X11
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Successfully activated service 'org.kde.ActivityManager'
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activating service name='org.kde.kded6' requested by ':1.64' (uid=1000 pid=892 comm="/usr/lib/libexec/kf6/kioworker /usr/lib/qt6/plugin")
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activating service name='org.kde.KSplash' requested by ':1.14' (uid=1000 pid=391 comm="plasmashell --replace --no-respawn")
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Successfully activated service 'org.kde.kded6'
+kf.config.kconf_update: /usr/share/kconf_update/dolphin_directorysizemode.upd defined Version=5 but Version=6 was expected
+kf.config.kconf_update: /usr/share/kconf_update/filepicker.upd defined Version=5 but Version=6 was expected
+org.kde.plasma.waitforname: WaitForName: Service was not registered within timeout
+dbus-daemon[227]: [session uid=1000 pid=18446744073709551615 pidfd=5] Activated service 'org.kde.KSplash' failed: Process org.kde.KSplash exited with status 1
+QProcess: Destroyed while process ("/usr/lib/kconf_update_bin/kwin-6.1-remove-gridview-expose-shortcuts") is still running.
+Gdk-Message: 07:45:35.997: Error reading events from display: Broken pipe
+The Wayland connection broke. Did the Wayland compositor die?
+The Wayland connection broke. Did the Wayland compositor die?
+00:00:00.025 [INFO] [seatd/seat.c:48] Created VT-bound seat seat0
+00:00:00.090 [INFO] [seatd/seatd.c:194] seatd started
+00:00:05.274 [INFO] [seatd/server.c:145] New client connected (pid: 234, uid: 1000, gid: 1000)
+00:00:05.276 [INFO] [seatd/seat.c:239] Added client 1 to seat0
+00:00:05.276 [DEBUG] [common/terminal.c:196] Setting process switching to 1
+00:00:05.276 [DEBUG] [common/terminal.c:244] Setting KD keyboard state to 0
+00:00:05.276 [DEBUG] [common/terminal.c:271] Setting KD graphics state to 1
+00:00:05.278 [INFO] [seatd/seat.c:563] Opened client 1 on seat0
+00:00:05.389 [DEBUG] [seatd/seat.c:324] Opening device /dev/dri/card0 for client 1 on seat0
+00:00:08.060 [DEBUG] [seatd/seat.c:324] Opening device /dev/input/event0 for client 1 on seat0
+00:00:08.186 [DEBUG] [seatd/seat.c:324] Opening device /dev/input/event1 for client 1 on seat0
+00:00:08.304 [DEBUG] [seatd/seat.c:324] Opening device /dev/input/event2 for client 1 on seat0
+00:08:07.330 [DEBUG] [seatd/seat.c:474] Closing device /dev/dri/card0 for client 1 on seat0
+00:08:07.352 [DEBUG] [seatd/seat.c:474] Closing device /dev/input/event0 for client 1 on seat0
+00:08:07.362 [DEBUG] [seatd/seat.c:474] Closing device /dev/input/event1 for client 1 on seat0
+00:08:07.364 [DEBUG] [seatd/seat.c:474] Closing device /dev/input/event2 for client 1 on seat0
+00:08:07.381 [INFO] [seatd/seat.c:158] No clients on seat0 to activate
+00:08:07.382 [DEBUG] [seatd/seat.c:277] Closing active VT
+00:08:07.382 [DEBUG] [common/terminal.c:196] Setting process switching to 1
+00:08:07.382 [DEBUG] [common/terminal.c:244] Setting KD keyboard state to 1
+00:08:07.382 [DEBUG] [common/terminal.c:271] Setting KD graphics state to 0
+00:08:07.382 [INFO] [seatd/seat.c:290] Removed client 1 from seat0
+00:08:07.384 [INFO] [seatd/client.c:496] Client disconnected
+00:08:09.574 [INFO] [seatd/seatd.c:218] seatd stopped
+__RC15=0
+[1]+  Done                       (if alpine-plasma-user-probe 1>/tmp/plasma-kms.log 2>&1; then echo 0; else echo ${?}; fi; mv /tmp/plasma-kms.status.tmp /tmp/plasma-kms.status)
+root@9os:~# grep -q "^violations 0" /proc/lockdep; echo __RC16=$?
+__RC16=0
+poweroffroot@9os:~# poweroff
+root@9os:~# 9os shutting down
+The system is going down NOW!
+Sent SIGTERM to all processes
+Sent SIGKILL to all processes
+Requesting system poweroff
+[ info] system halted
+
+==== 9os test summary (x86_64, SMP=4) ====
+PASS   boot
+PASS   timeout 20 trace-snapshot-selftest && su user -s /bin/sh -c "timeout 20 trace-snapshot-selftest" && timeout 30 qt-key-observer-selftest && su user -s /bin/sh -c "timeout 30 qt-key-observer-selftest" && alpine-desktop-services
+PASS   su user -s /bin/sh -c alpine-udisks-smoke
+PASS   (if ALPINE_TERMINAL_QUERY=live-dbus ALPINE_PLASMA_OUTPUT=kms ALPINE_PLASMA_SERIAL_PNG=0 ALPINE_PLASMA_INTERACTIVE=1 ALPINE_PLASMA_FILEMANAGER=1 ALPINE_PLASMA_INPUT_DONE_FILE=/tmp/kms-input-done ALPINE_DOLPHIN_DONE_FILE=/tmp/dolphin-capture-done alpine-plasma-user-probe >/tmp/plasma-kms.log 2>&1;then echo 0;else echo $?;fi >/tmp/plasma-kms.status.tmp;mv /tmp/plasma-kms.status.tmp /tmp/plasma-kms.status) & echo $! >/tmp/plasma-kms.pid
+PASS   for i in $(seq 700);do grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -x KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -x ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }
+PASS   test ! -e /tmp/kms-input-ok && test ! -e /tmp/kms-tty && test ! -e /tmp/kms-uid && test ! -e /tmp/kms-input-done && test ! -e /tmp/dolphin-capture-done
+PASS   input-capture-session /tmp/physical-events.log /tmp/physical-events.status 45 & for i in $(seq 50);do grep -q "^INPUT_CAPTURE_READY devices=" /tmp/physical-events.log 2>/dev/null && break;sleep .1;done;grep "^INPUT_CAPTURE_READY devices=" /tmp/physical-events.log
+PASS   host:python3 scripts/qemu-screenshot.py /tmp/9os-kms-8K1Dvk/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-before.png
+PASS   host:python3 scripts/qemu-ready-type.py --log /home/runner/work/9os/9os/build/m40-cold/guest1.log --ready-step 3 --qmp /tmp/9os-kms-8K1Dvk/qmp.sock 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\n'
+PASS   for i in $(seq 20);do test ! -e /tmp/kms-input-ok || break;sleep 1;done;cat /tmp/kms-tty;test "$(cat /tmp/kms-input-ok)" = kms-input-ok && grep -q "^/dev/pts/" /tmp/kms-tty && test "$(cat /tmp/kms-uid)" = 1000
+PASS   host:python3 scripts/qemu-screenshot.py /tmp/9os-kms-8K1Dvk/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-after.png
+PASS   for i in $(seq 75);do test ! -f /tmp/physical-events.status || break;sleep 1;done;cat /tmp/physical-events.log;test "$(cat /tmp/physical-events.status)" = 0
+PASS   test "$(cat /tmp/kms-input-ok)" = kms-input-ok && test "$(cat /tmp/kms-uid)" = 1000 && touch /tmp/kms-input-done
+PASS   for i in $(seq 300);do grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/plasma-kms.log || { tail -n 100 /tmp/plasma-kms.log;false; }
+PASS   host:python3 scripts/qemu-dolphin-capture.py /tmp/9os-kms-8K1Dvk/monitor.sock /home/runner/work/9os/9os/build/m40-cold/guest1-dolphin.png
+PASS   grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/plasma-kms.log && touch /tmp/dolphin-capture-done
+PASS   for i in $(seq 150);do test ! -f /tmp/plasma-kms.status || break;sleep 1;done;cat /tmp/plasma-kms.log;test "$(cat /tmp/plasma-kms.status)" = 0 && grep -qx "alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit" /tmp/plasma-kms.log
+PASS   grep -q "^violations 0" /proc/lockdep
+18/18 passed
