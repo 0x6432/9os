@@ -92,6 +92,8 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/test-guest-watchdog-cleanup.py
           python3 scripts/terminal-attempt-history-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-readbacks.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence-mutations.py
           scripts/evdev-host-tests.sh
           python3 scripts/plasma-readiness-host-tests.py
           python3 scripts/input-capture-host-tests.py
