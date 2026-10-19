@@ -1,0 +1,21 @@
+Unfixed source SHA256: dc7307afc192e0eed28b5bc33f7bce91f69bb80c190ac5c4946af8a85efe4d55
+test_complete_correct_od_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_od_bytes_then_nonzero_remain_unobserved) ... ok
+test_complete_correct_tr_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_tr_bytes_then_nonzero_remain_unobserved) ... FAIL
+
+======================================================================
+FAIL: test_complete_correct_tr_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_tr_bytes_then_nonzero_remain_unobserved)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/9os-team-history-transport/scripts/terminal-history-utility-status-host-tests.py", line 13, in test_complete_correct_tr_bytes_then_nonzero_remain_unobserved
+    self.observe('tr',9)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/data/9os-team-history-transport/scripts/terminal-history-utility-status-host-tests.py", line 18, in observe
+    self.assertEqual(r.returncode,0,r.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 9 != 0 : b''
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.011s
+
+FAILED (failures=1)
+PRESERVED F1: od emitted exact bytes then exit7; emitter rc0, decoder accepted, no transport status
