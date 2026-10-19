@@ -1,4 +1,4 @@
-c8e93795908b6b0a0695bb7bba2a66e160522c648edfabd71873734989e20eac  ./README.md
+edff4fcbe9d86101d8cab54a33f03a997605530b498abf4449e555320454b3e8  ./README.md
 825e563f48cb0a70495ad79d582829852c25580fea44480df8190cdbbee3d6d7  ./dispatch-once.json
 f3e185077d07d00f3e98098d46b19e033d70a42910f587f6c01fcca57763af8e  ./independent-review/cold-independent-history-controls.log
 6273232de4d3ef7acd4ecafa5c86beeeb974f56586b21089a2990b3f72facbe6  ./independent-review/cold-independent-plan-controls.log
@@ -8,6 +8,11 @@ ff518e6c240f3a7f007054cdef496b1b6a75908ac98d3fb5f318f4370078d89e  ./independent-
 d6f0a9d0576e8de1a944fcc64b724d333495b2da80591f1c253a427371006bf9  ./independent-review/cold-independent-static-controls.py
 f18fd96be82b4a5666676f436c62665382e8fc80a0045f3c9a054a576ef75a45  ./independent-review/cold-plan-independent-review.md
 80293ea3e2b8f375584679848cf4ec4f33e538f05951763d5fbf2bfc95ec8eca  ./independent-review/services-runtime-independent-review.md
+016d76c41bf58328880cd13ed329f8b7b58e040db24eb0491a282d09d8a4cf93  ./originals/12169792308.zip
+9a0833abf4f2a5bcba37b2d79fd643492ea8b25085b1c1b21c3eb41273aae218  ./originals/12169847710.zip
+598bf07fbf9932c3d65772e0c848d3d3ff5c8d4f6616f8d9d46cf95a1ba8f1b9  ./originals/artifacts-latest.json
+e0013295e9eac9fd85dbdc7f5004932d1b9a13d5a62f5031695543dcd2ee1fab  ./originals/linux1.out.filtered
+ed41fe95157433a9bb821fd1ebf79d8a359495b7998c7558879f3362d11c13b5  ./originals/run-latest.json
 9757188d1eb7cb33e22792309b366b733336cb723451f221b6b4dda5ff5623ac  ./pre-dispatch/M40_COLD_EXPERIMENT.md
 ec47be04fb99a33e422e2cc5e950030143ab0bcc9c5de594a3d9a87259f1341a  ./pre-dispatch/intent.json
 34a8375a7245e4cd44c537ed88b2f9129fa874061c6087bb7f2308778d523cb1  ./pre-dispatch/new-plan-commit.log

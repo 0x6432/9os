@@ -1,0 +1,45 @@
+{
+  "total_count": 2,
+  "artifacts": [
+    {
+      "id": 12169847710,
+      "node_id": "MDg6QXJ0aWZhY3QxMjE2OTg0NzcxMA==",
+      "name": "cold-linux-39215973931",
+      "size_in_bytes": 1258384,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12169847710",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12169847710/zip",
+      "expired": false,
+      "digest": "sha256:9a0833abf4f2a5bcba37b2d79fd643492ea8b25085b1c1b21c3eb41273aae218",
+      "created_at": "2026-10-19T07:36:42Z",
+      "updated_at": "2026-10-19T07:36:42Z",
+      "expires_at": "2027-01-17T07:26:16Z",
+      "workflow_run": {
+        "id": 39215973931,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-team-readiness-cold-validation",
+        "head_sha": "ae0ed93cc17743a6d879f089d4aee1cfb217e16e"
+      }
+    },
+    {
+      "id": 12169792308,
+      "node_id": "MDg6QXJ0aWZhY3QxMjE2OTc5MjMwOA==",
+      "name": "cold-prerequisite-39215973931",
+      "size_in_bytes": 438198,
+      "url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12169792308",
+      "archive_download_url": "https://api.github.com/repos/0x6432/9os/actions/artifacts/12169792308/zip",
+      "expired": false,
+      "digest": "sha256:016d76c41bf58328880cd13ed329f8b7b58e040db24eb0491a282d09d8a4cf93",
+      "created_at": "2026-10-19T07:32:54Z",
+      "updated_at": "2026-10-19T07:32:54Z",
+      "expires_at": "2027-01-17T07:26:16Z",
+      "workflow_run": {
+        "id": 39215973931,
+        "repository_id": 1403992719,
+        "head_repository_id": 1403992719,
+        "head_branch": "notion/m40-team-readiness-cold-validation",
+        "head_sha": "ae0ed93cc17743a6d879f089d4aee1cfb217e16e"
+      }
+    }
+  ]
+}

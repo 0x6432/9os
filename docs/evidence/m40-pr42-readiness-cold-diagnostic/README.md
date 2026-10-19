@@ -23,3 +23,9 @@ Still NOT DISPATCHED at this evidence checkpoint; parent must reverifyzero branc
 Run39215973931, https://github.com/0x6432/9os/actions/runs/39215973931 , dispatched EXACTLYONCE after freshzero-prior-branch-runs check and bothcompletedcurrent-headgates, independentreview and durablepre-dispatchcheckpointf54b7d2. Validationae0ed93/runtime07fd. InitialobservedstateQUEUED; no sampleoutcome yet. Do not POST/rerun/addsamples. Allholdspriorfailuresunchanged.
 
 Two isolated follow-up branches now address the new retained-textsentinel collision and bounded actualUDiskspreply evidence. They do NOT modify PR42head, thismanualbranch, remotecheckout or activefixtures. Their development/testresults are separate from thiscohort and require independentreview/new-headCI before integration.
+
+## First completed results — original Linux control reviewed
+
+Prerequisite artifact12169792308 andLinux artifact12169847710 originals retained. SignedLinux control ACCEPTED17/18applicable: exactsolemissing9oslockdep, driver_rc1/raw_rc0, bothfixturehashchecksTRUE. Hostallowed[0,1,2,3], fixedselected[0,1], guestSMP4/3072M/nohostmemorycap. Raw390events, zero repeats/drops/errors. RuntimeplanJSON pins07fd, validationae0, exactfourfixedsamples, retries0. No controlretry.
+
+At thischeckpoint guest1 is running; guest2/3 outcomes unknown/pending, not counted aspasses. Allthree remain independentlyplanned afteracceptedLinux regardlessofearlierguestfailure. No earlyglobalpassclaim orholdrelease.
