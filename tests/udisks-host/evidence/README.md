@@ -23,3 +23,17 @@ The attempted coordination POLICY.txt path remains absent after reset. Current
 parent restrictions apply: isolated worktree only, no auth/push/CI/VM/heavy or
 non-x86 execution; parent owns integration and product/manual fixture07fd stays
 untouched. Only dedicated UDisks overlay/test/docs changes are in scope.
+
+## Subsequent transcript recovery (append-only provenance correction)
+
+The standalone files were absent at the initial07fc5a4 checkpoint, but the
+committed session transcript still retained the original events. They were
+subsequently recovered through session-event reads and saved tool results,
+**without reexecution**. `review-original-event-297.txt` / command297 and
+`review-original-output-302.log` retain the original optional ARM-lock assumption
+error and unavailable base-diff output; the combined shell tool exited0 because
+its final git-status command succeeded, not because the Python/error checks
+passed. Event318 / command318 / output323 retain the corrected scoped comparison
+and original raw-sentinel mock results, including the UNOBSERVED legal /FAIL path
+case. No result has been relabeled as a new guest observation. SHA256SUMS covers
+the recovered originals; the initially copied review remains verbatim.

@@ -32,6 +32,10 @@ leading newline (separates any partial record), is <=512 bytes for fixed args.
 There are at most three calls; later calls do not execute after an original
 failure. **Added stdout is at most3*(3072+512)=10,752 bytes**, excluding the
 unchanged original final success marker and preexisting command/checker stderr.
+Only recorder-runtime stderr is isolated to /dev/null; a process error emits the
+safe recording=error fallback instead. Neither DBus nor checker stderr is
+redirected, sanitized, suppressed or recoded. This prevents an interpreter/broken
+recorder error string from injecting an arbitrary new host FAIL sentinel.
 This is a bytes/read/output bound, not a total wall-clock or filesystem-size
 bound. dbus-send's redirected file and the original checker limit are unchanged;
 no assertion caps the original DBus stdout file to1024 bytes.
@@ -112,7 +116,15 @@ including the three expected records, rather than dropping diagnostic lines.
 New controls check exact byte roundtrip/offline recovery, binary/FAIL safety,
 1024/1025/65536/65537 boundaries, missing/empty/partial/failed captures, original
 command stderr and command/checker status, recorder/output/I/O failures, fixed
-metadata, no extra calls and no evidence veto of original acceptance. Eight
+metadata, no extra calls and no evidence veto of original acceptance. Nine
 temporary mutations require explicit assertion mismatches; syntax/import/runtime
 failures are not accepted as successful mutation detection. No service emulator,
 VM, kernel/library build, non-x86 execution or new CI job is used here.
+
+The additional recorder-stderr isolation check preserves its expected pre-fix
+gap control at implementation checkpoint ad8a931 in
+`evidence/recorder-stderr-before-isolation.log`: injected recorder stderr caused
+a host sentinel hit despite the original successful scalar status. The final
+version isolates that diagnostic-only stream and explicitly records error, while
+retaining original DBus/checker stderr and status. This was a deliberately broken
+recorder fixture, not a spontaneous guest failure; no historical log was waived.
