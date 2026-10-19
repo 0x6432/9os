@@ -1,0 +1,8 @@
+BYTE-IDENTICAL held driver/evaluator: scripts/m40-cold-driver.sh abd83f5b2669f49ea96bf51a30a4671b58607d2daca337c87afcb5c3e6e42df9
+BYTE-IDENTICAL held driver/evaluator: scripts/m40-cold-run.py 2cd85582703aaa0fd49022edec80ccd8642cbc12c3a5131f3f0d36a8e8cd8e68
+Pinned runtime paths match 07fda66bd9a7904e77b7f3e1051df243ee1e4d21
+Traceback (most recent call last):
+  File "/data/pr42-current/cold-independent-static-controls.py", line 22, in <module>
+    assert a.arch=='x86_64' and a.memory=='3072M' and a.boot_timeout=='300' and a.timeout=='780'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

@@ -7,3 +7,13 @@ One prospective matched cohort only: ONE signedLinux6.12.113-r0 control, then TH
 Purpose is first/last query/state/witness/error/unfinished evidence from newly bounded history, NOT a single-variable performance comparison, coldcure, reliabilityrate or rerun/rescue of priorfailedplans. History recording AND emission occur on success too and perturb timing; missingwitness remainsunknown. AllPR18→42integrationholds remain even ifallthreepass. PriorPR40coldFAILED andearlierfailures unchanged.
 
 Predeclared document, hashes, five hostrejection controls, exactpinnedruntime-emptydiff and zero-prior-run intent preserved before anydispatch. Review/dispatch/results will be appended without modifying producthead or restarting productCI. No localVM/heavybuild occurred duringthisphase.
+
+## Independent review before dispatch
+
+Cold-plan review atae0ed93 found no plan-changing blocker: driver/evaluator byte-identical; exact18/17gates;2hostCPUs/SMP4/3072M; acceptedLinux barrier; allthreeguestsindependent afterLinux; nofallback/retry/rescue. Fiveplancontrols,13historycontrols andindependentstaticchecks pass. Originalreviewerparserfixture failure ($ARCH assumedexpanded duringstaticshlex) and correctedfixture source/log preserved; no runtime orsampleexecuted.
+
+Independent service review inspected allthreeoriginaldesktopjoblogs ANDZIPmembers: sixactualUID1000successes imply allmandatorytypedreads, but rawper-propertyGet replies were temporary, NOT independentlyarchived. All18observedretainedhistoryslots hadzero strict `\bFAIL` matches; actualNOT_OBSERVED/NOT_READY/remote-call statusvocabulary is safe.
+
+Known latent caveat disclosed beforedispatch: source permits a referencepath ending /FAIL; a mock earlier-failed attempt followed by normal success can make rawretainedhistory trigger the unchangedhostsentinel. This was NOT observed in currentALL3guestlogs. Do NOT weakenparser orrescueany resultingfailedsample; recordtheoriginalfailure and distinguishdiagnostic-textcollision from an inferredstartupcause. A separatelyisolated repairbranch is developing reversible sentinel-safe historytransport; it does NOT modify this pinned07fdruntime/manualbranch or activefixture. Currentcohort answers its own declared diagnosticquestion, not the futurefix's acceptance. Reviewreport documents an optional lock-map assumptionerror; original per-propertyrawbytes and independent transient reviewerstdout are not all retained, a scope limitation ratherthan an invented archive.
+
+Still NOT DISPATCHED at this evidence checkpoint; parent must reverifyzero branchruns immediatelybefore its sole dispatch. Allintegrationholds unchanged.

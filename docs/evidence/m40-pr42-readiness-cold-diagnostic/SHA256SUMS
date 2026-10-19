@@ -1,4 +1,12 @@
-6bcfa66ebf8f889ea8959efc7c5b0293b58e371f7916695a4d710406cbaf87f6  ./README.md
+463954cc1a20979c22965bcdc88937c938e8a71d334594184623136d9c59da51  ./README.md
+f3e185077d07d00f3e98098d46b19e033d70a42910f587f6c01fcca57763af8e  ./independent-review/cold-independent-history-controls.log
+6273232de4d3ef7acd4ecafa5c86beeeb974f56586b21089a2990b3f72facbe6  ./independent-review/cold-independent-plan-controls.log
+ff518e6c240f3a7f007054cdef496b1b6a75908ac98d3fb5f318f4370078d89e  ./independent-review/cold-independent-static-controls-first-fixture-failure.log
+5b7c389d13ea0df5f583f3d9fff076f60ecdf19a26b9e6d65bb47c5d2730fc4c  ./independent-review/cold-independent-static-controls-first-fixture.py
+369d013a5c72b2344abcee71445ad54222ca41075cac6fb991c11d5713093bcf  ./independent-review/cold-independent-static-controls.log
+d6f0a9d0576e8de1a944fcc64b724d333495b2da80591f1c253a427371006bf9  ./independent-review/cold-independent-static-controls.py
+f18fd96be82b4a5666676f436c62665382e8fc80a0045f3c9a054a576ef75a45  ./independent-review/cold-plan-independent-review.md
+80293ea3e2b8f375584679848cf4ec4f33e538f05951763d5fbf2bfc95ec8eca  ./independent-review/services-runtime-independent-review.md
 9757188d1eb7cb33e22792309b366b733336cb723451f221b6b4dda5ff5623ac  ./pre-dispatch/M40_COLD_EXPERIMENT.md
 ec47be04fb99a33e422e2cc5e950030143ab0bcc9c5de594a3d9a87259f1341a  ./pre-dispatch/intent.json
 34a8375a7245e4cd44c537ed88b2f9129fa874061c6087bb7f2308778d523cb1  ./pre-dispatch/new-plan-commit.log
