@@ -91,6 +91,15 @@ def verify_shell_recorder_non_authoritative(source):
     assert calls == OLD.CALLS, 'recording changed original query sequence'
 
 
+def verify_shell_recorder_stderr_safe(source):
+    with tempfile.TemporaryDirectory() as tmp:
+        recorder = Path(tmp) / 'error.py'
+        recorder.write_text('import sys\nsys.stderr.write("FAIL arbitrary recorder detail\\n")\nraise SystemExit(9)\n')
+        result, calls = OLD.ReadbackTests().run_probe(OLD.good_config(), recorder=recorder, probe_text=source)
+    assert result.returncode == 0, 'recording changed original success'
+    assert not re.search(rb'\bFAIL', (result.stdout + result.stderr).encode()), 'recorder stderr reached host sentinel'
+
+
 def rejected(name, normal, mutant, verifier):
     verifier(normal)
     try:
@@ -131,11 +140,13 @@ def main():
         ('swallow-checker-error', 'return "$property_checker_rc"', 'return 0', verify_shell_checker_failure),
         ('recorder-veto-success', '"$property_checker_rc" || true', '"$property_checker_rc" || true; return 1',
          verify_shell_recorder_non_authoritative),
+        ('recorder-stderr-leak', '"$property_reply" 2>/dev/null;then :;else', '"$property_reply";then :;else',
+         verify_shell_recorder_stderr_safe),
     ]
     for name, anchor, replacement, verifier in shell_mutations:
         assert source.count(anchor) == 1, name
         rejected(name, source, source.replace(anchor, replacement), verifier)
-    print('8/8 mutations rejected by explicit assertion mismatches; no guest/model proof.')
+    print('9/9 mutations rejected by explicit assertion mismatches; no guest/model proof.')
 
 
 if __name__ == '__main__':

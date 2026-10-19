@@ -183,6 +183,21 @@ class EvidenceTests(unittest.TestCase):
                     self.assertTrue(all(f['recording'] == 'error' and data is None for f, data in actual))
                     self.assertTrue(all(f['complete'] == 'unknown' and f['captured_bytes'] == 'unknown' for f, _ in actual))
 
+    def test_recorder_stderr_isolated_but_original_stderr_unchanged(self):
+        with tempfile.TemporaryDirectory() as temp:
+            recorder = Path(temp) / 'broken-runtime.py'
+            recorder.write_text('import sys\nsys.stderr.write("FAIL arbitrary recorder detail\\n")\nraise SystemExit(9)\n')
+            for status in (0, 1, 124):
+                with self.subTest(status=status):
+                    config = OLD.good_config()
+                    if status:
+                        config['replies'][1].update(status=status, stderr='original_dbus_problem\n')
+                    result, calls = self.run_probe(config, recorder=recorder)
+                    self.assertEqual(result.returncode, status)
+                    self.assertEqual(result.stderr, 'original_dbus_problem\n' if status else '')
+                    self.assertIsNone(re.search(rb'\bFAIL', (result.stdout + result.stderr).encode()))
+                    self.assertTrue(all(f['recording'] == 'error' for f, _ in records(result.stdout)))
+
     def test_missing_recorder_explicit_fallback_preserves_success(self):
         result, calls = self.run_probe(OLD.good_config(), recorder=HERE / 'absent-recorder.py')
         self.assertEqual(result.returncode, 0)
@@ -243,6 +258,7 @@ class EvidenceTests(unittest.TestCase):
             line = EV.record('1', '0', '0', path)
             for corrupted in (line.replace('call=1', 'call=3'), line.replace('data_hex=7061796c6f6164', 'data_hex=FAIL'),
                               line.replace('captured_bytes=7', 'captured_bytes=0'), line.replace('command_status=0', 'command_status=1'),
+                              line.replace('checker_status=0', 'checker_status=1'), line.replace('typed=passed', 'typed=failed'),
                               line.replace('unknown=0', 'unknown=1'), line.replace('recording=ok', 'recording=error')):
                 with self.subTest(corrupted=corrupted):
                     with self.assertRaises(ValueError):
@@ -296,7 +312,7 @@ class EvidenceTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertFalse(absent.exists())
 
-    def test_production_checker_bytecode_source_and_original_query_bounds_unchanged(self):
+    def test_production_checker_source_and_original_query_bounds_unchanged(self):
         import hashlib
         baseline = (HERE / 'evidence/original-gap-native-baseline.log').read_text()
         expected = re.search(r'checker sha256=([0-9a-f]{64})', baseline)[1]

@@ -1,0 +1,28 @@
+status: exited
+exit_code: 0
+
+stdout:
+aarch64 arch-specific preserved package hashes=593
+  first attempt=1 rc=1 termination=exit-status backend=live-dbus pid=551
+  terminal-dbus: pid=551 applications=1 models=0 visited=116 NOT_OBSERVED (diagnostic only)
+  last attempt=2 rc=0 termination=exit-status backend=live-dbus pid=551
+  terminal-dbus: pid=551 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+x86_64 arch-specific preserved package hashes=593
+ x86 checked-in pinned package map equals artifact map
+  first attempt=1 rc=1 termination=exit-status backend=live-dbus pid=612
+  terminal-dbus: pid=612 applications=1 models=0 visited=116 NOT_OBSERVED (diagnostic only)
+  last attempt=2 rc=0 termination=exit-status backend=live-dbus pid=612
+  terminal-dbus: pid=612 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+riscv64 arch-specific preserved package hashes=579
+  first attempt=1 rc=1 termination=exit-status backend=live-dbus pid=629
+  terminal-dbus: pid=629 applications=1 models=0 visited=116 NOT_OBSERVED (diagnostic only)
+  last attempt=2 rc=0 termination=exit-status backend=live-dbus pid=629
+  terminal-dbus: pid=629 applications=1 models=1 visited=7 OBSERVED (diagnostic only)
+contract shell mock: live-dbus NOT_OBSERVED then OBSERVED shell_rc=0 sentinel_hit=False host_would_pass=True
+contract shell mock: live-dbus remote-call then OBSERVED shell_rc=0 sentinel_hit=False host_would_pass=True
+contract shell mock: atspi NOT_READY then PASSED shell_rc=0 sentinel_hit=False host_would_pass=True
+UNOBSERVED extended-path control: source-accepted path suffix /FAIL; shell_rc=0 sentinel_hit=True host_would_pass=False
+No parser/source changes or guest execution.
+
+
+stderr:
