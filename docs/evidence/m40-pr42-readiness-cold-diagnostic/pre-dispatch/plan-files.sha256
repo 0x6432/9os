@@ -1,0 +1,5 @@
+abd83f5b2669f49ea96bf51a30a4671b58607d2daca337c87afcb5c3e6e42df9  scripts/m40-cold-driver.sh
+35d866489920547199382f812aa62a9b8c813fc325f2842cdec00b6f79e289a0  scripts/m40-cold-host-tests.py
+ac1eeb886ee2cc2c5c89f8bcfd2c27324a35b8bad58f17b43765c16ae46701e8  scripts/m40-cold-prepare.py
+2cd85582703aaa0fd49022edec80ccd8642cbc12c3a5131f3f0d36a8e8cd8e68  scripts/m40-cold-run.py
+374cd614bea258e460b4f3db8faff09362b77afb51701e21b3a35fa134a95398  .github/workflows/alpine.yml

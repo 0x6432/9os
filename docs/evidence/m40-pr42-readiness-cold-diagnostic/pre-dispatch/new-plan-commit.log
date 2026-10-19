@@ -1,0 +1,7 @@
+[notion/m40-team-readiness-cold-validation ae0ed93] validation: predeclare one pinned PR42 readiness-history diagnostic cohort
+ 6 files changed, 351 insertions(+), 182 deletions(-)
+ create mode 100644 docs/M40_COLD_EXPERIMENT.md
+ create mode 100755 scripts/m40-cold-driver.sh
+ create mode 100755 scripts/m40-cold-host-tests.py
+ create mode 100755 scripts/m40-cold-prepare.py
+ create mode 100755 scripts/m40-cold-run.py

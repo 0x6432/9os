@@ -1,0 +1,8 @@
+6bcfa66ebf8f889ea8959efc7c5b0293b58e371f7916695a4d710406cbaf87f6  ./README.md
+9757188d1eb7cb33e22792309b366b733336cb723451f221b6b4dda5ff5623ac  ./pre-dispatch/M40_COLD_EXPERIMENT.md
+ec47be04fb99a33e422e2cc5e950030143ab0bcc9c5de594a3d9a87259f1341a  ./pre-dispatch/intent.json
+34a8375a7245e4cd44c537ed88b2f9129fa874061c6087bb7f2308778d523cb1  ./pre-dispatch/new-plan-commit.log
+6273232de4d3ef7acd4ecafa5c86beeeb974f56586b21089a2990b3f72facbe6  ./pre-dispatch/new-plan-controls.log
+e8b5a96d6eeee6a468de3275a7f319e38d07ff49adaf27d888af3c7af41de24c  ./pre-dispatch/new-plan-unchanged-drivers.sha256
+ee98de64aa80064028706e7c21db4fb2e13c4d4d42fac5ec45041694dca5d8fb  ./pre-dispatch/plan-files.sha256
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./pre-dispatch/runtime-diff.empty

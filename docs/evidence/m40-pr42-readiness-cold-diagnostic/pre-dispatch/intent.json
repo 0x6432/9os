@@ -1,0 +1,27 @@
+{
+  "prepared_at": "2026-10-19T07:18:08.080102+00:00",
+  "state": "PREPARED_NOT_DISPATCHED_PENDING_INDEPENDENT_REVIEW",
+  "validation_branch": "notion/m40-team-readiness-cold-validation",
+  "validation_head": "ae0ed93cc17743a6d879f089d4aee1cfb217e16e",
+  "runtime_head": "07fda66bd9a7904e77b7f3e1051df243ee1e4d21",
+  "pr42_url": "https://github.com/0x6432/9os/pull/42",
+  "zero_prior_runs": true,
+  "prior_branch_runs": {
+    "total_count": 0,
+    "workflow_runs": []
+  },
+  "completed_current_head_prerequisites": {
+    "fast": 39168427970,
+    "source": 39168428016
+  },
+  "fixed_samples": [
+    "linux1",
+    "guest1",
+    "guest2",
+    "guest3"
+  ],
+  "dispatches_authorized_for_this_plan": 1,
+  "retries": 0,
+  "purpose": "bounded readiness-history/witness diagnostic, not performance attribution or cold cure",
+  "holds": "all PR18\u219242 reliability/integration holds unchanged, even if all three pass"
+}
