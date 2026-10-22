@@ -51,6 +51,9 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/guest-watchdog-control.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/test-guest-watchdog-cleanup.py
           python3 scripts/terminal-attempt-history-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-transport-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-status-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-utility-status-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-readbacks.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence-mutations.py

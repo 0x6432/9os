@@ -93,13 +93,44 @@ emit_terminal_attempts() {
  # cannot inject arbitrary historical FAIL/panic/return-code text into logs.
  # Raw slot storage stays <=62464 bytes including scratch. Twelve <=5120-byte
  # payloads plus fixed framing emit <128KiB. No extra files or query-loop I/O.
- echo "KONSOLE_QUERY_HISTORY attempts=$query_attempt recording_failed=$query_recording_failed raw=prefix2048+suffix2048 encoding=hex timing_perturbed=1"
+ echo "KONSOLE_QUERY_HISTORY attempts=$query_attempt recording_failed=$query_recording_failed raw=prefix2048+suffix2048 encoding=hex timing_perturbed=1" || return 1
  for query_slot in first last terminal-first terminal-last remote-first remote-last incomplete-first incomplete-last witness-first witness-last alarm-first alarm-last;do
   [ -f "$D/konsole-attempt-$query_slot" ] || continue
-  query_bytes=$(wc -c < "$D/konsole-attempt-$query_slot") || return 1
-  printf 'KONSOLE_QUERY_ATTEMPT_BEGIN slot=%s encoding=hex bytes=%d\n' "$query_slot" "$query_bytes"
-  LC_ALL=C od -An -v -tx1 "$D/konsole-attempt-$query_slot" | LC_ALL=C tr -d '[:space:]'
-  printf '\nKONSOLE_QUERY_ATTEMPT_END slot=%s\n' "$query_slot"
+  query_bytes=$(wc -c < "$D/konsole-attempt-$query_slot") || {
+   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=wc\n' "$query_slot"
+   return 1
+  }
+  # The caller is an OR-list: errexit is NOT active inside this function.
+  # Check each utility separately, including complete output followed by a
+  # nonzero exit. Bounded shell variables avoid any extra on-disk files.
+  query_hex=$(LC_ALL=C od -An -v -tx1 "$D/konsole-attempt-$query_slot") || {
+   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=od\n' "$query_slot"
+   return 1
+  }
+  query_hex=$(printf '%s' "$query_hex" | LC_ALL=C tr -d '[:space:]') || {
+   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=tr\n' "$query_slot"
+   return 1
+  }
+  # A successful utility status alone does not prove a complete encoding.
+  # Normal wc output has a decimal count; reject malformed/unbounded metadata
+  # before arithmetic, then require exact lowercase hex and twice that count.
+  case $query_bytes in
+   ''|*[!0-9]*|?????*)
+    printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=hex\n' "$query_slot";return 1 ;;
+  esac
+  case $query_bytes in
+   0|[1-9]*) ;;
+   *) printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=hex\n' "$query_slot";return 1 ;;
+  esac
+  case $query_hex in
+   *[!0123456789abcdef]*)
+    printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=hex\n' "$query_slot";return 1 ;;
+  esac
+  if [ "$query_bytes" -gt 5120 ] || [ "${#query_hex}" -ne "$((query_bytes * 2))" ];then
+   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=hex\n' "$query_slot";return 1
+  fi
+  printf 'KONSOLE_QUERY_ATTEMPT_BEGIN slot=%s encoding=hex bytes=%d\n' "$query_slot" "$query_bytes" || return 1
+  printf '%s\nKONSOLE_QUERY_ATTEMPT_END slot=%s\n' "$query_hex" "$query_slot" || return 1
  done
  echo KONSOLE_QUERY_HISTORY_END
 }

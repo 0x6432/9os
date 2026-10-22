@@ -29,8 +29,9 @@ change. Its later success witness has focused_states1, qualified1 and
 protocol_error0; the earlier legal object path remains in the failed query.
 
 The repair changes **only `emit_terminal_attempts()`** in the production probe.
-After the unchanged acceptance loop, `od -An -v -tx1 | tr -d '[:space:]'` emits
-each existing slot as lowercase hexadecimal, with a counted BEGIN record,
+After the unchanged acceptance loop, individually checked `od -An -v -tx1`
+and `tr -d '[:space:]'` operations encode each existing slot as lowercase
+hexadecimal, with a counted BEGIN record,
 one hex line and matching END record. `-v` prevents repeated-byte compression.
 The whole section ends with `KONSOLE_QUERY_HISTORY_END`. No raw payload fallback
 is allowed. Metadata and raw prefix/suffix bytes are encoded together, without
@@ -58,12 +59,21 @@ proof.
   the inherited final raw replay, whole command output, controller timeouts,
   startup deadline, or acceptance budget. The maximum-slot control emits all
   twelve full slots and checks the bound, independent of ordinary fixture sizes.
-- Standard `wc`, `od`, and `tr` are used only at emission. Host controls cover
-  command failures without changing query success/failure; malformed/incomplete
-  transport is rejected by the offline decoder. POSIX pipeline status cannot
-  detect an `od` failure hidden by a successful `tr`, but the counted framing
-  prevents accepting missing/truncated nonempty bytes as a valid slot. No raw
-  fallback or extra acceptance query repairs an emission failure.
+- Standard `wc`, `od`, and `tr` are used only at emission. Each utility's status
+  is checked explicitly, including complete output followed by a nonzero exit.
+  This matters because production calls the emitter in an OR-list, disabling
+  reliance on shell errexit. The compact result must also be lowercase hex of
+  exactly twice a canonical decimal byte count, no greater than 5120.
+- On error, the emitter prints only fixed-vocabulary
+  `KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=... stage=wc|od|tr|hex`, returns nonzero,
+  and omits the normal history END. The strict offline decoder rejects this
+  incomplete section; no raw fallback or extra acceptance query repairs it.
+  The original readiness caller still ignores diagnostic status, not readiness
+  status. Existing slots on disk and the query loop are unchanged.
+- Intermediate `od` and compact hex text reside in bounded shell variables
+  (roughly 16 KiB and 10 KiB per maximum-size slot, excluding shell/process
+  overhead). They do not create encoded temporary files or change the disk/wire
+  bounds. This is not an overall process-memory or command-output sandbox.
 
 ### Offline decoding
 
@@ -93,6 +103,15 @@ NUL/CR/LF/ESC/non-UTF8, historical FAIL/FAILED/FAILURE and panic/return-code tok
 original failures, malformed/absent transport, utility failures, exact decoder
 CLI output, and raw/lossy/repeat-compression mutations. It hashes the entire
 probe outside the emitter against 07fda66, including the final raw replay.
+
+Also run `scripts/terminal-history-status-host-tests.py` for the repaired
+utility-status contract in the production OR-list context, including complete
+bytes followed by failure, empty input, malformed successful output and two
+independent status-guard mutations. The older
+`scripts/terminal-history-utility-status-host-tests.py` now reproduces the defect
+against the **frozen original emitter** only; passing it is historical defect
+preservation, not proof of current-production behavior. All four suites are
+wired into both workflows. See `STATUS-REPAIR.md` for scope and validation.
 
 **Inherited final-query caveat:** a FAIL-bearing final raw replay still causes
 strict host rejection, even when the shell query mock returns success. A negative

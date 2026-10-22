@@ -179,8 +179,12 @@ class Transport(unittest.TestCase):
             self.assertEqual(r.stdout,b'')
 
     def test_raw_lossy_and_repeat_compression_mutations_are_detected(self):
+        # A raw-fallback regression replaces the whole encoder: the checked
+        # current emitter would reject non-hex before writing any slot bytes.
+        frozen=(ROOT/'tests/terminal-history-transport/evidence/f1-utility-status/unfixed-emitter.sh.txt').read_text()
         raw="""LC_ALL=C od -An -v -tx1 "$D/konsole-attempt-$query_slot" | LC_ALL=C tr -d '[:space:]'"""
-        variants=[H.FUNCTIONS.replace(raw,'cat "$D/konsole-attempt-$query_slot"'),
+        self.assertIn(raw,frozen)
+        variants=[H.FUNCTIONS[:H.FUNCTIONS.index('emit_terminal_attempts() {')]+frozen.replace(raw,'cat "$D/konsole-attempt-$query_slot"'),
                   H.FUNCTIONS.replace('LC_ALL=C od -An -v -tx1 "$D/konsole-attempt-$query_slot"',
                                       """sed 's/FAIL//g' "$D/konsole-attempt-$query_slot" | LC_ALL=C od -An -v -tx1"""),
                   H.FUNCTIONS.replace('od -An -v -tx1','od -An -tx1')]
