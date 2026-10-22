@@ -1,0 +1,15 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=3049307354453
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=3049307782185
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=3049308289295
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3049308710890
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=3049308722743
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=3049308866970
+DBUS_A11Y_OWNER bus=:1.51 pid=55116 target=55116
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.51 path=/org/a11y/atspi/accessible/app mono_ns=3049308873578
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.51 path=/org/a11y/atspi/accessible/app mono_ns=3049308897287
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3049309145320
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3049309181364
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_ERROR reason=reference-value
+DBUS_A11Y_WITNESS pid=55116 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=55116 applications=1 models=0 visited=1 NOT_OBSERVED (diagnostic only)

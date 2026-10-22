@@ -1,0 +1,24 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=3049223191094
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=3049223517296
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=3049223968008
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3049224387286
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=3049224403714
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=3049224562623
+DBUS_A11Y_OWNER bus=:1.28 pid=55052 target=55052
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.28 path=/org/a11y/atspi/accessible/app mono_ns=3049224569807
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.28 path=/org/a11y/atspi/accessible/app mono_ns=3049224597220
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3049224900948
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3049224918305
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.28 path=/org/a11y/atspi/accessible/frame mono_ns=3049224928996
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.28 path=/org/a11y/atspi/accessible/frame mono_ns=3049224960041
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3049225269984
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3049225307843
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.28 path=/org/a11y/atspi/accessible/terminal mono_ns=3049225317655
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.28 path=/org/a11y/atspi/accessible/terminal mono_ns=3049225345785
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3049225554138
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3049225580613
+DBUS_A11Y_NODE depth=2 node=3 role=61
+DBUS_A11Y_WITNESS pid=55052 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=0
+terminal-dbus: pid=55052 applications=1 models=0 visited=3 NOT_OBSERVED (diagnostic only)

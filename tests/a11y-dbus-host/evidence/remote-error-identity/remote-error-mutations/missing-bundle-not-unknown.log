@@ -1,0 +1,143 @@
+consumer_source_sha256=a00e9c33c1b1685a6a4fb466e29570a71395df0e12d2087ebd44dd2a15c6ce9b
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... ok
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... ok
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... 
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_error_matches') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_io_error_quark') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_is_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_get_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_free') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_error_matches') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_io_error_quark') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_is_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_get_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_free') ... FAIL
+test_other_local_error (__main__.Identity.test_other_local_error) ... ok
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... ok
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... ok
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... ok
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_error_matches')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_io_error_quark')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_is_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_get_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_free')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_error_matches')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_io_error_quark')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_is_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_get_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_free')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 107, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    self.assertEqual(record['class'], 'unknown')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'unknown'
+- other
++ unknown
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.310s
+
+FAILED (failures=10)

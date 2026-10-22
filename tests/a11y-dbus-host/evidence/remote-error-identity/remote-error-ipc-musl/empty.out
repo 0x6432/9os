@@ -1,0 +1,6 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2921470114572
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2921470517621
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2921470963097
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2921471371995
+DBUS_A11Y_WITNESS pid=54091 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=0
+terminal-dbus: pid=54091 applications=0 models=0 visited=0 NOT_OBSERVED (diagnostic only)

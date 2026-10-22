@@ -5,6 +5,7 @@ Requires native gio-2.0 development headers and an already installed signed
 x86_64 Alpine root. Builds only tiny C consumers; never Qt/Mesa/LLVM libraries.
 """
 import argparse
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -19,6 +20,9 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 TOP = HERE.parents[1]
+_spec = importlib.util.spec_from_file_location('error_identity_controls', HERE/'test-error-identity.py')
+_identity = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_identity)
 
 
 def ready(process, prefix):
@@ -58,18 +62,19 @@ def main():
         gio = shlex.split(subprocess.check_output(['pkg-config', '--cflags', '--libs', 'gio-2.0'], text=True))
         subprocess.run([cc, *strict, str(HERE/'mock-server.c'), *gio, '-o', str(work/'server')], check=True)
         source = TOP/'userland/tests/a11y-dbus/terminal-dbus.c'
-        binary = work/'consumer'
-        if args.consumer == 'native':
-            subprocess.run([cc, *strict, str(source), '-ldl', '-o', str(binary)], check=True)
-            consumer = [str(binary)]
-        else:
+        def build_consumer(input_source, binary):
+            if args.consumer == 'native':
+                subprocess.run([cc, *strict, str(input_source), '-ldl', '-o', str(binary)], check=True)
+                return [str(binary)]
             subprocess.run(['clang', '--target=x86_64-linux-musl', '--sysroot='+str(signed), *strict,
                             '-fPIE', '-pie', '-fuse-ld=lld', '-nostdlib',
-                            str(signed/'usr/lib/Scrt1.o'), str(signed/'usr/lib/crti.o'), str(source),
+                            str(signed/'usr/lib/Scrt1.o'), str(signed/'usr/lib/crti.o'), str(input_source),
                             '-L'+str(signed/'usr/lib'), '-lc', str(signed/'usr/lib/crtn.o'),
                             '-Wl,--dynamic-linker,/lib/ld-musl-x86_64.so.1', '-o', str(binary)], check=True)
-            consumer = [str(signed/'lib/ld-musl-x86_64.so.1'), '--library-path',
-                        str(signed/'lib')+':'+str(signed/'usr/lib'), str(binary)]
+            return [str(signed/'lib/ld-musl-x86_64.so.1'), '--library-path',
+                    str(signed/'lib')+':'+str(signed/'usr/lib'), str(binary)]
+        consumer = build_consumer(source, work/'consumer')
+        optional_consumer = build_consumer(HERE/'optional-symbol-consumer.c', work/'optional-consumer')
         config = work/'bus.conf'
         config.write_text('''<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd"><busconfig><type>session</type><listen>unix:tmpdir=/tmp</listen><auth>EXTERNAL</auth><policy context="default"><allow send_destination="*"/><allow receive_sender="*"/><allow own="*"/></policy></busconfig>''')
         daemon = subprocess.Popen([str(signed/'lib/ld-musl-x86_64.so.1'), '--library-path',
@@ -85,7 +90,8 @@ def main():
                          'menu-decoy', 'remote-error', 'blocked-role', 'address-signature',
                          'children-signature', 'role-signature', 'state-signature',
                          'paired-role-error', 'paired-children-error', 'blocked-children',
-                         'unfocused-then-error', 'terminal-state-error', 'split-state']
+                         'unfocused-then-error', 'terminal-state-error', 'split-state',
+                         'remote-noreply', 'remote-sentinel', 'remote-long-name', 'blocked-state']
             positives = ['valid', 'paired-valid']
             for mode in [*positives, *negatives]:
                 server = subprocess.Popen([str(work/'server'), mode], env=env, stdout=subprocess.PIPE,
@@ -124,6 +130,7 @@ def main():
                             'short-state': (1,0,0,0,0,0,1), 'long-state': (1,0,0,0,0,0,1),
                             'state-signature': (1,0,0,0,0,0,1),
                             'terminal-state-error': (1,0,0,0,0,0,1),
+                            'blocked-state': (1,0,0,0,0,0,1),
                             'unfocused-then-error': (1,1,0,1,1,0,1),
                             'split-state': (2,2,1,1,2,0,0),
                             # Existing walk stops after first qualified node; the second
@@ -131,6 +138,41 @@ def main():
                             'duplicate-app': (1,1,1,1,1,1,0),
                         }.get(mode, (0,0,0,0,0,0,1))
                         assert values == expected, (mode, values, expected, result.stdout[-3000:])
+                    identities = _identity.parse_records(result.stdout)
+                    for i, line in enumerate(result.stdout.splitlines()):
+                        if line.startswith('DBUS_A11Y_ERROR_IDENTITY '):
+                            assert result.stdout.splitlines()[i-1] == 'DBUS_A11Y_ERROR reason=remote-call'
+                    if mode in positives:
+                        assert identities == [], (mode, identities)
+                    expected_error = {
+                        'remote-error': ('GetRole', 'remote-dbus', b'org.test.QueryError'),
+                        'remote-noreply': ('GetRole', 'remote-dbus', b'org.freedesktop.DBus.Error.NoReply'),
+                        'remote-sentinel': ('GetRole', 'remote-dbus', b'org.test.FAIL'),
+                        'remote-long-name': ('GetRole', 'remote-dbus', b'org.test.' + b'A'*240),
+                        'paired-role-error': ('GetRole', 'remote-dbus', b'org.test.PairRoleError'),
+                        'paired-children-error': ('GetChildren', 'remote-dbus', b'org.test.PairChildrenError'),
+                        'terminal-state-error': ('GetState', 'remote-dbus', b'org.test.StateError'),
+                        'blocked-role': ('GetRole', 'local-timeout', b''),
+                        'blocked-children': ('GetChildren', 'local-timeout', b''),
+                        'blocked-state': ('GetState', 'local-timeout', b''),
+                    }.get(mode)
+                    if expected_error:
+                        method, kind, remote = expected_error
+                        selected = [r for r in identities if bytes.fromhex(r['method_hex']).decode() == method]
+                        assert len(selected) == 1, (mode, identities)
+                        record = selected[0]
+                        assert record['class'] == kind, (mode, record)
+                        assert bytes.fromhex(record['remote_name_hex']) == remote, (mode, record)
+                        assert record['remote_name_status'] == ('present' if remote else 'absent'), (mode, record)
+                        assert all(record[k+'_truncated'] == '0' for k in _identity.CAPS), (mode, record)
+                    # Every identity must correlate directly with an actual BEGIN
+                    # record in the same immutable protocol transcript.
+                    for record in identities:
+                        method = bytes.fromhex(record['method_hex']).decode()
+                        bus = bytes.fromhex(record['bus_hex']).decode()
+                        path = bytes.fromhex(record['path_hex']).decode()
+                        assert f'DBUS_A11Y_QUERY method={method} phase=begin bus={bus} path={path} mono_ns=' in result.stdout, (mode, record)
+                    assert 'UNPRINTED_SECRET' not in result.stdout + result.stderr
                     if mode == 'paired-valid':
                         lines = result.stdout.splitlines()
                         starts = [i for i, line in enumerate(lines)
@@ -144,6 +186,21 @@ def main():
                         assert 'DBUS_A11Y_TERMINAL ' not in result.stdout
                     if mode.endswith('-signature'):
                         assert 'DBUS_A11Y_ERROR reason=reply-signature' in result.stdout
+                    if mode in ('valid', 'remote-error'):
+                        for symbol in _identity.OPTIONAL:
+                            hidden = subprocess.run([*optional_consumer, str(pid)],
+                                env={**env, 'A11Y_TEST_HIDE_DIAGNOSTIC_SYMBOL': symbol},
+                                text=True, capture_output=True, timeout=10)
+                            assert hidden.returncode == result.returncode, (mode, symbol, hidden.stdout, hidden.stderr)
+                            assert re.findall(r'^DBUS_A11Y_WITNESS (.*)$', hidden.stdout, re.M) == witnesses, (mode, symbol, hidden.stdout)
+                            assert hidden.stdout.count('DBUS_A11Y_ERROR reason=remote-call\n') == result.stdout.count('DBUS_A11Y_ERROR reason=remote-call\n'), (mode, symbol)
+                            unknown = _identity.parse_records(hidden.stdout)
+                            assert len(unknown) == len(identities), (mode, symbol, unknown)
+                            for record in unknown:
+                                assert record['class'] == 'unknown' and record['remote_name_status'] == 'unknown' and record['remote_name_hex'] == '', (mode, symbol, record)
+                            if args.log_dir:
+                                (args.log_dir/(mode+'-hidden-'+symbol+'.out')).write_text(hidden.stdout+hidden.stderr)
+                            print('PASS optional diagnostic symbol absent', mode, symbol, flush=True)
                     print('PASS synthetic protocol', mode, flush=True)
                 finally:
                     stop(server)
@@ -177,7 +234,7 @@ def main():
                 assert result.returncode == 2, argv
                 assert b'DBUS_A11Y_WITNESS' not in result.stdout, argv
             count = len(positives) + len(negatives)
-            print(f'{count}/{count} real private IPC controls + 1 process interruption + 7 CLI bounds ({args.consumer}); synthetic only, not Qt or GUI proof')
+            print(f'{count}/{count} real private IPC controls + 10 optional-symbol IPC probes + 1 process interruption + 7 CLI bounds ({args.consumer}); synthetic only, not Qt or GUI proof')
         finally:
             stop(daemon)
 

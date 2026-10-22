@@ -1,0 +1,28 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2887818169399
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2887818538989
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2887819001517
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2887819389937
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2887819399577
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=2887819524071
+DBUS_A11Y_OWNER bus=:1.117 pid=53915 target=53915
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.117 path=/org/a11y/atspi/accessible/app mono_ns=2887819528822
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.117 path=/org/a11y/atspi/accessible/app mono_ns=2887819546122
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2887819818154
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2887819855280
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.117 path=/org/a11y/atspi/accessible/frame mono_ns=2887819866876
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.117 path=/org/a11y/atspi/accessible/frame mono_ns=2887819889389
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2887820231404
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2887820264993
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.117 path=/org/a11y/atspi/accessible/terminal mono_ns=2887820280385
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.117 path=/org/a11y/atspi/accessible/terminal mono_ns=2887820307112
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2887820561009
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2887820596658
+DBUS_A11Y_NODE depth=2 node=3 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.117 path=/org/a11y/atspi/accessible/terminal mono_ns=2887820604859
+DBUS_A11Y_QUERY method=GetState phase=end ok=0 mono_ns=2889322247395
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_ERROR_IDENTITY class=local-timeout method_hex=4765745374617465 method_truncated=0 bus_hex=3a312e313137 bus_truncated=0 path_hex=2f6f72672f613131792f61747370692f61636365737369626c652f7465726d696e616c path_truncated=0 remote_name_hex= remote_name_truncated=0 remote_name_status=absent
+DBUS_A11Y_WITNESS pid=53915 terminals=1 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=53915 applications=1 models=0 visited=3 NOT_OBSERVED (diagnostic only)

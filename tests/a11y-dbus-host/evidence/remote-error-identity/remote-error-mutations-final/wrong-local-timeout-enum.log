@@ -1,0 +1,37 @@
+consumer_source_sha256=e22e7eb4859075f585fd5ed5ab4cfeab9e47403539c3406c9ace4b85e3a76a09
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... FAIL
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... ok
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... ok
+test_other_local_error (__main__.Identity.test_other_local_error) ... ok
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... FAIL
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... ok
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... ok
+
+======================================================================
+FAIL: test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 114, in test_both_async_callbacks_correlate_and_drain_in_reverse_order
+    self.assertEqual(role['class'], 'local-timeout')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'local-timeout'
+- other
++ local-timeout
+
+
+======================================================================
+FAIL: test_real_local_timeout (__main__.Identity.test_real_local_timeout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 79, in test_real_local_timeout
+    self.assertEqual(record['class'], 'local-timeout')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'other' != 'local-timeout'
+- other
++ local-timeout
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.283s
+
+FAILED (failures=2)

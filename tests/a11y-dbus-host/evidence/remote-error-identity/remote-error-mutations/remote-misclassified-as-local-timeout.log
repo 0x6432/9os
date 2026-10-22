@@ -1,0 +1,61 @@
+consumer_source_sha256=11316481ad1de5ef7529e26c09899ce5bebd0576f3e2c47f8cd92ba4c4842640
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... FAIL
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... FAIL
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... ok
+test_other_local_error (__main__.Identity.test_other_local_error) ... ok
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... ok
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... FAIL
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... FAIL
+
+======================================================================
+FAIL: test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 113, in test_both_async_callbacks_correlate_and_drain_in_reverse_order
+    self.assertEqual(children['class'], 'remote-dbus')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'local-timeout' != 'remote-dbus'
+- local-timeout
++ remote-dbus
+
+
+======================================================================
+FAIL: test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 124, in test_caps_truncation_and_direct_reference
+    self.assertEqual(record['class'], 'remote-dbus')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'local-timeout' != 'remote-dbus'
+- local-timeout
++ remote-dbus
+
+
+======================================================================
+FAIL: test_real_remote_name (__main__.Identity.test_real_remote_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 88, in test_real_remote_name
+    self.assertEqual(record['class'], 'remote-dbus')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'local-timeout' != 'remote-dbus'
+- local-timeout
++ remote-dbus
+
+
+======================================================================
+FAIL: test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 94, in test_remote_noreply_is_not_local_timeout
+    self.assertEqual(record['class'], 'remote-dbus')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'local-timeout' != 'remote-dbus'
+- local-timeout
++ remote-dbus
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.345s
+
+FAILED (failures=4)
