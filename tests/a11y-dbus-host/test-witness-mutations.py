@@ -32,7 +32,9 @@ def main():
         assert mutant != source, name
         with tempfile.TemporaryDirectory(prefix='9os-witness-mutant-') as tmp:
             root = Path(tmp)
-            for rel in [SOURCE, TEST, MOCK]:
+            for rel in [SOURCE, TEST, MOCK,
+                        Path('tests/a11y-dbus-host/test-error-identity.py'),
+                        Path('tests/a11y-dbus-host/optional-symbol-consumer.c')]:
                 (root/rel).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(TOP/rel, root/rel)
             (root/SOURCE).write_text(mutant)

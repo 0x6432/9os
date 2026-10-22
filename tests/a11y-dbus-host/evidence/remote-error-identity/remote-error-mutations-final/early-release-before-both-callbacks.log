@@ -1,0 +1,25 @@
+consumer_source_sha256=0024a3c1fefc18f4b49b5f4864d5fd94f3f8fd889f9ca5ab5abd229ab50d9d32
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... FAIL
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... ok
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... ok
+test_other_local_error (__main__.Identity.test_other_local_error) ... ok
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... ok
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... ok
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... ok
+
+======================================================================
+FAIL: test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 112, in test_both_async_callbacks_correlate_and_drain_in_reverse_order
+    children, role = self.run_model('async-both')
+                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 62, in run_model
+    self.assertEqual(r.returncode, 1, (r.stdout, r.stderr))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: -6 != 1 : ('DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.42 path=/org/a11y/atspi/accessible/FAIL mono_ns=2780896247001\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.42 path=/org/a11y/atspi/accessible/FAIL mono_ns=2780896269350\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=0 mono_ns=2780896620644\nDBUS_A11Y_ERROR reason=remote-call\nDBUS_A11Y_ERROR_IDENTITY class=remote-dbus method_hex=4765744368696c6472656e method_truncated=0 bus_hex=3a312e3432 bus_truncated=0 path_hex=2f6f72672f613131792f61747370692f61636365737369626c652f4641494c path_truncated=0 remote_name_hex=6f72672e746573742e4641494c remote_name_truncated=0 remote_name_status=present\n', '')
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.294s
+
+FAILED (failures=1)

@@ -1,0 +1,16 @@
+production_source_sha256=c34251ccea482ebf23283e712ac08a0abbb63d032bb07beb6eb8c33a1170ab1a
+test_empty_input_still_checks_each_utility_status (__main__.Status.test_empty_input_still_checks_each_utility_status) ... ok
+test_final_raw_sentinel_remains_authoritative (__main__.Status.test_final_raw_sentinel_remains_authoritative) ... ok
+test_independent_od_tr_status_guard_mutations_are_semantically_killed (__main__.Status.test_independent_od_tr_status_guard_mutations_are_semantically_killed) ... ok
+test_nonzero_utilities_zero_partial_and_complete_bytes (__main__.Status.test_nonzero_utilities_zero_partial_and_complete_bytes) ... ok
+test_normal_binary_and_empty_roundtrip (__main__.Status.test_normal_binary_and_empty_roundtrip) ... ok
+test_production_loop_status_failure_preserves_original_outcomes (__main__.Status.test_production_loop_status_failure_preserves_original_outcomes) ... ok
+test_successful_but_malformed_or_short_hex_is_unknown (__main__.Status.test_successful_but_malformed_or_short_hex_is_unknown) ... ok
+test_successful_wc_malformed_noncanonical_or_oversized_count (__main__.Status.test_successful_wc_malformed_noncanonical_or_oversized_count) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.577s
+
+OK
+SEMANTIC MUTANT REJECTED: od e0c005306fb56f23cbfdfaf9da87a7bce3d9b4e9f8866773865647e66a82a27f
+SEMANTIC MUTANT REJECTED: tr 51bc42b39521a261e3b8f60dc8d16c3eeabe0d8cecb1b29be0173655f034f5ef

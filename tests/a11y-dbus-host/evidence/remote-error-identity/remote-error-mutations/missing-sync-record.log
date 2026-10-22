@@ -1,0 +1,254 @@
+consumer_source_sha256=7fe24476e3282513688e0ec58bfac337dc10bbf343983730fc0869bfa04271da
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... ok
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... FAIL
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... 
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_error_matches') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_io_error_quark') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_is_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_get_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_free') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_error_matches') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_io_error_quark') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_is_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_get_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_free') ... FAIL
+test_other_local_error (__main__.Identity.test_other_local_error) ... FAIL
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... FAIL
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... FAIL
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... FAIL
+
+======================================================================
+FAIL: test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 122, in test_caps_truncation_and_direct_reference
+    first, second = self.run_model('long')
+                    ~~~~~~~~~~~~~~^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 2 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567181854881
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567182090609
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_QUERY method=MethodFAILabcdefghijklmnopqrstuvwxyz0123456789 phase=begin bus=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB path=CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC mono_ns=2567182096557
+DBUS_A11Y_QUERY method=MethodFAILabcdefghijklmnopqrstuvwxyz0123456789 phase=end ok=0 mono_ns=2567182099092
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_QUERY method=Third phase=begin bus=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB path=CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC mono_ns=2567182100267
+DBUS_A11Y_QUERY method=Third phase=end ok=0 mono_ns=2567182102177
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_error_matches')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567184226226
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567184451650
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_io_error_quark')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567186173529
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567186402999
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_is_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567187988659
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567188209201
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_get_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567189870588
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567190089927
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_free')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567191795118
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567192070964
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_error_matches')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567193585955
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567193603510
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_io_error_quark')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567195070478
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567195086748
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_is_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567196600468
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567196615651
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_get_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567198089416
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567198110256
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_free')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567199692161
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567199709254
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_other_local_error (__main__.Identity.test_other_local_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 98, in test_other_local_error
+    record, = self.run_model('other')
+              ~~~~~~~~~~~~~~^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567201335283
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567201350651
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_real_local_timeout (__main__.Identity.test_real_local_timeout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 78, in test_real_local_timeout
+    record, = self.run_model('local-timeout')
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567203049543
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567203072645
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_real_remote_name (__main__.Identity.test_real_remote_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 87, in test_real_remote_name
+    record, = self.run_model('remote')
+              ~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567204709654
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567204956630
+DBUS_A11Y_ERROR reason=remote-call
+
+
+======================================================================
+FAIL: test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 93, in test_remote_noreply_is_not_local_timeout
+    record, = self.run_model('remote-noreply')
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2567206640767
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=0 mono_ns=2567206874528
+DBUS_A11Y_ERROR reason=remote-call
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.286s
+
+FAILED (failures=15)

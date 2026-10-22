@@ -31,6 +31,11 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
  }
  if(!strcmp(name,"GetAddress")){g_dbus_method_invocation_return_value(inv,g_variant_new("(s)",is("bad-address")?"invalid":getenv("DBUS_SESSION_BUS_ADDRESS")));return;}
  if((is("remote-error")||(is("unfocused-then-error")&&!strcmp(path,later)))&&!strcmp(name,"GetRole")){g_dbus_method_invocation_return_dbus_error(inv,"org.test.QueryError","explicit negative");return;}
+ if(!strcmp(name,"GetRole")&&(is("remote-noreply")||is("remote-sentinel")||is("remote-long-name"))){
+  char long_name[250];memcpy(long_name,"org.test.",9);memset(long_name+9,'A',240);long_name[249]=0;
+  const char *error_name=is("remote-noreply")?"org.freedesktop.DBus.Error.NoReply":is("remote-sentinel")?"org.test.FAIL":long_name;
+  g_dbus_method_invocation_return_dbus_error(inv,error_name,"UNPRINTED_SECRET FAIL panic __RC0=9");return;
+ }
  if(!strcmp(name,"GetRole")){
   if(paired()){
    if(pending_role){g_dbus_method_invocation_return_dbus_error(inv,"org.test.Overlap","more than one node in flight");return;}
@@ -40,6 +45,7 @@ static void method(GDBusConnection *conn,const gchar *sender,const gchar *path,c
   role_reply(inv,path);return;
  }
  if(!strcmp(name,"GetState")){
+  if(is("blocked-state"))g_usleep(2500000);
   if(is("terminal-state-error")){g_dbus_method_invocation_return_dbus_error(inv,"org.test.StateError","explicit state negative");return;}
   GVariantBuilder b;g_variant_builder_init(&b,G_VARIANT_TYPE("au"));
   guint32 bits=(1u<<12)|(1u<<25)|(1u<<30);

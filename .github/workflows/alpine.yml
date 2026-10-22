@@ -23,7 +23,7 @@ jobs:
       - name: Host tools only (no Qt compiler/toolchain build)
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng
+          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng libglib2.0-dev pkg-config
           scripts/install-qemu-alpine.sh
           echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
           scripts/fetch-deps.sh
@@ -54,6 +54,8 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-transport-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-status-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-utility-status-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/a11y-dbus-host/test-error-identity.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/a11y-dbus-host/test-error-identity-mutations.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-readbacks.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence-mutations.py

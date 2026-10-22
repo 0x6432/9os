@@ -1,0 +1,14 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=3049295764551
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=3049296153532
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=3049296575751
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3049296952334
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=3049296990357
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=3049297156469
+DBUS_A11Y_OWNER bus=:1.48 pid=55108 target=55108
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.48 path=/org/a11y/atspi/accessible/app mono_ns=3049297183393
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.48 path=/org/a11y/atspi/accessible/app mono_ns=3049297221976
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3049297441406
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3049299226439
+DBUS_A11Y_ERROR reason=children-bound
+DBUS_A11Y_WITNESS pid=55108 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=55108 applications=1 models=0 visited=1 NOT_OBSERVED (diagnostic only)

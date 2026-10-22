@@ -1,0 +1,46 @@
+PASS optional diagnostic symbol absent valid g_error_matches
+PASS optional diagnostic symbol absent valid g_io_error_quark
+PASS optional diagnostic symbol absent valid g_dbus_error_is_remote_error
+PASS optional diagnostic symbol absent valid g_dbus_error_get_remote_error
+PASS optional diagnostic symbol absent valid g_free
+PASS synthetic protocol valid
+PASS synthetic protocol paired-valid
+PASS synthetic protocol wrong-pid
+PASS synthetic protocol unfocused
+PASS synthetic protocol hidden
+PASS synthetic protocol invisible
+PASS synthetic protocol wrong-role
+PASS synthetic protocol short-state
+PASS synthetic protocol long-state
+PASS synthetic protocol bad-address
+PASS synthetic protocol empty
+PASS synthetic protocol duplicate-app
+PASS synthetic protocol many-apps
+PASS synthetic protocol many-children
+PASS synthetic protocol bad-path
+PASS synthetic protocol foreign-child
+PASS synthetic protocol cycle
+PASS synthetic protocol menu-decoy
+PASS optional diagnostic symbol absent remote-error g_error_matches
+PASS optional diagnostic symbol absent remote-error g_io_error_quark
+PASS optional diagnostic symbol absent remote-error g_dbus_error_is_remote_error
+PASS optional diagnostic symbol absent remote-error g_dbus_error_get_remote_error
+PASS optional diagnostic symbol absent remote-error g_free
+PASS synthetic protocol remote-error
+PASS synthetic protocol blocked-role
+PASS synthetic protocol address-signature
+PASS synthetic protocol children-signature
+PASS synthetic protocol role-signature
+PASS synthetic protocol state-signature
+PASS synthetic protocol paired-role-error
+PASS synthetic protocol paired-children-error
+PASS synthetic protocol blocked-children
+PASS synthetic protocol unfocused-then-error
+PASS synthetic protocol terminal-state-error
+PASS synthetic protocol split-state
+PASS synthetic protocol remote-noreply
+PASS synthetic protocol remote-sentinel
+PASS synthetic protocol remote-long-name
+PASS synthetic protocol blocked-state
+PASS synthetic process interruption: no fabricated final witness
+34/34 real private IPC controls + 10 optional-symbol IPC probes + 1 process interruption + 7 CLI bounds (native); synthetic only, not Qt or GUI proof
