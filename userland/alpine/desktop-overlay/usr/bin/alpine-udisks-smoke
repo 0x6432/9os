@@ -24,17 +24,35 @@ grep -Fq 'array of bytes "/"' "$D/reply"
 # The enumeration deadline above is unchanged. Extra readbacks are bounded to
 # 4s reply / 6s kill each, with no retries or fallback to privileged execution.
 check_property() {
- object=$1 interface=$2 property=$3 expected=$4
- timeout -s KILL 6 dbus-send --system --print-reply --reply-timeout=4000 \
+ property_call=$1 object=$2 interface=$3 property=$4 expected=$5
+ property_reply="$D/property-$property_call"
+ # Capture status explicitly so diagnostic work cannot overwrite the original
+ # command/checker outcome. Fresh per-call files cannot replay an earlier reply.
+ if timeout -s KILL 6 dbus-send --system --print-reply --reply-timeout=4000 \
   --dest=org.freedesktop.UDisks2 "$object" \
   org.freedesktop.DBus.Properties.Get "string:$interface" "string:$property" \
-  > "$D/property"
- python3 /usr/share/9os/udisks-property-check.py "$property" "$expected" "$D/property"
+  > "$property_reply";then property_command_rc=0;else property_command_rc=$?;fi
+ property_checker_rc=unknown
+ if [ "$property_command_rc" = 0 ];then
+  if python3 /usr/share/9os/udisks-property-check.py "$property" "$expected" "$property_reply";then
+   property_checker_rc=0
+  else property_checker_rc=$?;fi
+ fi
+ # Diagnostic only: <=3072 bytes + <=512-byte safe fallback per call, at most
+ # three calls. Isolate only recorder-runtime stderr; its error is represented
+ # by the safe fallback, never by arbitrary text in the host sentinel. Original
+ # DBus/checker stderr above is untouched. No diagnostic acceptance veto.
+ if python3 /usr/share/9os/udisks-readback-evidence.py "$property_call" "$property_command_rc" "$property_checker_rc" "$property_reply" 2>/dev/null;then :;else
+  printf '\nudisks_readback_v1 call=%s path=%s interface=%s property=%s bus=system destination=org.freedesktop.UDisks2 method=org.freedesktop.DBus.Properties.Get command_status=%s checker_status=%s recording=error typed=unknown capture=unknown complete=unknown truncated=unknown unknown=1 captured_bytes=unknown data_hex=unknown\n' \
+   "$property_call" "$object" "$interface" "$property" "$property_command_rc" "$property_checker_rc" || true
+ fi
+ [ "$property_command_rc" = 0 ] || return "$property_command_rc"
+ return "$property_checker_rc"
 }
-check_property /org/freedesktop/UDisks2/block_devices/vda \
+check_property 1 /org/freedesktop/UDisks2/block_devices/vda \
  org.freedesktop.UDisks2.Block Device /dev/vda
-check_property /org/freedesktop/UDisks2/block_devices/vda1 \
+check_property 2 /org/freedesktop/UDisks2/block_devices/vda1 \
  org.freedesktop.UDisks2.Block Device /dev/vda1
-check_property /org/freedesktop/UDisks2/block_devices/vda1 \
+check_property 3 /org/freedesktop/UDisks2/block_devices/vda1 \
  org.freedesktop.UDisks2.Filesystem MountPoints /
 printf 'alpine-udisks: real disk/partition/root filesystem enumerated uid=%s\n' "$(id -u)"

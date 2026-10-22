@@ -1,0 +1,15 @@
+scripts/terminal-attempt-history-host-tests.py	PASS
+scripts/terminal-history-transport-host-tests.py	PASS
+scripts/terminal-history-status-host-tests.py	PASS
+scripts/terminal-history-utility-status-host-tests.py	PASS
+tests/udisks-host/test-readbacks.py	PASS
+tests/udisks-host/test-evidence.py	PASS
+tests/udisks-host/test-evidence-mutations.py	PASS
+scripts/terminal-backend-host-tests.py	PASS
+scripts/a11y-dbus-integration-host-tests.py	PASS
+scripts/plasma-readiness-host-tests.py	PASS
+scripts/desktop-pty-host-tests.py	PASS
+scripts/plasma-failure-diagnostics-host-tests.py	PASS
+scripts/alpine-host-tests.py	PASS
+scripts/alpine-plasma-host-tests.py	PASS
+scripts/alpine-wayland-host-tests.py	PASS
