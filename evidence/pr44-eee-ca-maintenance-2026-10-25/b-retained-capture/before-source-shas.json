@@ -1,0 +1,26 @@
+{
+  "userland/alpine/locks/x86_64.json": {
+    "size": 30978,
+    "sha256": "c3099ea942f692a84b17cf9d4ede92a90d9a82f7ae2fbf83aaa9954b0bdc85df"
+  },
+  "userland/alpine/locks/x86_64-desktop.json": {
+    "size": 116863,
+    "sha256": "92f0e0417b687148434670b03a7b44804d45a3e210b0df15559f30da6679e58a"
+  },
+  "userland/ports/host-qsb-lock.json": {
+    "size": 26222,
+    "sha256": "65b221f6df83bdba38d3359f47d5197f2c1562ea9913195ecad322a50a935919"
+  },
+  "scripts/alpine-host-tests.py": {
+    "size": 7046,
+    "sha256": "cae446f34101e78d24e2b4fa3f31f627274977ec334127772cfa1365365b288e"
+  },
+  "userland/alpine/build.py": {
+    "size": 15446,
+    "sha256": "fe5b23dd4970b1423fd32c0dda02228619ac664c506e6b4f91ecef64075a4dae"
+  },
+  "userland/ports/linux-oracle-lock.json": {
+    "size": 18735,
+    "sha256": "bc2ea9794acd5cb4c18f63512a12c56063188dd349de1cc121d7ff3486cbf3db"
+  }
+}

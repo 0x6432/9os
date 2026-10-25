@@ -1,0 +1,68 @@
+[
+  {
+    "file": "job-121215139049.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121215139049.txt",
+    "bytes": 379971,
+    "sha256": "9235d1ad15bd2aa36eb42ffb63889b160ba427cd927dc5621faac09240a4670c"
+  },
+  {
+    "file": "job-121215139164.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121215139164.txt",
+    "bytes": 124826,
+    "sha256": "dc04d35aa8a6b6ce9261d9ab9d20e5649a80024c9c74d8c9e95b21ff17cf2794"
+  },
+  {
+    "file": "job-121215139211.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121215139211.txt",
+    "bytes": 1908592,
+    "sha256": "25eb6f5a0b02196462b57dab8d085cd994c8d97a1324a0ba924eb5fabf0d6b3a"
+  },
+  {
+    "file": "job-121215139212.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121215139212.txt",
+    "bytes": 615918,
+    "sha256": "29a09ba9cf717cd3176e51be756c430604e440d2a5bbc87210177ac32a817855"
+  },
+  {
+    "file": "job-121215139235.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121215139235.txt",
+    "bytes": 2145428,
+    "sha256": "898e89bf878d5a22427043a9bcc7f26b1ec48f0be1558c42b4f5241fb24b9885"
+  },
+  {
+    "file": "job-121215139243.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121215139243.txt",
+    "bytes": 1911972,
+    "sha256": "0c60f4c5390646c2c3c9d132110262f74545ba6ad2748372e0ba30354fa9f42f"
+  },
+  {
+    "file": "alpine-desktop-evidence-x86_64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40208715179/alpine-desktop-evidence-x86_64.zip",
+    "bytes": 1406554,
+    "sha256": "c410032ca2badc460c9e648b23ecd6da7dd01ab1bf25297e6e9dda1c1765b1ff"
+  },
+  {
+    "file": "alpine-desktop-evidence-riscv64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40208715179/alpine-desktop-evidence-riscv64.zip",
+    "bytes": 1433416,
+    "sha256": "570cd67d1f179de95ae087dda19d643703af68c8669489ac17c28695229c83b6"
+  },
+  {
+    "file": "alpine-desktop-evidence-aarch64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40208715179/alpine-desktop-evidence-aarch64.zip",
+    "bytes": 1407649,
+    "sha256": "a80c9e95d0c20d345e0ff915d10f1103b7a95ed7b0646a9bee3d2329ba1ad408"
+  },
+  {
+    "file": "alpine-evidence-aarch64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40208715179/alpine-evidence-aarch64.zip",
+    "bytes": 37749,
+    "sha256": "83d73d4fceea6a23c6c8d45c733a527647454d95616a7f7f001d931d094d0531"
+  },
+  {
+    "file": "alpine-evidence-riscv64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40208715179/alpine-evidence-riscv64.zip",
+    "bytes": 65070,
+    "sha256": "b279c2bec6878bc6d4bff9a1763ffacd785f97337ddf764bf9c11500f75e02f3"
+  }
+]

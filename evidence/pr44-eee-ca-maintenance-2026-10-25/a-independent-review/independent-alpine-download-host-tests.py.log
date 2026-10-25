@@ -1,0 +1,16 @@
+SEMANTIC GUARD MUTANT REJECTED: start-clock-unguarded
+SEMANTIC GUARD MUTANT REJECTED: end-clock-unguarded
+SEMANTIC GUARD MUTANT REJECTED: serialization-unguarded
+SEMANTIC GUARD MUTANT REJECTED: oversize-note-allowed
+SEMANTIC GUARD MUTANT REJECTED: nonfinite-json-allowed
+SEMANTIC MUTANT REJECTED: missing-summary
+SEMANTIC MUTANT REJECTED: wrong-attempt-index
+SEMANTIC MUTANT REJECTED: lost-http-status
+SEMANTIC MUTANT REJECTED: wrong-elapsed
+SEMANTIC MUTANT REJECTED: timeout-misclassified
+SEMANTIC MUTANT REJECTED: url-note-altered
+..................
+----------------------------------------------------------------------
+Ran 18 tests in 0.074s
+
+OK

@@ -1,0 +1,6 @@
+{
+  "native-root-files-manifest.json": "65dd2097aed9919ba05ea311fdf1d9226406b008d40464496e063a53e707e37d",
+  "native-bootstrap-installed-db": "74c01562aa75d8dd6dbb5c8b30f2d2d73c7d445146335962cc68930d751ddab1",
+  "verify-native-evidence.py": "6f12ffb1a5d2444e43363aec406c89aa92c69b641d673cadfa6815eb7a70c62b",
+  "review-retained-evidence.py": "76272ddd95596f341f9dc941b65766d5daa8d895380d6fd06cb5843258cbf1ee"
+}

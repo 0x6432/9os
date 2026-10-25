@@ -1,0 +1,17 @@
+[
+  "timeout",
+  "--signal=TERM",
+  "--kill-after=10s",
+  "600s",
+  "env",
+  "TOOLS_DIR=/data/ca-maintenance-clean-tools-once",
+  "PYTHONDONTWRITEBYTECODE=1",
+  "python",
+  "/data/ca-maintenance-product/userland/alpine/build.py",
+  "--arch",
+  "x86_64",
+  "--profile",
+  "base",
+  "--lock",
+  "/data/ca-maintenance-product/userland/alpine/locks/x86_64.json"
+]

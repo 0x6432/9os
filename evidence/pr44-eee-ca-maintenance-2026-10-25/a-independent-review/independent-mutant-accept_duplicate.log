@@ -1,0 +1,41 @@
+FFFF
+======================================================================
+FAIL: test_certificate_guard_rejects_url_hash_missing_and_duplicate (independent_mutant.TrustTests.test_certificate_guard_rejects_url_hash_missing_and_duplicate) (position=0, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk', 'sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}, {'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk', 'sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-ca-review/fixture/scripts/alpine-host-tests.py", line 46, in test_certificate_guard_rejects_url_hash_missing_and_duplicate
+    with self.assertRaises(AssertionError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_certificate_guard_rejects_url_hash_missing_and_duplicate (independent_mutant.TrustTests.test_certificate_guard_rejects_url_hash_missing_and_duplicate) (position=1, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk', 'sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}, {'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk', 'sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-ca-review/fixture/scripts/alpine-host-tests.py", line 46, in test_certificate_guard_rejects_url_hash_missing_and_duplicate
+    with self.assertRaises(AssertionError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_certificate_guard_rejects_url_hash_missing_and_duplicate (independent_mutant.TrustTests.test_certificate_guard_rejects_url_hash_missing_and_duplicate) (position=2, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk', 'sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}, {'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk', 'sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-ca-review/fixture/scripts/alpine-host-tests.py", line 46, in test_certificate_guard_rejects_url_hash_missing_and_duplicate
+    with self.assertRaises(AssertionError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_certificate_guard_rejects_url_hash_missing_and_duplicate (independent_mutant.TrustTests.test_certificate_guard_rejects_url_hash_missing_and_duplicate) (reference=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk', 'sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}, {'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk', 'sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-ca-review/fixture/scripts/alpine-host-tests.py", line 49, in test_certificate_guard_rejects_url_hash_missing_and_duplicate
+    with self.subTest(reference=bad), self.assertRaises(AssertionError):
+                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=4)

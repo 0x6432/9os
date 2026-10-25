@@ -1,0 +1,31 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk",
+  "utc_start": "2026-10-25T17:18:24.984581+00:00",
+  "status": 200,
+  "final_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk",
+  "size": 107116,
+  "sha256": "d35216a0a9adde79031df246759bad03f235cf201bf0aff8436b88bff59594eb",
+  "elapsed_s": 0.082,
+  "response_headers": {
+    "Connection": "close",
+    "Content-Length": "107116",
+    "Content-Security-Policy": "script-src 'self'",
+    "Content-Type": "application/octet-stream",
+    "Etag": "\"6ad78ae8-1a26c\"",
+    "Last-Modified": "Tue, 20 Oct 2026 15:38:16 GMT",
+    "Referrer-Policy": "origin-when-cross-origin",
+    "Server": "nginx/1.27.5",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Via": "1.1 varnish, 1.1 varnish",
+    "Accept-Ranges": "bytes",
+    "Age": "437993",
+    "Date": "Sun, 25 Oct 2026 17:18:25 GMT",
+    "X-Served-By": "cache-ams-eham8680050-AMS, cache-pdk-kfty8610027-PDK",
+    "X-Cache": "HIT, HIT",
+    "X-Cache-Hits": "46, 0",
+    "X-Timer": "S1792948705.031402,VS0,VE2",
+    "Vary": "Origin"
+  }
+}

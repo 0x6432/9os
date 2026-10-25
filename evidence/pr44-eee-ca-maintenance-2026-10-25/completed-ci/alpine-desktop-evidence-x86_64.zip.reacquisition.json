@@ -1,0 +1,99 @@
+{
+  "file": "alpine-desktop-evidence-x86_64.zip",
+  "url": "https://nightly.link/0x6432/9os/actions/runs/40208715179/alpine-desktop-evidence-x86_64.zip",
+  "bytes": 1406554,
+  "sha256": "c410032ca2badc460c9e648b23ecd6da7dd01ab1bf25297e6e9dda1c1765b1ff",
+  "observed_bytes": 1406554,
+  "observed_sha256": "c410032ca2badc460c9e648b23ecd6da7dd01ab1bf25297e6e9dda1c1765b1ff",
+  "current_http_status": 200,
+  "current_response_headers": [
+    [
+      "Content-Length",
+      "1406554"
+    ],
+    [
+      "Content-Type",
+      "application/zip"
+    ],
+    [
+      "Last-Modified",
+      "Sun, 25 Oct 2026 15:58:21 GMT"
+    ],
+    [
+      "Accept-Ranges",
+      "bytes"
+    ],
+    [
+      "ETag",
+      "\"0x8DF32B0CB5F41B9\""
+    ],
+    [
+      "Server",
+      "Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0"
+    ],
+    [
+      "x-ms-request-id",
+      "cdeede25-f01e-00b3-5da7-643b47000000"
+    ],
+    [
+      "x-ms-version",
+      "2025-11-05"
+    ],
+    [
+      "x-ms-creation-time",
+      "Sun, 25 Oct 2026 15:58:21 GMT"
+    ],
+    [
+      "x-ms-lease-status",
+      "unlocked"
+    ],
+    [
+      "x-ms-lease-state",
+      "available"
+    ],
+    [
+      "x-ms-blob-type",
+      "BlockBlob"
+    ],
+    [
+      "Content-Disposition",
+      "attachment; filename=\"alpine-desktop-evidence-x86_64.zip\""
+    ],
+    [
+      "x-ms-server-encrypted",
+      "true"
+    ],
+    [
+      "x-ms-access-tier",
+      "Hot"
+    ],
+    [
+      "x-ms-access-tier-inferred",
+      "true"
+    ],
+    [
+      "x-ms-last-access-time",
+      "Sun, 25 Oct 2026 17:12:03 GMT"
+    ],
+    [
+      "Access-Control-Expose-Headers",
+      "x-ms-request-id,Server,x-ms-version,Content-Type,ETag,Last-Modified,x-ms-creation-time,x-ms-lease-status,x-ms-lease-state,x-ms-blob-type,Content-Disposition,x-ms-server-encrypted,x-ms-access-tier,x-ms-access-tier-inferred,Accept-Ranges,x-ms-last-access-time,Content-Length,Date,Transfer-Encoding"
+    ],
+    [
+      "Access-Control-Allow-Origin",
+      "*"
+    ],
+    [
+      "Date",
+      "Sun, 25 Oct 2026 17:36:07 GMT"
+    ],
+    [
+      "Connection",
+      "close"
+    ]
+  ],
+  "current_final_url": "https://productionresultssa15.blob.core.windows.net/actions-results/8afa4da1-4719-853b-91b8-db12760a16e6/workflow-job-run-5c954220-bd5a-52e1-84a9-fdbc34a3945c/artifacts/2004eac34a459f179a1d50e23aec82da8efbe354432d36cb52fe8c348aab5657.zip",
+  "current_started_at": "2026-10-25T17:36:06.583946+00:00",
+  "provenance": "NEW reacquisition HTTP observations; B original HTTP status/headers unavailable",
+  "public_provenance_note": "NEW reacquisition response observations. Final-URL query and sensitive/redirect headers omitted for public packaging; not original B HTTP headers. All artifact bytes match B original size/SHA."
+}

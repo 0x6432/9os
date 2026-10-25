@@ -1,0 +1,23 @@
+[
+  {
+    "mutant": "ignore_url",
+    "testsRun": 1,
+    "assertion_failures": 3,
+    "errors": 0,
+    "source_sha256": "14ccaaa6fdd87d5713009197e8ddfbc7e428fa209ac7ae63c44ff88c19db1b39"
+  },
+  {
+    "mutant": "ignore_sha",
+    "testsRun": 1,
+    "assertion_failures": 3,
+    "errors": 0,
+    "source_sha256": "c4c41d964cee86664ed539307d8dca482af7b7c3f8513f8d2a2b713369ffb775"
+  },
+  {
+    "mutant": "accept_duplicate",
+    "testsRun": 1,
+    "assertion_failures": 4,
+    "errors": 0,
+    "source_sha256": "e0a576b781f7c6ecd0626e76b6151d57c4b2f4f80b0eb37e851581c5727c93e6"
+  }
+]

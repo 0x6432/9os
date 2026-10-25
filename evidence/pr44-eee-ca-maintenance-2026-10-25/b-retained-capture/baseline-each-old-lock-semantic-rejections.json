@@ -1,0 +1,14 @@
+[
+  {
+    "path": "userland/alpine/locks/x86_64.json",
+    "semantic_assertion": "'http[28 chars]lpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk' != 'http[28 chars]lpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk'\n- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk\n?                                                                                     ^ -\n+ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk\n?                                                                                    + ^\n"
+  },
+  {
+    "path": "userland/alpine/locks/x86_64-desktop.json",
+    "semantic_assertion": "'http[28 chars]lpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk' != 'http[28 chars]lpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk'\n- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk\n?                                                                                     ^ -\n+ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk\n?                                                                                    + ^\n"
+  },
+  {
+    "path": "userland/ports/host-qsb-lock.json",
+    "semantic_assertion": "'http[28 chars]lpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk' != 'http[28 chars]lpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk'\n- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk\n?                                                                                     ^ -\n+ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk\n?                                                                                    + ^\n"
+  }
+]

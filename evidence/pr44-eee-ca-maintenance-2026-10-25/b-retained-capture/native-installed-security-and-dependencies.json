@@ -1,0 +1,30 @@
+{
+  "sway_security_capability_hex": "0100000200008000000000000000000000000000",
+  "busybox_mode": "0o4755",
+  "ca_payload_sha256": "5961c0a3c65459931c023e0075c09733f09aea4ca439cb85bc4a08bb4f3f568b",
+  "installed_package_count": 168,
+  "locked_count": 160,
+  "apk_signature_OK_lines": 160,
+  "installed_ca": {
+    "C": "Q1S0j4S2Jt6I+Ch50QIEvbuYBnpXs=",
+    "P": "ca-certificates-bundle",
+    "V": "20261020-r0",
+    "A": "noarch",
+    "S": "107116",
+    "I": "178791",
+    "T": "Pre generated bundle of Mozilla certificates",
+    "U": "https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/",
+    "L": "MPL-2.0 AND MIT",
+    "o": "ca-certificates",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1792510364",
+    "c": "ce7bff87478cd936f5b7031ce822b02d4fdd313a",
+    "p": "ca-certificates-cacert=20261020-r0",
+    "r": "libressl2.7-libcrypto libcrypto1.1",
+    "F": "etc/ssl1.1",
+    "R": "certs",
+    "a": "0:0:777",
+    "Z": "Q1qE3WqZ1tRpwrmptYdQcZwzvJgds="
+  },
+  "old_ca_dependencies_in_verified_input": []
+}

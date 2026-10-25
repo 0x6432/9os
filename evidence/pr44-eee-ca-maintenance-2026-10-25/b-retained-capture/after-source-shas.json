@@ -1,0 +1,8 @@
+{
+  "scripts/alpine-host-tests.py": "2a830efc37f6929352b103df5ccbf1999d572ea134c73266fac87a8d440f34b0",
+  "userland/alpine/locks/x86_64.json": "9b27ceb91d05e2a4e38b137ad4a2b4f7f6f3c2cd9ea6729b7688e213491221f6",
+  "userland/alpine/locks/x86_64-desktop.json": "7820e5d8d3f5b64a29ea1a918737de4644fb6b1b2188aa89bba051bebef8e694",
+  "userland/ports/host-qsb-lock.json": "20dba1e5afcec55f33b7bd0a3bd7c4fdf5bc22c216890028e8ce71ce2f44141c",
+  "userland/alpine/build.py": "fe5b23dd4970b1423fd32c0dda02228619ac664c506e6b4f91ecef64075a4dae",
+  "userland/ports/linux-oracle-lock.json": "bc2ea9794acd5cb4c18f63512a12c56063188dd349de1cc121d7ff3486cbf3db"
+}

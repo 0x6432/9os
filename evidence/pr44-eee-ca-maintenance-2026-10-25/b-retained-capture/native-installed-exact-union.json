@@ -1,0 +1,16 @@
+{
+  "bootstrap_package_count": 16,
+  "locked_package_count": 160,
+  "installed_union_count": 168,
+  "bootstrap_only": {
+    "alpine-baselayout": "3.7.0-r0",
+    "alpine-baselayout-data": "3.7.0-r0",
+    "alpine-keys": "2.5-r0",
+    "alpine-release": "3.22.6-r0",
+    "apk-tools": "2.14.12-r0",
+    "libapk2": "2.14.12-r0",
+    "musl-utils": "1.2.5-r12",
+    "scanelf": "1.3.8-r1"
+  },
+  "exact_expected_union_matches": true
+}

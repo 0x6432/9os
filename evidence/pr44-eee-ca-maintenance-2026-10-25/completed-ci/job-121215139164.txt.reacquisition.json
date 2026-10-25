@@ -1,0 +1,99 @@
+{
+  "file": "job-121215139164.txt",
+  "url": "https://nightly.link/0x6432/9os/runs/121215139164.txt",
+  "bytes": 124826,
+  "sha256": "dc04d35aa8a6b6ce9261d9ab9d20e5649a80024c9c74d8c9e95b21ff17cf2794",
+  "observed_bytes": 124826,
+  "observed_sha256": "dc04d35aa8a6b6ce9261d9ab9d20e5649a80024c9c74d8c9e95b21ff17cf2794",
+  "current_http_status": 200,
+  "current_response_headers": [
+    [
+      "Content-Length",
+      "124826"
+    ],
+    [
+      "Content-Type",
+      "text/plain"
+    ],
+    [
+      "Content-MD5",
+      "BgNABLvGNHhRKNtLE/0dYQ=="
+    ],
+    [
+      "Last-Modified",
+      "Sun, 25 Oct 2026 15:53:07 GMT"
+    ],
+    [
+      "Accept-Ranges",
+      "bytes"
+    ],
+    [
+      "ETag",
+      "\"0x8DF32B01040AC66\""
+    ],
+    [
+      "Server",
+      "Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0"
+    ],
+    [
+      "x-ms-request-id",
+      "eb7d9385-701e-004e-42a7-640e04000000"
+    ],
+    [
+      "x-ms-version",
+      "2025-11-05"
+    ],
+    [
+      "x-ms-creation-time",
+      "Sun, 25 Oct 2026 15:53:07 GMT"
+    ],
+    [
+      "x-ms-lease-status",
+      "unlocked"
+    ],
+    [
+      "x-ms-lease-state",
+      "available"
+    ],
+    [
+      "x-ms-blob-type",
+      "BlockBlob"
+    ],
+    [
+      "x-ms-server-encrypted",
+      "true"
+    ],
+    [
+      "x-ms-access-tier",
+      "Hot"
+    ],
+    [
+      "x-ms-access-tier-inferred",
+      "true"
+    ],
+    [
+      "x-ms-last-access-time",
+      "Sun, 25 Oct 2026 17:12:02 GMT"
+    ],
+    [
+      "Access-Control-Expose-Headers",
+      "x-ms-request-id,Server,x-ms-version,Content-Type,ETag,Last-Modified,x-ms-creation-time,Content-MD5,x-ms-lease-status,x-ms-lease-state,x-ms-blob-type,x-ms-server-encrypted,x-ms-access-tier,x-ms-access-tier-inferred,Accept-Ranges,x-ms-last-access-time,Content-Length,Date,Transfer-Encoding"
+    ],
+    [
+      "Access-Control-Allow-Origin",
+      "*"
+    ],
+    [
+      "Date",
+      "Sun, 25 Oct 2026 17:36:06 GMT"
+    ],
+    [
+      "Connection",
+      "close"
+    ]
+  ],
+  "current_final_url": "https://productionresultssa15.blob.core.windows.net/actions-results/8afa4da1-4719-853b-91b8-db12760a16e6/workflow-job-run-3bb3aa46-d481-57bd-87a2-9a2b25b70dfa/logs/job/job-logs.txt",
+  "current_started_at": "2026-10-25T17:36:05.740706+00:00",
+  "provenance": "NEW reacquisition HTTP observations; B original HTTP status/headers unavailable",
+  "public_provenance_note": "NEW reacquisition response observations. Final-URL query and sensitive/redirect headers omitted for public packaging; not original B HTTP headers. All artifact bytes match B original size/SHA."
+}

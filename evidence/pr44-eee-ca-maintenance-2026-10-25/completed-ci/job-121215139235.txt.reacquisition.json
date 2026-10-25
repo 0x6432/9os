@@ -1,0 +1,91 @@
+{
+  "file": "job-121215139235.txt",
+  "url": "https://nightly.link/0x6432/9os/runs/121215139235.txt",
+  "bytes": 2145428,
+  "sha256": "898e89bf878d5a22427043a9bcc7f26b1ec48f0be1558c42b4f5241fb24b9885",
+  "observed_bytes": 2145428,
+  "observed_sha256": "898e89bf878d5a22427043a9bcc7f26b1ec48f0be1558c42b4f5241fb24b9885",
+  "current_http_status": 200,
+  "current_response_headers": [
+    [
+      "Content-Length",
+      "2145428"
+    ],
+    [
+      "Content-Type",
+      "text/plain"
+    ],
+    [
+      "Last-Modified",
+      "Sun, 25 Oct 2026 16:00:19 GMT"
+    ],
+    [
+      "Accept-Ranges",
+      "bytes"
+    ],
+    [
+      "ETag",
+      "\"0x8DF32B111421D86\""
+    ],
+    [
+      "Server",
+      "Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0"
+    ],
+    [
+      "x-ms-request-id",
+      "4fb3f083-b01e-00ee-39a7-648a2b000000"
+    ],
+    [
+      "x-ms-version",
+      "2025-11-05"
+    ],
+    [
+      "x-ms-creation-time",
+      "Sun, 25 Oct 2026 16:00:09 GMT"
+    ],
+    [
+      "x-ms-lease-status",
+      "unlocked"
+    ],
+    [
+      "x-ms-lease-state",
+      "available"
+    ],
+    [
+      "x-ms-blob-type",
+      "AppendBlob"
+    ],
+    [
+      "x-ms-blob-committed-block-count",
+      "2"
+    ],
+    [
+      "x-ms-server-encrypted",
+      "true"
+    ],
+    [
+      "x-ms-blob-sealed",
+      "true"
+    ],
+    [
+      "Access-Control-Expose-Headers",
+      "x-ms-request-id,Server,x-ms-version,Content-Type,ETag,Last-Modified,x-ms-creation-time,x-ms-lease-status,x-ms-lease-state,x-ms-blob-type,x-ms-blob-committed-block-count,x-ms-server-encrypted,x-ms-blob-sealed,Accept-Ranges,Content-Length,Date,Transfer-Encoding"
+    ],
+    [
+      "Access-Control-Allow-Origin",
+      "*"
+    ],
+    [
+      "Date",
+      "Sun, 25 Oct 2026 17:36:06 GMT"
+    ],
+    [
+      "Connection",
+      "close"
+    ]
+  ],
+  "current_final_url": "https://productionresultssa15.blob.core.windows.net/actions-results/8afa4da1-4719-853b-91b8-db12760a16e6/workflow-job-run-dc4427f7-a902-506a-8982-d5c794a98b05/logs/job/job-logs.txt",
+  "current_started_at": "2026-10-25T17:36:05.741680+00:00",
+  "provenance": "NEW reacquisition HTTP observations; B original HTTP status/headers unavailable",
+  "public_provenance_note": "NEW reacquisition response observations. Final-URL query and sensitive/redirect headers omitted for public packaging; not original B HTTP headers. All artifact bytes match B original size/SHA."
+}

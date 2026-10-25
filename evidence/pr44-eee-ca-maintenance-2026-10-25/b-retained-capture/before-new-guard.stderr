@@ -1,0 +1,22 @@
+...........F
+======================================================================
+FAIL: test_x86_certificate_locks_match_reviewed_reference (__main__.TrustTests.test_x86_certificate_locks_match_reviewed_reference)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/ca-maintenance-product/scripts/alpine-host-tests.py", line 30, in test_x86_certificate_locks_match_reviewed_reference
+    self.assert_certificate_locks(locks, reference)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/data/ca-maintenance-product/scripts/alpine-host-tests.py", line 20, in assert_certificate_locks
+    self.assertEqual(url, expected_url)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+AssertionError: 'http[28 chars]lpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk' != 'http[28 chars]lpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk'
+- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk
+?                                                                                     ^ -
++ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk
+?                                                                                    + ^
+
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.016s
+
+FAILED (failures=1)

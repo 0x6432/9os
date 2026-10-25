@@ -1,0 +1,70 @@
+{
+  "ci-originals/run.json": {
+    "bytes": 11665,
+    "sha256": "83525630b084eaf62afa7b57bf965cf2f47fb351f4b194f603b681e44daa7b73"
+  },
+  "ci-originals/jobs.json": {
+    "bytes": 22128,
+    "sha256": "0f47b626507f3d96482c8e9dde3615a859c05329cafeeebbff4974ba7816707c"
+  },
+  "ci-originals/artifacts.json": {
+    "bytes": 3555,
+    "sha256": "bec69c15db0001b3bd6d07e24ce480ac9b43042fe96b01fee5493baefd21943b"
+  },
+  "ci-originals/head-commit.json": {
+    "bytes": 1144,
+    "sha256": "ad33f781ac7815998cf56ec0e609f574a973ec7a32146eb65fb6d7ecc81151f5"
+  },
+  "ci-originals/checkout-commit.json": {
+    "bytes": 2537,
+    "sha256": "9c665b44b0f65fbd8111fd195936a10b83d6fed1230cc57893d4241fbfa29173"
+  },
+  "ci-originals/job-121215139164.txt": {
+    "bytes": 124826,
+    "sha256": "dc04d35aa8a6b6ce9261d9ab9d20e5649a80024c9c74d8c9e95b21ff17cf2794"
+  },
+  "ci-acquisition/acquire.py": {
+    "bytes": 1050,
+    "sha256": "d4eb3154ba2fb7a56abfe69387a846d5e1bc9836daf56876d329abedb9bcf5b7"
+  },
+  "ci-acquisition/acquisition.json": {
+    "bytes": 2608,
+    "sha256": "b7647eade45934a746cc5eb770c4d0f632e7aca09b4067ae1e967679884a26b3"
+  },
+  "new-ca-proof/acquire.py": {
+    "bytes": 848,
+    "sha256": "a62b6076aa4ce8b960257a907588949db0edfb3702d4c7d28d7286ca40f61734"
+  },
+  "new-ca-proof/acquisition.json": {
+    "bytes": 1253,
+    "sha256": "a43bd6aa72e1d5cb53a74d99125ba308cbbabe415054323be25bfd845f3d4063"
+  },
+  "new-ca-proof/PKGINFO": {
+    "bytes": 725,
+    "sha256": "10c8c175aec324c75cd4d6df79ec0fedc243d8146a75e86be5e043307d126bd0"
+  },
+  "new-ca-proof/contents.json": {
+    "bytes": 1254,
+    "sha256": "e1a90da63b60e4cacd95358c725a894c059b9f54441e3b3f8206fb7d3754af20"
+  },
+  "new-ca-proof/signature.stdout": {
+    "bytes": 86,
+    "sha256": "f8829113138d58053d1d23fb4fb95c0c914fd7b45a6bce75de6400a9e55c9d3e"
+  },
+  "new-ca-proof/signature.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "reference-provenance/native-verifier-provenance.json": {
+    "bytes": 1388,
+    "sha256": "7d46f2ec70eab4caca2ffe040119bf868293635998248fe67725fc58024b0a16"
+  },
+  "reference-provenance/signed-index-provenance.json": {
+    "bytes": 1076,
+    "sha256": "fc3a55f3ddc45b05dfbff01c273fb87ab57a7e8d11e7e90d650a787bf524b602"
+  },
+  "reference-provenance/captured-ca-index-record.txt": {
+    "bytes": 395,
+    "sha256": "bf97752b79721aa0874ed59ee876a82e798d53f805ad911bc0f1023f7f6cd22d"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "ci_originals_http_headers": "NOT_CAPTURED; do not reconstruct from new requests",
+  "ci_originals_status": "NOT_SEPARATELY_RECORDED; successful urllib acquisitions saved bytes; SHA map identifies exact originals",
+  "rest_json": "raw captured response snapshots; a fresh client response can differ in whitespace/formatting or later content",
+  "new_ca_get": "exact status/finalURL/time/headers recorded in new-ca-proof/acquisition.json",
+  "contents": "NO APK/mini/root payload; failed x86 original only + exact maps for six logs/five ZIPs; remaining bytes retained by sender pending parent transfer decision"
+}

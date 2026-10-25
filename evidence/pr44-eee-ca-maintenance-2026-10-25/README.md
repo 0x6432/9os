@@ -1,0 +1,5 @@
+# PR44 minimal CA maintenance — append-only evidence
+
+See a-independent-review/REVIEW.md for exact scope, identities, review outcome and limitations. Native capture is B-attributed; A independently reviewed code, host tests/mutants and retained-evidence consistency. Desktop593/QSB134 integration is CI-pending. CDN cause unknown; global retirement not proved; NEW114 guest not reached in the failed x86 run. No second assembly.
+
+Historical evidence outside this new directory is preserved byte-for-byte. Original completed run40208715179 logs/artifacts and CA provenance are retained in completed-ci and b-original-ci-and-ca-provenance. All11 files match the original size/SHA map; current reacquisition HTTP observations are explicitly NEW, while original CI HTTP headers/status were not separately captured. The five exact original ZIPs contain diagnostic logs, lock JSON, OCR text and nine diagnostic PNG screenshots; no root/ISO/executable payload. Product and evidence branches are separate; never merge the evidence branch into product.
