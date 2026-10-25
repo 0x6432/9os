@@ -11,16 +11,14 @@ mkdir -p "$(dirname "$L")"
 D=$(mktemp -d)
 trap 'rm -rf "$D"' EXIT HUP INT TERM
 mkdir -p "$D/apk" "$D/init"/bin "$D/init"/lib "$D/init"/dev "$D/init"/proc "$D/init"/sys "$D/init"/modules
-# Exact reviewed version; fail rather than silently testing another kernel.
-"$S/lib/ld-musl-x86_64.so.1" --library-path "$S/lib:$S/usr/lib" "$S/sbin/apk" \
- --arch x86_64 --root "$D/apk" --initdb --no-scripts --no-chown --no-cache \
- --keys-dir "$S/etc/apk/keys" --repository https://dl-cdn.alpinelinux.org/alpine/v3.22/main \
- add linux-virt=6.12.113-r0 > "$L.packages.log" 2>&1
+# Explicit NEW114 reference; all signatures/closure checks precede offline installation.
+python3 scripts/evdev-linux-oracle-packages.py --target "$D/apk" \
+ --manifest "$L.packages.lock.json" > "$L.packages.log" 2>&1
 cp "$S/bin/busybox" "$D/init/bin/"
 cp "$S/usr/bin/evdevframetest" "$D/init/bin/"
 cp -L "$S/lib/ld-musl-x86_64.so.1" "$D/init/lib/ld-musl-x86_64.so.1"
 for n in sh mount insmod poweroff;do ln -s busybox "$D/init/bin/$n";done
-for n in evdev misc/uinput;do gzip -dc "$D/apk/lib/modules/6.12.113-0-virt/kernel/drivers/input/$n.ko.gz" > "$D/init/modules/$(basename "$n").ko";done
+for n in evdev misc/uinput;do gzip -dc "$D/apk/lib/modules/6.12.114-0-virt/kernel/drivers/input/$n.ko.gz" > "$D/init/modules/$(basename "$n").ko";done
 cat > "$D/init/init" <<'INIT'
 #!/bin/sh
 export PATH=/bin

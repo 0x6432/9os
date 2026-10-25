@@ -79,6 +79,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-download-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
           scripts/pmm-host-tests.sh
           scripts/slab-host-tests.sh
           scripts/sched-host-tests.sh
