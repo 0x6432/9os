@@ -1,0 +1,56 @@
+FF..F.
+======================================================================
+FAIL: test_checksum_failure_still_fails_and_preserves_cache (__main__.AlpineDownload.test_checksum_failure_still_fails_and_preserves_cache)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/9os/scripts/alpine-download-host-tests.py", line 73, in test_checksum_failure_still_fails_and_preserves_cache
+    self.assertEqual(getattr(caught.exception, '__notes__', []), ['Download failed: ' + URL])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != ['Download failed: https://dl-cdn.alpineli[48 chars]apk']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'Download failed: https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk'
+
+- []
++ ['Download failed: '
++  'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk']
+
+======================================================================
+FAIL: test_final_http404_keeps_exception_and_reports_url (__main__.AlpineDownload.test_final_http404_keeps_exception_and_reports_url)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/9os/scripts/alpine-download-host-tests.py", line 42, in test_final_http404_keeps_exception_and_reports_url
+    self.assertEqual(getattr(error, '__notes__', []), ['Download failed: ' + URL])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != ['Download failed: https://dl-cdn.alpineli[48 chars]apk']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'Download failed: https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk'
+
+- []
++ ['Download failed: '
++  'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk']
+
+======================================================================
+FAIL: test_partial_read_failure_is_cleaned_without_replacing_cache (__main__.AlpineDownload.test_partial_read_failure_is_cleaned_without_replacing_cache)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/9os/scripts/alpine-download-host-tests.py", line 64, in test_partial_read_failure_is_cleaned_without_replacing_cache
+    self.assertEqual(getattr(error, '__notes__', []), ['Download failed: ' + URL])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != ['Download failed: https://dl-cdn.alpineli[48 chars]apk']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'Download failed: https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk'
+
+- []
++ ['Download failed: '
++  'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk']
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.006s
+
+FAILED (failures=3)

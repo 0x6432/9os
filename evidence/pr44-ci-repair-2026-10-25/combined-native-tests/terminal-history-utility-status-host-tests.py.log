@@ -1,0 +1,10 @@
+FROZEN unfixed emitter SHA256: a667c7e8c2affe6c4e3a9752795ce5de6ffecebd9c3acf5b874c4a321a7c74d1
+test_complete_correct_od_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_od_bytes_then_nonzero_remain_unobserved) ... ok
+test_complete_correct_tr_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_tr_bytes_then_nonzero_remain_unobserved) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.008s
+
+OK
+PRESERVED F1: od emitted exact bytes then exit7; emitter rc0, decoder accepted, no transport status
+PRESERVED F1: tr emitted exact bytes then exit9; emitter rc0, decoder accepted, no transport status

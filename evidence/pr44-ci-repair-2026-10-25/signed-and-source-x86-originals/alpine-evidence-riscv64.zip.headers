@@ -1,0 +1,30 @@
+HTTP/1.1 302 Found
+Server: nginx/1.30.6
+Date: Sun, 25 Oct 2026 07:54:46 GMT
+Content-Type: text/html
+Content-Length: 0
+Connection: keep-alive
+Location: https://productionresultssa13.blob.core.windows.net/actions-results/0eed2848-6c63-8c61-aacf-c2168cb11dff/workflow-job-run-a731c7ed-c75e-5331-8b3d-a2bb621bb80d/artifacts/e56787e10bca476225157ed0fe0d6de6bf8006f7006fc860b22cb12bd484239a.zip?rscd=attachment%3B+filename%3D%22alpine-evidence-riscv64.zip%22&rsct=application%2Fzip&se=2026-10-25T08%3A04%3A46Z&sig=MO%2Bw2RlFM4I46b8YxgMnqadIRylQVhmUYuH1D77kh5E%3D&ske=2026-10-25T09%3A28%3A14Z&skoid=ca7593d4-ee42-46cd-af88-8b886a2f84eb&sks=b&skt=2026-10-25T05%3A28%3A14Z&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skv=2025-11-05&sp=r&spr=https&sr=b&st=2026-10-25T07%3A54%3A41Z&sv=2025-11-05
+
+HTTP/1.1 200 OK
+Content-Length: 64714
+Content-Type: application/zip
+Last-Modified: Thu, 22 Oct 2026 15:16:17 GMT
+Accept-Ranges: bytes
+ETag: "0x8DF304F6B61E3B8"
+Server: Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+x-ms-request-id: 25e4a242-301e-002f-0a56-643cb3000000
+x-ms-version: 2025-11-05
+x-ms-creation-time: Thu, 22 Oct 2026 15:16:17 GMT
+x-ms-lease-status: unlocked
+x-ms-lease-state: available
+x-ms-blob-type: BlockBlob
+Content-Disposition: attachment; filename="alpine-evidence-riscv64.zip"
+x-ms-server-encrypted: true
+x-ms-access-tier: Hot
+x-ms-access-tier-inferred: true
+x-ms-last-access-time: Sun, 25 Oct 2026 07:44:02 GMT
+Access-Control-Expose-Headers: x-ms-request-id,Server,x-ms-version,Content-Type,ETag,Last-Modified,x-ms-creation-time,x-ms-lease-status,x-ms-lease-state,x-ms-blob-type,Content-Disposition,x-ms-server-encrypted,x-ms-access-tier,x-ms-access-tier-inferred,Accept-Ranges,x-ms-last-access-time,Content-Length,Date,Transfer-Encoding
+Access-Control-Allow-Origin: *
+Date: Sun, 25 Oct 2026 07:54:47 GMT
+

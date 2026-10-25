@@ -1,0 +1,200 @@
+[
+  {
+    "name": "job-119907442403.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/119907442403.txt",
+    "bytes": 608687,
+    "sha256": "cea98aca8a7bb9278a758ad812fdee08473508805b87a34ffb6757eb2e0bcb18",
+    "curl_exit": 0,
+    "observed_bytes": 608687,
+    "observed_sha256": "cea98aca8a7bb9278a758ad812fdee08473508805b87a34ffb6757eb2e0bcb18",
+    "match": true
+  },
+  {
+    "name": "job-119907442444.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/119907442444.txt",
+    "bytes": 14436,
+    "sha256": "d62e4d35a5addb2f52d4874a4f38d63d0833b6b18c69b08aec9d58ad6893ed80",
+    "curl_exit": 0,
+    "observed_bytes": 14436,
+    "observed_sha256": "d62e4d35a5addb2f52d4874a4f38d63d0833b6b18c69b08aec9d58ad6893ed80",
+    "match": true
+  },
+  {
+    "name": "job-119907442462.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/119907442462.txt",
+    "bytes": 2143502,
+    "sha256": "547d98bca18bbfd18af15b346437ead4ddb991db88a235a6bc2fb5a9a733a9ab",
+    "curl_exit": 0,
+    "observed_bytes": 2143502,
+    "observed_sha256": "547d98bca18bbfd18af15b346437ead4ddb991db88a235a6bc2fb5a9a733a9ab",
+    "match": true
+  },
+  {
+    "name": "job-119907442468.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/119907442468.txt",
+    "bytes": 82518,
+    "sha256": "9600be5cea0f394fc4a5f86079c6a5833933a75ba9cdf9999e19b5bb7b40f28d",
+    "curl_exit": 0,
+    "observed_bytes": 82518,
+    "observed_sha256": "9600be5cea0f394fc4a5f86079c6a5833933a75ba9cdf9999e19b5bb7b40f28d",
+    "match": true
+  },
+  {
+    "name": "job-119907442598.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/119907442598.txt",
+    "bytes": 375849,
+    "sha256": "54ed977bf427eab72a0362b7c09a184ae709fcfa1e4096c64e878bb1bf481d7b",
+    "curl_exit": 0,
+    "observed_bytes": 375849,
+    "observed_sha256": "54ed977bf427eab72a0362b7c09a184ae709fcfa1e4096c64e878bb1bf481d7b",
+    "match": true
+  },
+  {
+    "name": "job-119907442933.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/119907442933.txt",
+    "bytes": 1911630,
+    "sha256": "03f690513f91d491e07eaf65d7d3f6e3597718ec5c98bc94c537c98613415e65",
+    "curl_exit": 0,
+    "observed_bytes": 1911630,
+    "observed_sha256": "03f690513f91d491e07eaf65d7d3f6e3597718ec5c98bc94c537c98613415e65",
+    "match": true
+  },
+  {
+    "name": "job-119907512950.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/119907512950.txt",
+    "bytes": 136339,
+    "sha256": "e8c74ab305edef7e9171cf9df0c0302ded51378341df0191bd151f4472bb6b38",
+    "curl_exit": 0,
+    "observed_bytes": 136339,
+    "observed_sha256": "e8c74ab305edef7e9171cf9df0c0302ded51378341df0191bd151f4472bb6b38",
+    "match": true
+  },
+  {
+    "name": "alpine-evidence-riscv64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/39802683128/alpine-evidence-riscv64.zip",
+    "bytes": 64714,
+    "sha256": "164969ea5a5818b69f333643dd0e67c71b24ae12dce0d8fe196bb0e0ca9a0939",
+    "curl_exit": 0,
+    "observed_bytes": 64714,
+    "observed_sha256": "164969ea5a5818b69f333643dd0e67c71b24ae12dce0d8fe196bb0e0ca9a0939",
+    "match": true
+  },
+  {
+    "name": "alpine-evidence-aarch64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/39802683128/alpine-evidence-aarch64.zip",
+    "bytes": 37366,
+    "sha256": "810670dbf0c5e3ace5c019ae8a1f3f858f10166a629d75f9741b667eb212059e",
+    "curl_exit": 0,
+    "observed_bytes": 37366,
+    "observed_sha256": "810670dbf0c5e3ace5c019ae8a1f3f858f10166a629d75f9741b667eb212059e",
+    "match": true
+  },
+  {
+    "name": "alpine-desktop-evidence-riscv64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/39802683128/alpine-desktop-evidence-riscv64.zip",
+    "bytes": 1432867,
+    "sha256": "7bc569e69649d95a8f5b93a44c2dce00835719c12996a70b7cabd82ebf7f1d66",
+    "curl_exit": 0,
+    "observed_bytes": 1432867,
+    "observed_sha256": "7bc569e69649d95a8f5b93a44c2dce00835719c12996a70b7cabd82ebf7f1d66",
+    "match": true
+  },
+  {
+    "name": "alpine-desktop-evidence-x86_64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/39802683128/alpine-desktop-evidence-x86_64.zip",
+    "bytes": 1407123,
+    "sha256": "c84c67867bed038f03a001dbe488a09850af8900b942811adfa0bb99704d7f3a",
+    "curl_exit": 0,
+    "observed_bytes": 1407123,
+    "observed_sha256": "c84c67867bed038f03a001dbe488a09850af8900b942811adfa0bb99704d7f3a",
+    "match": true
+  },
+  {
+    "name": "run.json",
+    "url": "https://api.github.com/repos/0x6432/9os/actions/runs/39802683128",
+    "bytes": 11666,
+    "sha256": "8b10c15a6b0f77757c4d308c1dac2186dd442cd2a4d0bca689f44df7aceedca8",
+    "curl_exit": 0,
+    "observed_bytes": 13216,
+    "observed_sha256": "19bb5a9699fdf83ca7772ed569dd42f017650a0f32062088b47c510757b0cb01",
+    "match": false,
+    "distinct_snapshot_name": "run.new-snapshot.json"
+  },
+  {
+    "name": "jobs.json",
+    "url": "https://api.github.com/repos/0x6432/9os/actions/runs/39802683128/jobs?filter=all&per_page=100",
+    "bytes": 21965,
+    "sha256": "b79b6310234cdf4a21542afe3561fc64921a0c2d8fa97ac71bb73fa319d1e312",
+    "curl_exit": 0,
+    "observed_bytes": 31560,
+    "observed_sha256": "e54623002be790afb82aeb365c04b3bbbf677a82bafe1de9bc034350a5f696dc",
+    "match": false,
+    "distinct_snapshot_name": "jobs.new-snapshot.json"
+  },
+  {
+    "name": "attempt1-jobs.json",
+    "url": "https://api.github.com/repos/0x6432/9os/actions/runs/39802683128/attempts/1/jobs?per_page=100",
+    "bytes": 21965,
+    "sha256": "b79b6310234cdf4a21542afe3561fc64921a0c2d8fa97ac71bb73fa319d1e312",
+    "curl_exit": 0,
+    "observed_bytes": 31560,
+    "observed_sha256": "e54623002be790afb82aeb365c04b3bbbf677a82bafe1de9bc034350a5f696dc",
+    "match": false,
+    "distinct_snapshot_name": "attempt1-jobs.new-snapshot.json"
+  },
+  {
+    "name": "artifacts.json",
+    "url": "https://api.github.com/repos/0x6432/9os/actions/runs/39802683128/artifacts?per_page=100",
+    "bytes": 2846,
+    "sha256": "9f91d252a9ccfc41f6df2ff99438a4eafa1d6e1c90c15958c7e7dee187c0e67a",
+    "curl_exit": 0,
+    "observed_bytes": 3511,
+    "observed_sha256": "5ba3959ec34b9fa014706ef795d91f98dac71519a14caf491b96d62d3748d97b",
+    "match": false,
+    "distinct_snapshot_name": "artifacts.new-snapshot.json"
+  },
+  {
+    "name": "check-x86.json",
+    "url": "https://api.github.com/repos/0x6432/9os/check-runs/119907442468",
+    "bytes": 3489,
+    "sha256": "d695c1b4a78d63fa4db93d5d1efea8eafdf81e6a75ba150bf32cd5cfdac1ea1c",
+    "curl_exit": 0,
+    "observed_bytes": 4456,
+    "observed_sha256": "f135f7e0e94ac7ab40a0580c7d96adb0f3d68c9437e1562320c4ed3482a7c82a",
+    "match": false,
+    "distinct_snapshot_name": "check-x86.new-snapshot.json"
+  },
+  {
+    "name": "check-arm.json",
+    "url": "https://api.github.com/repos/0x6432/9os/check-runs/119907442444",
+    "bytes": 3493,
+    "sha256": "4d6d9e4e19fcb8e7faaa640c3a75702651c757d37e26cdea21ba8823fb908936",
+    "curl_exit": 0,
+    "observed_bytes": 4460,
+    "observed_sha256": "59487301fd606d8df92d56a59a64062b11e0962301d3e3bc8af13d761b593f96",
+    "match": false,
+    "distinct_snapshot_name": "check-arm.new-snapshot.json"
+  },
+  {
+    "name": "annotations-x86.json",
+    "url": "https://api.github.com/repos/0x6432/9os/check-runs/119907442468/annotations",
+    "bytes": 1262,
+    "sha256": "570b3ebd70603a763d81ee402032ea59317d7d55fcb675fa7239535e06524eb5",
+    "curl_exit": 0,
+    "observed_bytes": 1462,
+    "observed_sha256": "167c517a9f346fd89851376d921cc97fcbf0e8183149a6d9cf679b26bccb9e37",
+    "match": false,
+    "distinct_snapshot_name": "annotations-x86.new-snapshot.json"
+  },
+  {
+    "name": "annotations-arm.json",
+    "url": "https://api.github.com/repos/0x6432/9os/check-runs/119907442444/annotations",
+    "bytes": 1621,
+    "sha256": "18dcb52aa7b50fe2087b19613c917987be3ddeca60b303e79161ba517a56cd6c",
+    "curl_exit": 0,
+    "observed_bytes": 1887,
+    "observed_sha256": "68f71bc7a1d25f9ec375e8a2ce87757508f22fa997a1ef740b5f0b16bbe75856",
+    "match": false,
+    "distinct_snapshot_name": "annotations-arm.new-snapshot.json"
+  }
+]

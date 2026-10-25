@@ -1,0 +1,406 @@
+diff --git a/.github/workflows/alpine.yml b/.github/workflows/alpine.yml
+index 24b94c5..c94ad89 100644
+--- a/.github/workflows/alpine.yml
++++ b/.github/workflows/alpine.yml
+@@ -22,8 +22,8 @@ jobs:
+       - uses: actions/checkout@v4
+       - name: Host tools only (no Qt compiler/toolchain build)
+         run: |
+-          sudo apt-get update -q
+-          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng libglib2.0-dev pkg-config
++          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 -o APT::Update::Error-Mode=any update -q
++          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng libglib2.0-dev pkg-config
+           scripts/install-qemu-alpine.sh
+           echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
+           scripts/fetch-deps.sh
+@@ -35,6 +35,8 @@ jobs:
+       - name: Lock/checksum negative controls
+         if: matrix.arch == 'x86_64'
+         run: |
++          PYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py
++          PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-download-host-tests.py
+           scripts/fallocate-host-tests.sh
+           scripts/ptracestop-host-tests.sh
+           scripts/unixcred-host-tests.sh
+@@ -171,8 +173,8 @@ jobs:
+       - uses: actions/checkout@v4
+       - name: Host tools only; signed prebuilt desktop dependencies
+         run: |
+-          sudo apt-get update -q
+-          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng e2fsprogs fdisk libglib2.0-bin libglib2.0-dev pkg-config shared-mime-info
++          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 -o APT::Update::Error-Mode=any update -q
++          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng e2fsprogs fdisk libglib2.0-bin libglib2.0-dev pkg-config shared-mime-info
+           scripts/install-qemu-alpine.sh
+           echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
+           scripts/fetch-deps.sh
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 8da14e3..8b57b9e 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -47,8 +47,8 @@ jobs:
+ 
+       - name: Install host packages
+         run: |
+-          sudo apt-get update -q
+-          sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl jq bzip2 xz-utils e2fsprogs fdisk \
++          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 -o APT::Update::Error-Mode=any update -q
++          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl jq bzip2 xz-utils e2fsprogs fdisk \
+             bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip python3-pil ninja-build libglib2.0-dev-bin libglib2.0-dev \
+             qemu-system-x86 qemu-system-misc qemu-system-arm qemu-efi-aarch64 qemu-efi-riscv64
+           pip3 install --break-system-packages 'meson>=1.3' Mako PyYAML packaging
+@@ -76,6 +76,8 @@ jobs:
+       - name: Allocator and scheduler host regressions
+         if: matrix.arch == 'x86_64'
+         run: |
++          PYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py
++          PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-download-host-tests.py
+           scripts/pmm-host-tests.sh
+           scripts/slab-host-tests.sh
+           scripts/sched-host-tests.sh
+diff --git a/scripts/alpine-download-host-tests.py b/scripts/alpine-download-host-tests.py
+new file mode 100644
+index 0000000..9a22cc7
+--- /dev/null
++++ b/scripts/alpine-download-host-tests.py
+@@ -0,0 +1,105 @@
++#!/usr/bin/env python3
++"""Native mocked downloader controls; no network, APK install, or guest proof."""
++import hashlib
++import importlib.util
++import io
++from pathlib import Path
++import tempfile
++import traceback
++import unittest
++from unittest import mock
++import urllib.error
++
++TOP = Path(__file__).resolve().parents[1]
++SPEC = importlib.util.spec_from_file_location('alpine_download', TOP / 'userland/alpine/build.py')
++b = importlib.util.module_from_spec(SPEC)
++SPEC.loader.exec_module(b)
++URL = b.BASE + '/' + b.BRANCH + '/main/x86_64/pcre2-10.46-r1.apk'
++
++
++class AlpineDownload(unittest.TestCase):
++    def setUp(self):
++        self.tmp = tempfile.TemporaryDirectory()
++        self.addCleanup(self.tmp.cleanup)
++        self.path = Path(self.tmp.name) / 'pcre2.apk'
++        self.part = self.path.with_suffix('.apk.part')
++        self.old = b'previous-cache-preserved'
++        self.payload = b'verified-test-payload'
++        self.sha = hashlib.sha256(self.payload).hexdigest()
++
++    def test_final_http404_keeps_exception_and_reports_url(self):
++        self.path.write_bytes(self.old)
++        self.part.write_bytes(b'stale-partial')
++        error = urllib.error.HTTPError(URL, 404, 'Not Found', {}, None)
++        with mock.patch.object(b.urllib.request, 'urlopen', side_effect=error) as opened, \
++                mock.patch.object(b.time, 'sleep') as sleep:
++            with self.assertRaises(urllib.error.HTTPError) as caught:
++                b.download(URL, self.path, self.sha)
++        self.assertIs(caught.exception, error)
++        self.assertEqual(error.code, 404)
++        self.assertEqual(opened.call_args_list, [mock.call(URL, timeout=60)] * 3)
++        self.assertEqual(sleep.call_args_list, [mock.call(1), mock.call(2)])
++        self.assertEqual(getattr(error, '__notes__', []), ['Download failed: ' + URL])
++        self.assertIn('Download failed: ' + URL, ''.join(traceback.format_exception(error)))
++        self.assertFalse(self.part.exists())
++        self.assertEqual(self.path.read_bytes(), self.old)
++
++    def test_partial_read_failure_is_cleaned_without_replacing_cache(self):
++        self.path.write_bytes(self.old)
++        error = OSError('interrupted read')
++        class Broken(io.BytesIO):
++            def read(self, size=-1):
++                if self.tell():
++                    raise error
++                return super().read(2)
++        with mock.patch.object(b.urllib.request, 'urlopen', side_effect=lambda *a, **k: Broken(b'partial')) as opened, \
++                mock.patch.object(b.time, 'sleep') as sleep:
++            with self.assertRaises(OSError) as caught:
++                b.download(URL, self.path, self.sha)
++        self.assertIs(caught.exception, error)
++        self.assertEqual(opened.call_count, 3)
++        self.assertEqual(sleep.call_args_list, [mock.call(1), mock.call(2)])
++        self.assertFalse(self.part.exists())
++        self.assertEqual(self.path.read_bytes(), self.old)
++        self.assertEqual(getattr(error, '__notes__', []), ['Download failed: ' + URL])
++
++    def test_checksum_failure_still_fails_and_preserves_cache(self):
++        self.path.write_bytes(self.old)
++        with mock.patch.object(b.urllib.request, 'urlopen', side_effect=lambda *a, **k: io.BytesIO(b'wrong')) as opened, \
++                mock.patch.object(b.time, 'sleep'):
++            with self.assertRaisesRegex(ValueError, 'checksum mismatch') as caught:
++                b.download(URL, self.path, self.sha)
++        self.assertEqual(opened.call_count, 3)
++        self.assertEqual(getattr(caught.exception, '__notes__', []), ['Download failed: ' + URL])
++        self.assertFalse(self.part.exists())
++        self.assertEqual(self.path.read_bytes(), self.old)
++
++    def test_recovery_after_one_failure_has_no_final_failure_note(self):
++        self.path.write_bytes(self.old)
++        error = urllib.error.HTTPError(URL, 404, 'Not Found', {}, None)
++        with mock.patch.object(b.urllib.request, 'urlopen', side_effect=[error, io.BytesIO(self.payload)]) as opened, \
++                mock.patch.object(b.time, 'sleep') as sleep:
++            b.download(URL, self.path, self.sha)
++        self.assertEqual(opened.call_count, 2)
++        self.assertEqual(sleep.call_args_list, [mock.call(1)])
++        self.assertEqual(self.path.read_bytes(), self.payload)
++        self.assertFalse(self.part.exists())
++        self.assertEqual(getattr(error, '__notes__', []), [])
++
++    def test_matching_cache_offline_makes_no_network_request(self):
++        self.path.write_bytes(self.payload)
++        with mock.patch.object(b.urllib.request, 'urlopen') as opened:
++            b.download(URL, self.path, self.sha, offline=True)
++        opened.assert_not_called()
++        self.assertEqual(self.path.read_bytes(), self.payload)
++
++    def test_missing_offline_cache_still_fails_without_network(self):
++        with mock.patch.object(b.urllib.request, 'urlopen') as opened:
++            with self.assertRaisesRegex(ValueError, 'Offline cache missing or checksum mismatch'):
++                b.download(URL, self.path, self.sha, offline=True)
++        opened.assert_not_called()
++        self.assertFalse(self.path.exists())
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/scripts/apt-host-setup-host-tests.py b/scripts/apt-host-setup-host-tests.py
+new file mode 100755
+index 0000000..f08e222
+--- /dev/null
++++ b/scripts/apt-host-setup-host-tests.py
+@@ -0,0 +1,90 @@
++#!/usr/bin/env python3
++"""Execute actual YAML run blocks through native Bash with recording mocks.
++No apt/network/install/QEMU is run. This proves argument plumbing and fail-closed
++step sequencing only, NOT real network recovery or an absolute time bound.
++"""
++import json, os, pathlib, subprocess, tempfile, unittest
++ROOT=pathlib.Path(__file__).resolve().parents[1]
++OPTIONS={'Acquire::http::Timeout':'30','Acquire::https::Timeout':'30','Acquire::Retries':'2'}
++class Controls(unittest.TestCase):
++ def block(self,filename,name):
++  # Extract the actual literal YAML command block, not a copied approximation.
++  # Deliberately strict: a renamed step or changed block style needs review.
++  lines=(ROOT/filename).read_text().splitlines()
++  marker='      - name: '+name
++  self.assertEqual(lines.count(marker),1,(filename,name))
++  i=lines.index(marker)+1
++  while i<len(lines) and lines[i].startswith('        ') and lines[i]!='        run: |':i+=1
++  self.assertLess(i,len(lines));self.assertEqual(lines[i],'        run: |')
++  out=[]
++  for line in lines[i+1:]:
++   if line and not line.startswith('          '):break
++   out.append(line[10:] if line else '')
++  self.assertTrue(out)
++  return {'name':name,'run':'\n'.join(out)+'\n'}
++ def configs(self):
++  alpine='.github/workflows/alpine.yml';release='.github/workflows/release.yml'
++  for job,name in [('alpine','Host tools only (no Qt compiler/toolchain build)'),('desktop','Host tools only; signed prebuilt desktop dependencies')]:
++   yield alpine,job,[self.block(alpine,name)]
++  yield release,'build',[self.block(release,name) for name in ['Install host packages','Install QEMU (Alpine edge, same as the dev sandbox)','Fetch Limine + uACPI']]
++ def execute(self,steps,fail):
++  with tempfile.TemporaryDirectory(prefix='apt-command-control-') as td:
++   d=pathlib.Path(td);(d/'bin').mkdir();(d/'scripts').mkdir()
++   mock='''#!/usr/bin/env python3
++import os,sys,json
++from pathlib import Path
++name=Path(sys.argv[0]).name;args=sys.argv[1:]
++with open(os.environ['MOCK_LOG'],'a') as f:f.write(json.dumps([name,args])+'\\n')
++if name=='apt-get':
++ action='update' if 'update' in args else 'install'
++ if action==os.environ['MOCK_FAIL']:sys.exit(100 if action=='update' else 101)
++ if action=='update' and os.environ['MOCK_FAIL']=='partial-index':
++  sys.exit(100 if 'APT::Update::Error-Mode=any' in args else 0)
++if name=='clang':print('mock clang')
++'''
++   for name in ['apt-get','pip3','clang']:
++    p=d/'bin'/name;p.write_text(mock);p.chmod(0o755)
++   p=d/'bin/sudo';p.write_text('#!/bin/sh\nexec "$@"\n');p.chmod(0o755)
++   for name in ['install-qemu-alpine.sh','fetch-deps.sh']:
++    p=d/'scripts'/name;p.write_text(mock);p.chmod(0o755)
++   env={**os.environ,'PATH':str(d/'bin')+':'+os.environ['PATH'],'MOCK_LOG':str(d/'calls.jsonl'),'MOCK_FAIL':fail,'TOOLS_DIR':str(d/'tools'),'GITHUB_PATH':str(d/'github-path')}
++   rc=0;ran=[]
++   for step in steps:
++    p=subprocess.run(['/bin/bash','-e','-o','pipefail','-c',step['run']],cwd=d,env=env,capture_output=True,timeout=5)
++    ran.append(step['name']);rc=p.returncode
++    if rc:break
++   calls=[json.loads(x) for x in (d/'calls.jsonl').read_text().splitlines()]
++   return rc,calls,ran
++ def assert_args(self,calls):
++  for name,args in calls:
++   if name!='apt-get':continue
++   opts={}
++   for i,a in enumerate(args):
++    if a=='-o':k,v=args[i+1].split('=',1);opts[k]=v
++   for k,v in OPTIONS.items():self.assertEqual(opts.get(k),v,(name,args))
++   if 'update' in args:self.assertEqual(opts.get('APT::Update::Error-Mode'),'any')
++   self.assertNotIn('--allow-unauthenticated',args)
++ def test_host_gates_include_setup_and_download_controls_once(self):
++  for filename,name in [('.github/workflows/alpine.yml','Lock/checksum negative controls'),('.github/workflows/release.yml','Allocator and scheduler host regressions')]:
++   with self.subTest(workflow=filename):
++    block=self.block(filename,name)['run']
++    for test in ['apt-host-setup-host-tests.py','alpine-download-host-tests.py']:
++     self.assertEqual(block.count('python3 scripts/'+test),1)
++ def test_actual_blocks_fail_closed_and_preserve_sequence(self):
++  for fn,job,steps in self.configs():
++   for fail,expected in [('update',100),('partial-index',100),('install',101),('',0)]:
++    with self.subTest(workflow=fn,job=job,scenario=fail or 'success'):
++     rc,calls,ran=self.execute(steps,fail);self.assertEqual(rc,expected);self.assert_args(calls)
++     names=[n for n,a in calls]
++     apt=[a for n,a in calls if n=='apt-get']
++     self.assertIn('update',apt[0])
++     if fail in ['update','partial-index']:
++      self.assertEqual(len(apt),1);self.assertEqual(names,['apt-get'])
++     elif fail=='install':
++      self.assertEqual(len(apt),2);self.assertIn('install',apt[1]);self.assertEqual(names,['apt-get','apt-get'])
++     else:
++      self.assertEqual(len(apt),2);self.assertIn('install',apt[1])
++      self.assertIn('install-qemu-alpine.sh',names);self.assertIn('fetch-deps.sh',names)
++      self.assertLess(names.index('install-qemu-alpine.sh'),names.index('fetch-deps.sh'))
++     print(json.dumps({'workflow':fn,'job':job,'scenario':fail or 'success','rc':rc,'steps_run':ran,'calls':calls}),flush=True)
++if __name__=='__main__':unittest.main(verbosity=2)
+diff --git a/scripts/terminal-history-status-host-tests.py b/scripts/terminal-history-status-host-tests.py
+index 1768622..7d72d38 100644
+--- a/scripts/terminal-history-status-host-tests.py
++++ b/scripts/terminal-history-status-host-tests.py
+@@ -147,16 +147,22 @@ class Status(unittest.TestCase):
+                 self.assertFalse(result.returncode == 0 and re.search(rb'\bFAIL', result.stdout.encode()) is None)
+ 
+     def test_independent_od_tr_status_guard_mutations_are_semantically_killed(self):
+-        # Locate the checked utility command substitution, then neutralize only
+-        # its status. This removes the guard's effect without breaking syntax or
+-        # changing emitted bytes. A surviving mutant must fail this test.
++        # Remove only the explicit status guard, leaving the utility command
++        # substitution and emitted bytes unchanged. Do not append `; :` inside
++        # the substitution: dash may stop there on the failing utility under -e,
++        # even in this caller's OR-list, so that would leave the guard effective.
++        # A surviving guard-removal mutant must fail the semantic assertion.
+         for utility, status in [('od', 7), ('tr', 9)]:
+             with self.subTest(utility=utility):
+-                pattern = re.compile(r'\$\(([^\n]*?LC_ALL=C ' + utility + r'[^\n]*?)\)')
+-                matches = list(pattern.finditer(H.FUNCTIONS))
+-                self.assertEqual(len(matches), 1, 'expected one checked utility substitution for ' + utility)
+-                match = matches[0]
+-                mutant = H.FUNCTIONS[:match.start()] + '$(' + match[1] + '; :)' + H.FUNCTIONS[match.end():]
++                guard = (
++                    " || {\n"
++                    "   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=" + utility + "\\n' \"$query_slot\"\n"
++                    "   return 1\n"
++                    "  }"
++                )
++                self.assertEqual(H.FUNCTIONS.count(guard), 1,
++                                 'expected one explicit utility status guard for ' + utility)
++                mutant = H.FUNCTIONS.replace(guard, ' || :', 1)
+                 good, good_rc, _ = emit(PAYLOAD, faulty(utility, 'complete', status))
+                 self.assert_unknown(good, good_rc, utility)
+                 result, rc, _ = emit(PAYLOAD, faulty(utility, 'complete', status), functions=mutant)
+diff --git a/userland/alpine/build.py b/userland/alpine/build.py
+index a63abb2..995aee6 100755
+--- a/userland/alpine/build.py
++++ b/userland/alpine/build.py
+@@ -33,9 +33,10 @@ def download(url, path, sha=None, offline=False):
+                 raise ValueError('checksum mismatch: ' + url)
+             part.replace(path)
+             return
+-        except Exception:
++        except Exception as error:
+             part.unlink(missing_ok=True)
+             if attempt == 2:
++                error.add_note('Download failed: ' + url)
+                 raise
+             time.sleep(attempt + 1)
+ 
+diff --git a/userland/alpine/locks/x86_64-desktop.json b/userland/alpine/locks/x86_64-desktop.json
+index db313f0..4ba8aba 100644
+--- a/userland/alpine/locks/x86_64-desktop.json
++++ b/userland/alpine/locks/x86_64-desktop.json
+@@ -1861,8 +1861,8 @@
+       "sha256": "cc1f2697e70ee0eedc57f7de863a21b605445ef82412975d84c6a404a2f5b59c"
+     },
+     {
+-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r0.apk",
+-      "sha256": "3e0e70688c2f8410896a760705bbc887f6c9b1b8e6bb510ab1847f1261b13a3e"
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r1.apk",
++      "sha256": "63fb6e08815d6b72bc2792cce9fb8dd5b1c5952e0624915ca8324919dd50e497"
+     },
+     {
+       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpng-1.6.59-r0.apk",
+@@ -2213,8 +2213,8 @@
+       "sha256": "4e7d2d68d5dca612a68501ed5f4d31b481ea74c4d3f8b900b23cacfda9739595"
+     },
+     {
+-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r0.apk",
+-      "sha256": "cfb8ad103a101fa6a31769e50e188dab9c60124705682d01b3de268795db58ad"
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk",
++      "sha256": "e0e0e3c5f3b4a37a77799a7367bb40dd38596be55f56f3bc60f2cb4b584f842c"
+     },
+     {
+       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pinentry-1.3.1-r0.apk",
+diff --git a/userland/alpine/locks/x86_64.json b/userland/alpine/locks/x86_64.json
+index 59e5393..1c3ef00 100644
+--- a/userland/alpine/locks/x86_64.json
++++ b/userland/alpine/locks/x86_64.json
+@@ -376,8 +376,8 @@
+       "sha256": "cc1f2697e70ee0eedc57f7de863a21b605445ef82412975d84c6a404a2f5b59c"
+     },
+     {
+-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r0.apk",
+-      "sha256": "3e0e70688c2f8410896a760705bbc887f6c9b1b8e6bb510ab1847f1261b13a3e"
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r1.apk",
++      "sha256": "63fb6e08815d6b72bc2792cce9fb8dd5b1c5952e0624915ca8324919dd50e497"
+     },
+     {
+       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpng-1.6.59-r0.apk",
+@@ -568,8 +568,8 @@
+       "sha256": "c7d0e67a543942e79d8eaa86a57017ca8cb6bcd883042c55cc27dee2965e8ded"
+     },
+     {
+-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r0.apk",
+-      "sha256": "cfb8ad103a101fa6a31769e50e188dab9c60124705682d01b3de268795db58ad"
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk",
++      "sha256": "e0e0e3c5f3b4a37a77799a7367bb40dd38596be55f56f3bc60f2cb4b584f842c"
+     },
+     {
+       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pixman-0.46.4-r0.apk",
+diff --git a/userland/ports/host-qsb-lock.json b/userland/ports/host-qsb-lock.json
+index 5adc5c6..ecfcb8a 100644
+--- a/userland/ports/host-qsb-lock.json
++++ b/userland/ports/host-qsb-lock.json
+@@ -253,8 +253,8 @@
+       "sha256": "8fca3a5186fce76a4e037a4ec97f03fc7d93cd8f342d045e50d2d5730f97e3e2"
+     },
+     {
+-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libexpat-2.8.5-r0.apk",
+-      "sha256": "771c18e6f7891a503a4664cfc09a3c4fb35a9b2fd2d4a643caf7206b792f5444"
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libexpat-2.9.0-r0.apk",
++      "sha256": "4c9fb621d455d12475767e261821a4be7b4e91e2ba19c20a02e7fa99189b0d6d"
+     },
+     {
+       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libffi-3.4.8-r0.apk",
+@@ -301,8 +301,8 @@
+       "sha256": "cc1f2697e70ee0eedc57f7de863a21b605445ef82412975d84c6a404a2f5b59c"
+     },
+     {
+-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r0.apk",
+-      "sha256": "3e0e70688c2f8410896a760705bbc887f6c9b1b8e6bb510ab1847f1261b13a3e"
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r1.apk",
++      "sha256": "63fb6e08815d6b72bc2792cce9fb8dd5b1c5952e0624915ca8324919dd50e497"
+     },
+     {
+       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpng-1.6.59-r0.apk",
+@@ -473,8 +473,8 @@
+       "sha256": "c7d0e67a543942e79d8eaa86a57017ca8cb6bcd883042c55cc27dee2965e8ded"
+     },
+     {
+-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r0.apk",
+-      "sha256": "cfb8ad103a101fa6a31769e50e188dab9c60124705682d01b3de268795db58ad"
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk",
++      "sha256": "e0e0e3c5f3b4a37a77799a7367bb40dd38596be55f56f3bc60f2cb4b584f842c"
+     },
+     {
+       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pixman-0.46.4-r0.apk",

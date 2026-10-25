@@ -1,0 +1,58 @@
+[
+  {
+    "peer_name": "run.json",
+    "raw_snapshot": "run.new-snapshot.json",
+    "reconstructed_name": "run.peer-minified-reconstruction.json",
+    "reconstructed_sha256": "8b10c15a6b0f77757c4d308c1dac2186dd442cd2a4d0bca689f44df7aceedca8",
+    "method": "json.dumps(json.loads(raw),separators=(',',':'),ensure_ascii=False), no newline"
+  },
+  {
+    "peer_name": "jobs.json",
+    "raw_snapshot": "jobs.new-snapshot.json",
+    "reconstructed_name": "jobs.peer-minified-reconstruction.json",
+    "reconstructed_sha256": "b79b6310234cdf4a21542afe3561fc64921a0c2d8fa97ac71bb73fa319d1e312",
+    "method": "json.dumps(json.loads(raw),separators=(',',':'),ensure_ascii=False), no newline"
+  },
+  {
+    "peer_name": "attempt1-jobs.json",
+    "raw_snapshot": "attempt1-jobs.new-snapshot.json",
+    "reconstructed_name": "attempt1-jobs.peer-minified-reconstruction.json",
+    "reconstructed_sha256": "b79b6310234cdf4a21542afe3561fc64921a0c2d8fa97ac71bb73fa319d1e312",
+    "method": "json.dumps(json.loads(raw),separators=(',',':'),ensure_ascii=False), no newline"
+  },
+  {
+    "peer_name": "artifacts.json",
+    "raw_snapshot": "artifacts.new-snapshot.json",
+    "reconstructed_name": "artifacts.peer-minified-reconstruction.json",
+    "reconstructed_sha256": "9f91d252a9ccfc41f6df2ff99438a4eafa1d6e1c90c15958c7e7dee187c0e67a",
+    "method": "json.dumps(json.loads(raw),separators=(',',':'),ensure_ascii=False), no newline"
+  },
+  {
+    "peer_name": "check-x86.json",
+    "raw_snapshot": "check-x86.new-snapshot.json",
+    "reconstructed_name": "check-x86.peer-minified-reconstruction.json",
+    "reconstructed_sha256": "d695c1b4a78d63fa4db93d5d1efea8eafdf81e6a75ba150bf32cd5cfdac1ea1c",
+    "method": "json.dumps(json.loads(raw),separators=(',',':'),ensure_ascii=False), no newline"
+  },
+  {
+    "peer_name": "check-arm.json",
+    "raw_snapshot": "check-arm.new-snapshot.json",
+    "reconstructed_name": "check-arm.peer-minified-reconstruction.json",
+    "reconstructed_sha256": "4d6d9e4e19fcb8e7faaa640c3a75702651c757d37e26cdea21ba8823fb908936",
+    "method": "json.dumps(json.loads(raw),separators=(',',':'),ensure_ascii=False), no newline"
+  },
+  {
+    "peer_name": "annotations-x86.json",
+    "raw_snapshot": "annotations-x86.new-snapshot.json",
+    "reconstructed_name": "annotations-x86.peer-minified-reconstruction.json",
+    "reconstructed_sha256": "570b3ebd70603a763d81ee402032ea59317d7d55fcb675fa7239535e06524eb5",
+    "method": "json.dumps(json.loads(raw),separators=(',',':'),ensure_ascii=False), no newline"
+  },
+  {
+    "peer_name": "annotations-arm.json",
+    "raw_snapshot": "annotations-arm.new-snapshot.json",
+    "reconstructed_name": "annotations-arm.peer-minified-reconstruction.json",
+    "reconstructed_sha256": "18dcb52aa7b50fe2087b19613c917987be3ddeca60b303e79161ba517a56cd6c",
+    "method": "json.dumps(json.loads(raw),separators=(',',':'),ensure_ascii=False), no newline"
+  }
+]

@@ -1,0 +1,87 @@
+[
+  {
+    "path": "userland/ports/host-qsb-lock.json",
+    "changed_entries": [
+      {
+        "old": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libexpat-2.8.5-r0.apk",
+          "sha256": "771c18e6f7891a503a4664cfc09a3c4fb35a9b2fd2d4a643caf7206b792f5444"
+        },
+        "new": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libexpat-2.9.0-r0.apk",
+          "sha256": "4c9fb621d455d12475767e261821a4be7b4e91e2ba19c20a02e7fa99189b0d6d"
+        }
+      },
+      {
+        "old": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r0.apk",
+          "sha256": "3e0e70688c2f8410896a760705bbc887f6c9b1b8e6bb510ab1847f1261b13a3e"
+        },
+        "new": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r1.apk",
+          "sha256": "63fb6e08815d6b72bc2792cce9fb8dd5b1c5952e0624915ca8324919dd50e497"
+        }
+      },
+      {
+        "old": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r0.apk",
+          "sha256": "cfb8ad103a101fa6a31769e50e188dab9c60124705682d01b3de268795db58ad"
+        },
+        "new": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk",
+          "sha256": "e0e0e3c5f3b4a37a77799a7367bb40dd38596be55f56f3bc60f2cb4b584f842c"
+        }
+      }
+    ]
+  },
+  {
+    "path": "userland/alpine/locks/x86_64.json",
+    "changed_entries": [
+      {
+        "old": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r0.apk",
+          "sha256": "3e0e70688c2f8410896a760705bbc887f6c9b1b8e6bb510ab1847f1261b13a3e"
+        },
+        "new": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r1.apk",
+          "sha256": "63fb6e08815d6b72bc2792cce9fb8dd5b1c5952e0624915ca8324919dd50e497"
+        }
+      },
+      {
+        "old": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r0.apk",
+          "sha256": "cfb8ad103a101fa6a31769e50e188dab9c60124705682d01b3de268795db58ad"
+        },
+        "new": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk",
+          "sha256": "e0e0e3c5f3b4a37a77799a7367bb40dd38596be55f56f3bc60f2cb4b584f842c"
+        }
+      }
+    ]
+  },
+  {
+    "path": "userland/alpine/locks/x86_64-desktop.json",
+    "changed_entries": [
+      {
+        "old": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r0.apk",
+          "sha256": "3e0e70688c2f8410896a760705bbc887f6c9b1b8e6bb510ab1847f1261b13a3e"
+        },
+        "new": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r1.apk",
+          "sha256": "63fb6e08815d6b72bc2792cce9fb8dd5b1c5952e0624915ca8324919dd50e497"
+        }
+      },
+      {
+        "old": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r0.apk",
+          "sha256": "cfb8ad103a101fa6a31769e50e188dab9c60124705682d01b3de268795db58ad"
+        },
+        "new": {
+          "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk",
+          "sha256": "e0e0e3c5f3b4a37a77799a7367bb40dd38596be55f56f3bc60f2cb4b584f842c"
+        }
+      }
+    ]
+  }
+]

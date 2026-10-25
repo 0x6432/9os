@@ -1,0 +1,19 @@
+HTTP/2 404 
+date: Sun, 25 Oct 2026 07:43:58 GMT
+content-type: text/plain; charset=utf-8
+vary: X-PJAX, X-PJAX-Container, Turbo-Visit, Turbo-Frame, X-Requested-With, X-GitHub-Client-Version, Sec-Fetch-Site,Accept-Encoding, Accept, X-Requested-With
+cache-control: no-cache
+strict-transport-security: max-age=31536000; includeSubdomains; preload
+x-frame-options: deny
+x-content-type-options: nosniff
+x-xss-protection: 0
+referrer-policy: no-referrer-when-downgrade
+content-security-policy: default-src 'none'; base-uri 'self'; connect-src 'self'; form-action 'self'; img-src 'self' data:; script-src 'self'; style-src 'unsafe-inline'
+server: github.com
+set-cookie: _gh_sess=jauBjke%2FlfjRkH7w1AqMaFf3ALR8%2FAH0086c222G8Y%2FEdXzii5GkbTBOlHzV8SBUyJAtY25jlwAh0HXhUD1lytHLVR7187ro03WpICBdld0jRggHPmHJ9LX0mwosevPf9N1rpijVv8PxWertu0YWTgn5FEbfYw0gH16du5AS08kiBrVB9aVBQuSo26Hm5501CdVChXiJ81M%2FHSmpXNmQFjfO6x%2B0CKtNdmvFan5VA2xDkRazJFfOXw2quhg01jzu5cyPRqsXGfUWFWRdFbtQ1Q%3D%3D--%2FFExhRGa3o2YOuHD--5TcD9wMNba45F%2FNOoaJb7g%3D%3D; path=/; HttpOnly; secure; SameSite=Lax
+set-cookie: _octo=GH1.1.777864030.1792914237; expires=Mon, 25 Oct 2027 07:43:57 GMT; domain=.github.com; path=/; secure; SameSite=Lax
+set-cookie: logged_in=no; expires=Mon, 25 Oct 2027 07:43:57 GMT; domain=.github.com; path=/; HttpOnly; secure; SameSite=Lax
+content-length: 9
+x-github-request-id: 88CE:C91E:2BE2A92:375E18A:6ADDB33D
+x-github-edge-region: iad
+

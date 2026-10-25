@@ -1,0 +1,467 @@
+qsb 6.8.3
+Stage: Vertex
+QSB_VERSION: 9
+Has 12 shaders:
+  Shader 0: SPIR-V 100 [Standard]
+  Shader 1: SPIR-V 100 [Batchable]
+  Shader 2: GLSL 100 es [Standard]
+  Shader 3: GLSL 100 es [Batchable]
+  Shader 4: GLSL 120 [Standard]
+  Shader 5: GLSL 120 [Batchable]
+  Shader 6: GLSL 150 [Standard]
+  Shader 7: GLSL 150 [Batchable]
+  Shader 8: HLSL 50 [Standard]
+  Shader 9: HLSL 50 [Batchable]
+  Shader 10: MSL 12 [Standard]
+  Shader 11: MSL 12 [Batchable]
+
+Reflection info: {
+    "inputs": [
+        {
+            "location": 0,
+            "name": "vertex",
+            "type": "vec4"
+        },
+        {
+            "location": 7,
+            "name": "_qt_order",
+            "type": "float"
+        }
+    ],
+    "outBuiltins": [
+        {
+            "name": "Position",
+            "type": "vec4"
+        }
+    ],
+    "outputs": [
+        {
+            "location": 0,
+            "name": "uv",
+            "type": "vec2"
+        }
+    ]
+}
+
+
+Shader 0: SPIR-V 100 [Standard]
+Entry point: main
+Contents:
+Binary of 616 bytes
+
+
+************************************
+
+Shader 1: SPIR-V 100 [Batchable]
+Entry point: main
+Contents:
+Binary of 828 bytes
+
+
+************************************
+
+Shader 2: GLSL 100 es [Standard]
+Entry point: main
+Contents:
+#version 100
+
+varying vec2 uv;
+attribute vec4 vertex;
+
+void main()
+{
+    uv = vertex.xy;
+    gl_Position = vertex;
+}
+
+
+
+************************************
+
+Shader 3: GLSL 100 es [Batchable]
+Entry point: main
+Contents:
+#version 100
+
+varying vec2 uv;
+attribute vec4 vertex;
+attribute float _qt_order;
+
+void main()
+{
+    uv = vertex.xy;
+    gl_Position = vertex;
+    gl_Position.z = _qt_order * gl_Position.w;
+}
+
+
+
+************************************
+
+Shader 4: GLSL 120 [Standard]
+Entry point: main
+Contents:
+#version 120
+
+varying vec2 uv;
+attribute vec4 vertex;
+
+void main()
+{
+    uv = vertex.xy;
+    gl_Position = vertex;
+}
+
+
+
+************************************
+
+Shader 5: GLSL 120 [Batchable]
+Entry point: main
+Contents:
+#version 120
+
+varying vec2 uv;
+attribute vec4 vertex;
+attribute float _qt_order;
+
+void main()
+{
+    uv = vertex.xy;
+    gl_Position = vertex;
+    gl_Position.z = _qt_order * gl_Position.w;
+}
+
+
+
+************************************
+
+Shader 6: GLSL 150 [Standard]
+Entry point: main
+Contents:
+#version 150
+
+out vec2 uv;
+in vec4 vertex;
+
+void main()
+{
+    uv = vertex.xy;
+    gl_Position = vertex;
+}
+
+
+
+************************************
+
+Shader 7: GLSL 150 [Batchable]
+Entry point: main
+Contents:
+#version 150
+
+out vec2 uv;
+in vec4 vertex;
+in float _qt_order;
+
+void main()
+{
+    uv = vertex.xy;
+    gl_Position = vertex;
+    gl_Position.z = _qt_order * gl_Position.w;
+}
+
+
+
+************************************
+
+Shader 8: HLSL 50 [Standard]
+Entry point: main
+Contents:
+static float4 gl_Position;
+static float2 uv;
+static float4 vertex;
+
+struct SPIRV_Cross_Input
+{
+    float4 vertex : TEXCOORD0;
+};
+
+struct SPIRV_Cross_Output
+{
+    float2 uv : TEXCOORD0;
+    float4 gl_Position : SV_Position;
+};
+
+void vert_main()
+{
+    uv = vertex.xy;
+    gl_Position = vertex;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    vertex = stage_input.vertex;
+    vert_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.uv = uv;
+    return stage_output;
+}
+
+
+************************************
+
+Shader 9: HLSL 50 [Batchable]
+Entry point: main
+Contents:
+static float4 gl_Position;
+static float2 uv;
+static float4 vertex;
+static float _qt_order;
+
+struct SPIRV_Cross_Input
+{
+    float4 vertex : TEXCOORD0;
+    float _qt_order : TEXCOORD7;
+};
+
+struct SPIRV_Cross_Output
+{
+    float2 uv : TEXCOORD0;
+    float4 gl_Position : SV_Position;
+};
+
+void vert_main()
+{
+    uv = vertex.xy;
+    gl_Position = vertex;
+    gl_Position.z = _qt_order * gl_Position.w;
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    vertex = stage_input.vertex;
+    _qt_order = stage_input._qt_order;
+    vert_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.gl_Position = gl_Position;
+    stage_output.uv = uv;
+    return stage_output;
+}
+
+
+************************************
+
+Shader 10: MSL 12 [Standard]
+Entry point: main0
+Contents:
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct main0_out
+{
+    float2 uv [[user(locn0)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float4 vertex0 [[attribute(0)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]])
+{
+    main0_out out = {};
+    out.uv = in.vertex0.xy;
+    out.gl_Position = in.vertex0;
+    return out;
+}
+
+
+
+************************************
+
+Shader 11: MSL 12 [Batchable]
+Entry point: main0
+Contents:
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct main0_out
+{
+    float2 uv [[user(locn0)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float4 vertex0 [[attribute(0)]];
+    float _qt_order [[attribute(7)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]])
+{
+    main0_out out = {};
+    out.uv = in.vertex0.xy;
+    out.gl_Position = in.vertex0;
+    out.gl_Position.z = in._qt_order * out.gl_Position.w;
+    return out;
+}
+
+
+
+************************************
+
+Stage: Fragment
+QSB_VERSION: 9
+Has 6 shaders:
+  Shader 0: SPIR-V 100 [Standard]
+  Shader 1: GLSL 100 es [Standard]
+  Shader 2: GLSL 120 [Standard]
+  Shader 3: GLSL 150 [Standard]
+  Shader 4: HLSL 50 [Standard]
+  Shader 5: MSL 12 [Standard]
+
+Reflection info: {
+    "inputs": [
+        {
+            "location": 0,
+            "name": "uv",
+            "type": "vec2"
+        }
+    ],
+    "outputs": [
+        {
+            "location": 0,
+            "name": "color",
+            "type": "vec4"
+        }
+    ]
+}
+
+
+Shader 0: SPIR-V 100 [Standard]
+Entry point: main
+Contents:
+Binary of 428 bytes
+
+
+************************************
+
+Shader 1: GLSL 100 es [Standard]
+Entry point: main
+Contents:
+#version 100
+precision highp float;
+precision highp int;
+
+varying vec2 uv;
+
+void main()
+{
+    gl_FragData[0] = vec4(uv, 0.0, 1.0);
+}
+
+
+
+************************************
+
+Shader 2: GLSL 120 [Standard]
+Entry point: main
+Contents:
+#version 120
+
+varying vec2 uv;
+
+void main()
+{
+    gl_FragData[0] = vec4(uv, 0.0, 1.0);
+}
+
+
+
+************************************
+
+Shader 3: GLSL 150 [Standard]
+Entry point: main
+Contents:
+#version 150
+
+out vec4 color;
+in vec2 uv;
+
+void main()
+{
+    color = vec4(uv, 0.0, 1.0);
+}
+
+
+
+************************************
+
+Shader 4: HLSL 50 [Standard]
+Entry point: main
+Contents:
+static float4 color;
+static float2 uv;
+
+struct SPIRV_Cross_Input
+{
+    float2 uv : TEXCOORD0;
+};
+
+struct SPIRV_Cross_Output
+{
+    float4 color : SV_Target0;
+};
+
+void frag_main()
+{
+    color = float4(uv, 0.0f, 1.0f);
+}
+
+SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
+{
+    uv = stage_input.uv;
+    frag_main();
+    SPIRV_Cross_Output stage_output;
+    stage_output.color = color;
+    return stage_output;
+}
+
+
+************************************
+
+Shader 5: MSL 12 [Standard]
+Entry point: main0
+Contents:
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct main0_out
+{
+    float4 color [[color(0)]];
+};
+
+struct main0_in
+{
+    float2 uv [[user(locn0)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]])
+{
+    main0_out out = {};
+    out.color = float4(in.uv, 0.0, 1.0);
+    return out;
+}
+
+
+
+************************************
+

@@ -1,0 +1,30 @@
+HTTP/1.1 302 Found
+Server: nginx/1.30.6
+Date: Sun, 25 Oct 2026 07:44:51 GMT
+Content-Type: text/html
+Content-Length: 0
+Connection: keep-alive
+Location: https://productionresultssa13.blob.core.windows.net/actions-results/657d39bc-eb8b-8ac8-9738-61a9c23ac699/workflow-job-run-a37bd500-eb86-5055-9642-21d80b631c99/logs/job/job-logs.txt?rsct=text%2Fplain&se=2026-10-25T07%3A54%3A51Z&sig=iDwrqEv0XfZNsKsIy61XD3wVs2wR%2BJWeQB7i5xbTr2A%3D&ske=2026-10-25T09%3A28%3A19Z&skoid=ca7593d4-ee42-46cd-af88-8b886a2f84eb&sks=b&skt=2026-10-25T05%3A28%3A19Z&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skv=2025-11-05&sp=r&spr=https&sr=b&st=2026-10-25T07%3A44%3A46Z&sv=2025-11-05
+
+HTTP/1.1 200 OK
+Content-Length: 110894
+Content-Type: text/plain
+Content-MD5: RoTrKRCUpZ6kCecFX/pniA==
+Last-Modified: Thu, 22 Oct 2026 16:08:07 GMT
+Accept-Ranges: bytes
+ETag: "0x8DF3056A95E3747"
+Server: Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+x-ms-request-id: 90f9dbaa-801e-0093-1154-644cfb000000
+x-ms-version: 2025-11-05
+x-ms-creation-time: Thu, 22 Oct 2026 16:08:07 GMT
+x-ms-lease-status: unlocked
+x-ms-lease-state: available
+x-ms-blob-type: BlockBlob
+x-ms-server-encrypted: true
+x-ms-access-tier: Hot
+x-ms-access-tier-inferred: true
+x-ms-last-access-time: Thu, 22 Oct 2026 16:08:07 GMT
+Access-Control-Expose-Headers: x-ms-request-id,Server,x-ms-version,Content-Type,ETag,Last-Modified,x-ms-creation-time,Content-MD5,x-ms-lease-status,x-ms-lease-state,x-ms-blob-type,x-ms-server-encrypted,x-ms-access-tier,x-ms-access-tier-inferred,Accept-Ranges,x-ms-last-access-time,Content-Length,Date,Transfer-Encoding
+Access-Control-Allow-Origin: *
+Date: Sun, 25 Oct 2026 07:44:50 GMT
+
