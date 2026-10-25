@@ -1,12 +1,54 @@
 #!/usr/bin/env python3
 """Small negative controls for the fast lane's artifact/lock trust boundary."""
-import hashlib, importlib.util, io, pathlib, tempfile, unittest
+import copy, hashlib, importlib.util, io, json, pathlib, tempfile, unittest
 from unittest.mock import patch
 p = pathlib.Path(__file__).resolve().parents[1] / 'userland/alpine/build.py'
 spec = importlib.util.spec_from_file_location('alpine_builder', p)
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 class TrustTests(unittest.TestCase):
+    def certificate_pin(self, lock):
+        records = [entry for entry in lock['packages']
+                   if entry['url'].rsplit('/', 1)[-1].startswith('ca-certificates-bundle-')]
+        self.assertEqual(len(records), 1, 'Expected exactly one certificate bundle')
+        return records[0]['url'], records[0]['sha256']
+
+    def assert_certificate_locks(self, locks, reference):
+        expected_url, expected_sha = self.certificate_pin(reference)
+        for lock in locks:
+            url, sha = self.certificate_pin(lock)
+            self.assertEqual(url, expected_url)
+            self.assertEqual(sha, expected_sha)
+
+    def test_x86_certificate_locks_match_reviewed_reference(self):
+        top = p.parents[2]
+        paths = ['userland/alpine/locks/x86_64.json',
+                 'userland/alpine/locks/x86_64-desktop.json',
+                 'userland/ports/host-qsb-lock.json']
+        locks = [json.loads((top / name).read_text()) for name in paths]
+        reference = json.loads((top / 'userland/ports/linux-oracle-lock.json').read_text())
+        self.assert_certificate_locks(locks, reference)
+
+    def test_certificate_guard_rejects_url_hash_missing_and_duplicate(self):
+        entry = {'url': m.BASE + '/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk',
+                 'sha256': 'a' * 64}
+        reference = {'packages': [entry]}
+        good = {'packages': [dict(entry)]}
+        self.assert_certificate_locks([good] * 3, reference)
+        bad_sets = [[], [dict(entry), dict(entry)],
+                    [dict(entry, url=entry['url'].replace('/main/', '/community/'))],
+                    [dict(entry, sha256='b' * 64)]]
+        for position in range(3):
+            for bad in bad_sets:
+                with self.subTest(position=position, bad=bad):
+                    locks = copy.deepcopy([good] * 3)
+                    locks[position] = {'packages': bad}
+                    with self.assertRaises(AssertionError):
+                        self.assert_certificate_locks(locks, reference)
+        for bad in [[], [dict(entry), dict(entry)]]:
+            with self.subTest(reference=bad), self.assertRaises(AssertionError):
+                self.assert_certificate_locks([good] * 3, {'packages': bad})
+
     def test_account_overlay_preserves_distro_groups_and_locked_accounts(self):
         original='root:x:0:\naudio:x:29:\nvideo:x:27:\n'
         overlay='root:x:0:root\nvideo:x:44:root,user\nuser:x:1000:\n'
