@@ -25,7 +25,17 @@ def download(url, path, sha=None, offline=False):
     if offline:
         raise ValueError('Offline cache missing or checksum mismatch: ' + str(path))
     part = path.with_suffix(path.suffix + '.part')
+    failures = []
     for attempt in range(3):
+        # Diagnostic clocks must not change acquisition or mask its exception.
+        try:
+            utc_start = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time()))
+        except Exception:
+            utc_start = 'unknown'
+        try:
+            started = time.monotonic()
+        except Exception:
+            started = None
         try:
             with urllib.request.urlopen(url, timeout=60) as r, open(part, 'wb') as f:
                 shutil.copyfileobj(r, f)
@@ -35,8 +45,34 @@ def download(url, path, sha=None, offline=False):
             return
         except Exception as error:
             part.unlink(missing_ok=True)
+            if isinstance(error, urllib.error.HTTPError):
+                kind = 'HTTPError'
+            elif isinstance(error, TimeoutError):
+                kind = 'TimeoutError'
+            elif isinstance(error, urllib.error.URLError):
+                kind = 'URLError'
+            elif isinstance(error, OSError):
+                kind = 'OSError'
+            else:
+                kind = 'other'
+            status = error.code if kind == 'HTTPError' else None
+            try:
+                elapsed = round(time.monotonic() - started, 3) if started is not None else 'unknown'
+            except Exception:
+                elapsed = 'unknown'
+            failures.append({'attempt': attempt + 1, 'utc_start': utc_start,
+                             'elapsed_s': elapsed,
+                             'class': kind,
+                             'http_status': status if type(status) is int and 100 <= status <= 599 else 'unknown'})
             if attempt == 2:
                 error.add_note('Download failed: ' + url)
+                # This optional diagnostic must never mask the original error.
+                try:
+                    summary = 'Download attempts: ' + json.dumps(failures, separators=(',', ':'), allow_nan=False)
+                    if len(summary.encode('utf-8')) <= 1024:
+                        error.add_note(summary)
+                except Exception:
+                    pass  # Omit only the new diagnostic on formatting/attachment failure.
                 raise
             time.sleep(attempt + 1)
 
