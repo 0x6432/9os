@@ -1,0 +1,32 @@
+{
+  "outside_download_bytes_identical": true,
+  "original_fetch_read_hash_replace_body_ast_identical": true,
+  "original_cache_offline_ast_identical": true,
+  "retry_iterator_ast_identical": true,
+  "independent_witnesses": [
+    {
+      "witness": "identical start-clock-failure now preserves successful download",
+      "pass": true
+    },
+    {
+      "witness": "identical end-clock-failure preserves terminal HTTP404 and all retries",
+      "pass": true
+    },
+    {
+      "witness": "identical serialization failure preserves terminal HTTP503, URL-only note",
+      "pass": true
+    },
+    {
+      "witness": "attachment preserves original terminal error, URL-only note, retry/cache/cleanup/quiet",
+      "pass": true
+    },
+    {
+      "witness": "multibyte-oversize preserves original terminal error, URL-only note, retry/cache/cleanup/quiet",
+      "pass": true
+    },
+    {
+      "witness": "nonfinite preserves original terminal error, URL-only note, retry/cache/cleanup/quiet",
+      "pass": true
+    }
+  ]
+}

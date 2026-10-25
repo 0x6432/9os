@@ -1,0 +1,2 @@
+Synthetic clock-fault witness: observed_type=OSError, same_network_error=False, requests=0
+Review witness only: no real clock/network failure or product commit; current patch needs review of diagnostic noninterference.

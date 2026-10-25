@@ -1,0 +1,87 @@
+test_cache_and_offline_paths_are_quiet_without_clocks_or_network (t.AlpineDownload.test_cache_and_offline_paths_are_quiet_without_clocks_or_network) ... ok
+test_checksum_failure_still_fails_and_preserves_cache (t.AlpineDownload.test_checksum_failure_still_fails_and_preserves_cache) ... FAIL
+test_elapsed_covers_request_stream_and_hash_not_backoff (t.AlpineDownload.test_elapsed_covers_request_stream_and_hash_not_backoff) ... FAIL
+test_final_http404_keeps_exception_and_reports_url (t.AlpineDownload.test_final_http404_keeps_exception_and_reports_url) ... FAIL
+test_fixed_classes_status_range_and_output_bound (t.AlpineDownload.test_fixed_classes_status_range_and_output_bound) ... FAIL
+test_matching_cache_offline_makes_no_network_request (t.AlpineDownload.test_matching_cache_offline_makes_no_network_request) ... ok
+test_missing_offline_cache_still_fails_without_network (t.AlpineDownload.test_missing_offline_cache_still_fails_without_network) ... ok
+test_mixed_attempt_diagnostic_contract (t.AlpineDownload.test_mixed_attempt_diagnostic_contract) ... FAIL
+test_partial_read_failure_is_cleaned_without_replacing_cache (t.AlpineDownload.test_partial_read_failure_is_cleaned_without_replacing_cache) ... FAIL
+test_recovery_after_one_failure_has_no_final_failure_note (t.AlpineDownload.test_recovery_after_one_failure_has_no_final_failure_note) ... ok
+test_recovery_after_two_failures_is_quiet_and_leaves_prior_errors_unchanged (t.AlpineDownload.test_recovery_after_two_failures_is_quiet_and_leaves_prior_errors_unchanged) ... ok
+
+======================================================================
+FAIL: test_checksum_failure_still_fails_and_preserves_cache (t.AlpineDownload.test_checksum_failure_still_fails_and_preserves_cache)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 248, in test_checksum_failure_still_fails_and_preserves_cache
+    self.terminal_records(caught.exception)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 35, in terminal_records
+    self.assertEqual(len(notes), 2, 'expected URL note then one attempt summary')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2 : expected URL note then one attempt summary
+
+======================================================================
+FAIL: test_elapsed_covers_request_stream_and_hash_not_backoff (t.AlpineDownload.test_elapsed_covers_request_stream_and_hash_not_backoff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 163, in test_elapsed_covers_request_stream_and_hash_not_backoff
+    self.assertEqual([r['elapsed_s'] for r in self.terminal_records(caught.exception)], [6, 6, 6])
+                                              ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 35, in terminal_records
+    self.assertEqual(len(notes), 2, 'expected URL note then one attempt summary')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2 : expected URL note then one attempt summary
+
+======================================================================
+FAIL: test_final_http404_keeps_exception_and_reports_url (t.AlpineDownload.test_final_http404_keeps_exception_and_reports_url)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 217, in test_final_http404_keeps_exception_and_reports_url
+    self.terminal_records(error)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 35, in terminal_records
+    self.assertEqual(len(notes), 2, 'expected URL note then one attempt summary')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2 : expected URL note then one attempt summary
+
+======================================================================
+FAIL: test_fixed_classes_status_range_and_output_bound (t.AlpineDownload.test_fixed_classes_status_range_and_output_bound)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 136, in test_fixed_classes_status_range_and_output_bound
+    records = self.terminal_records(error)
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 35, in terminal_records
+    self.assertEqual(len(notes), 2, 'expected URL note then one attempt summary')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2 : expected URL note then one attempt summary
+
+======================================================================
+FAIL: test_mixed_attempt_diagnostic_contract (t.AlpineDownload.test_mixed_attempt_diagnostic_contract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 116, in test_mixed_attempt_diagnostic_contract
+    self.mixed_contract(b)
+    ~~~~~~~~~~~~~~~~~~~^^^
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 69, in mixed_contract
+    self.assertEqual(wall.call_count, 3)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 3
+
+======================================================================
+FAIL: test_partial_read_failure_is_cleaned_without_replacing_cache (t.AlpineDownload.test_partial_read_failure_is_cleaned_without_replacing_cache)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 239, in test_partial_read_failure_is_cleaned_without_replacing_cache
+    self.terminal_records(error)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/data/diagnostic-independent-review/scripts/alpine-download-host-tests.py", line 35, in terminal_records
+    self.assertEqual(len(notes), 2, 'expected URL note then one attempt summary')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2 : expected URL note then one attempt summary
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.011s
+
+FAILED (failures=6)

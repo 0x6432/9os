@@ -1,0 +1,112 @@
+[
+  {
+    "name": "job-121113985819.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121113985819.txt",
+    "bytes": 1917342,
+    "sha256": "f577e6ecdb76c17bab5c302e52b707428c0c4f7a74c5ae5b661c66e8bc5daa13",
+    "curl_exit": 0,
+    "observed_bytes": 1917342,
+    "observed_sha256": "f577e6ecdb76c17bab5c302e52b707428c0c4f7a74c5ae5b661c66e8bc5daa13",
+    "identical": true
+  },
+  {
+    "name": "job-121113985973.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121113985973.txt",
+    "bytes": 614757,
+    "sha256": "3ec44869f111eb1bdbac94de879478bb0e92e9b0c6bbb3b49003d6352acae0a5",
+    "curl_exit": 0,
+    "observed_bytes": 614757,
+    "observed_sha256": "3ec44869f111eb1bdbac94de879478bb0e92e9b0c6bbb3b49003d6352acae0a5",
+    "identical": true
+  },
+  {
+    "name": "job-121113986010.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121113986010.txt",
+    "bytes": 1909213,
+    "sha256": "107886152a36663ecc0f2f2a9dfd5e259836d11fdcaa7afbe4c268750a4a2d58",
+    "curl_exit": 0,
+    "observed_bytes": 1909213,
+    "observed_sha256": "107886152a36663ecc0f2f2a9dfd5e259836d11fdcaa7afbe4c268750a4a2d58",
+    "identical": true
+  },
+  {
+    "name": "job-121113986032.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121113986032.txt",
+    "bytes": 2147063,
+    "sha256": "a1960cb2cbc6ab5f6b78afec8c6a93b5d9c07ef086db63b8a3e6737997c68fdd",
+    "curl_exit": 0,
+    "observed_bytes": 2147063,
+    "observed_sha256": "a1960cb2cbc6ab5f6b78afec8c6a93b5d9c07ef086db63b8a3e6737997c68fdd",
+    "identical": true
+  },
+  {
+    "name": "job-121113986043.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121113986043.txt",
+    "bytes": 114981,
+    "sha256": "9393b3c9f9c362efc57799259a0c1511c8fe3aa95cb6926468bb61bc9426bdb2",
+    "curl_exit": 0,
+    "observed_bytes": 114981,
+    "observed_sha256": "9393b3c9f9c362efc57799259a0c1511c8fe3aa95cb6926468bb61bc9426bdb2",
+    "identical": true
+  },
+  {
+    "name": "job-121113986138.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121113986138.txt",
+    "bytes": 378944,
+    "sha256": "b23c614aa818457dd1f8d2beea23b3df8c9b1b51148f42c6da2cdfd13df705d4",
+    "curl_exit": 0,
+    "observed_bytes": 378944,
+    "observed_sha256": "b23c614aa818457dd1f8d2beea23b3df8c9b1b51148f42c6da2cdfd13df705d4",
+    "identical": true
+  },
+  {
+    "name": "alpine-desktop-evidence-riscv64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40175112595/alpine-desktop-evidence-riscv64.zip",
+    "bytes": 1434371,
+    "sha256": "982b80ce13c60550f941a88262812aa9885c35719f7140c23957fb66b24cb7c3",
+    "curl_exit": 0,
+    "observed_bytes": 1434371,
+    "observed_sha256": "982b80ce13c60550f941a88262812aa9885c35719f7140c23957fb66b24cb7c3",
+    "identical": true
+  },
+  {
+    "name": "alpine-evidence-aarch64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40175112595/alpine-evidence-aarch64.zip",
+    "bytes": 37634,
+    "sha256": "dec401652f99c1d84d1ee8e857620263e7b93a4c2343b931c9b7d8b0c3afcbb4",
+    "curl_exit": 0,
+    "observed_bytes": 37634,
+    "observed_sha256": "dec401652f99c1d84d1ee8e857620263e7b93a4c2343b931c9b7d8b0c3afcbb4",
+    "identical": true
+  },
+  {
+    "name": "alpine-desktop-evidence-aarch64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40175112595/alpine-desktop-evidence-aarch64.zip",
+    "bytes": 1407860,
+    "sha256": "eceadaa75a4e4f8a3e5e31028ec97b26da92f2c7a1c8d4577dc7f5eb1ee8ff7a",
+    "curl_exit": 0,
+    "observed_bytes": 1407860,
+    "observed_sha256": "eceadaa75a4e4f8a3e5e31028ec97b26da92f2c7a1c8d4577dc7f5eb1ee8ff7a",
+    "identical": true
+  },
+  {
+    "name": "alpine-evidence-riscv64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40175112595/alpine-evidence-riscv64.zip",
+    "bytes": 65074,
+    "sha256": "c36df6916289ba1faa26ed4abb07d368d33a0fe33d09db7865f9541413c00a3b",
+    "curl_exit": 0,
+    "observed_bytes": 65074,
+    "observed_sha256": "c36df6916289ba1faa26ed4abb07d368d33a0fe33d09db7865f9541413c00a3b",
+    "identical": true
+  },
+  {
+    "name": "alpine-desktop-evidence-x86_64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40175112595/alpine-desktop-evidence-x86_64.zip",
+    "bytes": 1408052,
+    "sha256": "3d09f9d0728e193be56aa11abeab88c2ad715318fa0aa13113f1d761dde0bca0",
+    "curl_exit": 0,
+    "observed_bytes": 1408052,
+    "observed_sha256": "3d09f9d0728e193be56aa11abeab88c2ad715318fa0aa13113f1d761dde0bca0",
+    "identical": true
+  }
+]

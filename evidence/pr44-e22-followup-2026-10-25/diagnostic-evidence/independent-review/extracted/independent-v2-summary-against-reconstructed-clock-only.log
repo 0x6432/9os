@@ -1,0 +1,70 @@
+test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) ... 
+  test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) (fault='serialization') ... FAIL
+  test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) (fault='attachment') ... FAIL
+  test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) (fault='oversize') ... FAIL
+  test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) (fault='nonfinite') ... FAIL
+
+======================================================================
+FAIL: test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) (fault='serialization')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-v2-independent-review/scripts/alpine-download-host-tests.py", line 156, in test_summary_faults_or_oversize_only_omit_optional_note
+    self.summary_fault_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/diagnostic-v2-independent-review/scripts/alpine-download-host-tests.py", line 145, in summary_fault_contract
+    self.assertIs(caught, error, 'optional summary masked the final download error')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: RuntimeError('DO_NOT_LOG_FORMAT') is not <HTTPError 503: 'DO_NOT_LOG_NETWORK'> : optional summary masked the final download error
+
+======================================================================
+FAIL: test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) (fault='attachment')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-v2-independent-review/scripts/alpine-download-host-tests.py", line 156, in test_summary_faults_or_oversize_only_omit_optional_note
+    self.summary_fault_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/diagnostic-v2-independent-review/scripts/alpine-download-host-tests.py", line 145, in summary_fault_contract
+    self.assertIs(caught, error, 'optional summary masked the final download error')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: RuntimeError('DO_NOT_LOG_ATTACHMENT') is not <HTTPError 503: 'DO_NOT_LOG_NETWORK'> : optional summary masked the final download error
+
+======================================================================
+FAIL: test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) (fault='oversize')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-v2-independent-review/scripts/alpine-download-host-tests.py", line 156, in test_summary_faults_or_oversize_only_omit_optional_note
+    self.summary_fault_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/diagnostic-v2-independent-review/scripts/alpine-download-host-tests.py", line 148, in summary_fault_contract
+    self.assertEqual(getattr(error, '__notes__', []), ['Download failed: ' + URL])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['Dow[84 chars].apk', 'Download attempts: [{"padding": "雪雪雪雪雪[395 chars]"}]'] != ['Dow[84 chars].apk']
+
+First list contains 1 additional elements.
+First extra element 1:
+'Download attempts: [{"padding": "雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪雪"}]'
+
+Diff is 798 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_summary_faults_or_oversize_only_omit_optional_note (staged_tests.AlpineDownload.test_summary_faults_or_oversize_only_omit_optional_note) (fault='nonfinite')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/diagnostic-v2-independent-review/scripts/alpine-download-host-tests.py", line 156, in test_summary_faults_or_oversize_only_omit_optional_note
+    self.summary_fault_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/diagnostic-v2-independent-review/scripts/alpine-download-host-tests.py", line 148, in summary_fault_contract
+    self.assertEqual(getattr(error, '__notes__', []), ['Download failed: ' + URL])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['Dow[84 chars].apk', 'Download attempts: [{"attempt":1,"utc_[288 chars]3}]'] != ['Dow[84 chars].apk']
+
+First list contains 1 additional elements.
+First extra element 1:
+'Download attempts: [{"attempt":1,"utc_start":"2026-10-25T10:40:47Z","elapsed_s":NaN,"class":"HTTPError","http_status":503},{"attempt":2,"utc_start":"2026-10-25T10:40:47Z","elapsed_s":NaN,"class":"HTTPError","http_status":503},{"attempt":3,"utc_start":"2026-10-25T10:40:47Z","elapsed_s":NaN,"class":"HTTPError","http_status":503}]'
+
+Diff is 691 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 1 test in 0.009s
+
+FAILED (failures=4)

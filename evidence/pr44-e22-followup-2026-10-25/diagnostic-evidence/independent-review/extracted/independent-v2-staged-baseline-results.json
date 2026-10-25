@@ -1,0 +1,17 @@
+{
+  "provenance": "Clock-only variant is explicitly reconstructed isolated control fixture, not a published source snapshot. V1 is exact earlier supplied candidate. No production branch edits.",
+  "results": [
+    {
+      "label": "independent-v2-clocks-against-unguarded-v1.log",
+      "methods": 2,
+      "assertion_failures": 10,
+      "errors": 0
+    },
+    {
+      "label": "independent-v2-summary-against-reconstructed-clock-only.log",
+      "methods": 1,
+      "assertion_failures": 4,
+      "errors": 0
+    }
+  ]
+}

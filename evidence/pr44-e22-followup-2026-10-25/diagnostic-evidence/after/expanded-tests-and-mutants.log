@@ -1,0 +1,11 @@
+............
+----------------------------------------------------------------------
+Ran 12 tests in 0.040s
+
+OK
+SEMANTIC MUTANT REJECTED: missing-summary
+SEMANTIC MUTANT REJECTED: wrong-attempt-index
+SEMANTIC MUTANT REJECTED: lost-http-status
+SEMANTIC MUTANT REJECTED: wrong-elapsed
+SEMANTIC MUTANT REJECTED: timeout-misclassified
+SEMANTIC MUTANT REJECTED: url-note-altered

@@ -1,0 +1,23 @@
+[
+  {
+    "case": "diagnostic-start-clock-fails-but-download-would-succeed",
+    "actual": "OSError",
+    "network_calls": 0,
+    "expected": "success; instrumentation must not prevent real operation"
+  },
+  {
+    "case": "diagnostic-end-clock-fails-after-real404",
+    "actual_exception": "OSError",
+    "same_original_error": false,
+    "network_calls": 1,
+    "sleep_calls": 0,
+    "expected": "original terminal HTTPError after unchanged 3 attempts/2 sleeps"
+  },
+  {
+    "case": "terminal-diagnostic-format-fails",
+    "actual_exception": "RuntimeError",
+    "same_original_error": false,
+    "network_calls": 3,
+    "expected": "original terminal HTTPError preserved"
+  }
+]

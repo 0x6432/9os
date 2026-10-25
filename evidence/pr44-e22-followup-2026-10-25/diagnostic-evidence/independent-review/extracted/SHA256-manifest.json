@@ -1,0 +1,75 @@
+{
+  "scope": "independent native diagnostic-only review; original CI unchanged",
+  "files": [
+    {
+      "filename": "independent-v2-review.md",
+      "bytes": 2277,
+      "sha256": "bbdb8cfa235ccba820f2ad6cb3af421273591c57d047dfccdf4e09a585009f69"
+    },
+    {
+      "filename": "diagnostic-peer-v2.patch",
+      "bytes": 25893,
+      "sha256": "c7c9f8fb21ed6b40597fd50696abc9b7b7b7370a6d775fe2a3307a7687f41603"
+    },
+    {
+      "filename": "independent-original6.log",
+      "bytes": 104,
+      "sha256": "065c7d15facfd20f14fb9182747be315f3349fa1d5e1a0e966047509f4bfa9b1"
+    },
+    {
+      "filename": "independent-expanded11-before.log",
+      "bytes": 6821,
+      "sha256": "0b1464543f239ff4df82e21b8e533f69406877588bc66c3c097637816995a8a2"
+    },
+    {
+      "filename": "independent-v2-after18.log",
+      "bytes": 650,
+      "sha256": "e0fca178a51a400396e1eac81169bdf309c3e120207a2f6cbb4ec342ac41cdfa"
+    },
+    {
+      "filename": "independent-v2-alpine10.log",
+      "bytes": 109,
+      "sha256": "45629e08d8c41ba474e149425cf4477b6ed2d14afbd48b41a5dea35ddb36ae32"
+    },
+    {
+      "filename": "independent-v2-qsb7.log",
+      "bytes": 105,
+      "sha256": "72156f932b84f0a39ef9e443438bd687d07faf5e59e1df2b9f02226fc56b49e2"
+    },
+    {
+      "filename": "check-v2-independent-witnesses.py",
+      "bytes": 5043,
+      "sha256": "9fe0cc8007136c846768378ed21fabc665bf96d9a40f928147d86b3edeca7f1d"
+    },
+    {
+      "filename": "independent-v2-witnesses.json",
+      "bytes": 1020,
+      "sha256": "048967ca9085ca2aa2f0c1864ce531150eb77357255d78717bae09f5e3205245"
+    },
+    {
+      "filename": "check-v2-staged-baselines.py",
+      "bytes": 2156,
+      "sha256": "50eab88228c89f90a613edadaef2799d98dc2b3d93abe400220f83b9abd7def2"
+    },
+    {
+      "filename": "independent-v2-staged-baseline-results.json",
+      "bytes": 523,
+      "sha256": "f5914389df65e46880c45741e01582d72833d6a975e41fcd12f5d29b4d084058"
+    },
+    {
+      "filename": "independent-v2-clocks-against-unguarded-v1.log",
+      "bytes": 11474,
+      "sha256": "ac719a54b325aeb8d0cc20a2086c2d6b1db7905a1d163f8e9a7682b520f1015f"
+    },
+    {
+      "filename": "independent-v2-summary-against-reconstructed-clock-only.log",
+      "bytes": 6878,
+      "sha256": "4211749546c744474df9932536dd1e8197105c85fcc9a3867edf4f01c0d732c0"
+    },
+    {
+      "filename": "independent-contract-blockers.json",
+      "bytes": 680,
+      "sha256": "9084eff05058094df19218c5fc49607f4a774f4af8c0f5bd4addfe6a94747087"
+    }
+  ]
+}

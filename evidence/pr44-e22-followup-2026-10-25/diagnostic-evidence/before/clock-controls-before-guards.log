@@ -1,0 +1,113 @@
+FFFFFFFFFF
+======================================================================
+FAIL: test_clock_faults_cannot_mask_terminal_network_exception (__main__.AlpineDownload.test_clock_faults_cannot_mask_terminal_network_exception) (fault='time')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 127, in test_clock_faults_cannot_mask_terminal_network_exception
+    self.clock_failure_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 112, in clock_failure_contract
+    self.assertIs(caught, error, 'diagnostic clock fault masked terminal network exception')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not <HTTPError 503: 'DO_NOT_LOG_NETWORK'> : diagnostic clock fault masked terminal network exception
+
+======================================================================
+FAIL: test_clock_faults_cannot_mask_terminal_network_exception (__main__.AlpineDownload.test_clock_faults_cannot_mask_terminal_network_exception) (fault='gmtime')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 127, in test_clock_faults_cannot_mask_terminal_network_exception
+    self.clock_failure_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 112, in clock_failure_contract
+    self.assertIs(caught, error, 'diagnostic clock fault masked terminal network exception')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not <HTTPError 503: 'DO_NOT_LOG_NETWORK'> : diagnostic clock fault masked terminal network exception
+
+======================================================================
+FAIL: test_clock_faults_cannot_mask_terminal_network_exception (__main__.AlpineDownload.test_clock_faults_cannot_mask_terminal_network_exception) (fault='strftime')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 127, in test_clock_faults_cannot_mask_terminal_network_exception
+    self.clock_failure_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 112, in clock_failure_contract
+    self.assertIs(caught, error, 'diagnostic clock fault masked terminal network exception')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not <HTTPError 503: 'DO_NOT_LOG_NETWORK'> : diagnostic clock fault masked terminal network exception
+
+======================================================================
+FAIL: test_clock_faults_cannot_mask_terminal_network_exception (__main__.AlpineDownload.test_clock_faults_cannot_mask_terminal_network_exception) (fault='monotonic')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 127, in test_clock_faults_cannot_mask_terminal_network_exception
+    self.clock_failure_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 112, in clock_failure_contract
+    self.assertIs(caught, error, 'diagnostic clock fault masked terminal network exception')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not <HTTPError 503: 'DO_NOT_LOG_NETWORK'> : diagnostic clock fault masked terminal network exception
+
+======================================================================
+FAIL: test_clock_faults_cannot_mask_terminal_network_exception (__main__.AlpineDownload.test_clock_faults_cannot_mask_terminal_network_exception) (fault='elapsed-end')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 127, in test_clock_faults_cannot_mask_terminal_network_exception
+    self.clock_failure_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 112, in clock_failure_contract
+    self.assertIs(caught, error, 'diagnostic clock fault masked terminal network exception')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not <HTTPError 503: 'DO_NOT_LOG_NETWORK'> : diagnostic clock fault masked terminal network exception
+
+======================================================================
+FAIL: test_clock_faults_cannot_mask_terminal_network_exception (__main__.AlpineDownload.test_clock_faults_cannot_mask_terminal_network_exception) (fault='elapsed-format')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 127, in test_clock_faults_cannot_mask_terminal_network_exception
+    self.clock_failure_contract(b, fault)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 112, in clock_failure_contract
+    self.assertIs(caught, error, 'diagnostic clock fault masked terminal network exception')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not <HTTPError 503: 'DO_NOT_LOG_NETWORK'> : diagnostic clock fault masked terminal network exception
+
+======================================================================
+FAIL: test_clock_faults_cannot_break_successful_download (__main__.AlpineDownload.test_clock_faults_cannot_break_successful_download) (fault='time')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 143, in test_clock_faults_cannot_break_successful_download
+    self.assertIsNone(caught, 'diagnostic clock fault blocked successful download')
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not None : diagnostic clock fault blocked successful download
+
+======================================================================
+FAIL: test_clock_faults_cannot_break_successful_download (__main__.AlpineDownload.test_clock_faults_cannot_break_successful_download) (fault='gmtime')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 143, in test_clock_faults_cannot_break_successful_download
+    self.assertIsNone(caught, 'diagnostic clock fault blocked successful download')
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not None : diagnostic clock fault blocked successful download
+
+======================================================================
+FAIL: test_clock_faults_cannot_break_successful_download (__main__.AlpineDownload.test_clock_faults_cannot_break_successful_download) (fault='strftime')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 143, in test_clock_faults_cannot_break_successful_download
+    self.assertIsNone(caught, 'diagnostic clock fault blocked successful download')
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not None : diagnostic clock fault blocked successful download
+
+======================================================================
+FAIL: test_clock_faults_cannot_break_successful_download (__main__.AlpineDownload.test_clock_faults_cannot_break_successful_download) (fault='monotonic')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/pr44-diagnostics/repo/scripts/alpine-download-host-tests.py", line 143, in test_clock_faults_cannot_break_successful_download
+    self.assertIsNone(caught, 'diagnostic clock fault blocked successful download')
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError('DO_NOT_LOG_CLOCK_FAULT') is not None : diagnostic clock fault blocked successful download
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.009s
+
+FAILED (failures=10)

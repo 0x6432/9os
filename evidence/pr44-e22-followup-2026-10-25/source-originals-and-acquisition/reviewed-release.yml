@@ -1,0 +1,229 @@
+# Build 9os ISOs for x86_64, riscv64 and aarch64 and publish them as a GitHub release
+# named after the build timestamp (UTC), e.g. "9os-20260105-142233".
+name: build-and-release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**.md']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ports:
+        description: "Build the graphics/ports userland (slower)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stamp:
+    runs-on: ubuntu-24.04
+    outputs:
+      ts: ${{ steps.ts.outputs.ts }}
+    steps:
+      - id: ts
+        run: echo "ts=$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: stamp
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, riscv64, aarch64]
+    env:
+      ARCH: ${{ matrix.arch }}
+      TOOLS_DIR: ${{ github.workspace }}/.tools
+      NO_PORTS: ${{ (github.event_name == 'workflow_dispatch' && !inputs.ports) && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install host packages
+        run: |
+          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 -o APT::Update::Error-Mode=any update -q
+          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl jq bzip2 xz-utils e2fsprogs fdisk \
+            bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip python3-pil ninja-build libglib2.0-dev-bin libglib2.0-dev \
+            qemu-system-x86 qemu-system-misc qemu-system-arm qemu-efi-aarch64 qemu-efi-riscv64
+          pip3 install --break-system-packages 'meson>=1.3' Mako PyYAML packaging
+          clang --version | head -1
+
+      - name: Install QEMU (Alpine edge, same as the dev sandbox)
+        run: |
+          scripts/install-qemu-alpine.sh
+          echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
+
+      - name: Cache downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.TOOLS_DIR }}/dl
+            ${{ env.TOOLS_DIR }}/host
+          key: dl-${{ matrix.arch }}-${{ hashFiles('userland/*.sh', 'userland/ports/*.sh') }}
+          restore-keys: dl-${{ matrix.arch }}-
+
+      - name: Fetch Limine + uACPI
+        run: |
+          mkdir -p "$TOOLS_DIR/dl"
+          scripts/fetch-deps.sh
+
+      - name: Allocator and scheduler host regressions
+        if: matrix.arch == 'x86_64'
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-download-host-tests.py
+          scripts/pmm-host-tests.sh
+          scripts/slab-host-tests.sh
+          scripts/sched-host-tests.sh
+          scripts/rbtree-host-tests.sh
+          scripts/net-ring-host-tests.sh
+          scripts/snd-host-tests.sh
+          scripts/futex-host-tests.sh
+          scripts/eventfd-host-tests.sh
+          scripts/poll-filter-host-tests.sh
+          python3 tests/epoll-abi-host/run.py --mode native
+          python3 tests/epoll-abi-host/run.py --mode model --mutations
+          python3 tests/epoll-restart-host/run.py --mutations
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/guest-watchdog-control.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/test-guest-watchdog-cleanup.py
+          python3 scripts/terminal-attempt-history-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-transport-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-status-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-utility-status-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/a11y-dbus-host/test-error-identity.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/a11y-dbus-host/test-error-identity-mutations.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-readbacks.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence-mutations.py
+          scripts/evdev-host-tests.sh
+          python3 scripts/plasma-readiness-host-tests.py
+          python3 scripts/input-capture-host-tests.py
+          python3 scripts/input-capture-status-host-tests.py
+          python3 scripts/wayland-keyboard-trace-host-tests.py
+          python3 scripts/plasma-input-startup-host-tests.py
+          python3 scripts/inner-keyboard-dispatch-host-tests.py
+          python3 scripts/konsole-dispatch-trace-host-tests.py
+          python3 scripts/qt-key-observer-host-tests.py
+          python3 scripts/qt-key-observer-parser-host-tests.py
+          scripts/fallocate-host-tests.sh
+          scripts/ptracestop-host-tests.sh
+          scripts/unixcred-host-tests.sh
+          scripts/procinfo-host-tests.sh
+          scripts/dircookie-host-tests.sh
+          scripts/poll-wake-host-tests.sh
+          scripts/alarm-cpu-host-tests.sh
+          python3 scripts/qtdeclarative-cross-host-tests.py
+          python3 scripts/host-qsb-host-tests.py
+          python3 scripts/quick-pixel-host-tests.py
+          python3 scripts/quick-wayland-host-tests.py
+          python3 scripts/glib-zlib-cache-host-tests.py
+          scripts/proctask-host-tests.sh
+          sudo env MOUNTINFO_HOST_MUTATE=1 scripts/mountinfo-host-tests.sh
+          scripts/pimutex-host-tests.sh
+          scripts/ioctlwidth-host-tests.sh
+          python3 scripts/rootfs-stamp-host-tests.py
+          python3 scripts/fetch-host-tests.py
+
+      - name: Build userland (musl, BusyBox, Bash, ports)
+        run: userland/build-all.sh
+
+      - name: Build kernel + ISO
+        run: |
+          make ARCH=$ARCH iso
+          mkdir -p out
+          cp build/$ARCH/9os.iso "out/9os-${{ needs.stamp.outputs.ts }}-$ARCH.iso"
+          sha256sum out/*.iso
+
+      - name: Boot tests in QEMU
+        run: scripts/ci-tests.sh $ARCH --boot-timeout 300
+
+      - name: Uniprocessor M25 regressions
+        run: >-
+          python3 scripts/qemu-test.py $ARCH --smp 1 --boot-timeout 300
+          --log build/test-up-$ARCH.log "timeout 35 evdevframetest" slabtest idletest nicetest pcputest balancetest vforktest orphantest
+          "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
+
+      - name: MLFQ M25 regressions
+        run: |
+          make ARCH=$ARCH SCHED=mlfq iso
+          python3 scripts/qemu-test.py $ARCH --smp 2 --sched mlfq --boot-timeout 300 \
+            --log build/test-mlfq-$ARCH.log slabtest idletest nicetest afftest \
+            balancetest pcputest smptest timetest vforktest orphantest \
+            "timeout 35 pollfiltertest" 'su user -s /bin/sh -c "timeout 35 pollfiltertest"' \
+            "timeout 10 epollabitest" 'su user -s /bin/sh -c "timeout 10 epollabitest"' "timeout 10 epollrestarttest" 'su user -s /bin/sh -c "timeout 10 epollrestarttest"' \
+            "timeout 45 unixpolltest" "pollwakebench --unix" "pollwakebench --unix-inotify" \
+            "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"' \
+            "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
+
+      - name: Eight-CPU RR poll progress
+        if: matrix.arch == 'x86_64'
+        run: >-
+          python3 scripts/qemu-test.py $ARCH --smp 8 --boot-timeout 300
+          --log build/test-pollwake-smp8-$ARCH.log "timeout 30 futexbitsettest"
+          'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 10 alarmcputest"
+          'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench
+          "timeout 10 epollabitest" 'su user -s /bin/sh -c "timeout 10 epollabitest"' "timeout 10 epollrestarttest" 'su user -s /bin/sh -c "timeout 10 epollrestarttest"'
+          "su user -s /bin/sh -c pollwakebench" "timeout 45 unixpolltest"
+          'su user -s /bin/sh -c "timeout 45 unixpolltest"' "pollwakebench --unix" "pollwakebench --unix-inotify"
+          'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"' polltest timetest
+          "timeout 35 pollfiltertest" 'su user -s /bin/sh -c "timeout 35 pollfiltertest"'
+          "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"'
+          "grep -q '^violations 0' /proc/lockdep"
+      - name: Eight-CPU scheduler and allocator stress
+        if: matrix.arch == 'x86_64'
+        run: >-
+          python3 scripts/qemu-test.py $ARCH --smp 8 --sched mlfq --boot-timeout 300
+          --log build/test-smp8-$ARCH.log "timeout 35 evdevframetest" slabtest idletest pcputest smptest afftest balancetest vforktest orphantest
+          "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log-${{ matrix.arch }}
+          path: build/test*${{ matrix.arch }}.log
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iso-${{ matrix.arch }}
+          path: out/*.iso
+          retention-days: 14
+
+  release:
+    needs: [stamp, build]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: iso-*
+          merge-multiple: true
+          path: out
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TS: ${{ needs.stamp.outputs.ts }}
+        run: |
+          cd out
+          sha256sum *.iso > SHA256SUMS
+          cat > notes.md <<NOTES
+          Automated build of \`${GITHUB_SHA::7}\` (${GITHUB_REF_NAME}) at ${TS} UTC.
+
+          | File | Boot with |
+          |------|-----------|
+          | 9os-${TS}-x86_64.iso | \`qemu-system-x86_64 -M q35 -m 512M -smp 4 -serial stdio -cdrom 9os-${TS}-x86_64.iso\` (BIOS or UEFI) |
+          | 9os-${TS}-riscv64.iso | UEFI (edk2 RISC-V) on \`qemu-system-riscv64 -M virt\` |
+          | 9os-${TS}-aarch64.iso | UEFI (edk2 AArch64) on \`qemu-system-aarch64 -M virt -cpu cortex-a72\` |
+
+          See docs/HANDOFF.md for the exact QEMU command lines (\`make ARCH=<arch> run\`).
+          NOTES
+          gh release create "9os-${TS}" *.iso SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "9os ${TS}" --notes-file notes.md
