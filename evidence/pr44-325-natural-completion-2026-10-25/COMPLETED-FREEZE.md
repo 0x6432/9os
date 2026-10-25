@@ -1,0 +1,9 @@
+# ONE completion snapshot — exact325 attempt1
+
+Observed2026-10-25T13:48:45.859021Z; authoritative REST run40186302671 naturallycompleted FAILURE, no cancellation. Five jobs ALLcompleted: stamp121147706314SUCCESS, x86build121147735849FAILURE(userlandstep8CA-bundleHTTP404), ARM121147735858SUCCESS, RISC121147735880SUCCESS, release121177179672SKIPPED. Overall CI is NOTpass.
+
+ARM+RISC originalfulljoblogs preservedbeforeanalysis; checkout0f3b03e802fc3b851953e190677d0426b21da4e7 inboth. ARM475625B SHA25659234101c4ae1be34d9ecdaf150e907392d6c7986fdb3e64a8971c122a21d33e, URLhttps://nightly.link/0x6432/9os/runs/121147735858.txt. RISC1314950B SHA256d2a0b894d3890e5498cdbcc4da68ed9bb24afedebc603f87c06c451c7861da26, URLhttps://nightly.link/0x6432/9os/runs/121147735880.txt.
+
+Both userland/kernelISO/boot/UPM25/MLFQM25/logupload/ISOartifact/cachepost SUCCESS. EightCPUx86-onlysteps13/14 SKIPPED(config), hostregressionstep7 likewise SKIPPED(nonx86); notpasses. Each serialsuite summaries157/157,24/24,7/7,2/2,2/2,10/10,29/29. OriginaltestlogartifactIDs ARM12600161136/RISC12598044451 uploadsSUCCESS; no ArtifactServicefailure. ProductISO archives were not copied into evidence. These successes do NOTclear failedx86 or signedRISCstrace137, do not prove cold reliability or finish M40.
+
+Previously prepared LOCALproductc7b434183c3e138b3b638922deb116f030d82282/treef51b20de56c1d8665821042a3d467b793b34fc64 and evidence34169d059d66dec19a40a609872de04ec0f309e4/treec70eb2f02fbf6d0454c1d756fb2c98186d3fdf45 remain unchanged/available. Priorbundle6728895B SHA256f30e04fd040d86711386b764ac1519df51c4d9f242530a045b57be110e091bf1 verified. This completionpacket is supplemental/uncommitted; prior341evidence faithfullyretains earlieractive snapshot. No newcommit/implementation/APIwrite/authused. Naturalcompletion removes old-run-cancellation blocker only; publication still needs freshfinalauthorization/preflight.
