@@ -376,8 +376,8 @@
       "sha256": "cc1f2697e70ee0eedc57f7de863a21b605445ef82412975d84c6a404a2f5b59c"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r0.apk",
-      "sha256": "3e0e70688c2f8410896a760705bbc887f6c9b1b8e6bb510ab1847f1261b13a3e"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r1.apk",
+      "sha256": "63fb6e08815d6b72bc2792cce9fb8dd5b1c5952e0624915ca8324919dd50e497"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpng-1.6.59-r0.apk",
@@ -568,8 +568,8 @@
       "sha256": "c7d0e67a543942e79d8eaa86a57017ca8cb6bcd883042c55cc27dee2965e8ded"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r0.apk",
-      "sha256": "cfb8ad103a101fa6a31769e50e188dab9c60124705682d01b3de268795db58ad"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk",
+      "sha256": "e0e0e3c5f3b4a37a77799a7367bb40dd38596be55f56f3bc60f2cb4b584f842c"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pixman-0.46.4-r0.apk",

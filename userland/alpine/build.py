@@ -33,9 +33,10 @@ def download(url, path, sha=None, offline=False):
                 raise ValueError('checksum mismatch: ' + url)
             part.replace(path)
             return
-        except Exception:
+        except Exception as error:
             part.unlink(missing_ok=True)
             if attempt == 2:
+                error.add_note('Download failed: ' + url)
                 raise
             time.sleep(attempt + 1)
 
