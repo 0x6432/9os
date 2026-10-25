@@ -1,0 +1,17 @@
+[
+  {
+    "path": "/usr/bin/bash",
+    "sha256": "1168df29c00d1492c60e6fd2f2983cdd2693fa994acb58d0db4ddfafd12e99f1",
+    "bytes": 1440144
+  },
+  {
+    "path": "/data/ci-review/native-shell/dash",
+    "sha256": "f5adb8bf0100ed0f8c7782ca5f92814e9229525a4b4e0d401cf3bea09ac960a6",
+    "bytes": 125640
+  },
+  {
+    "path": "/data/ci-review/originals/dash_0.5.12-2_amd64.deb",
+    "sha256": "33ea40061da2f1a861ec46212b2b6a34f0776a049b1a3f0abce2fb8cb994258f",
+    "bytes": 91848
+  }
+]

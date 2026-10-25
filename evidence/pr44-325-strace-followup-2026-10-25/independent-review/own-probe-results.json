@@ -1,0 +1,132 @@
+[
+  {
+    "shell": [
+      "/bin/bash"
+    ],
+    "trace_rc": 137,
+    "grep_rc": 0,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash"
+    ],
+    "trace_rc": 23,
+    "grep_rc": 0,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash"
+    ],
+    "trace_rc": 1,
+    "grep_rc": 0,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash"
+    ],
+    "trace_rc": 0,
+    "grep_rc": 1,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash"
+    ],
+    "trace_rc": 0,
+    "grep_rc": 0,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash"
+    ],
+    "valid_output_then_nonzero": "od",
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash"
+    ],
+    "valid_output_then_nonzero": "tr",
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash"
+    ],
+    "closed_stdout_returncode": 137,
+    "closed_stdout_stderr": "/bin/bash: line 1: printf: write error: Bad file descriptor\n"
+  },
+  {
+    "shell": [
+      "/bin/bash",
+      "--posix"
+    ],
+    "trace_rc": 137,
+    "grep_rc": 0,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash",
+      "--posix"
+    ],
+    "trace_rc": 23,
+    "grep_rc": 0,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash",
+      "--posix"
+    ],
+    "trace_rc": 1,
+    "grep_rc": 0,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash",
+      "--posix"
+    ],
+    "trace_rc": 0,
+    "grep_rc": 1,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash",
+      "--posix"
+    ],
+    "trace_rc": 0,
+    "grep_rc": 0,
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash",
+      "--posix"
+    ],
+    "valid_output_then_nonzero": "od",
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash",
+      "--posix"
+    ],
+    "valid_output_then_nonzero": "tr",
+    "pass": true
+  },
+  {
+    "shell": [
+      "/bin/bash",
+      "--posix"
+    ],
+    "closed_stdout_returncode": 137,
+    "closed_stdout_stderr": "/bin/bash: line 1: printf: write error: Bad file descriptor\n"
+  }
+]

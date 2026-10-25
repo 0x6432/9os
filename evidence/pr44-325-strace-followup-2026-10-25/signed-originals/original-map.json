@@ -1,0 +1,90 @@
+[
+  {
+    "name": "alpine-desktop-evidence-aarch64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40186302640/alpine-desktop-evidence-aarch64.zip",
+    "bytes": 1406787,
+    "sha256": "c724abea9a877462748bc7355751fe3dfbf6dd455510afcb23c490e501c76098",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  },
+  {
+    "name": "alpine-desktop-evidence-riscv64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40186302640/alpine-desktop-evidence-riscv64.zip",
+    "bytes": 1433435,
+    "sha256": "8b585ac9fbf12f724800d4fe999b72a6a9957c490ed1ae66a18b742c29863e51",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  },
+  {
+    "name": "alpine-desktop-evidence-x86_64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40186302640/alpine-desktop-evidence-x86_64.zip",
+    "bytes": 1406385,
+    "sha256": "e5b3da890edaefe7eb8a8ae8e3bf333ba0f30e3e6bc7538ee514ab876537e849",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  },
+  {
+    "name": "alpine-evidence-aarch64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40186302640/alpine-evidence-aarch64.zip",
+    "bytes": 37595,
+    "sha256": "e2736d25a8e508538969b819096ea136b0a9ae1b18f6b44de638d86d1bb18bc8",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  },
+  {
+    "name": "alpine-evidence-riscv64.zip",
+    "url": "https://nightly.link/0x6432/9os/actions/runs/40186302640/alpine-evidence-riscv64.zip",
+    "bytes": 38393,
+    "sha256": "99dfb736bbedc7411e78e3ee0a2021e61b00b3a3f6046dbe2e9bd568beda2871",
+    "peer_byte_identity": true,
+    "origin": "reused independently verified original bytes"
+  },
+  {
+    "name": "121147706373.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121147706373.txt",
+    "bytes": 116235,
+    "sha256": "3f87d6570ae8569eae8f5fa50a381dc3ed12b85dbc7b275f52b0e0978f930c25",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  },
+  {
+    "name": "121147706470.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121147706470.txt",
+    "bytes": 378322,
+    "sha256": "a42627c51354c692b9ec0dc4be2760f22f7fbc73ad9e89b1ff36946ae23ce202",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  },
+  {
+    "name": "121147706482.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121147706482.txt",
+    "bytes": 390459,
+    "sha256": "af3f516bcaf104a42196c1f878ffc03f5ba09b0c4b8f3c7007d69ffaba257e56",
+    "peer_byte_identity": true,
+    "origin": "reused independently verified original bytes"
+  },
+  {
+    "name": "121147706538.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121147706538.txt",
+    "bytes": 1943215,
+    "sha256": "820cb0ccd785811d94cd11b82bd69b95561fc85a90b625bd61d207931bdf3240",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  },
+  {
+    "name": "121147706568.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121147706568.txt",
+    "bytes": 1912434,
+    "sha256": "d2c1bab9dac1f8f33a335bb102d9f4eb0e6109c7ad62e6cc778de0042827b21b",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  },
+  {
+    "name": "121147706591.txt",
+    "url": "https://nightly.link/0x6432/9os/runs/121147706591.txt",
+    "bytes": 2149113,
+    "sha256": "d86e7199496e526c01b732baa56fc0d3c21fe73e9a9bb03ef8401d4bae87c41d",
+    "peer_byte_identity": true,
+    "origin": "one public original download"
+  }
+]

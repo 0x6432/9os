@@ -1,0 +1,22 @@
+Content-Length: 176672
+Content-Type: text/plain
+Content-MD5: U9j5nwF8K+oTFhrgh+VmaQ==
+Last-Modified: Sun, 25 Oct 2026 11:38:48 GMT
+Accept-Ranges: bytes
+ETag: "0x8DF328C88F50CD1"
+Server: Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+x-ms-request-id: 2b79c489-101e-0094-7977-642c83000000
+x-ms-version: 2025-11-05
+x-ms-creation-time: Sun, 25 Oct 2026 11:38:48 GMT
+x-ms-lease-status: unlocked
+x-ms-lease-state: available
+x-ms-blob-type: BlockBlob
+x-ms-server-encrypted: true
+x-ms-access-tier: Hot
+x-ms-access-tier-inferred: true
+x-ms-last-access-time: Sun, 25 Oct 2026 11:38:48 GMT
+Access-Control-Expose-Headers: x-ms-request-id,Server,x-ms-version,Content-Type,ETag,Last-Modified,x-ms-creation-time,Content-MD5,x-ms-lease-status,x-ms-lease-state,x-ms-blob-type,x-ms-server-encrypted,x-ms-access-tier,x-ms-access-tier-inferred,Accept-Ranges,x-ms-last-access-time,Content-Length,Date,Transfer-Encoding
+Access-Control-Allow-Origin: *
+Date: Sun, 25 Oct 2026 11:50:23 GMT
+Connection: close
+

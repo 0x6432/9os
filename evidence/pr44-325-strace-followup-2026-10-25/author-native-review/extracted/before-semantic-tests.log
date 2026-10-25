@@ -1,0 +1,346 @@
+Native shells: /usr/bin/bash, /data/ci-review/native-shell/dash
+test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) ... 
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=0) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=1) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=1023) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=1024) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=1025) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=16000) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=0) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=1) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=1023) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=1024) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=1025) ... FAIL
+  test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=16000) ... FAIL
+test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) ... 
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='tail') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='wc') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='od') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='tr') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='rm') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='tail') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='wc') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='od') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='tr') ... FAIL
+  test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='rm') ... FAIL
+test_missing_trace_and_mktemp_failure (__main__.StraceTail.test_missing_trace_and_mktemp_failure) ... FAIL
+test_malformed_count_is_unknown (__main__.StraceTail.test_malformed_count_is_unknown) ... FAIL
+test_invalid_hex_or_wrong_length_is_unknown (__main__.StraceTail.test_invalid_hex_or_wrong_length_is_unknown) ... FAIL
+test_transfer_printf_failure_is_unknown (__main__.StraceTail.test_transfer_printf_failure_is_unknown) ... FAIL
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=1023)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=1024)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=1025)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/usr/bin/bash', size=16000)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=1023)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=1024)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=1025)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) (shell='/data/ci-review/native-shell/dash', size=16000)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 180, in test_binary_caps_and_lookahead
+    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 126, in assert_tail
+    self.assertIsNotNone(match, body)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+AssertionError: unexpectedly None : b''
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='tail')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='wc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='od')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='tr')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/usr/bin/bash', utility='rm')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='tail')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='wc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='od')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='tr')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) (shell='/data/ci-review/native-shell/dash', utility='rm')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 187, in test_complete_valid_utility_output_then_nonzero
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_missing_trace_and_mktemp_failure (__main__.StraceTail.test_missing_trace_and_mktemp_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 191, in test_missing_trace_and_mktemp_failure
+    self.assert_unknown(self.run_command(shell, missing=True)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_malformed_count_is_unknown (__main__.StraceTail.test_malformed_count_is_unknown)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 201, in test_malformed_count_is_unknown
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_invalid_hex_or_wrong_length_is_unknown (__main__.StraceTail.test_invalid_hex_or_wrong_length_is_unknown)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 209, in test_invalid_hex_or_wrong_length_is_unknown
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+======================================================================
+FAIL: test_transfer_printf_failure_is_unknown (__main__.StraceTail.test_transfer_printf_failure_is_unknown)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 214, in test_transfer_printf_failure_is_unknown
+    self.assert_unknown(self.run_command(shell, override=override)[0])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/strace-325-product/scripts/alpine-strace-tail-host-tests.py", line 133, in assert_unknown
+    self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'' != b'ALPINE_STRACE_TAIL unknown\n'
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.137s
+
+FAILED (failures=26)
