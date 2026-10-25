@@ -1,0 +1,14 @@
+KILLED semantic mutant: bootstrap-network
+KILLED semantic mutant: bootstrap-repositories
+KILLED semantic mutant: private-tool
+KILLED semantic mutant: trust-key-hash
+KILLED semantic mutant: trust-key-set
+KILLED semantic mutant: checksum
+KILLED semantic mutant: signature
+KILLED semantic mutant: identity
+KILLED semantic mutant: closure
+KILLED semantic mutant: scripts
+KILLED semantic mutant: network
+KILLED semantic mutant: contents
+KILLED semantic mutant: inventory
+Frozen legacy oracle: 62911e9b2b9e62e1e90ada1871f016551345e028ce571fe904a0eb0e919cfbce solver rc1; no fixture hash/QEMU

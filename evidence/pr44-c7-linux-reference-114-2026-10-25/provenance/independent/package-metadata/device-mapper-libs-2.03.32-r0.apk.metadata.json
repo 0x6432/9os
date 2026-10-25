@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/device-mapper-libs-2.03.32-r0.apk",
+  "bytes": 138400,
+  "sha256": "2b1e8bbf13cc79d1909b31e505f06ce149c9855971f398695d63b100d250a000",
+  "index": {
+    "C": "Q1nGjsRtezgaG7zvgzMzDINmurTN0=",
+    "P": "device-mapper-libs",
+    "V": "2.03.32-r0",
+    "A": "x86_64",
+    "S": "138400",
+    "I": "301120",
+    "T": "Device-mapper shared library",
+    "U": "https://sourceware.org/lvm2/",
+    "L": "GPL-2.0-or-later AND LGPL-2.1-or-later AND BSD-2-Clause",
+    "o": "lvm2",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1746535361",
+    "c": "cac22b1b3bd0fb3cda7e0d7d9d011f1fa5512dfd",
+    "D": "so:libc.musl-x86_64.so.1",
+    "p": "so:libdevmapper.so.1.02=1.02"
+  }
+}

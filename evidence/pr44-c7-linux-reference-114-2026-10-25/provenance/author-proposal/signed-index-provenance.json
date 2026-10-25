@@ -1,0 +1,29 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz",
+  "status": 200,
+  "headers": {
+    "Connection": "close",
+    "Content-Length": "500486",
+    "Content-Security-Policy": "script-src 'self'",
+    "Content-Type": "application/octet-stream",
+    "Etag": "\"6adbc118-7a306\"",
+    "Last-Modified": "Fri, 23 Oct 2026 20:18:32 GMT",
+    "Referrer-Policy": "origin-when-cross-origin",
+    "Server": "nginx/1.27.5",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Via": "1.1 varnish, 1.1 varnish",
+    "Accept-Ranges": "bytes",
+    "Date": "Sun, 25 Oct 2026 14:33:18 GMT",
+    "Age": "9",
+    "X-Served-By": "cache-ams-eham8680056-AMS, cache-iad-kiad7000049-IAD",
+    "X-Cache": "MISS, HIT",
+    "X-Cache-Hits": "0, 1",
+    "X-Timer": "S1792938798.095467,VS0,VE1",
+    "Vary": "Origin"
+  },
+  "utc": "2026-10-25T14:33:18.114007+00:00",
+  "bytes": 500486,
+  "sha256": "0bb20ca8f6082e981229755622164e0ce8de535d57558c44b034868d126f00ef"
+}

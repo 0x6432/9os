@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://nightly.link/0x6432/9os/runs/121188042833.txt",
+    "bytes": 177861,
+    "sha256": "95f455cb396d07088d62acaf9c03560c34c2ef72da31a95e0ada25ac24f78394",
+    "expected_bytes": 177861,
+    "expected_sha256": "95f455cb396d07088d62acaf9c03560c34c2ef72da31a95e0ada25ac24f78394",
+    "provenance": "Previously acquired full original reused; no new GET",
+    "acquired_or_reused_at": "2026-10-25T15:11:19.151159+00:00"
+  },
+  {
+    "url": "https://nightly.link/0x6432/9os/runs/121188042960.txt",
+    "bytes": 380171,
+    "sha256": "fae6f16b306a2356399ae735afb0d363a51437f9d25a68a9c3e50772454b263e",
+    "expected_bytes": 380171,
+    "expected_sha256": "fae6f16b306a2356399ae735afb0d363a51437f9d25a68a9c3e50772454b263e",
+    "provenance": "Fresh GET of known completed original; no run/job status request",
+    "acquired_or_reused_at": "2026-10-25T15:11:19.852225+00:00"
+  },
+  {
+    "url": "https://nightly.link/0x6432/9os/runs/121188042966.txt",
+    "bytes": 1906716,
+    "sha256": "b228273e19d19f3acb8305d40bc1838b1ef20eaa9810cb1595a368980048fb18",
+    "expected_bytes": 1906716,
+    "expected_sha256": "b228273e19d19f3acb8305d40bc1838b1ef20eaa9810cb1595a368980048fb18",
+    "provenance": "Fresh GET of known completed original; no run/job status request",
+    "acquired_or_reused_at": "2026-10-25T15:11:20.483437+00:00"
+  },
+  {
+    "url": "https://nightly.link/0x6432/9os/runs/121188043031.txt",
+    "bytes": 1912330,
+    "sha256": "c2f6719c81ea85681d55f25d5792dc8730c7b59a285ef5e64b4c0b9b6ac9d4dc",
+    "expected_bytes": 1912330,
+    "expected_sha256": "c2f6719c81ea85681d55f25d5792dc8730c7b59a285ef5e64b4c0b9b6ac9d4dc",
+    "provenance": "Fresh GET of known completed original; no run/job status request",
+    "acquired_or_reused_at": "2026-10-25T15:11:21.162120+00:00"
+  },
+  {
+    "url": "https://nightly.link/0x6432/9os/runs/121188043130.txt",
+    "bytes": 615906,
+    "sha256": "a86f29159ce0b426e97e1221ec724fb698792f10555b8e477ffe3c7732447d7b",
+    "expected_bytes": 615906,
+    "expected_sha256": "a86f29159ce0b426e97e1221ec724fb698792f10555b8e477ffe3c7732447d7b",
+    "provenance": "Fresh GET of known completed original; no run/job status request",
+    "acquired_or_reused_at": "2026-10-25T15:11:21.784914+00:00"
+  },
+  {
+    "url": "https://nightly.link/0x6432/9os/runs/121188043150.txt",
+    "bytes": 2148951,
+    "sha256": "b221e32cbd1bb51dc9220d59d1790151040d06fbced49f54c9199a350d13df26",
+    "expected_bytes": 2148951,
+    "expected_sha256": "b221e32cbd1bb51dc9220d59d1790151040d06fbced49f54c9199a350d13df26",
+    "provenance": "Fresh GET of known completed original; no run/job status request",
+    "acquired_or_reused_at": "2026-10-25T15:11:22.487056+00:00"
+  }
+]

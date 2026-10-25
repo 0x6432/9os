@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/cryptsetup-libs-2.7.5-r1.apk",
+  "bytes": 219604,
+  "sha256": "9d82982065e82d72add61997b2ed4e89e31b38dc911851441c86a926dcfcd9c4",
+  "index": {
+    "C": "Q1RPd+vHHqAanjgkPwxdN1Bb2d77g=",
+    "P": "cryptsetup-libs",
+    "V": "2.7.5-r1",
+    "A": "x86_64",
+    "S": "219604",
+    "I": "465067",
+    "T": "Cryptsetup shared library",
+    "U": "https://gitlab.com/cryptsetup/cryptsetup",
+    "L": "GPL-2.0-or-later WITH cryptsetup-OpenSSL-exception",
+    "o": "cryptsetup",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1726658779",
+    "c": "d63289c555dc047e5c39fcff691770ce9743b464",
+    "D": "so:libblkid.so.1 so:libc.musl-x86_64.so.1 so:libcrypto.so.3 so:libdevmapper.so.1.02 so:libjson-c.so.5 so:libuuid.so.1",
+    "p": "so:libcryptsetup.so.12=12.10.0"
+  }
+}

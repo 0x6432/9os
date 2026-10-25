@@ -1,0 +1,4 @@
+WARNING: opening /data/pr44-114-independent/local-repository: No such file or directory
+ERROR: unable to select packages:
+  linux-virt (no such package):
+    required by: world[linux-virt=6.12.114-r0]

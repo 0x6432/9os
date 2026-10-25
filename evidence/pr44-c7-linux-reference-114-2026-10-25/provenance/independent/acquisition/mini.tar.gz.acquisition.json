@@ -1,0 +1,8 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-minirootfs-3.22.6-x86_64.tar.gz",
+  "start": "2026-10-25T14:41:22.261116+00:00",
+  "status": 200,
+  "bytes": 3646244,
+  "sha256": "27694aaa55fd7a9e3ef596e0ad4eb66802308bb20172b17030cd5f4d8ae9bac2",
+  "expected_sha256": "27694aaa55fd7a9e3ef596e0ad4eb66802308bb20172b17030cd5f4d8ae9bac2"
+}

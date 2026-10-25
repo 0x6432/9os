@@ -1,0 +1,16 @@
+{
+  "base": "c7b434183c3e138b3b638922deb116f030d82282",
+  "existing_changed": [
+    ".github/workflows/alpine.yml",
+    ".github/workflows/release.yml",
+    "scripts/evdev-linux-oracle.sh"
+  ],
+  "new_paths": [
+    "scripts/evdev-linux-oracle-packages.py",
+    "scripts/evdev-linux-oracle-packages-host-tests.py",
+    "userland/ports/linux-oracle-lock.json"
+  ],
+  "all_other_tracked_bytes_and_symlinks_identical": true,
+  "oracle_tail_byteidentical_except_literal_module114": true,
+  "workflow_exactly_one_invocation_each": true
+}

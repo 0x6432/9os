@@ -1,0 +1,21 @@
+[
+  "/data/linux-reference-114-analysis/native/lib/ld-musl-x86_64.so.1",
+  "--library-path",
+  "/data/linux-reference-114-analysis/native/lib:/data/linux-reference-114-analysis/native/usr/lib",
+  "/data/linux-reference-114-analysis/native/sbin/apk",
+  "--root",
+  "/data/linux-reference-114-analysis/empty-root",
+  "--arch",
+  "x86_64",
+  "--keys-dir",
+  "/data/linux-reference-114-analysis/native/etc/apk/keys",
+  "--repositories-file",
+  "/data/linux-reference-114-analysis/local-repositories",
+  "--no-network",
+  "--no-cache",
+  "fetch",
+  "--world",
+  "--recursive",
+  "--output",
+  "/data/linux-reference-114-analysis/verified-copy"
+]

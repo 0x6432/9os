@@ -1,0 +1,419 @@
+{
+  "mode": "ONE REAL native OFFLINE assembly, not a VM/boot",
+  "target_before": [],
+  "cache_before": [],
+  "original_source_S_root_supplied": false,
+  "S_root_scope": "No S-root is passed to helper. Original oracle consumer/BusyBox/musl copy tail is byte-identical except explicit module ABI update, verified by native source test. No claim of an unavailable historical S-root byte census.",
+  "original_acquisition_inputs_before": [
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/apk-tools-2.14.12-r0.apk",
+      "bytes": 34579,
+      "sha256": "fdf8a327219e1e6e5d4e45fbd7db7cf4881fe3e641e831e58caa72e83a1acace"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/busybox-1.37.0-r20.apk",
+      "bytes": 506116,
+      "sha256": "7cc34c2dda2520b456ab4a55abc37fe245ac90f98ab9f1c7a9be3aec035df48e"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/busybox-binsh-1.37.0-r20.apk",
+      "bytes": 1566,
+      "sha256": "ad33d8d799ed80eab45bb68d63c14062165d3653f4fb52e73959cd31d032210e"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/ca-certificates-bundle-20261020-r0.apk",
+      "bytes": 107116,
+      "sha256": "d35216a0a9adde79031df246759bad03f235cf201bf0aff8436b88bff59594eb"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/cryptsetup-libs-2.7.5-r1.apk",
+      "bytes": 219604,
+      "sha256": "9d82982065e82d72add61997b2ed4e89e31b38dc911851441c86a926dcfcd9c4"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/device-mapper-libs-2.03.32-r0.apk",
+      "bytes": 138400,
+      "sha256": "2b1e8bbf13cc79d1909b31e505f06ce149c9855971f398695d63b100d250a000"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/json-c-0.18-r1.apk",
+      "bytes": 28135,
+      "sha256": "91d3efdc4577d724e185ad1d655f32437c788533891788885d4267c7bdb84d97"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/kmod-34.2-r0.apk",
+      "bytes": 65083,
+      "sha256": "c38a1c6b7e7baa84a698c32b0b179c2bbb00be67515e64768ea145891ae2fb83"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/kmod-libs-34.2-r0.apk",
+      "bytes": 39745,
+      "sha256": "47f1e863dc779503ff24977f738135020407b03e5e5ec3d41187df14766613d7"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/lddtree-1.27-r0.apk",
+      "bytes": 5447,
+      "sha256": "01b34f98cf8da09a843f985a04c24d64b225a14c78b08afa099889d269975d98"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libapk2-2.14.12-r0.apk",
+      "bytes": 89001,
+      "sha256": "441d9dc34c4f98f14ba30a3559281d6f4577303b4efa6eb8c1627466979c3f47"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libblkid-2.41.6-r1.apk",
+      "bytes": 95287,
+      "sha256": "ab85cd837c906979c24e5a006a81789ae9715e6e913c421c71950bdf1450164c"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libcrypto3-3.5.9-r0.apk",
+      "bytes": 1986879,
+      "sha256": "3f5825ced5fde1c66a5376a3f6076b3c08538ad52d9ef23f069857e212d9175a"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libeconf-0.6.3-r0.apk",
+      "bytes": 24446,
+      "sha256": "fe4fbf324f84f7c8b475cfc708c5505aa630bced7b5f6289bf5ca36d9b587829"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libssl3-3.5.9-r0.apk",
+      "bytes": 383680,
+      "sha256": "6801c740b9760b5b08da8db6367ebc18b2cc4dbaf371f7148429538b8bb04e23"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libuuid-2.41.6-r1.apk",
+      "bytes": 14359,
+      "sha256": "eb8fa9e042b51443a6ac8c9fa4d1dca5a1a458c5f3980bffa5167f005f47a504"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/linux-virt-6.12.114-r0.apk",
+      "bytes": 40732552,
+      "sha256": "82b7fee968e553fb34df7102e9622c969872810b729068106ed49a03c0ba4b8a"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/mdev-conf-4.8-r0.apk",
+      "bytes": 5190,
+      "sha256": "2043890a839957af15e430fd0c34a369f6c911eed3dc89a3ac7a073b0d6af2f0"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/mkinitfs-3.12.0-r0.apk",
+      "bytes": 35773,
+      "sha256": "18d6384d6db016ca41d43fe78acf9c72db5eb01a906b17568afed217b309ffc8"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/musl-1.2.5-r13.apk",
+      "bytes": 412387,
+      "sha256": "359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/scanelf-1.3.8-r1.apk",
+      "bytes": 32500,
+      "sha256": "8763270cf55b2a38dae0cea774e8dcab547b710fa59e03054924d61a5eba609e"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/ssl_client-1.37.0-r20.apk",
+      "bytes": 4686,
+      "sha256": "11b2a5f91caf8eb5daa9a0bc2586f93545de62897f3a704fd49533e1654b7a68"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/xz-libs-5.8.4-r0.apk",
+      "bytes": 118297,
+      "sha256": "37e169b7b400304fa7027cab79f9c1c7a280e83acf6c95463384b8abb7ebb254"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/zlib-1.3.2-r1.apk",
+      "bytes": 55457,
+      "sha256": "af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/zstd-libs-1.5.7-r0.apk",
+      "bytes": 377569,
+      "sha256": "1bdd6e57cfbfbfd6e8481cad37ddd5d199950715bec1879b3afb600272dbb09e"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/originals/alpine-minirootfs-3.22.6-x86_64.tar.gz",
+      "bytes": 3646244,
+      "sha256": "27694aaa55fd7a9e3ef596e0ad4eb66802308bb20172b17030cd5f4d8ae9bac2"
+    }
+  ],
+  "commands": [
+    [
+      "/tmp/linux-reference-verifier-dsumqlf6/native/lib/ld-musl-x86_64.so.1",
+      "--library-path",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/lib:/tmp/linux-reference-verifier-dsumqlf6/native/usr/lib",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/sbin/apk",
+      "--keys-dir",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/etc/apk/keys",
+      "--repositories-file",
+      "/dev/null",
+      "--no-network",
+      "--version"
+    ],
+    [
+      "/tmp/linux-reference-verifier-dsumqlf6/native/lib/ld-musl-x86_64.so.1",
+      "--library-path",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/lib:/tmp/linux-reference-verifier-dsumqlf6/native/usr/lib",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/sbin/apk",
+      "--keys-dir",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/etc/apk/keys",
+      "--repositories-file",
+      "/dev/null",
+      "--no-network",
+      "verify",
+      "/data/linux-oracle-114-one-assembly/cache/apk-tools-2.14.12-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/busybox-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/busybox-binsh-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/ca-certificates-bundle-20261020-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/cryptsetup-libs-2.7.5-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/device-mapper-libs-2.03.32-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/json-c-0.18-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/kmod-34.2-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/kmod-libs-34.2-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/lddtree-1.27-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libapk2-2.14.12-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libblkid-2.41.6-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libcrypto3-3.5.9-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libeconf-0.6.3-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libssl3-3.5.9-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libuuid-2.41.6-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/linux-virt-6.12.114-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/mdev-conf-4.8-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/mkinitfs-3.12.0-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/musl-1.2.5-r13.apk",
+      "/data/linux-oracle-114-one-assembly/cache/scanelf-1.3.8-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/ssl_client-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/xz-libs-5.8.4-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/zlib-1.3.2-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/zstd-libs-1.5.7-r0.apk"
+    ],
+    [
+      "/tmp/linux-reference-verifier-dsumqlf6/native/lib/ld-musl-x86_64.so.1",
+      "--library-path",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/lib:/tmp/linux-reference-verifier-dsumqlf6/native/usr/lib",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/sbin/apk",
+      "--keys-dir",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/etc/apk/keys",
+      "--repositories-file",
+      "/dev/null",
+      "--no-network",
+      "--root",
+      "/tmp/linux-reference-verifier-dsumqlf6/dry-run",
+      "--arch",
+      "x86_64",
+      "add",
+      "--simulate",
+      "--initdb",
+      "--no-scripts",
+      "--no-chown",
+      "linux-virt=6.12.114-r0",
+      "/data/linux-oracle-114-one-assembly/cache/apk-tools-2.14.12-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/busybox-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/busybox-binsh-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/ca-certificates-bundle-20261020-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/cryptsetup-libs-2.7.5-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/device-mapper-libs-2.03.32-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/json-c-0.18-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/kmod-34.2-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/kmod-libs-34.2-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/lddtree-1.27-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libapk2-2.14.12-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libblkid-2.41.6-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libcrypto3-3.5.9-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libeconf-0.6.3-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libssl3-3.5.9-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libuuid-2.41.6-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/linux-virt-6.12.114-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/mdev-conf-4.8-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/mkinitfs-3.12.0-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/musl-1.2.5-r13.apk",
+      "/data/linux-oracle-114-one-assembly/cache/scanelf-1.3.8-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/ssl_client-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/xz-libs-5.8.4-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/zlib-1.3.2-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/zstd-libs-1.5.7-r0.apk"
+    ],
+    [
+      "/tmp/linux-reference-verifier-dsumqlf6/native/lib/ld-musl-x86_64.so.1",
+      "--library-path",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/lib:/tmp/linux-reference-verifier-dsumqlf6/native/usr/lib",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/sbin/apk",
+      "--keys-dir",
+      "/tmp/linux-reference-verifier-dsumqlf6/native/etc/apk/keys",
+      "--repositories-file",
+      "/dev/null",
+      "--no-network",
+      "--root",
+      "/data/linux-oracle-114-one-assembly/target",
+      "--arch",
+      "x86_64",
+      "add",
+      "--initdb",
+      "--no-scripts",
+      "--no-chown",
+      "linux-virt=6.12.114-r0",
+      "/data/linux-oracle-114-one-assembly/cache/apk-tools-2.14.12-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/busybox-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/busybox-binsh-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/ca-certificates-bundle-20261020-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/cryptsetup-libs-2.7.5-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/device-mapper-libs-2.03.32-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/json-c-0.18-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/kmod-34.2-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/kmod-libs-34.2-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/lddtree-1.27-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libapk2-2.14.12-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libblkid-2.41.6-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libcrypto3-3.5.9-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libeconf-0.6.3-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libssl3-3.5.9-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/libuuid-2.41.6-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/linux-virt-6.12.114-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/mdev-conf-4.8-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/mkinitfs-3.12.0-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/musl-1.2.5-r13.apk",
+      "/data/linux-oracle-114-one-assembly/cache/scanelf-1.3.8-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/ssl_client-1.37.0-r20.apk",
+      "/data/linux-oracle-114-one-assembly/cache/xz-libs-5.8.4-r0.apk",
+      "/data/linux-oracle-114-one-assembly/cache/zlib-1.3.2-r1.apk",
+      "/data/linux-oracle-114-one-assembly/cache/zstd-libs-1.5.7-r0.apk"
+    ]
+  ],
+  "target_empty_immediately_before_actual_add": true,
+  "success": true,
+  "elapsed_s": 1.046,
+  "original_acquisition_inputs_after": [
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/apk-tools-2.14.12-r0.apk",
+      "bytes": 34579,
+      "sha256": "fdf8a327219e1e6e5d4e45fbd7db7cf4881fe3e641e831e58caa72e83a1acace"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/busybox-1.37.0-r20.apk",
+      "bytes": 506116,
+      "sha256": "7cc34c2dda2520b456ab4a55abc37fe245ac90f98ab9f1c7a9be3aec035df48e"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/busybox-binsh-1.37.0-r20.apk",
+      "bytes": 1566,
+      "sha256": "ad33d8d799ed80eab45bb68d63c14062165d3653f4fb52e73959cd31d032210e"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/ca-certificates-bundle-20261020-r0.apk",
+      "bytes": 107116,
+      "sha256": "d35216a0a9adde79031df246759bad03f235cf201bf0aff8436b88bff59594eb"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/cryptsetup-libs-2.7.5-r1.apk",
+      "bytes": 219604,
+      "sha256": "9d82982065e82d72add61997b2ed4e89e31b38dc911851441c86a926dcfcd9c4"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/device-mapper-libs-2.03.32-r0.apk",
+      "bytes": 138400,
+      "sha256": "2b1e8bbf13cc79d1909b31e505f06ce149c9855971f398695d63b100d250a000"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/json-c-0.18-r1.apk",
+      "bytes": 28135,
+      "sha256": "91d3efdc4577d724e185ad1d655f32437c788533891788885d4267c7bdb84d97"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/kmod-34.2-r0.apk",
+      "bytes": 65083,
+      "sha256": "c38a1c6b7e7baa84a698c32b0b179c2bbb00be67515e64768ea145891ae2fb83"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/kmod-libs-34.2-r0.apk",
+      "bytes": 39745,
+      "sha256": "47f1e863dc779503ff24977f738135020407b03e5e5ec3d41187df14766613d7"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/lddtree-1.27-r0.apk",
+      "bytes": 5447,
+      "sha256": "01b34f98cf8da09a843f985a04c24d64b225a14c78b08afa099889d269975d98"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libapk2-2.14.12-r0.apk",
+      "bytes": 89001,
+      "sha256": "441d9dc34c4f98f14ba30a3559281d6f4577303b4efa6eb8c1627466979c3f47"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libblkid-2.41.6-r1.apk",
+      "bytes": 95287,
+      "sha256": "ab85cd837c906979c24e5a006a81789ae9715e6e913c421c71950bdf1450164c"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libcrypto3-3.5.9-r0.apk",
+      "bytes": 1986879,
+      "sha256": "3f5825ced5fde1c66a5376a3f6076b3c08538ad52d9ef23f069857e212d9175a"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libeconf-0.6.3-r0.apk",
+      "bytes": 24446,
+      "sha256": "fe4fbf324f84f7c8b475cfc708c5505aa630bced7b5f6289bf5ca36d9b587829"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libssl3-3.5.9-r0.apk",
+      "bytes": 383680,
+      "sha256": "6801c740b9760b5b08da8db6367ebc18b2cc4dbaf371f7148429538b8bb04e23"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/libuuid-2.41.6-r1.apk",
+      "bytes": 14359,
+      "sha256": "eb8fa9e042b51443a6ac8c9fa4d1dca5a1a458c5f3980bffa5167f005f47a504"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/linux-virt-6.12.114-r0.apk",
+      "bytes": 40732552,
+      "sha256": "82b7fee968e553fb34df7102e9622c969872810b729068106ed49a03c0ba4b8a"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/mdev-conf-4.8-r0.apk",
+      "bytes": 5190,
+      "sha256": "2043890a839957af15e430fd0c34a369f6c911eed3dc89a3ac7a073b0d6af2f0"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/mkinitfs-3.12.0-r0.apk",
+      "bytes": 35773,
+      "sha256": "18d6384d6db016ca41d43fe78acf9c72db5eb01a906b17568afed217b309ffc8"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/musl-1.2.5-r13.apk",
+      "bytes": 412387,
+      "sha256": "359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/scanelf-1.3.8-r1.apk",
+      "bytes": 32500,
+      "sha256": "8763270cf55b2a38dae0cea774e8dcab547b710fa59e03054924d61a5eba609e"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/ssl_client-1.37.0-r20.apk",
+      "bytes": 4686,
+      "sha256": "11b2a5f91caf8eb5daa9a0bc2586f93545de62897f3a704fd49533e1654b7a68"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/xz-libs-5.8.4-r0.apk",
+      "bytes": 118297,
+      "sha256": "37e169b7b400304fa7027cab79f9c1c7a280e83acf6c95463384b8abb7ebb254"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/zlib-1.3.2-r1.apk",
+      "bytes": 55457,
+      "sha256": "af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/verified-copy/zstd-libs-1.5.7-r0.apk",
+      "bytes": 377569,
+      "sha256": "1bdd6e57cfbfbfd6e8481cad37ddd5d199950715bec1879b3afb600272dbb09e"
+    },
+    {
+      "path": "/data/linux-reference-114-analysis/originals/alpine-minirootfs-3.22.6-x86_64.tar.gz",
+      "bytes": 3646244,
+      "sha256": "27694aaa55fd7a9e3ef596e0ad4eb66802308bb20172b17030cd5f4d8ae9bac2"
+    }
+  ],
+  "original_inputs_byte_identical": true,
+  "target_file_count_after": 1069,
+  "actual_add_count": 1
+}

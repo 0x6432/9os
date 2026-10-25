@@ -1,0 +1,18 @@
+test_actual_argv_source_and_transport_bound (__main__.StraceTail.test_actual_argv_source_and_transport_bound) ... ok
+test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) ... ok
+test_closed_stdout_fallback_and_trap_errors_are_quiet (__main__.StraceTail.test_closed_stdout_fallback_and_trap_errors_are_quiet) ... ok
+test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) ... ok
+test_invalid_hex_or_wrong_length_is_unknown (__main__.StraceTail.test_invalid_hex_or_wrong_length_is_unknown) ... ok
+test_malformed_count_is_unknown (__main__.StraceTail.test_malformed_count_is_unknown) ... ok
+test_missing_trace_and_mktemp_failure (__main__.StraceTail.test_missing_trace_and_mktemp_failure) ... ok
+test_original_status_and_grep_sequence (__main__.StraceTail.test_original_status_and_grep_sequence) ... ok
+test_read_failure_and_final_print_failures_preserve_status (__main__.StraceTail.test_read_failure_and_final_print_failures_preserve_status) ... ok
+test_semantic_mutants (__main__.StraceTail.test_semantic_mutants) ... ok
+test_success_is_quiet_and_no_diagnostic_utilities (__main__.StraceTail.test_success_is_quiet_and_no_diagnostic_utilities) ... ok
+test_transfer_printf_failure_is_unknown (__main__.StraceTail.test_transfer_printf_failure_is_unknown) ... ok
+test_workflow_gate_wiring (__main__.StraceTail.test_workflow_gate_wiring) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.493s
+
+OK

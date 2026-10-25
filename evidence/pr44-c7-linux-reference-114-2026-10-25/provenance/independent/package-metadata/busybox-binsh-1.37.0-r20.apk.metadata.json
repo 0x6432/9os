@@ -1,0 +1,23 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-binsh-1.37.0-r20.apk",
+  "bytes": 1566,
+  "sha256": "ad33d8d799ed80eab45bb68d63c14062165d3653f4fb52e73959cd31d032210e",
+  "index": {
+    "C": "Q1rNSVswVIMaejMTeqWiumGToIotI=",
+    "P": "busybox-binsh",
+    "V": "1.37.0-r20",
+    "A": "x86_64",
+    "S": "1566",
+    "I": "1",
+    "T": "busybox ash /bin/sh",
+    "U": "https://busybox.net/",
+    "L": "GPL-2.0-only",
+    "o": "busybox",
+    "m": "S\u00f6ren Tempel <soeren+alpine@soeren-tempel.net>",
+    "t": "1763764856",
+    "c": "2e97d754a30d558f15524b8e422303c8a96832df",
+    "k": "100",
+    "D": "busybox=1.37.0-r20",
+    "p": "/bin/sh cmd:sh=1.37.0-r20"
+  }
+}

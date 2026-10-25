@@ -1,0 +1,12 @@
+{
+  "rc": 27,
+  "helper_argv": [
+    "scripts/evdev-linux-oracle-packages.py",
+    "--target",
+    "/tmp/tmp.Zgda1MY0GU/apk",
+    "--manifest",
+    "build/evdev-linux-oracle.log.packages.lock.json"
+  ],
+  "qemu_called": false,
+  "S_copy_called": false
+}

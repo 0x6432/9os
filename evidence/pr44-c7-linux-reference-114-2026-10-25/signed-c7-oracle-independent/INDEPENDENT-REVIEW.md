@@ -1,0 +1,7 @@
+# Independent fixed-kernel oracle setup review
+
+Originalsigned40199695390 x86job121188042833 raw177861B SHA25695f455cb396d07088d62acaf9c03560c34c2ef72da31a95e0ada25ac24f78394 andartifact8589B SHA2565bcd015853365721d9bc272ab363a7238ffa2fab0ed961fa2587e6a18626aa64 independentlyretrievedonce/preservedbeforeanalysis, peerbyteidentical, ZIPCRCvalid. ArtifactONLY180Bpackages.log+base lock. Exactc7 scripts/evdev-linux-oracle.sh2276B SHA25662911e9b2b9e62e1e90ada1871f016551345e028ce571fe904a0eb0e919cfbce.
+
+Liveofficialv3.22mainAPKINDEX solverofferslinux-virt6.12.114-r0breakingworldfixed6.12.113-r0. This is selection failure, NOTobservedHTTP404/oldAPKretirement. Scriptintentionallypins113 line18 andmodules6.12.113-0-virt line23, usestrustedrootkeys/--no-scripts/no-chown; set-e abortspre-init/fixturehash/QEMU90/strictRC0. Workflowstep10before9oskernel/guest, so no9osx86guestregression established. RISCpass0.15sdoesnotclearoldstrace137.
+
+BoundednextproposalONLY: afterapprovalinspectoneexactofficial113APK fullbytes+SHA/trustedkeysignature/.PKGINFOidentity/dependencies beforeanydesign. No probeperformedhere. Ifoldavailable, preserve113throughcompletefixedsignedofflineclosure ratherthanliveindex; explicit frozenURLs/hashes, failclosedtrust/dependency/module checks andno-scripts. No unpin/latest/fallback114/no-deps/allowuntrusted/deadlineorretryincrease. Couldonlydesignafterpreciseclosure/provenance; no implementation/fileclaims/VM/librarycompile/CIpoll/APIwrite/rerun.

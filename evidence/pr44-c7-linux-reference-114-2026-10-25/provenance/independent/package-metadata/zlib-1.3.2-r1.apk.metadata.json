@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.3.2-r1.apk",
+  "bytes": 55457,
+  "sha256": "af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216",
+  "index": {
+    "C": "Q1/4h5E7MrlBVDXCCuIDGXwWkzrzs=",
+    "P": "zlib",
+    "V": "1.3.2-r1",
+    "A": "x86_64",
+    "S": "55457",
+    "I": "104280",
+    "T": "A compression/decompression Library",
+    "U": "https://zlib.net/",
+    "L": "Zlib",
+    "o": "zlib",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1791319033",
+    "c": "121fc97db0e7c59db704891b6d7ef83ae5df2cc2",
+    "D": "so:libc.musl-x86_64.so.1",
+    "p": "so:libz.so.1=1.3.2"
+  }
+}

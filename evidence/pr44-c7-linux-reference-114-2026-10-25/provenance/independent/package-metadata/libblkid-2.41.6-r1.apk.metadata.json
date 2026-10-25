@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libblkid-2.41.6-r1.apk",
+  "bytes": 95287,
+  "sha256": "ab85cd837c906979c24e5a006a81789ae9715e6e913c421c71950bdf1450164c",
+  "index": {
+    "C": "Q1eQgbaQPphF8CLzAfVFdBmvzF6qw=",
+    "P": "libblkid",
+    "V": "2.41.6-r1",
+    "A": "x86_64",
+    "S": "95287",
+    "I": "199464",
+    "T": "Block device identification library from util-linux",
+    "U": "https://git.kernel.org/cgit/utils/util-linux/util-linux.git",
+    "L": "LGPL-2.1-or-later",
+    "o": "util-linux",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1788613871",
+    "c": "b91fb14e28957c6f5a13c02eb9ec136c82ebd50e",
+    "D": "so:libc.musl-x86_64.so.1 so:libeconf.so.0",
+    "p": "so:libblkid.so.1=1.1.0"
+  }
+}

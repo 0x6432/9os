@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libapk2-2.14.12-r0.apk",
+  "bytes": 89001,
+  "sha256": "441d9dc34c4f98f14ba30a3559281d6f4577303b4efa6eb8c1627466979c3f47",
+  "index": {
+    "C": "Q1ovar9GIDe78Dafw+78vlQ0+wyl8=",
+    "P": "libapk2",
+    "V": "2.14.12-r0",
+    "A": "x86_64",
+    "S": "89001",
+    "I": "183992",
+    "T": "Alpine Package Keeper - package manager for alpine",
+    "U": "https://gitlab.alpinelinux.org/alpine/apk-tools",
+    "L": "GPL-2.0-only",
+    "o": "apk-tools",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1789573185",
+    "c": "a53adea12086d36717300ea195ede9ad75f98e1f",
+    "D": "musl>=1.2.3_git20230424 libcrypto3>=3.5 ca-certificates-bundle so:libc.musl-x86_64.so.1 so:libcrypto.so.3 so:libssl.so.3 so:libz.so.1",
+    "p": "so:libapk.so.2.14.10=2.14.10"
+  }
+}

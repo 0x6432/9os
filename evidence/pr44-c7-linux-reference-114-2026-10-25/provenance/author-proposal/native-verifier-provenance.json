@@ -1,0 +1,43 @@
+{
+  "mini_sha256": "27694aaa55fd7a9e3ef596e0ad4eb66802308bb20172b17030cd5f4d8ae9bac2",
+  "native_apk_version": "2.14.12",
+  "binaries": [
+    {
+      "path": "sbin/apk",
+      "bytes": 69648,
+      "sha256": "7e03acd47618935a2e914dbe94b139eef6c6ccb01c7b55f65f7aa9b14e9a6103"
+    },
+    {
+      "path": "lib/ld-musl-x86_64.so.1",
+      "bytes": 662120,
+      "sha256": "1cc5c3f502179e2a4befae29658fb109102effefc75742893aa4a449fd3fbb03"
+    }
+  ],
+  "keys": [
+    {
+      "file": "alpine-devel@lists.alpinelinux.org-4a6a0840.rsa.pub",
+      "sha256": "9c102bcc376af1498d549b77bdbfa815ae86faa1d2d82f040e616b18ef2df2d4",
+      "bytes": 451
+    },
+    {
+      "file": "alpine-devel@lists.alpinelinux.org-5243ef4b.rsa.pub",
+      "sha256": "ebf31683b56410ecc4c00acd9f6e2839e237a3b62b5ae7ef686705c7ba0396a9",
+      "bytes": 451
+    },
+    {
+      "file": "alpine-devel@lists.alpinelinux.org-5261cecb.rsa.pub",
+      "sha256": "12f899e55a7691225603d6fb3324940fc51cd7f133e7ead788663c2b7eecb00c",
+      "bytes": 451
+    },
+    {
+      "file": "alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub",
+      "sha256": "207e4696d3c05f7cb05966aee557307151f1f00217af4143c1bcaf33b8df733f",
+      "bytes": 800
+    },
+    {
+      "file": "alpine-devel@lists.alpinelinux.org-61666e3f.rsa.pub",
+      "sha256": "128d34d4aec39b0daedea8163cd8dc24dff36fd3d848630ab97eeb1d3084bbb3",
+      "bytes": 800
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "trusted",
+    "argv": [
+      "/data/pr44-114-independent/bootstrap/lib/ld-musl-x86_64.so.1",
+      "--library-path",
+      "/data/pr44-114-independent/bootstrap/lib:/data/pr44-114-independent/bootstrap/usr/lib",
+      "/data/pr44-114-independent/bootstrap/sbin/apk",
+      "--keys-dir",
+      "/data/pr44-114-independent/bootstrap/etc/apk/keys",
+      "verify",
+      "/data/pr44-114-independent/linux-virt-6.12.114-r0.apk"
+    ],
+    "returncode": 0
+  },
+  {
+    "name": "emptykeys",
+    "argv": [
+      "/data/pr44-114-independent/bootstrap/lib/ld-musl-x86_64.so.1",
+      "--library-path",
+      "/data/pr44-114-independent/bootstrap/lib:/data/pr44-114-independent/bootstrap/usr/lib",
+      "/data/pr44-114-independent/bootstrap/sbin/apk",
+      "--keys-dir",
+      "/data/pr44-114-independent/empty-keys",
+      "verify",
+      "/data/pr44-114-independent/linux-virt-6.12.114-r0.apk"
+    ],
+    "returncode": 1
+  }
+]

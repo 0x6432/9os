@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libeconf-0.6.3-r0.apk",
+  "bytes": 24446,
+  "sha256": "fe4fbf324f84f7c8b475cfc708c5505aa630bced7b5f6289bf5ca36d9b587829",
+  "index": {
+    "C": "Q1GU5gIhrpYB9C9seoWe+PRHhXQV0=",
+    "P": "libeconf",
+    "V": "0.6.3-r0",
+    "A": "x86_64",
+    "S": "24446",
+    "I": "73864",
+    "T": "Enhanced Config File Parser",
+    "U": "https://github.com/openSUSE/libeconf",
+    "L": "MIT",
+    "o": "libeconf",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1715080109",
+    "c": "1e0aa723fba50417893fe5f6cf72f76d044b8192",
+    "D": "so:libc.musl-x86_64.so.1",
+    "p": "so:libeconf.so.0=0.6.2 cmd:econftool=0.6.3-r0"
+  }
+}

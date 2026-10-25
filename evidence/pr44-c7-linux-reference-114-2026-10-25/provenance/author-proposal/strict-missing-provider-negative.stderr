@@ -1,0 +1,3 @@
+ERROR: unable to select packages:
+  initramfs-generator (no such package):
+    required by: linux-virt-6.12.114-r0[initramfs-generator]

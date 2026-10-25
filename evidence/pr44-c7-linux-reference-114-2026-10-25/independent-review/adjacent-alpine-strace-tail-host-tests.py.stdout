@@ -1,0 +1,14 @@
+Native shells: /usr/bin/bash
+NOTE: native dash unavailable; bash-only results, not dash proof
+Exact command bytes: 933 pre-newline: 949 including newline: 950
+KILLED semantic mutant: od-status shell: /usr/bin/bash
+KILLED semantic mutant: tr-status shell: /usr/bin/bash
+KILLED semantic mutant: tail-status shell: /usr/bin/bash
+KILLED semantic mutant: wc-status shell: /usr/bin/bash
+KILLED semantic mutant: printf-status shell: /usr/bin/bash
+KILLED semantic mutant: wrong-rc shell: /usr/bin/bash
+KILLED semantic mutant: weaken-grep shell: /usr/bin/bash
+KILLED semantic mutant: lost-lookahead shell: /usr/bin/bash
+KILLED semantic mutant: raw-trace shell: /usr/bin/bash
+KILLED semantic mutant: lost-hex-validation shell: /usr/bin/bash
+KILLED semantic mutant: stderr-boundary shell: /usr/bin/bash

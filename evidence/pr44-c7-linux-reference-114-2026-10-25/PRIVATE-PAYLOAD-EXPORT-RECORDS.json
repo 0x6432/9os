@@ -1,0 +1,17 @@
+[
+  {
+    "description": "B full NEW114 implementation and real-assembly evidence with APK inputs; SessionFile-only, NOT vendored here",
+    "bytes": 49952963,
+    "sha256": "b05a3375d1d5ccf743dee1a863d0c25c4e9e490b799e7359351f65f5015886f8"
+  },
+  {
+    "description": "B full NEW114 acquisition/provenance bytes; SessionFile-only, NOT vendored here",
+    "bytes": 49756148,
+    "sha256": "329e96d54d85eb6314259b15946e1aae8f005a43a3268b386667db49a2b52412"
+  },
+  {
+    "description": "B full signedc7 original log/artifact export; private durable SessionFile packet",
+    "bytes": 7265506,
+    "sha256": "ad1f14fa87d6ab1fc7ede3bea3dffe852c9a1113528f710c354bd543ac18ba1b"
+  }
+]

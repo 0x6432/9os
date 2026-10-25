@@ -1,0 +1,1232 @@
+diff --git a/.github/workflows/alpine.yml b/.github/workflows/alpine.yml
+index 8d680aa..163bbf4 100644
+--- a/.github/workflows/alpine.yml
++++ b/.github/workflows/alpine.yml
+@@ -38,6 +38,7 @@ jobs:
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-download-host-tests.py
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
++          PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
+           scripts/fallocate-host-tests.sh
+           scripts/ptracestop-host-tests.sh
+           scripts/unixcred-host-tests.sh
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 658d42b..151804a 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -79,6 +79,7 @@ jobs:
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-download-host-tests.py
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
++          PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
+           scripts/pmm-host-tests.sh
+           scripts/slab-host-tests.sh
+           scripts/sched-host-tests.sh
+diff --git a/scripts/evdev-linux-oracle.sh b/scripts/evdev-linux-oracle.sh
+index b8a6a3a..c8f0b6f 100755
+--- a/scripts/evdev-linux-oracle.sh
++++ b/scripts/evdev-linux-oracle.sh
+@@ -11,16 +11,14 @@ mkdir -p "$(dirname "$L")"
+ D=$(mktemp -d)
+ trap 'rm -rf "$D"' EXIT HUP INT TERM
+ mkdir -p "$D/apk" "$D/init"/bin "$D/init"/lib "$D/init"/dev "$D/init"/proc "$D/init"/sys "$D/init"/modules
+-# Exact reviewed version; fail rather than silently testing another kernel.
+-"$S/lib/ld-musl-x86_64.so.1" --library-path "$S/lib:$S/usr/lib" "$S/sbin/apk" \
+- --arch x86_64 --root "$D/apk" --initdb --no-scripts --no-chown --no-cache \
+- --keys-dir "$S/etc/apk/keys" --repository https://dl-cdn.alpinelinux.org/alpine/v3.22/main \
+- add linux-virt=6.12.113-r0 > "$L.packages.log" 2>&1
++# Explicit NEW114 reference; all signatures/closure checks precede offline installation.
++python3 scripts/evdev-linux-oracle-packages.py --target "$D/apk" \
++ --manifest "$L.packages.lock.json" > "$L.packages.log" 2>&1
+ cp "$S/bin/busybox" "$D/init/bin/"
+ cp "$S/usr/bin/evdevframetest" "$D/init/bin/"
+ cp -L "$S/lib/ld-musl-x86_64.so.1" "$D/init/lib/ld-musl-x86_64.so.1"
+ for n in sh mount insmod poweroff;do ln -s busybox "$D/init/bin/$n";done
+-for n in evdev misc/uinput;do gzip -dc "$D/apk/lib/modules/6.12.113-0-virt/kernel/drivers/input/$n.ko.gz" > "$D/init/modules/$(basename "$n").ko";done
++for n in evdev misc/uinput;do gzip -dc "$D/apk/lib/modules/6.12.114-0-virt/kernel/drivers/input/$n.ko.gz" > "$D/init/modules/$(basename "$n").ko";done
+ cat > "$D/init/init" <<'INIT'
+ #!/bin/sh
+ export PATH=/bin
+diff --git a/scripts/evdev-linux-oracle-packages.py b/scripts/evdev-linux-oracle-packages.py
+new file mode 100644
+index 0000000..1b3b72b
+--- /dev/null
++++ b/scripts/evdev-linux-oracle-packages.py
+@@ -0,0 +1,226 @@
++#!/usr/bin/env python3
++"""Acquire one explicit signed Linux-reference closure; never build libraries.
++
++Only this helper's separate empty target is installed. The oracle's S-root
++consumer, BusyBox and musl are not arguments and are never modified here.
++"""
++import argparse
++import gzip
++import hashlib
++import importlib.util
++import json
++import os
++from pathlib import Path
++import platform
++import re
++import struct
++import subprocess
++import sys
++import tarfile
++import tempfile
++
++ROOT = Path(__file__).resolve().parents[1]
++SPEC = importlib.util.spec_from_file_location('linux_oracle_builder', ROOT / 'userland/alpine/build.py')
++BUILD = importlib.util.module_from_spec(SPEC)
++SPEC.loader.exec_module(BUILD)
++LOCK = ROOT / 'userland/ports/linux-oracle-lock.json'
++VERSION = '6.12.114-r0'
++RELEASE = '6.12.114-0-virt'
++NAMES = set('apk-tools busybox busybox-binsh ca-certificates-bundle cryptsetup-libs device-mapper-libs json-c kmod kmod-libs lddtree libapk2 libblkid libcrypto3 libeconf libssl3 libuuid linux-virt mdev-conf mkinitfs musl scanelf ssl_client xz-libs zlib zstd-libs'.split())
++NOARCH = {'busybox-binsh', 'ca-certificates-bundle', 'lddtree', 'mdev-conf'}
++SHA = re.compile(r'[0-9a-f]{64}')
++BASE = 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/'
++
++
++def require(ok, message):
++    if not ok:
++        raise ValueError(message)
++
++
++def digest(path):
++    return BUILD.digest(path)
++
++
++def check_file(path, entry):
++    require(path.is_file(), 'Required input missing: ' + str(path))
++    require(path.stat().st_size == entry['bytes'] and digest(path) == entry['sha256'],
++            'Input checksum/size mismatch: ' + str(path))
++
++
++def load_lock(path):
++    lock = json.loads(path.read_text())
++    require((lock['format'], lock['purpose'], lock['arch'], lock['alpine']) ==
++            (1, 'signed-linux-reference-evdev-oracle', 'x86_64', BUILD.VERSION), 'Lock bootstrap/purpose mismatch')
++    mini = lock['native_mini']
++    require(mini['sha256'] == BUILD.MINI['x86_64'] and mini['url'] ==
++            f'{BUILD.BASE}/{BUILD.BRANCH}/releases/x86_64/alpine-minirootfs-{BUILD.VERSION}-x86_64.tar.gz',
++            'Verifier mini must be independently SHA-pinned')
++    require(mini['apk_version'] == '2.14.12', 'Unexpected native APK version')
++    require({e['path'] for e in mini['binaries']} == {'sbin/apk', 'lib/ld-musl-x86_64.so.1'}
++            and len(mini['binaries']) == 2 and len(mini['keys']) == 5, 'Invalid verifier inventory')
++    require(len({e['file'] for e in mini['keys']}) == 5 and
++            all(re.fullmatch(r'alpine-devel@lists\.alpinelinux\.org-[0-9a-f]+\.rsa\.pub', e['file'])
++                for e in mini['keys']), 'Invalid trust-key inventory')
++    kernel = lock['kernel']
++    require((kernel['name'], kernel['version'], kernel['module_release']) ==
++            ('linux-virt', VERSION, RELEASE), 'Only explicitly reviewed NEW114 reference is allowed')
++    expected_paths = {'boot/vmlinuz-virt'} | {
++        f'lib/modules/{RELEASE}/kernel/drivers/input/{n}.ko.gz' for n in ['evdev', 'misc/uinput']}
++    require(len(kernel['contents']) == 3 and {e['path'] for e in kernel['contents']} == expected_paths,
++            'Kernel/module inventory mismatch')
++    entries = lock['packages']
++    require(len(entries) == 25 and {e['name'] for e in entries} == NAMES, 'Missing/extra/duplicate closure identity')
++    require(len({e['url'] for e in entries}) == 25, 'Duplicate APK filename')
++    for e in entries:
++        require(re.fullmatch(r'[A-Za-z0-9+_.-]+', e['name']) and
++                re.fullmatch(r'[A-Za-z0-9+_.-]+', e['version']), 'Invalid package identity')
++        require(e['url'] == BASE + e['name'] + '-' + e['version'] + '.apk', 'Unexpected APK URL/substitution')
++        require(e['arch'] == ('noarch' if e['name'] in NOARCH else 'x86_64'), 'Unexpected package architecture')
++        require(SHA.fullmatch(e['sha256']) and SHA.fullmatch(e['pkginfo_sha256']) and
++                type(e['bytes']) is int and 0 < e['bytes'] <= 64 * 1024 * 1024, 'Invalid APK digest/size')
++        require(isinstance(e['dependencies'], list) and isinstance(e['provides'], list) and
++                all(isinstance(v, str) and v and '\n' not in v for v in e['dependencies'] + e['provides']),
++                'Invalid dependency/provider metadata')
++        if e['name'] == 'linux-virt':
++            require(e['version'] == VERSION, 'Kernel APK version mismatch')
++    return lock
++
++
++def checked(command):
++    result = subprocess.run(command, capture_output=True, text=True)
++    sys.stdout.write(result.stdout)
++    sys.stderr.write(result.stderr)
++    result.check_returncode()
++    return result
++
++
++def bootstrap(lock, cache, work, offline, runner):
++    mini = lock['native_mini']
++    archive = cache / mini['url'].rsplit('/', 1)[-1]
++    BUILD.download(mini['url'], archive, mini['sha256'], offline)
++    require(digest(archive) == mini['sha256'], 'Verifier mini checksum mismatch')
++    native = work / 'native'
++    native.mkdir()
++    BUILD.unpack(archive, native)
++    for entry in mini['binaries']:
++        check_file(native / entry['path'], entry)
++    keys = native / 'etc/apk/keys'
++    require({p.name for p in keys.iterdir()} == {e['file'] for e in mini['keys']}, 'Verifier trust-key set mismatch')
++    for entry in mini['keys']:
++        check_file(keys / entry['file'], entry)
++    command = [str(native / 'lib/ld-musl-x86_64.so.1'), '--library-path',
++               f'{native}/lib:{native}/usr/lib', str(native / 'sbin/apk'),
++               '--keys-dir', str(keys), '--repositories-file', '/dev/null', '--no-network']
++    version = runner(command + ['--version'])
++    require(version.stdout.startswith('apk-tools 2.14.12, compiled for x86_64.'), 'Native verifier version mismatch')
++    return command
++
++
++def inspect_metadata(path, entry):
++    # Called only AFTER every APK signature was verified. Never extract archives.
++    with tarfile.open(path, 'r:gz', ignore_zeros=True) as archive:
++        infos = [m for m in archive if m.name == '.PKGINFO']
++        require(len(infos) == 1 and infos[0].isfile() and infos[0].size <= 1024 * 1024, 'Invalid PKGINFO member')
++        raw = archive.extractfile(infos[0]).read()
++    require(hashlib.sha256(raw).hexdigest() == entry['pkginfo_sha256'], 'PKGINFO checksum mismatch')
++    info = {}
++    for line in raw.decode('utf-8').splitlines():
++        if ' = ' in line:
++            key, value = line.split(' = ', 1)
++            info.setdefault(key, []).append(value)
++    require(info.get('pkgname') == [entry['name']] and info.get('pkgver') == [entry['version']]
++            and info.get('arch') == [entry['arch']], 'Signed APK identity/version/architecture mismatch')
++    require(sorted(info.get('depend', [])) == sorted(entry['dependencies']) and
++            sorted(info.get('provides', [])) == sorted(entry['provides']), 'Signed dependency/provider mismatch')
++
++
++def verify_contents(target, lock):
++    results = []
++    for entry in lock['kernel']['contents']:
++        path = target / entry['path']
++        require(path.resolve().is_relative_to(target.resolve()) and not path.is_symlink(), 'Unsafe installed kernel path')
++        check_file(path, entry)
++        if entry['path'].endswith('.ko.gz'):
++            raw = gzip.decompress(path.read_bytes())
++            require(len(raw) == entry['uncompressed_bytes'] and
++                    hashlib.sha256(raw).hexdigest() == entry['uncompressed_sha256'], 'Module content checksum mismatch')
++            require(raw[:6] == b'\x7fELF\x02\x01' and len(raw) >= 20 and
++                    struct.unpack('<H', raw[18:20])[0] == entry['elf_machine'] == 62, 'Unexpected module ELF architecture')
++            vermagic = re.search(rb'vermagic=([^\x00]+)', raw)
++            require(vermagic is not None and vermagic[1].decode() == entry['vermagic'] and
++                    entry['vermagic'].startswith(RELEASE + ' '), 'Wrong installed module ABI')
++        results.append({'path': entry['path'], 'sha256': digest(path), 'bytes': path.stat().st_size})
++    return results
++
++
++def installed_inventory(target, lock):
++    text = (target / 'lib/apk/db/installed').read_text()
++    inventory = []
++    for block in text.split('\n\n'):
++        fields = dict(line.split(':', 1) for line in block.splitlines() if ':' in line)
++        if fields:
++            inventory.append((fields['P'], fields['V']))
++    expected = [(e['name'], e['version']) for e in lock['packages']]
++    require(sorted(inventory) == sorted(expected), 'Installed package set/version mismatch')
++
++
++def empty_target(target):
++    require(target.is_dir() and not target.is_symlink() and not any(target.iterdir()), 'Target must be separately EMPTY')
++
++
++def assemble(lock_path, cache, target, offline=False, runner=checked):
++    require(platform.machine() == 'x86_64', 'Linux reference verifier requires native x86_64')
++    lock = load_lock(lock_path)
++    empty_target(target)
++    cache.mkdir(parents=True, exist_ok=True)
++    with tempfile.TemporaryDirectory(prefix='linux-reference-verifier-') as tmp:
++        work = Path(tmp)
++        apk = bootstrap(lock, cache, work, offline, runner)
++        files = []
++        for entry in lock['packages']:
++            path = cache / entry['url'].rsplit('/', 1)[-1]
++            BUILD.download(entry['url'], path, entry['sha256'], offline)
++            check_file(path, entry)
++            files.append(str(path))
++        # ALL content hashes and ALL native signatures precede metadata/solver/add.
++        runner(apk + ['verify'] + files)
++        for entry, path in zip(lock['packages'], files):
++            inspect_metadata(Path(path), entry)
++        dry = work / 'dry-run'
++        (dry / 'etc/apk').mkdir(parents=True)
++        (dry / 'lib/apk/db').mkdir(parents=True)
++        for name in ['etc/apk/world', 'lib/apk/db/installed', 'lib/apk/db/triggers']:
++            (dry / name).write_bytes(b'')
++        # Strict native solver (not fetch's IGNORE_CONFLICT mode), no package install.
++        flags = ['--root', str(dry), '--arch', 'x86_64', 'add', '--simulate', '--initdb',
++                 '--no-scripts', '--no-chown', 'linux-virt=' + VERSION]
++        runner(apk + flags + files)
++        bookkeeping = {str(p.relative_to(dry)): p.stat().st_size for p in dry.rglob('*') if p.is_file() or p.is_symlink()}
++        require(bookkeeping == {name: 0 for name in ['etc/apk/world', 'lib/apk/db/installed', 'lib/apk/db/triggers']},
++                'Dry-run wrote package state')
++        empty_target(target)
++        # A failure here remains fatal; never rescue it or proceed to QEMU.
++        runner(apk + ['--root', str(target), '--arch', 'x86_64', 'add', '--initdb',
++                      '--no-scripts', '--no-chown', 'linux-virt=' + VERSION] + files)
++        installed_inventory(target, lock)
++        contents = verify_contents(target, lock)
++    return {'purpose': lock['purpose'], 'reference_kernel': VERSION, 'module_release': RELEASE,
++            'native_mini_sha256': lock['native_mini']['sha256'], 'packages': lock['packages'],
++            'installed_contents': contents, 'historical_113_byte_equivalence': 'unknown'}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--target', type=Path, required=True)
++    parser.add_argument('--cache', type=Path, default=Path(os.environ.get('TOOLS_DIR', ROOT / '.tools')) / 'dl/alpine-linux-oracle')
++    parser.add_argument('--lock', type=Path, default=LOCK)
++    parser.add_argument('--manifest', type=Path, required=True)
++    parser.add_argument('--offline', action='store_true')
++    args = parser.parse_args()
++    result = assemble(args.lock, args.cache, args.target, args.offline)
++    args.manifest.write_text(json.dumps(result, indent=2) + '\n')
++    print('Explicit NEW Linux reference:', VERSION, '; 25 verified APKs; offline installation; modules', RELEASE)
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/scripts/evdev-linux-oracle-packages-host-tests.py b/scripts/evdev-linux-oracle-packages-host-tests.py
+new file mode 100644
+index 0000000..204389c
+--- /dev/null
++++ b/scripts/evdev-linux-oracle-packages-host-tests.py
+@@ -0,0 +1,411 @@
++#!/usr/bin/env python3
++"""Native synthetic APK/runner controls. No VM/compiler/network is used.
++
++Synthetic unsigned tar fixtures exercise orchestration with a fake APK runner;
++these tests are NOT a replacement for real native APK signature/assembly proof.
++The frozen legacy script reproduces the original solver failure before QEMU.
++"""
++import copy
++import gzip
++import hashlib
++import importlib.util
++import io
++import json
++import os
++from pathlib import Path
++import struct
++import subprocess
++import tarfile
++import tempfile
++import types
++import unittest
++from unittest.mock import patch
++
++ROOT = Path(__file__).resolve().parents[1]
++HELPER = ROOT / 'scripts/evdev-linux-oracle-packages.py'
++LOCK = ROOT / 'userland/ports/linux-oracle-lock.json'
++BEFORE_SHA = '62911e9b2b9e62e1e90ada1871f016551345e028ce571fe904a0eb0e919cfbce'
++
++LEGACY = '#!/bin/sh\n# Boot the exact tiny guest consumer on a signed PREBUILT Alpine Linux kernel.\n# x86_64 only. No Qt/Mesa/LLVM/libc build, host input device or host root needed.\nset -eu\ncd "$(dirname "$0")/.."\n[ "$(uname -m)" = x86_64 ] || { echo \'Linux input oracle requires x86_64 host\' >&2;exit 2; }\nS=$(cd userland/alpine-root-x86_64 && pwd -P)\n[ -x "$S/usr/bin/evdevframetest" ] || { echo \'Run alpine-build-tests.sh x86_64 first\' >&2;exit 2; }\nL=${1:-build/evdev-linux-oracle.log}\nmkdir -p "$(dirname "$L")"\nD=$(mktemp -d)\ntrap \'rm -rf "$D"\' EXIT HUP INT TERM\nmkdir -p "$D/apk" "$D/init"/bin "$D/init"/lib "$D/init"/dev "$D/init"/proc "$D/init"/sys "$D/init"/modules\n# Exact reviewed version; fail rather than silently testing another kernel.\n"$S/lib/ld-musl-x86_64.so.1" --library-path "$S/lib:$S/usr/lib" "$S/sbin/apk" \\\n --arch x86_64 --root "$D/apk" --initdb --no-scripts --no-chown --no-cache \\\n --keys-dir "$S/etc/apk/keys" --repository https://dl-cdn.alpinelinux.org/alpine/v3.22/main \\\n add linux-virt=6.12.113-r0 > "$L.packages.log" 2>&1\ncp "$S/bin/busybox" "$D/init/bin/"\ncp "$S/usr/bin/evdevframetest" "$D/init/bin/"\ncp -L "$S/lib/ld-musl-x86_64.so.1" "$D/init/lib/ld-musl-x86_64.so.1"\nfor n in sh mount insmod poweroff;do ln -s busybox "$D/init/bin/$n";done\nfor n in evdev misc/uinput;do gzip -dc "$D/apk/lib/modules/6.12.113-0-virt/kernel/drivers/input/$n.ko.gz" > "$D/init/modules/$(basename "$n").ko";done\ncat > "$D/init/init" <<\'INIT\'\n#!/bin/sh\nexport PATH=/bin\nmount -t proc proc /proc\nmount -t sysfs sysfs /sys\nmount -t devtmpfs devtmpfs /dev\ninsmod /modules/evdev.ko\ninsmod /modules/uinput.ko\n/bin/evdevframetest\nrc=$?\necho LINUX_INPUT_ORACLE_RC=$rc\npoweroff -f\nINIT\nchmod +x "$D/init/init"\n(cd "$D/init" && find . -print0 | cpio -0 -o -H newc --quiet | gzip -1 > "$D/init.cpio.gz")\nsha256sum "$D/apk/boot/vmlinuz-virt" "$D/init/bin/evdevframetest" "$D/init.cpio.gz" > "$L.fixtures.sha256"\ntimeout 90 qemu-system-x86_64 -machine q35,accel=tcg -cpu max -smp 2 -m 512M \\\n -kernel "$D/apk/boot/vmlinuz-virt" -initrd "$D/init.cpio.gz" \\\n -append \'console=ttyS0 panic=-1 rdinit=/init\' -display none -serial stdio -no-reboot > "$L.raw" 2>&1\ntr -d \'\\r\' < "$L.raw" > "$L"\ngrep -E \'^(evdevframetest:|LINUX_INPUT_ORACLE_RC=)\' "$L"\ngrep -qx LINUX_INPUT_ORACLE_RC=0 "$L"\n'
++
++
++def module(source=None):
++    # Compilation/import setup is deliberately OUTSIDE any mutant assertion catch.
++    m = types.ModuleType('oracle_contract_fixture')
++    m.__file__ = str(HELPER)
++    exec(compile(source or HELPER.read_text(), str(HELPER), 'exec'), m.__dict__)
++    return m
++
++
++class LegacyBaseline(unittest.TestCase):
++    def test_exact_original_solver_failure_prevents_qemu(self):
++        self.assertEqual(hashlib.sha256(LEGACY.encode()).hexdigest(), BEFORE_SHA)
++        with tempfile.TemporaryDirectory(prefix='old-linux-reference-') as tmp:
++            root = Path(tmp)
++            (root / 'scripts').mkdir()
++            (root / 'scripts/oracle.sh').write_text(LEGACY)
++            s = root / 'userland/alpine-root-x86_64'
++            for path in ['usr/bin', 'lib', 'sbin']:
++                (s / path).mkdir(parents=True, exist_ok=True)
++            (s / 'usr/bin/evdevframetest').write_text('#!/bin/sh\nexit 0\n')
++            (s / 'usr/bin/evdevframetest').chmod(0o755)
++            loader = s / 'lib/ld-musl-x86_64.so.1'
++            loader.write_text('#!/bin/sh\nprintf "%s\\n" "$@" >"$EVENT"\n'
++                              'printf "%s\\n" "ERROR: unable to select packages:" '
++                              '"  linux-virt-6.12.114-r0:" "    breaks: world[linux-virt=6.12.113-r0]" >&2\nexit 1\n')
++            loader.chmod(0o755)
++            (root / 'bin').mkdir()
++            qemu = root / 'bin/qemu-system-x86_64'
++            qemu.write_text('#!/bin/sh\ntouch "$QEMU_CALLED"\nexit 99\n')
++            qemu.chmod(0o755)
++            result = subprocess.run(['/bin/sh', str(root / 'scripts/oracle.sh')], cwd=root,
++                                    env={**os.environ, 'PATH': str(root / 'bin') + ':' + os.environ['PATH'],
++                                         'EVENT': str(root / 'args'), 'QEMU_CALLED': str(root / 'qemu-called')},
++                                    capture_output=True, timeout=5)
++            self.assertEqual(result.returncode, 1, result.stderr)
++            args = (root / 'args').read_text().splitlines()
++            self.assertEqual(args[-2:], ['add', 'linux-virt=6.12.113-r0'])
++            self.assertEqual(args[args.index('--repository') + 1], 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main')
++            self.assertIn('--no-scripts', args)
++            self.assertFalse((root / 'qemu-called').exists())
++            self.assertFalse((root / 'build/evdev-linux-oracle.log.fixtures.sha256').exists())
++            self.assertIn('breaks: world[linux-virt=6.12.113-r0]', (root / 'build/evdev-linux-oracle.log.packages.log').read_text())
++            print('Frozen legacy oracle:', BEFORE_SHA, 'solver rc1; no fixture hash/QEMU', flush=True)
++
++
++class Fixture:
++    def __init__(self, m):
++        self.m = m
++        self.tmp = tempfile.TemporaryDirectory(prefix='linux-oracle-contract-')
++        self.root = Path(self.tmp.name)
++        self.cache = self.root / 'cache'
++        self.target = self.root / 'target'
++        self.cache.mkdir()
++        self.target.mkdir()
++        self.lock = json.loads(LOCK.read_text())
++        self.lockpath = self.root / 'lock.json'
++        self.contents = {}
++        for item in self.lock['kernel']['contents']:
++            if item['path'].endswith('.ko.gz'):
++                raw = bytearray(64)
++                raw[:6] = b'\x7fELF\x02\x01'
++                struct.pack_into('<H', raw, 18, 62)
++                raw = bytes(raw) + b'\x00vermagic=' + item['vermagic'].encode() + b'\x00'
++                data = gzip.compress(raw, mtime=0)
++                item.update(uncompressed_bytes=len(raw), uncompressed_sha256=hashlib.sha256(raw).hexdigest())
++            else:
++                data = b'synthetic kernel - NOT executable guest proof\n'
++            self.contents[item['path']] = data
++            item.update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
++        for entry in self.lock['packages']:
++            self.package(entry)
++        self.save()
++        self.calls = []
++        self.fail = None
++        self.bad_contents = False
++        self.bad_dry = False
++        self.bad_inventory = False
++        self.prefix = ['fake-native-apk', '--keys-dir', '/private/pinned/keys',
++                       '--repositories-file', '/dev/null', '--no-network']
++
++    def save(self):
++        self.lockpath.write_text(json.dumps(self.lock))
++
++    def package(self, entry, change=None, duplicate=False):
++        fields = [('pkgname', entry['name']), ('pkgver', entry['version']), ('arch', entry['arch'])]
++        fields += [('depend', d) for d in entry['dependencies']]
++        fields += [('provides', d) for d in entry['provides']]
++        if change:
++            fields = [(k, change[1] if k == change[0] else v) for k, v in fields]
++        raw = ''.join(k + ' = ' + v + '\n' for k, v in fields).encode()
++        stream = io.BytesIO()
++        with tarfile.open(fileobj=stream, mode='w:gz') as tar:
++            for _ in range(2 if duplicate else 1):
++                info = tarfile.TarInfo('.PKGINFO')
++                info.size = len(raw)
++                tar.addfile(info, io.BytesIO(raw))
++        data = stream.getvalue()
++        (self.cache / entry['url'].rsplit('/', 1)[-1]).write_bytes(data)
++        entry.update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest(), pkginfo_sha256=hashlib.sha256(raw).hexdigest())
++
++    def runner(self, command):
++        self.calls.append(command.copy())
++        if 'verify' in command and self.fail == 'verify':
++            raise subprocess.CalledProcessError(7, command)
++        if 'add' in command and '--simulate' in command and self.bad_dry:
++            dry = Path(command[command.index('--root') + 1])
++            (dry / 'unexpected-empty-package-file').write_bytes(b'')
++        if 'add' in command and '--simulate' in command and self.fail == 'dry':
++            raise subprocess.CalledProcessError(2, command)
++        if 'add' in command and '--simulate' not in command:
++            if self.fail == 'add':
++                raise subprocess.CalledProcessError(9, command)
++            target = Path(command[command.index('--root') + 1])
++            (target / 'lib/apk/db').mkdir(parents=True, exist_ok=True)
++            entries = self.lock['packages'][:-1] if self.bad_inventory else self.lock['packages']
++            (target / 'lib/apk/db/installed').write_text(''.join('P:' + e['name'] + '\nV:' + e['version'] + '\n\n' for e in entries))
++            for name, data in self.contents.items():
++                f = target / name
++                f.parent.mkdir(parents=True, exist_ok=True)
++                f.write_bytes(data + (b'broken' if self.bad_contents else b''))
++        return subprocess.CompletedProcess(command, 0, stdout='', stderr='')
++
++    def run(self, bypass_download=False):
++        self.save()
++        with patch.object(self.m, 'bootstrap', return_value=self.prefix):
++            if bypass_download:
++                with patch.object(self.m.BUILD, 'download', return_value=None):
++                    return self.m.assemble(self.lockpath, self.cache, self.target, True, self.runner)
++            return self.m.assemble(self.lockpath, self.cache, self.target, True, self.runner)
++
++    def actual_adds(self):
++        return [c for c in self.calls if 'add' in c and '--simulate' not in c]
++
++    def protocol(self, case):
++        verifies = [c for c in self.calls if 'verify' in c]
++        case.assertEqual(len(verifies), 1)
++        case.assertEqual(len(verifies[0][verifies[0].index('verify') + 1:]), 25)
++        adds = [c for c in self.calls if 'add' in c]
++        case.assertEqual(len(adds), 2)
++        case.assertLess(self.calls.index(verifies[0]), self.calls.index(adds[0]))
++        case.assertEqual(len(self.actual_adds()), 1)
++        for c in self.calls:
++            case.assertIn('--no-network', c)
++            case.assertEqual(c[c.index('--repositories-file') + 1], '/dev/null')
++            case.assertNotIn('--allow-untrusted', c)
++            case.assertNotIn('--no-deps', c)
++        for c in adds:
++            for flag in ['--initdb', '--no-scripts', '--no-chown', 'linux-virt=6.12.114-r0']:
++                case.assertIn(flag, c)
++            case.assertEqual(len([v for v in c if v.endswith('.apk')]), 25)
++        case.assertIn('--simulate', adds[0])
++        case.assertEqual(self.actual_adds()[0][self.actual_adds()[0].index('--root') + 1], str(self.target))
++
++    def close(self):
++        self.tmp.cleanup()
++
++
++class HelperContracts(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        cls.m = module()
++
++    def fixture(self, m=None):
++        fixture = Fixture(m or self.m)
++        self.addCleanup(fixture.close)
++        return fixture
++
++    def test_real_lock_exact_identity_inventory(self):
++        lock = self.m.load_lock(LOCK)
++        self.assertEqual(len(lock['packages']), 25)
++        self.assertEqual(lock['kernel']['version'], '6.12.114-r0')
++        self.assertEqual({e['name'] for e in lock['packages'] if e['arch'] == 'noarch'}, self.m.NOARCH)
++
++    def test_clean_orchestration_verify_all_then_strict_offline_add(self):
++        f = self.fixture()
++        result = f.run()
++        f.protocol(self)
++        self.assertEqual(result['reference_kernel'], '6.12.114-r0')
++        self.assertEqual(len(result['installed_contents']), 3)
++
++    def test_invalid_lock_inventory_arch_trust_and_version_rejected(self):
++        for kind in ['missing', 'duplicate', 'extra', 'arch', 'kernel', 'mini', 'key', 'url']:
++            with self.subTest(kind=kind):
++                f = self.fixture()
++                if kind == 'missing': f.lock['packages'].pop()
++                if kind == 'duplicate': f.lock['packages'][-1] = copy.deepcopy(f.lock['packages'][0])
++                if kind == 'extra': f.lock['packages'].append(copy.deepcopy(f.lock['packages'][0]))
++                if kind == 'arch': f.lock['packages'][0]['arch'] = 'aarch64'
++                if kind == 'kernel': f.lock['kernel']['version'] = '6.12.113-r0'
++                if kind == 'mini': f.lock['native_mini']['sha256'] = '0' * 64
++                if kind == 'key': f.lock['native_mini']['keys'].pop()
++                if kind == 'url': f.lock['packages'][0]['url'] = 'https://unreviewed.invalid/file.apk'
++                with self.assertRaises(ValueError): f.run()
++                self.assertFalse(f.calls)
++
++    def test_bad_checksum_and_offline_missing_prevent_any_add(self):
++        for mode in ['checksum', 'missing']:
++            f = self.fixture()
++            path = f.cache / f.lock['packages'][0]['url'].rsplit('/', 1)[-1]
++            if mode == 'checksum': path.write_bytes(b'corrupt')
++            else: path.unlink()
++            with self.assertRaises(ValueError): f.run()
++            self.assertFalse(f.actual_adds())
++
++    def test_post_download_independent_checksum_guard(self):
++        f = self.fixture()
++        f.lock['packages'][0]['sha256'] = '0' * 64
++        with self.assertRaises(ValueError): f.run(bypass_download=True)
++        self.assertFalse(f.actual_adds())
++
++    def test_signature_failure_prevents_metadata_dryrun_install(self):
++        f = self.fixture()
++        f.fail = 'verify'
++        with self.assertRaises(subprocess.CalledProcessError): f.run()
++        self.assertFalse(any('add' in c for c in f.calls))
++
++    def test_signed_metadata_mismatch_and_duplicate_rejected_before_add(self):
++        for change in [('pkgver', '1.0-unreviewed'), ('arch', 'aarch64'), ('depend', 'unresolved=1'), ('provides', 'unexpected=1'), None]:
++            f = self.fixture()
++            entry = f.lock['packages'][0]
++            f.package(entry, change=change, duplicate=change is None)
++            with self.assertRaises(ValueError): f.run()
++            self.assertFalse(any('add' in c for c in f.calls))
++
++    def test_dependency_solver_failure_prevents_actual_install(self):
++        f = self.fixture()
++        f.fail = 'dry'
++        with self.assertRaises(subprocess.CalledProcessError): f.run()
++        self.assertFalse(f.actual_adds())
++
++    def test_dryrun_unexpected_state_prevents_actual_add(self):
++        f = self.fixture()
++        f.bad_dry = True
++        with self.assertRaises(ValueError): f.run()
++        self.assertFalse(f.actual_adds())
++
++    def bootstrap_witness(self, m, fault):
++        with tempfile.TemporaryDirectory(prefix='bootstrap-native-contract-') as tmp:
++            p = Path(tmp)
++            cache = p / 'cache'
++            work = p / 'work'
++            cache.mkdir()
++            work.mkdir()
++            lock = json.loads(LOCK.read_text())
++            mini = lock['native_mini']
++            archive = cache / mini['url'].rsplit('/', 1)[-1]
++            archive.write_bytes(b'synthetic mini fixture')
++            values = {}
++            for entry in mini['binaries']:
++                data = ('tool:' + entry['path']).encode()
++                values[entry['path']] = data
++                entry.update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
++            for entry in mini['keys']:
++                data = ('key:' + entry['file']).encode()
++                values['etc/apk/keys/' + entry['file']] = data
++                entry.update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
++            def unpack(_archive, native):
++                for name, data in values.items():
++                    path = native / name
++                    path.parent.mkdir(parents=True, exist_ok=True)
++                    path.write_bytes(data)
++                if fault == 'tool': (native / 'sbin/apk').write_bytes(b'corrupt tool')
++                if fault == 'key': (native / 'etc/apk/keys' / mini['keys'][0]['file']).write_bytes(b'corrupt key')
++                if fault == 'extra-key': (native / 'etc/apk/keys/extra.rsa.pub').write_bytes(b'extra')
++            def checksum(path):
++                return mini['sha256'] if path == archive else hashlib.sha256(path.read_bytes()).hexdigest()
++            runner = lambda cmd: subprocess.CompletedProcess(cmd, 0, stdout='apk-tools 2.14.12, compiled for x86_64.\n', stderr='')
++            with patch.object(m.BUILD, 'download', return_value=None), patch.object(m.BUILD, 'unpack', side_effect=unpack), patch.object(m, 'digest', side_effect=checksum):
++                return m.bootstrap(lock, cache, work, True, runner)
++
++    def test_private_bootstrap_command_is_offline_with_empty_repositories(self):
++        command = self.bootstrap_witness(self.m, None)
++        self.assertIn('--no-network', command)
++        self.assertIn('--repositories-file', command)
++        self.assertEqual(command[command.index('--repositories-file') + 1], '/dev/null')
++        self.assertIn('--keys-dir', command)
++        self.assertIn('/native/etc/apk/keys', command[command.index('--keys-dir') + 1])
++
++    def test_private_verifier_tool_key_hash_and_extra_key_fail_closed(self):
++        for fault in ['tool', 'key', 'extra-key']:
++            with self.subTest(fault=fault):
++                with self.assertRaises(ValueError): self.bootstrap_witness(self.m, fault)
++
++    def test_nonempty_and_symlink_targets_rejected(self):
++        f = self.fixture()
++        (f.target / 'existing').write_bytes(b'preserve')
++        with self.assertRaises(ValueError): f.run()
++        self.assertFalse(f.calls)
++        f2 = self.fixture()
++        f2.target.rmdir()
++        f2.target.symlink_to(f.target, target_is_directory=True)
++        with self.assertRaises(ValueError): f2.run()
++        self.assertFalse(f2.calls)
++
++    def test_native_add_failure_is_not_rescued(self):
++        f = self.fixture()
++        f.fail = 'add'
++        with self.assertRaises(subprocess.CalledProcessError) as error: f.run()
++        self.assertEqual(error.exception.returncode, 9)
++        self.assertEqual(len(f.actual_adds()), 1)
++
++    def test_installed_hash_abi_and_inventory_checked(self):
++        for mode in ['contents', 'inventory']:
++            f = self.fixture()
++            f.bad_contents = mode == 'contents'
++            f.bad_inventory = mode == 'inventory'
++            with self.assertRaises(ValueError): f.run()
++            self.assertEqual(len(f.actual_adds()), 1)
++        f = self.fixture()
++        f.lock['kernel']['contents'][1]['vermagic'] = '6.12.113-0-virt wrong'
++        with self.assertRaises(ValueError): f.run()
++
++    def test_semantic_mutants_not_setup_failures(self):
++        source = HELPER.read_text()
++        specs = [
++            ('bootstrap-network', "'--no-network']\n", "'--no-progress']\n", 'bootstrap-protocol'),
++            ('bootstrap-repositories', "'--repositories-file', '/dev/null',", "'--repositories-file', '/unexpected/repositories',", 'bootstrap-protocol'),
++            ('private-tool', "        check_file(native / entry['path'], entry)\n", '        pass\n', 'bootstrap-tool'),
++            ('trust-key-hash', "        check_file(keys / entry['file'], entry)\n", '        pass\n', 'bootstrap-key'),
++            ('trust-key-set', "    require({p.name for p in keys.iterdir()} == {e['file'] for e in mini['keys']}, 'Verifier trust-key set mismatch')\n", '    pass\n', 'bootstrap-extra-key'),
++            ('checksum', '            check_file(path, entry)\n', '            pass\n', 'checksum'),
++            ('signature', "        runner(apk + ['verify'] + files)\n", '        pass\n', 'signature'),
++            ('identity', '            inspect_metadata(Path(path), entry)\n', '            pass\n', 'identity'),
++            ('closure', '        runner(apk + flags + files)\n', '        pass\n', 'closure'),
++            ('scripts', "                      '--no-scripts', '--no-chown', 'linux-virt=' + VERSION] + files)", "                      '--no-chown', 'linux-virt=' + VERSION] + files)", 'flags'),
++            ('network', "        runner(apk + ['--root', str(target)", "        runner([v for v in apk if v != '--no-network'] + ['--root', str(target)", 'flags'),
++            ('contents', '        contents = verify_contents(target, lock)\n', '        contents = []\n', 'contents'),
++            ('inventory', '        installed_inventory(target, lock)\n', '        pass\n', 'inventory'),
++        ]
++        for name, before, after, witness in specs:
++            if source.count(before) != 1:
++                raise RuntimeError('mutant selection setup mismatch: ' + name)
++            mutant = module(source.replace(before, after, 1))
++            f = self.fixture(mutant)
++            # Fixture/module creation and all setup are outside the assertion block.
++            if witness == 'checksum': f.lock['packages'][0]['sha256'] = '0' * 64
++            if witness == 'signature': f.fail = 'verify'
++            if witness == 'identity': f.package(f.lock['packages'][0], ('pkgver', 'wrong'))
++            if witness == 'closure': f.fail = 'dry'
++            if witness == 'contents': f.bad_contents = True
++            if witness == 'inventory': f.bad_inventory = True
++            with self.subTest(mutant=name):
++                try:
++                    if witness == 'bootstrap-protocol':
++                        command = self.bootstrap_witness(mutant, None)
++                        self.assertIn('--no-network', command)
++                        self.assertEqual(command[command.index('--repositories-file') + 1], '/dev/null')
++                    elif witness.startswith('bootstrap-'):
++                        with self.assertRaises(ValueError): self.bootstrap_witness(mutant, witness[len('bootstrap-'):])
++                    elif witness == 'flags':
++                        f.run()
++                        f.protocol(self)
++                    else:
++                        error = subprocess.CalledProcessError if witness in ['signature', 'closure'] else ValueError
++                        with self.assertRaises(error): f.run(bypass_download=witness == 'checksum')
++                except AssertionError:
++                    print('KILLED semantic mutant:', name, flush=True)
++                else:
++                    self.fail('semantic mutant survived: ' + name)
++
++
++class OracleWiring(unittest.TestCase):
++    def test_helper_and_new_module_path_only_consumer_unchanged(self):
++        source = (ROOT / 'scripts/evdev-linux-oracle.sh').read_text()
++        self.assertNotIn('--repository https:', source)
++        self.assertIn('python3 scripts/evdev-linux-oracle-packages.py', source)
++        self.assertIn('lib/modules/6.12.114-0-virt/', source)
++        self.assertNotIn('lib/modules/6.12.113-0-virt/', source)
++        original_tail = LEGACY[LEGACY.index('cp "$S/bin/busybox"'):].replace('6.12.113-0-virt', '6.12.114-0-virt')
++        self.assertTrue(source.endswith(original_tail), 'Consumer/S-root copies/init/QEMU90/strict RC acceptance changed')
++
++    def test_workflow_only_one_new_host_invocation_each(self):
++        line = '          PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py\n'
++        for name in ['alpine.yml', 'release.yml']:
++            source = (ROOT / '.github/workflows' / name).read_text()
++            self.assertEqual(source.count(line), 1)
++            self.assertIn('python3 scripts/alpine-strace-tail-host-tests.py\n' + line, source)
++
++
++if __name__ == '__main__':
++    unittest.main(verbosity=2)
+diff --git a/userland/ports/linux-oracle-lock.json b/userland/ports/linux-oracle-lock.json
+new file mode 100644
+index 0000000..f157ac8
+--- /dev/null
++++ b/userland/ports/linux-oracle-lock.json
+@@ -0,0 +1,528 @@
++{
++  "format": 1,
++  "purpose": "signed-linux-reference-evdev-oracle",
++  "arch": "x86_64",
++  "alpine": "3.22.6",
++  "native_mini": {
++    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-minirootfs-3.22.6-x86_64.tar.gz",
++    "sha256": "27694aaa55fd7a9e3ef596e0ad4eb66802308bb20172b17030cd5f4d8ae9bac2",
++    "apk_version": "2.14.12",
++    "binaries": [
++      {
++        "path": "sbin/apk",
++        "bytes": 69648,
++        "sha256": "7e03acd47618935a2e914dbe94b139eef6c6ccb01c7b55f65f7aa9b14e9a6103"
++      },
++      {
++        "path": "lib/ld-musl-x86_64.so.1",
++        "bytes": 662120,
++        "sha256": "1cc5c3f502179e2a4befae29658fb109102effefc75742893aa4a449fd3fbb03"
++      }
++    ],
++    "keys": [
++      {
++        "file": "alpine-devel@lists.alpinelinux.org-4a6a0840.rsa.pub",
++        "sha256": "9c102bcc376af1498d549b77bdbfa815ae86faa1d2d82f040e616b18ef2df2d4",
++        "bytes": 451
++      },
++      {
++        "file": "alpine-devel@lists.alpinelinux.org-5243ef4b.rsa.pub",
++        "sha256": "ebf31683b56410ecc4c00acd9f6e2839e237a3b62b5ae7ef686705c7ba0396a9",
++        "bytes": 451
++      },
++      {
++        "file": "alpine-devel@lists.alpinelinux.org-5261cecb.rsa.pub",
++        "sha256": "12f899e55a7691225603d6fb3324940fc51cd7f133e7ead788663c2b7eecb00c",
++        "bytes": 451
++      },
++      {
++        "file": "alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub",
++        "sha256": "207e4696d3c05f7cb05966aee557307151f1f00217af4143c1bcaf33b8df733f",
++        "bytes": 800
++      },
++      {
++        "file": "alpine-devel@lists.alpinelinux.org-61666e3f.rsa.pub",
++        "sha256": "128d34d4aec39b0daedea8163cd8dc24dff36fd3d848630ab97eeb1d3084bbb3",
++        "bytes": 800
++      }
++    ]
++  },
++  "signed_index_provenance": {
++    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz",
++    "sha256": "0bb20ca8f6082e981229755622164e0ce8de535d57558c44b034868d126f00ef",
++    "bytes": 500486
++  },
++  "kernel": {
++    "name": "linux-virt",
++    "version": "6.12.114-r0",
++    "module_release": "6.12.114-0-virt",
++    "contents": [
++      {
++        "path": "boot/vmlinuz-virt",
++        "bytes": 11834368,
++        "sha256": "26f146f664ad057be3b39b211422b03b1f94cb2c3d66522fd4841811a224bfd5"
++      },
++      {
++        "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/evdev.ko.gz",
++        "bytes": 14740,
++        "sha256": "4a3134caa08701aac3a4bda0ac3f7c60039232d5bc850e537783ce93d10bbf41",
++        "elf_machine": 62,
++        "uncompressed_bytes": 52455,
++        "uncompressed_sha256": "2d113c2a9588d9fab35d7222f318505bfdc82fef4999386c1976aacb2ab7ebd1",
++        "vermagic": "6.12.114-0-virt SMP preempt mod_unload modversions "
++      },
++      {
++        "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/misc/uinput.ko.gz",
++        "bytes": 12075,
++        "sha256": "49af0aa3808bac7c12b074b1cb6028edbd912734ad29c362c3ccb528c2be85b4",
++        "elf_machine": 62,
++        "uncompressed_bytes": 41959,
++        "uncompressed_sha256": "213b4c75a137e4f05aded40d08a105735c3cfe8a1548b3e075a06fa3e59041f6",
++        "vermagic": "6.12.114-0-virt SMP preempt mod_unload modversions "
++      }
++    ]
++  },
++  "packages": [
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/apk-tools-2.14.12-r0.apk",
++      "sha256": "fdf8a327219e1e6e5d4e45fbd7db7cf4881fe3e641e831e58caa72e83a1acace",
++      "bytes": 34579,
++      "name": "apk-tools",
++      "version": "2.14.12-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "musl>=1.2.3_git20230424",
++        "libcrypto3>=3.5",
++        "ca-certificates-bundle",
++        "so:libapk.so.2.14.10",
++        "so:libc.musl-x86_64.so.1",
++        "so:libcrypto.so.3",
++        "so:libz.so.1"
++      ],
++      "provides": [
++        "cmd:apk=2.14.12-r0"
++      ],
++      "index_identity": "Q18I7lWn+QFS+hg1rizHjyP1PAAVQ=",
++      "pkginfo_sha256": "dabcbb356521a07ece3e2c0843ef82508e4e17cfcbef25398cacd049b560680c"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-1.37.0-r20.apk",
++      "sha256": "7cc34c2dda2520b456ab4a55abc37fe245ac90f98ab9f1c7a9be3aec035df48e",
++      "bytes": 506116,
++      "name": "busybox",
++      "version": "1.37.0-r20",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "cmd:busybox=1.37.0-r20"
++      ],
++      "index_identity": "Q1Pp11KIKAs8SS6R8w4SbCQA0XAbM=",
++      "pkginfo_sha256": "b65e34e1077c4991215446fb594a4e1acf108c7e6f1fbf588a72ca5de4dd5555"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-binsh-1.37.0-r20.apk",
++      "sha256": "ad33d8d799ed80eab45bb68d63c14062165d3653f4fb52e73959cd31d032210e",
++      "bytes": 1566,
++      "name": "busybox-binsh",
++      "version": "1.37.0-r20",
++      "arch": "noarch",
++      "dependencies": [
++        "busybox=1.37.0-r20"
++      ],
++      "provides": [
++        "/bin/sh",
++        "cmd:sh=1.37.0-r20"
++      ],
++      "index_identity": "Q1rNSVswVIMaejMTeqWiumGToIotI=",
++      "pkginfo_sha256": "67bfcf1700b7e8054716dd04aa1dbfc9d51de6f24ea9ceb4a442371b8d545cbf"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk",
++      "sha256": "d35216a0a9adde79031df246759bad03f235cf201bf0aff8436b88bff59594eb",
++      "bytes": 107116,
++      "name": "ca-certificates-bundle",
++      "version": "20261020-r0",
++      "arch": "noarch",
++      "dependencies": [],
++      "provides": [
++        "ca-certificates-cacert=20261020-r0"
++      ],
++      "index_identity": "Q1S0j4S2Jt6I+Ch50QIEvbuYBnpXs=",
++      "pkginfo_sha256": "10c8c175aec324c75cd4d6df79ec0fedc243d8146a75e86be5e043307d126bd0"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/cryptsetup-libs-2.7.5-r1.apk",
++      "sha256": "9d82982065e82d72add61997b2ed4e89e31b38dc911851441c86a926dcfcd9c4",
++      "bytes": 219604,
++      "name": "cryptsetup-libs",
++      "version": "2.7.5-r1",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libblkid.so.1",
++        "so:libc.musl-x86_64.so.1",
++        "so:libcrypto.so.3",
++        "so:libdevmapper.so.1.02",
++        "so:libjson-c.so.5",
++        "so:libuuid.so.1"
++      ],
++      "provides": [
++        "so:libcryptsetup.so.12=12.10.0"
++      ],
++      "index_identity": "Q1RPd+vHHqAanjgkPwxdN1Bb2d77g=",
++      "pkginfo_sha256": "7c413e763cf47166a2e45f3194db2af357ca68be9d00aec3dfc6dbb88bfc94b2"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/device-mapper-libs-2.03.32-r0.apk",
++      "sha256": "2b1e8bbf13cc79d1909b31e505f06ce149c9855971f398695d63b100d250a000",
++      "bytes": 138400,
++      "name": "device-mapper-libs",
++      "version": "2.03.32-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "so:libdevmapper.so.1.02=1.02"
++      ],
++      "index_identity": "Q1nGjsRtezgaG7zvgzMzDINmurTN0=",
++      "pkginfo_sha256": "b548239a50bced2140e8070814be0056aac0f47f164898dca9ba1e6e3a55e556"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/json-c-0.18-r1.apk",
++      "sha256": "91d3efdc4577d724e185ad1d655f32437c788533891788885d4267c7bdb84d97",
++      "bytes": 28135,
++      "name": "json-c",
++      "version": "0.18-r1",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "so:libjson-c.so.5=5.4.0"
++      ],
++      "index_identity": "Q1HVlk1UJ6Nyck5hd3bX5Iav6mE78=",
++      "pkginfo_sha256": "d23f12084559d0cdfb35befa512fca8dc7c59f749bee028ad4faa60370e30993"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/kmod-34.2-r0.apk",
++      "sha256": "c38a1c6b7e7baa84a698c32b0b179c2bbb00be67515e64768ea145891ae2fb83",
++      "bytes": 65083,
++      "name": "kmod",
++      "version": "34.2-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "/bin/sh",
++        "so:libc.musl-x86_64.so.1",
++        "so:libcrypto.so.3",
++        "so:liblzma.so.5",
++        "so:libz.so.1",
++        "so:libzstd.so.1"
++      ],
++      "provides": [
++        "cmd:depmod=34.2-r0",
++        "cmd:insmod=34.2-r0",
++        "cmd:kmod=34.2-r0",
++        "cmd:lsmod=34.2-r0",
++        "cmd:modinfo=34.2-r0",
++        "cmd:modprobe=34.2-r0",
++        "cmd:rmmod=34.2-r0"
++      ],
++      "index_identity": "Q1J6dzc8oSZYD4Ty6fZMIEKimkMto=",
++      "pkginfo_sha256": "b96c4dd2f1061ad6dede238f8ec7f5f95c83a99ca9c09690bc5651b17fd752c7"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/kmod-libs-34.2-r0.apk",
++      "sha256": "47f1e863dc779503ff24977f738135020407b03e5e5ec3d41187df14766613d7",
++      "bytes": 39745,
++      "name": "kmod-libs",
++      "version": "34.2-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1",
++        "so:libcrypto.so.3",
++        "so:liblzma.so.5",
++        "so:libz.so.1",
++        "so:libzstd.so.1"
++      ],
++      "provides": [
++        "so:libkmod.so.2=2.5.1"
++      ],
++      "index_identity": "Q1XzEiezVs0f71VJQf7pLjOV3t6Mk=",
++      "pkginfo_sha256": "dbb2c3757a0da93b1e03739a19c857a1e5238c9f39dce63c8cf20b4fcb9af7a8"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/lddtree-1.27-r0.apk",
++      "sha256": "01b34f98cf8da09a843f985a04c24d64b225a14c78b08afa099889d269975d98",
++      "bytes": 5447,
++      "name": "lddtree",
++      "version": "1.27-r0",
++      "arch": "noarch",
++      "dependencies": [
++        "scanelf"
++      ],
++      "provides": [
++        "cmd:lddtree=1.27-r0"
++      ],
++      "index_identity": "Q1EYBPwBf6PRBxB//0Y0stALp+Um0=",
++      "pkginfo_sha256": "c891ff52b414eb0dbd68b4b5bcbbaa2eab2b7743a21223f73949d82142e018c1"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libapk2-2.14.12-r0.apk",
++      "sha256": "441d9dc34c4f98f14ba30a3559281d6f4577303b4efa6eb8c1627466979c3f47",
++      "bytes": 89001,
++      "name": "libapk2",
++      "version": "2.14.12-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "musl>=1.2.3_git20230424",
++        "libcrypto3>=3.5",
++        "ca-certificates-bundle",
++        "so:libc.musl-x86_64.so.1",
++        "so:libcrypto.so.3",
++        "so:libssl.so.3",
++        "so:libz.so.1"
++      ],
++      "provides": [
++        "so:libapk.so.2.14.10=2.14.10"
++      ],
++      "index_identity": "Q1ovar9GIDe78Dafw+78vlQ0+wyl8=",
++      "pkginfo_sha256": "69c2a6a59af9f1bda5364ae9511abc527d4e5423208ca0d8ecc16e2c1ea2891e"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libblkid-2.41.6-r1.apk",
++      "sha256": "ab85cd837c906979c24e5a006a81789ae9715e6e913c421c71950bdf1450164c",
++      "bytes": 95287,
++      "name": "libblkid",
++      "version": "2.41.6-r1",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1",
++        "so:libeconf.so.0"
++      ],
++      "provides": [
++        "so:libblkid.so.1=1.1.0"
++      ],
++      "index_identity": "Q1eQgbaQPphF8CLzAfVFdBmvzF6qw=",
++      "pkginfo_sha256": "6f92d39f5bfcd5a35c0c625f82f76eb1bb785a7764312720cef703b550619a10"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libcrypto3-3.5.9-r0.apk",
++      "sha256": "3f5825ced5fde1c66a5376a3f6076b3c08538ad52d9ef23f069857e212d9175a",
++      "bytes": 1986879,
++      "name": "libcrypto3",
++      "version": "3.5.9-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "so:libcrypto.so.3=3"
++      ],
++      "index_identity": "Q1oh3VN2UxBgaVmtvnt5CjXfB97sk=",
++      "pkginfo_sha256": "85bd3da311f7c993fd8dd858a3af61f06a3c20c8741a80e4703d16345102cf70"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libeconf-0.6.3-r0.apk",
++      "sha256": "fe4fbf324f84f7c8b475cfc708c5505aa630bced7b5f6289bf5ca36d9b587829",
++      "bytes": 24446,
++      "name": "libeconf",
++      "version": "0.6.3-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "so:libeconf.so.0=0.6.2",
++        "cmd:econftool=0.6.3-r0"
++      ],
++      "index_identity": "Q1GU5gIhrpYB9C9seoWe+PRHhXQV0=",
++      "pkginfo_sha256": "f6b8edb923a94be9a45075da0c862282b5a61907a94e0b02c2dc5395c5aed28a"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libssl3-3.5.9-r0.apk",
++      "sha256": "6801c740b9760b5b08da8db6367ebc18b2cc4dbaf371f7148429538b8bb04e23",
++      "bytes": 383680,
++      "name": "libssl3",
++      "version": "3.5.9-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "libcrypto3=3.5.9-r0",
++        "so:libc.musl-x86_64.so.1",
++        "so:libcrypto.so.3"
++      ],
++      "provides": [
++        "so:libssl.so.3=3"
++      ],
++      "index_identity": "Q1vg55k+/1wPY5bIUvUA2ERnX9nTc=",
++      "pkginfo_sha256": "a52cdffb3a6cb25a7d2658c61bb61087c36270e02c483c71fa48049ac396b53d"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libuuid-2.41.6-r1.apk",
++      "sha256": "eb8fa9e042b51443a6ac8c9fa4d1dca5a1a458c5f3980bffa5167f005f47a504",
++      "bytes": 14359,
++      "name": "libuuid",
++      "version": "2.41.6-r1",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "so:libuuid.so.1=1.3.0"
++      ],
++      "index_identity": "Q1Z+0XLFhANNDwV+njS0lNOfhk+14=",
++      "pkginfo_sha256": "fa51727b14170e0f9b30978b96d17706543244ce8ecc9f878a0e2c0a62d1db75"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/linux-virt-6.12.114-r0.apk",
++      "sha256": "82b7fee968e553fb34df7102e9622c969872810b729068106ed49a03c0ba4b8a",
++      "bytes": 40732552,
++      "name": "linux-virt",
++      "version": "6.12.114-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "initramfs-generator"
++      ],
++      "provides": [],
++      "index_identity": "Q19mSv3PCACUMRLEq4mwIJsUdPr5k=",
++      "pkginfo_sha256": "bf661d01b0ab0f5f541f8bb4ff656c1b4f63f53633f6d0073e961d3ab01b46f3"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mdev-conf-4.8-r0.apk",
++      "sha256": "2043890a839957af15e430fd0c34a369f6c911eed3dc89a3ac7a073b0d6af2f0",
++      "bytes": 5190,
++      "name": "mdev-conf",
++      "version": "4.8-r0",
++      "arch": "noarch",
++      "dependencies": [],
++      "provides": [],
++      "index_identity": "Q1OhkXCGOSimPdJtHPPnpf8f4RVQk=",
++      "pkginfo_sha256": "ec38ba70196d17207c62de9cc13c939e8d683cf88f17df5d6e11afae3a7af6d4"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mkinitfs-3.12.0-r0.apk",
++      "sha256": "18d6384d6db016ca41d43fe78acf9c72db5eb01a906b17568afed217b309ffc8",
++      "bytes": 35773,
++      "name": "mkinitfs",
++      "version": "3.12.0-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "apk-tools>=2.9.1",
++        "busybox-binsh",
++        "busybox>=1.28.2-r1",
++        "kmod",
++        "lddtree>=1.25",
++        "mdev-conf",
++        "so:libblkid.so.1",
++        "so:libc.musl-x86_64.so.1",
++        "so:libcryptsetup.so.12",
++        "so:libkmod.so.2"
++      ],
++      "provides": [
++        "initramfs-generator",
++        "cmd:bootchartd=3.12.0-r0",
++        "cmd:mkinitfs=3.12.0-r0",
++        "cmd:nlplug-findfs=3.12.0-r0"
++      ],
++      "index_identity": "Q10T6/JLIAQVMIQogbxkobiunZUgg=",
++      "pkginfo_sha256": "7a7b22210b91d1f2fad3eb0878122337598fc0941ce059a30b15a946df0cf644"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk",
++      "sha256": "359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8",
++      "bytes": 412387,
++      "name": "musl",
++      "version": "1.2.5-r13",
++      "arch": "x86_64",
++      "dependencies": [],
++      "provides": [
++        "so:libc.musl-x86_64.so.1=1"
++      ],
++      "index_identity": "Q1Kd1D3m57UuRVKkGgKHd5yKqNj0s=",
++      "pkginfo_sha256": "413e5ab382369aa9e70ba2ecef18306eb790d55e0752dfc6a1def56ec1c8f0fe"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/scanelf-1.3.8-r1.apk",
++      "sha256": "8763270cf55b2a38dae0cea774e8dcab547b710fa59e03054924d61a5eba609e",
++      "bytes": 32500,
++      "name": "scanelf",
++      "version": "1.3.8-r1",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "cmd:scanelf=1.3.8-r1"
++      ],
++      "index_identity": "Q1vW3RyCDUdrzfjuOPADvPKnMyOxM=",
++      "pkginfo_sha256": "95af423e2bcf0e547e93ad62d4d52929f43b6c89a7644dfd8168912b0a367ba1"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ssl_client-1.37.0-r20.apk",
++      "sha256": "11b2a5f91caf8eb5daa9a0bc2586f93545de62897f3a704fd49533e1654b7a68",
++      "bytes": 4686,
++      "name": "ssl_client",
++      "version": "1.37.0-r20",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1",
++        "so:libcrypto.so.3",
++        "so:libssl.so.3"
++      ],
++      "provides": [
++        "cmd:ssl_client=1.37.0-r20"
++      ],
++      "index_identity": "Q1i9+6q0yZpdd4RMqYmXHIcWESZ4Q=",
++      "pkginfo_sha256": "e0b23344a51ede6022ca5bd969c847ceeba1da0d495627764ea4c445e9f893e6"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/xz-libs-5.8.4-r0.apk",
++      "sha256": "37e169b7b400304fa7027cab79f9c1c7a280e83acf6c95463384b8abb7ebb254",
++      "bytes": 118297,
++      "name": "xz-libs",
++      "version": "5.8.4-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "so:liblzma.so.5=5.8.4"
++      ],
++      "index_identity": "Q1X0YmFl0cO3oZ7tOFPfzKPT6m0kU=",
++      "pkginfo_sha256": "ed0d3618356ba1eb56c345377495be4b10e2dad28a0656f578eda096baf7c036"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.3.2-r1.apk",
++      "sha256": "af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216",
++      "bytes": 55457,
++      "name": "zlib",
++      "version": "1.3.2-r1",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "so:libz.so.1=1.3.2"
++      ],
++      "index_identity": "Q1/4h5E7MrlBVDXCCuIDGXwWkzrzs=",
++      "pkginfo_sha256": "2cf5886908cb13761e2307cfd89e979f7f92c5ad8ceb56e24f4e3af598cbb14e"
++    },
++    {
++      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zstd-libs-1.5.7-r0.apk",
++      "sha256": "1bdd6e57cfbfbfd6e8481cad37ddd5d199950715bec1879b3afb600272dbb09e",
++      "bytes": 377569,
++      "name": "zstd-libs",
++      "version": "1.5.7-r0",
++      "arch": "x86_64",
++      "dependencies": [
++        "so:libc.musl-x86_64.so.1"
++      ],
++      "provides": [
++        "so:libzstd.so.1=1.5.7"
++      ],
++      "index_identity": "Q1UMgxErVhn0jTbWkZCky3xx8Vx9I=",
++      "pkginfo_sha256": "f4ca1ffde137c2d5def0942ca83806c3e239ba1588caaf840903360f7c779e04"
++    }
++  ]
++}

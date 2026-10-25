@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/xz-libs-5.8.4-r0.apk",
+  "bytes": 118297,
+  "sha256": "37e169b7b400304fa7027cab79f9c1c7a280e83acf6c95463384b8abb7ebb254",
+  "index": {
+    "C": "Q1X0YmFl0cO3oZ7tOFPfzKPT6m0kU=",
+    "P": "xz-libs",
+    "V": "5.8.4-r0",
+    "A": "x86_64",
+    "S": "118297",
+    "I": "231288",
+    "T": "Library and CLI tools for XZ and LZMA compressed files (libraries)",
+    "U": "https://tukaani.org/xz/",
+    "L": "GPL-2.0-or-later AND 0BSD AND Public-Domain AND LGPL-2.1-or-later",
+    "o": "xz",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1788989234",
+    "c": "4ad8da6dc8e2b7ed46653b9844835babc3a166ae",
+    "D": "so:libc.musl-x86_64.so.1",
+    "p": "so:liblzma.so.5=5.8.4"
+  }
+}

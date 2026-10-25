@@ -1,0 +1,41 @@
+{
+  "run": {
+    "id": 40199695402,
+    "head_sha": "c7b434183c3e138b3b638922deb116f030d82282",
+    "run_attempt": 1,
+    "status": "in_progress",
+    "conclusion": null,
+    "updated_at": "2026-10-25T13:53:47Z",
+    "html_url": "https://github.com/0x6432/9os/actions/runs/40199695402"
+  },
+  "jobs": [
+    {
+      "id": 121188042522,
+      "name": "stamp",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/0x6432/9os/actions/runs/40199695402/job/121188042522"
+    },
+    {
+      "id": 121188066310,
+      "name": "build (x86_64)",
+      "status": "in_progress",
+      "conclusion": null,
+      "html_url": "https://github.com/0x6432/9os/actions/runs/40199695402/job/121188066310"
+    },
+    {
+      "id": 121188066312,
+      "name": "build (riscv64)",
+      "status": "in_progress",
+      "conclusion": null,
+      "html_url": "https://github.com/0x6432/9os/actions/runs/40199695402/job/121188066312"
+    },
+    {
+      "id": 121188066315,
+      "name": "build (aarch64)",
+      "status": "in_progress",
+      "conclusion": null,
+      "html_url": "https://github.com/0x6432/9os/actions/runs/40199695402/job/121188066315"
+    }
+  ]
+}

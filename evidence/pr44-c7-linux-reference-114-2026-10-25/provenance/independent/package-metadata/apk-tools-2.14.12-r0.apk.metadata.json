@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/apk-tools-2.14.12-r0.apk",
+  "bytes": 34579,
+  "sha256": "fdf8a327219e1e6e5d4e45fbd7db7cf4881fe3e641e831e58caa72e83a1acace",
+  "index": {
+    "C": "Q18I7lWn+QFS+hg1rizHjyP1PAAVQ=",
+    "P": "apk-tools",
+    "V": "2.14.12-r0",
+    "A": "x86_64",
+    "S": "34579",
+    "I": "69648",
+    "T": "Alpine Package Keeper - package manager for alpine",
+    "U": "https://gitlab.alpinelinux.org/alpine/apk-tools",
+    "L": "GPL-2.0-only",
+    "o": "apk-tools",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1789573185",
+    "c": "a53adea12086d36717300ea195ede9ad75f98e1f",
+    "D": "musl>=1.2.3_git20230424 libcrypto3>=3.5 ca-certificates-bundle so:libapk.so.2.14.10 so:libc.musl-x86_64.so.1 so:libcrypto.so.3 so:libz.so.1",
+    "p": "cmd:apk=2.14.12-r0"
+  }
+}

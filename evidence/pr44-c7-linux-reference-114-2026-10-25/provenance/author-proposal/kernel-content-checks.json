@@ -1,0 +1,25 @@
+[
+  {
+    "path": "boot/vmlinuz-virt",
+    "bytes": 11834368,
+    "sha256": "26f146f664ad057be3b39b211422b03b1f94cb2c3d66522fd4841811a224bfd5"
+  },
+  {
+    "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/evdev.ko.gz",
+    "bytes": 14740,
+    "sha256": "4a3134caa08701aac3a4bda0ac3f7c60039232d5bc850e537783ce93d10bbf41",
+    "elf_machine": 62,
+    "uncompressed_bytes": 52455,
+    "uncompressed_sha256": "2d113c2a9588d9fab35d7222f318505bfdc82fef4999386c1976aacb2ab7ebd1",
+    "vermagic": "6.12.114-0-virt SMP preempt mod_unload modversions "
+  },
+  {
+    "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/misc/uinput.ko.gz",
+    "bytes": 12075,
+    "sha256": "49af0aa3808bac7c12b074b1cb6028edbd912734ad29c362c3ccb528c2be85b4",
+    "elf_machine": 62,
+    "uncompressed_bytes": 41959,
+    "uncompressed_sha256": "213b4c75a137e4f05aded40d08a105735c3cfe8a1548b3e075a06fa3e59041f6",
+    "vermagic": "6.12.114-0-virt SMP preempt mod_unload modversions "
+  }
+]

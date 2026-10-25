@@ -1,0 +1,22 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-1.37.0-r20.apk",
+  "bytes": 506116,
+  "sha256": "7cc34c2dda2520b456ab4a55abc37fe245ac90f98ab9f1c7a9be3aec035df48e",
+  "index": {
+    "C": "Q1Pp11KIKAs8SS6R8w4SbCQA0XAbM=",
+    "P": "busybox",
+    "V": "1.37.0-r20",
+    "A": "x86_64",
+    "S": "506116",
+    "I": "817380",
+    "T": "Size optimized toolbox of many common UNIX utilities",
+    "U": "https://busybox.net/",
+    "L": "GPL-2.0-only",
+    "o": "busybox",
+    "m": "S\u00f6ren Tempel <soeren+alpine@soeren-tempel.net>",
+    "t": "1763764856",
+    "c": "2e97d754a30d558f15524b8e422303c8a96832df",
+    "D": "so:libc.musl-x86_64.so.1",
+    "p": "cmd:busybox=1.37.0-r20"
+  }
+}

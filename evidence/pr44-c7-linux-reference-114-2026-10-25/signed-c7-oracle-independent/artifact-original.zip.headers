@@ -1,0 +1,22 @@
+Content-Length: 8589
+Content-Type: application/zip
+Last-Modified: Sun, 25 Oct 2026 13:57:04 GMT
+Accept-Ranges: bytes
+ETag: "0x8DF329FD99BEE88"
+Server: Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+x-ms-request-id: ac370dfc-501e-0074-528c-64ac74000000
+x-ms-version: 2025-11-05
+x-ms-creation-time: Sun, 25 Oct 2026 13:57:04 GMT
+x-ms-lease-status: unlocked
+x-ms-lease-state: available
+x-ms-blob-type: BlockBlob
+Content-Disposition: attachment; filename="alpine-evidence-x86_64.zip"
+x-ms-server-encrypted: true
+x-ms-access-tier: Hot
+x-ms-access-tier-inferred: true
+x-ms-last-access-time: Sun, 25 Oct 2026 14:23:02 GMT
+Access-Control-Expose-Headers: x-ms-request-id,Server,x-ms-version,Content-Type,ETag,Last-Modified,x-ms-creation-time,x-ms-lease-status,x-ms-lease-state,x-ms-blob-type,Content-Disposition,x-ms-server-encrypted,x-ms-access-tier,x-ms-access-tier-inferred,Accept-Ranges,x-ms-last-access-time,Content-Length,Date,Transfer-Encoding
+Access-Control-Allow-Origin: *
+Date: Sun, 25 Oct 2026 14:25:55 GMT
+Connection: close
+

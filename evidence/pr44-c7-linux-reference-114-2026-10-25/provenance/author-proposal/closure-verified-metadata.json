@@ -1,0 +1,1537 @@
+[
+  {
+    "file": "apk-tools-2.14.12-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/apk-tools-2.14.12-r0.apk",
+    "bytes": 34579,
+    "sha256": "fdf8a327219e1e6e5d4e45fbd7db7cf4881fe3e641e831e58caa72e83a1acace",
+    "pkginfo": {
+      "pkgname": [
+        "apk-tools"
+      ],
+      "pkgver": [
+        "2.14.12-r0"
+      ],
+      "pkgdesc": [
+        "Alpine Package Keeper - package manager for alpine"
+      ],
+      "url": [
+        "https://gitlab.alpinelinux.org/alpine/apk-tools"
+      ],
+      "builddate": [
+        "1789573185"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "69648"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "apk-tools"
+      ],
+      "commit": [
+        "a53adea12086d36717300ea195ede9ad75f98e1f"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "depend": [
+        "musl>=1.2.3_git20230424",
+        "libcrypto3>=3.5",
+        "ca-certificates-bundle",
+        "so:libapk.so.2.14.10",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:libz.so.1"
+      ],
+      "provides": [
+        "cmd:apk=2.14.12-r0"
+      ],
+      "datahash": [
+        "02af49a702899e8c25bab8dc282aff2d86c4eb462108a075f431ba3d2eaf374b"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q18I7lWn+QFS+hg1rizHjyP1PAAVQ=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "busybox-1.37.0-r20.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-1.37.0-r20.apk",
+    "bytes": 506116,
+    "sha256": "7cc34c2dda2520b456ab4a55abc37fe245ac90f98ab9f1c7a9be3aec035df48e",
+    "pkginfo": {
+      "pkgname": [
+        "busybox"
+      ],
+      "pkgver": [
+        "1.37.0-r20"
+      ],
+      "pkgdesc": [
+        "Size optimized toolbox of many common UNIX utilities"
+      ],
+      "url": [
+        "https://busybox.net/"
+      ],
+      "builddate": [
+        "1763764856"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "817380"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "busybox"
+      ],
+      "commit": [
+        "2e97d754a30d558f15524b8e422303c8a96832df"
+      ],
+      "maintainer": [
+        "S\u00f6ren Tempel <soeren+alpine@soeren-tempel.net>"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "replaces": [
+        "busybox-initscripts"
+      ],
+      "triggers": [
+        "/bin /usr/bin /sbin /usr/sbin /lib/modules/* /usr/lib/modules/*"
+      ],
+      "provides": [
+        "cmd:busybox=1.37.0-r20"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "a2c934bbd3745f7ca3d6ff53ff61819a4e09db061581d921e8824c62acbaf3ca"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1Pp11KIKAs8SS6R8w4SbCQA0XAbM=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "busybox-binsh-1.37.0-r20.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-binsh-1.37.0-r20.apk",
+    "bytes": 1566,
+    "sha256": "ad33d8d799ed80eab45bb68d63c14062165d3653f4fb52e73959cd31d032210e",
+    "pkginfo": {
+      "pkgname": [
+        "busybox-binsh"
+      ],
+      "pkgver": [
+        "1.37.0-r20"
+      ],
+      "pkgdesc": [
+        "busybox ash /bin/sh"
+      ],
+      "url": [
+        "https://busybox.net/"
+      ],
+      "builddate": [
+        "1763764856"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "1"
+      ],
+      "arch": [
+        "noarch"
+      ],
+      "origin": [
+        "busybox"
+      ],
+      "commit": [
+        "2e97d754a30d558f15524b8e422303c8a96832df"
+      ],
+      "maintainer": [
+        "S\u00f6ren Tempel <soeren+alpine@soeren-tempel.net>"
+      ],
+      "provider_priority": [
+        "100"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "replaces": [
+        "busybox-initscripts"
+      ],
+      "provides": [
+        "/bin/sh",
+        "cmd:sh=1.37.0-r20"
+      ],
+      "depend": [
+        "busybox=1.37.0-r20"
+      ],
+      "datahash": [
+        "a00c6b4bd5f9c98dd0c990b2cd01ed79beb449c16c10e4f3d4bb04ac9478e367"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1rNSVswVIMaejMTeqWiumGToIotI=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "ca-certificates-bundle-20261020-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk",
+    "bytes": 107116,
+    "sha256": "d35216a0a9adde79031df246759bad03f235cf201bf0aff8436b88bff59594eb",
+    "pkginfo": {
+      "pkgname": [
+        "ca-certificates-bundle"
+      ],
+      "pkgver": [
+        "20261020-r0"
+      ],
+      "pkgdesc": [
+        "Pre generated bundle of Mozilla certificates"
+      ],
+      "url": [
+        "https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/"
+      ],
+      "builddate": [
+        "1792510364"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "178791"
+      ],
+      "arch": [
+        "noarch"
+      ],
+      "origin": [
+        "ca-certificates"
+      ],
+      "commit": [
+        "ce7bff87478cd936f5b7031ce822b02d4fdd313a"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "MPL-2.0 AND MIT"
+      ],
+      "replaces": [
+        "libressl2.7-libcrypto",
+        "libcrypto1.1"
+      ],
+      "provides": [
+        "ca-certificates-cacert=20261020-r0"
+      ],
+      "datahash": [
+        "d68acc8ea1db9889e80082373909fee7ecdde4ab704d1c825ecdda193bac8fac"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1S0j4S2Jt6I+Ch50QIEvbuYBnpXs=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "cryptsetup-libs-2.7.5-r1.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/cryptsetup-libs-2.7.5-r1.apk",
+    "bytes": 219604,
+    "sha256": "9d82982065e82d72add61997b2ed4e89e31b38dc911851441c86a926dcfcd9c4",
+    "pkginfo": {
+      "pkgname": [
+        "cryptsetup-libs"
+      ],
+      "pkgver": [
+        "2.7.5-r1"
+      ],
+      "pkgdesc": [
+        "Cryptsetup shared library"
+      ],
+      "url": [
+        "https://gitlab.com/cryptsetup/cryptsetup"
+      ],
+      "builddate": [
+        "1726658779"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "465067"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "cryptsetup"
+      ],
+      "commit": [
+        "d63289c555dc047e5c39fcff691770ce9743b464"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-or-later WITH cryptsetup-OpenSSL-exception"
+      ],
+      "provides": [
+        "so:libcryptsetup.so.12=12.10.0"
+      ],
+      "depend": [
+        "so:libblkid.so.1",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:libdevmapper.so.1.02",
+        "so:libjson-c.so.5",
+        "so:libuuid.so.1"
+      ],
+      "datahash": [
+        "bd7cc9560ef5c8db861b6e1265de551c7323c0e800c9f26c935500d94e2ba81a"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1RPd+vHHqAanjgkPwxdN1Bb2d77g=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "device-mapper-libs-2.03.32-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/device-mapper-libs-2.03.32-r0.apk",
+    "bytes": 138400,
+    "sha256": "2b1e8bbf13cc79d1909b31e505f06ce149c9855971f398695d63b100d250a000",
+    "pkginfo": {
+      "pkgname": [
+        "device-mapper-libs"
+      ],
+      "pkgver": [
+        "2.03.32-r0"
+      ],
+      "pkgdesc": [
+        "Device-mapper shared library"
+      ],
+      "url": [
+        "https://sourceware.org/lvm2/"
+      ],
+      "builddate": [
+        "1746535361"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "301120"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "lvm2"
+      ],
+      "commit": [
+        "cac22b1b3bd0fb3cda7e0d7d9d011f1fa5512dfd"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-or-later AND LGPL-2.1-or-later AND BSD-2-Clause"
+      ],
+      "provides": [
+        "so:libdevmapper.so.1.02=1.02"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "444b152ef43c204a1552ed91fb7502c1fbedb1429d0252986c9c48e812747af0"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1nGjsRtezgaG7zvgzMzDINmurTN0=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "json-c-0.18-r1.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/json-c-0.18-r1.apk",
+    "bytes": 28135,
+    "sha256": "91d3efdc4577d724e185ad1d655f32437c788533891788885d4267c7bdb84d97",
+    "pkginfo": {
+      "pkgname": [
+        "json-c"
+      ],
+      "pkgver": [
+        "0.18-r1"
+      ],
+      "pkgdesc": [
+        "A JSON implementation in C"
+      ],
+      "url": [
+        "https://github.com/json-c/json-c/wiki"
+      ],
+      "builddate": [
+        "1755607315"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "63576"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "json-c"
+      ],
+      "commit": [
+        "fe078081479c2be15581196ce067bac15406a5d0"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "MIT"
+      ],
+      "provides": [
+        "so:libjson-c.so.5=5.4.0"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "47e401df7d0ff1f5ef2e55216f858435d1ae7b1195a254630751b5dff365521c"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1HVlk1UJ6Nyck5hd3bX5Iav6mE78=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "kmod-34.2-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/kmod-34.2-r0.apk",
+    "bytes": 65083,
+    "sha256": "c38a1c6b7e7baa84a698c32b0b179c2bbb00be67515e64768ea145891ae2fb83",
+    "pkginfo": {
+      "pkgname": [
+        "kmod"
+      ],
+      "pkgver": [
+        "34.2-r0"
+      ],
+      "pkgdesc": [
+        "Linux kernel module management utilities"
+      ],
+      "url": [
+        "http://git.kernel.org/?p=utils/kernel/kmod/kmod.git;a=summary"
+      ],
+      "builddate": [
+        "1744186925"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "133320"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "kmod"
+      ],
+      "commit": [
+        "0f8b0736b11ab01346f98ccd73fb356050abedb6"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-or-later"
+      ],
+      "depend": [
+        "/bin/sh",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:liblzma.so.5",
+        "so:libz.so.1",
+        "so:libzstd.so.1"
+      ],
+      "triggers": [
+        "/lib/modules/* /usr/lib/modules/*"
+      ],
+      "provides": [
+        "cmd:depmod=34.2-r0",
+        "cmd:insmod=34.2-r0",
+        "cmd:kmod=34.2-r0",
+        "cmd:lsmod=34.2-r0",
+        "cmd:modinfo=34.2-r0",
+        "cmd:modprobe=34.2-r0",
+        "cmd:rmmod=34.2-r0"
+      ],
+      "datahash": [
+        "181d25324823836128115e875079f8e1f5feb7f8e4059de835ebe3845d2c7abe"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1J6dzc8oSZYD4Ty6fZMIEKimkMto=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "kmod-libs-34.2-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/kmod-libs-34.2-r0.apk",
+    "bytes": 39745,
+    "sha256": "47f1e863dc779503ff24977f738135020407b03e5e5ec3d41187df14766613d7",
+    "pkginfo": {
+      "pkgname": [
+        "kmod-libs"
+      ],
+      "pkgver": [
+        "34.2-r0"
+      ],
+      "pkgdesc": [
+        "Linux kernel module management utilities (libraries)"
+      ],
+      "url": [
+        "http://git.kernel.org/?p=utils/kernel/kmod/kmod.git;a=summary"
+      ],
+      "builddate": [
+        "1744186925"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "83880"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "kmod"
+      ],
+      "commit": [
+        "0f8b0736b11ab01346f98ccd73fb356050abedb6"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "LGPL-2.1-or-later"
+      ],
+      "provides": [
+        "so:libkmod.so.2=2.5.1"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:liblzma.so.5",
+        "so:libz.so.1",
+        "so:libzstd.so.1"
+      ],
+      "datahash": [
+        "cdb3e0e737b52a6b95bc913080578cd03103297d4bdf770e915453653e63356e"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1XzEiezVs0f71VJQf7pLjOV3t6Mk=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "lddtree-1.27-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/lddtree-1.27-r0.apk",
+    "bytes": 5447,
+    "sha256": "01b34f98cf8da09a843f985a04c24d64b225a14c78b08afa099889d269975d98",
+    "pkginfo": {
+      "pkgname": [
+        "lddtree"
+      ],
+      "pkgver": [
+        "1.27-r0"
+      ],
+      "pkgdesc": [
+        "List dynamic dependencies as a tree"
+      ],
+      "url": [
+        "https://github.com/ncopa/lddtree"
+      ],
+      "builddate": [
+        "1674481194"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "9965"
+      ],
+      "arch": [
+        "noarch"
+      ],
+      "origin": [
+        "lddtree"
+      ],
+      "commit": [
+        "007305e7880a70d5c804019aa3da115da732776b"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "replaces": [
+        "pax-utils"
+      ],
+      "depend": [
+        "scanelf"
+      ],
+      "provides": [
+        "cmd:lddtree=1.27-r0"
+      ],
+      "datahash": [
+        "87e8a19b28382fbd3725faa830472f435248b5f154da85f16d964d19a38681fa"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1EYBPwBf6PRBxB//0Y0stALp+Um0=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "libapk2-2.14.12-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libapk2-2.14.12-r0.apk",
+    "bytes": 89001,
+    "sha256": "441d9dc34c4f98f14ba30a3559281d6f4577303b4efa6eb8c1627466979c3f47",
+    "pkginfo": {
+      "pkgname": [
+        "libapk2"
+      ],
+      "pkgver": [
+        "2.14.12-r0"
+      ],
+      "pkgdesc": [
+        "Alpine Package Keeper - package manager for alpine"
+      ],
+      "url": [
+        "https://gitlab.alpinelinux.org/alpine/apk-tools"
+      ],
+      "builddate": [
+        "1789573185"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "183992"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "apk-tools"
+      ],
+      "commit": [
+        "a53adea12086d36717300ea195ede9ad75f98e1f"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "depend": [
+        "musl>=1.2.3_git20230424",
+        "libcrypto3>=3.5",
+        "ca-certificates-bundle",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:libssl.so.3",
+        "so:libz.so.1"
+      ],
+      "provides": [
+        "so:libapk.so.2.14.10=2.14.10"
+      ],
+      "datahash": [
+        "24642b70161d2f3367058dd5a75e9310731ead37ca49d73c7e14ef445635e272"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1ovar9GIDe78Dafw+78vlQ0+wyl8=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "libblkid-2.41.6-r1.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libblkid-2.41.6-r1.apk",
+    "bytes": 95287,
+    "sha256": "ab85cd837c906979c24e5a006a81789ae9715e6e913c421c71950bdf1450164c",
+    "pkginfo": {
+      "pkgname": [
+        "libblkid"
+      ],
+      "pkgver": [
+        "2.41.6-r1"
+      ],
+      "pkgdesc": [
+        "Block device identification library from util-linux"
+      ],
+      "url": [
+        "https://git.kernel.org/cgit/utils/util-linux/util-linux.git"
+      ],
+      "builddate": [
+        "1788613871"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "199464"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "util-linux"
+      ],
+      "commit": [
+        "b91fb14e28957c6f5a13c02eb9ec136c82ebd50e"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "LGPL-2.1-or-later"
+      ],
+      "provides": [
+        "so:libblkid.so.1=1.1.0"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1",
+        "so:libeconf.so.0"
+      ],
+      "datahash": [
+        "9463de0fe6d8baa35c638835577fd7068f40387506f803ef8153bd0b366cd147"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1eQgbaQPphF8CLzAfVFdBmvzF6qw=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "libcrypto3-3.5.9-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libcrypto3-3.5.9-r0.apk",
+    "bytes": 1986879,
+    "sha256": "3f5825ced5fde1c66a5376a3f6076b3c08538ad52d9ef23f069857e212d9175a",
+    "pkginfo": {
+      "pkgname": [
+        "libcrypto3"
+      ],
+      "pkgver": [
+        "3.5.9-r0"
+      ],
+      "pkgdesc": [
+        "Crypto library from openssl"
+      ],
+      "url": [
+        "https://www.openssl.org/"
+      ],
+      "builddate": [
+        "1790753340"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "5230166"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "openssl"
+      ],
+      "commit": [
+        "b6d0d5c5639c0034e9073c39e9ff139e28e71818"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "provider_priority": [
+        "100"
+      ],
+      "license": [
+        "Apache-2.0"
+      ],
+      "replaces": [
+        "libcrypto1.1"
+      ],
+      "provides": [
+        "so:libcrypto.so.3=3"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "780418a23ea5c0e452a39e1766c5255a5ca697b7d204ab16514a6d3d980379be"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1oh3VN2UxBgaVmtvnt5CjXfB97sk=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "libeconf-0.6.3-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libeconf-0.6.3-r0.apk",
+    "bytes": 24446,
+    "sha256": "fe4fbf324f84f7c8b475cfc708c5505aa630bced7b5f6289bf5ca36d9b587829",
+    "pkginfo": {
+      "pkgname": [
+        "libeconf"
+      ],
+      "pkgver": [
+        "0.6.3-r0"
+      ],
+      "pkgdesc": [
+        "Enhanced Config File Parser"
+      ],
+      "url": [
+        "https://github.com/openSUSE/libeconf"
+      ],
+      "builddate": [
+        "1715080109"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "73864"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "libeconf"
+      ],
+      "commit": [
+        "1e0aa723fba50417893fe5f6cf72f76d044b8192"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "MIT"
+      ],
+      "provides": [
+        "so:libeconf.so.0=0.6.2",
+        "cmd:econftool=0.6.3-r0"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "facf646dc7ded01e46ac8480ce19fc23ccd7d8628e035a84319eaca3bac788ef"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1GU5gIhrpYB9C9seoWe+PRHhXQV0=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "libssl3-3.5.9-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libssl3-3.5.9-r0.apk",
+    "bytes": 383680,
+    "sha256": "6801c740b9760b5b08da8db6367ebc18b2cc4dbaf371f7148429538b8bb04e23",
+    "pkginfo": {
+      "pkgname": [
+        "libssl3"
+      ],
+      "pkgver": [
+        "3.5.9-r0"
+      ],
+      "pkgdesc": [
+        "SSL shared libraries"
+      ],
+      "url": [
+        "https://www.openssl.org/"
+      ],
+      "builddate": [
+        "1790753340"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "847736"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "openssl"
+      ],
+      "commit": [
+        "b6d0d5c5639c0034e9073c39e9ff139e28e71818"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "provider_priority": [
+        "100"
+      ],
+      "license": [
+        "Apache-2.0"
+      ],
+      "depend": [
+        "libcrypto3=3.5.9-r0",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3"
+      ],
+      "provides": [
+        "so:libssl.so.3=3"
+      ],
+      "datahash": [
+        "6b5443a2884eb422bf07dd57d0f81225ba02aec6977d41088c6d0dbab7e20231"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1vg55k+/1wPY5bIUvUA2ERnX9nTc=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "libuuid-2.41.6-r1.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libuuid-2.41.6-r1.apk",
+    "bytes": 14359,
+    "sha256": "eb8fa9e042b51443a6ac8c9fa4d1dca5a1a458c5f3980bffa5167f005f47a504",
+    "pkginfo": {
+      "pkgname": [
+        "libuuid"
+      ],
+      "pkgver": [
+        "2.41.6-r1"
+      ],
+      "pkgdesc": [
+        "DCE compatible Universally Unique Identifier library"
+      ],
+      "url": [
+        "https://git.kernel.org/cgit/utils/util-linux/util-linux.git"
+      ],
+      "builddate": [
+        "1788613871"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "30624"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "util-linux"
+      ],
+      "commit": [
+        "b91fb14e28957c6f5a13c02eb9ec136c82ebd50e"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "BSD-3-Clause"
+      ],
+      "provides": [
+        "so:libuuid.so.1=1.3.0"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "48b3a84849a73057889b87402e1b399c1b444401e10e50874fd2aa7adf16798a"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1Z+0XLFhANNDwV+njS0lNOfhk+14=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "linux-virt-6.12.114-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/linux-virt-6.12.114-r0.apk",
+    "bytes": 40732552,
+    "sha256": "82b7fee968e553fb34df7102e9622c969872810b729068106ed49a03c0ba4b8a",
+    "pkginfo": {
+      "pkgname": [
+        "linux-virt"
+      ],
+      "pkgver": [
+        "6.12.114-r0"
+      ],
+      "pkgdesc": [
+        "Linux lts kernel"
+      ],
+      "url": [
+        "https://www.kernel.org"
+      ],
+      "builddate": [
+        "1792590291"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "47466545"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "linux-lts"
+      ],
+      "commit": [
+        "6a0c60d347a1193d1d7ebb41a6e72dc0da1e8137"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "depend": [
+        "initramfs-generator"
+      ],
+      "datahash": [
+        "969b3bdeefa5c749d23c031a0d08e354b03cee8c4f001e1348e927f8b6c132b8"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q19mSv3PCACUMRLEq4mwIJsUdPr5k=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "mdev-conf-4.8-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mdev-conf-4.8-r0.apk",
+    "bytes": 5190,
+    "sha256": "2043890a839957af15e430fd0c34a369f6c911eed3dc89a3ac7a073b0d6af2f0",
+    "pkginfo": {
+      "pkgname": [
+        "mdev-conf"
+      ],
+      "pkgver": [
+        "4.8-r0"
+      ],
+      "pkgdesc": [
+        "Configuration files for mdev and mdevd"
+      ],
+      "url": [
+        "https://gitlab.alpinelinux.org/alpine/mdev-conf"
+      ],
+      "builddate": [
+        "1748440367"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "9426"
+      ],
+      "arch": [
+        "noarch"
+      ],
+      "origin": [
+        "mdev-conf"
+      ],
+      "commit": [
+        "d92b19909d7b8e4061da5ceea5f0acc8ee83e32d"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "MIT"
+      ],
+      "replaces": [
+        "busybox-initscripts"
+      ],
+      "datahash": [
+        "af9bb1901000df613f071a48333dc00307719c163913987c841589c40b6abc6e"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1OhkXCGOSimPdJtHPPnpf8f4RVQk=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "mkinitfs-3.12.0-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mkinitfs-3.12.0-r0.apk",
+    "bytes": 35773,
+    "sha256": "18d6384d6db016ca41d43fe78acf9c72db5eb01a906b17568afed217b309ffc8",
+    "pkginfo": {
+      "pkgname": [
+        "mkinitfs"
+      ],
+      "pkgver": [
+        "3.12.0-r0"
+      ],
+      "pkgdesc": [
+        "Tool to generate initramfs images for Alpine"
+      ],
+      "url": [
+        "https://gitlab.alpinelinux.org/alpine/mkinitfs"
+      ],
+      "builddate": [
+        "1748537939"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "80222"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "mkinitfs"
+      ],
+      "commit": [
+        "b8e5b649721d57677c1b49af92a65bb9f2aba094"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "provider_priority": [
+        "900"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "depend": [
+        "apk-tools>=2.9.1",
+        "busybox-binsh",
+        "busybox>=1.28.2-r1",
+        "kmod",
+        "lddtree>=1.25",
+        "mdev-conf",
+        "so:libblkid.so.1",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcryptsetup.so.12",
+        "so:libkmod.so.2"
+      ],
+      "provides": [
+        "initramfs-generator",
+        "cmd:bootchartd=3.12.0-r0",
+        "cmd:mkinitfs=3.12.0-r0",
+        "cmd:nlplug-findfs=3.12.0-r0"
+      ],
+      "triggers": [
+        "/lib/modules/* /usr/lib/modules/*"
+      ],
+      "datahash": [
+        "686c3afd30ee402e559a542d6e9c2593abe76d203fe20199e5141efa46988491"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q10T6/JLIAQVMIQogbxkobiunZUgg=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "musl-1.2.5-r13.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk",
+    "bytes": 412387,
+    "sha256": "359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8",
+    "pkginfo": {
+      "pkgname": [
+        "musl"
+      ],
+      "pkgver": [
+        "1.2.5-r13"
+      ],
+      "pkgdesc": [
+        "the musl c library (libc) implementation"
+      ],
+      "url": [
+        "https://musl.libc.org/"
+      ],
+      "builddate": [
+        "1792598497"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "662120"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "musl"
+      ],
+      "commit": [
+        "ddaf59b84bc6983a37d6e24d2210c2c4791642bb"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "MIT"
+      ],
+      "provides": [
+        "so:libc.musl-x86_64.so.1=1"
+      ],
+      "datahash": [
+        "99e7a067556198b9bbdaa5d6fbcfae118d289e0206cc2c0bed991c5d9a8dbe5e"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1Kd1D3m57UuRVKkGgKHd5yKqNj0s=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "scanelf-1.3.8-r1.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/scanelf-1.3.8-r1.apk",
+    "bytes": 32500,
+    "sha256": "8763270cf55b2a38dae0cea774e8dcab547b710fa59e03054924d61a5eba609e",
+    "pkginfo": {
+      "pkgname": [
+        "scanelf"
+      ],
+      "pkgver": [
+        "1.3.8-r1"
+      ],
+      "pkgdesc": [
+        "Scan ELF binaries for stuff"
+      ],
+      "url": [
+        "https://wiki.gentoo.org/wiki/Hardened/PaX_Utilities"
+      ],
+      "builddate": [
+        "1737412397"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "67504"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "pax-utils"
+      ],
+      "commit": [
+        "9818c555f344e3085d0dd1f3d917d8e23e244cb1"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "replaces": [
+        "pax-utils"
+      ],
+      "provides": [
+        "cmd:scanelf=1.3.8-r1"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "3c0e8e65a2ce26bdb19360212681d82f9897f284daaace67cfba8b9dfa0faf2c"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1vW3RyCDUdrzfjuOPADvPKnMyOxM=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "ssl_client-1.37.0-r20.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ssl_client-1.37.0-r20.apk",
+    "bytes": 4686,
+    "sha256": "11b2a5f91caf8eb5daa9a0bc2586f93545de62897f3a704fd49533e1654b7a68",
+    "pkginfo": {
+      "pkgname": [
+        "ssl_client"
+      ],
+      "pkgver": [
+        "1.37.0-r20"
+      ],
+      "pkgdesc": [
+        "External ssl_client for busybox wget"
+      ],
+      "url": [
+        "https://busybox.net/"
+      ],
+      "builddate": [
+        "1763764856"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "14384"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "busybox"
+      ],
+      "commit": [
+        "2e97d754a30d558f15524b8e422303c8a96832df"
+      ],
+      "maintainer": [
+        "S\u00f6ren Tempel <soeren+alpine@soeren-tempel.net>"
+      ],
+      "license": [
+        "GPL-2.0-only"
+      ],
+      "replaces": [
+        "busybox-initscripts"
+      ],
+      "install_if": [
+        "busybox=1.37.0-r20 libssl3"
+      ],
+      "provides": [
+        "cmd:ssl_client=1.37.0-r20"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:libssl.so.3"
+      ],
+      "datahash": [
+        "83cea1b13576391de1e64ffb6b91c2a76a2abf0a11f078a0c8b342026edab92a"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1i9+6q0yZpdd4RMqYmXHIcWESZ4Q=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "xz-libs-5.8.4-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/xz-libs-5.8.4-r0.apk",
+    "bytes": 118297,
+    "sha256": "37e169b7b400304fa7027cab79f9c1c7a280e83acf6c95463384b8abb7ebb254",
+    "pkginfo": {
+      "pkgname": [
+        "xz-libs"
+      ],
+      "pkgver": [
+        "5.8.4-r0"
+      ],
+      "pkgdesc": [
+        "Library and CLI tools for XZ and LZMA compressed files (libraries)"
+      ],
+      "url": [
+        "https://tukaani.org/xz/"
+      ],
+      "builddate": [
+        "1788989234"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "231288"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "xz"
+      ],
+      "commit": [
+        "4ad8da6dc8e2b7ed46653b9844835babc3a166ae"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "GPL-2.0-or-later AND 0BSD AND Public-Domain AND LGPL-2.1-or-later"
+      ],
+      "provides": [
+        "so:liblzma.so.5=5.8.4"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "51465e2a86815f0e82ceda553981802c52bcab91e83574750abc4a3575193181"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1X0YmFl0cO3oZ7tOFPfzKPT6m0kU=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "zlib-1.3.2-r1.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.3.2-r1.apk",
+    "bytes": 55457,
+    "sha256": "af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216",
+    "pkginfo": {
+      "pkgname": [
+        "zlib"
+      ],
+      "pkgver": [
+        "1.3.2-r1"
+      ],
+      "pkgdesc": [
+        "A compression/decompression Library"
+      ],
+      "url": [
+        "https://zlib.net/"
+      ],
+      "builddate": [
+        "1791319033"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "104280"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "zlib"
+      ],
+      "commit": [
+        "121fc97db0e7c59db704891b6d7ef83ae5df2cc2"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "Zlib"
+      ],
+      "provides": [
+        "so:libz.so.1=1.3.2"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "0f8c1fbf439dfa8e54dc9c421def342ef66f1b3cb8ec5145a7bce3e7d8c4f16c"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1/4h5E7MrlBVDXCCuIDGXwWkzrzs=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  },
+  {
+    "file": "zstd-libs-1.5.7-r0.apk",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zstd-libs-1.5.7-r0.apk",
+    "bytes": 377569,
+    "sha256": "1bdd6e57cfbfbfd6e8481cad37ddd5d199950715bec1879b3afb600272dbb09e",
+    "pkginfo": {
+      "pkgname": [
+        "zstd-libs"
+      ],
+      "pkgver": [
+        "1.5.7-r0"
+      ],
+      "pkgdesc": [
+        "Zstandard - Fast real-time compression algorithm (libraries)"
+      ],
+      "url": [
+        "https://facebook.github.io/zstd/"
+      ],
+      "builddate": [
+        "1740423096"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "718528"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "zstd"
+      ],
+      "commit": [
+        "fc7fd35c7bf99156ae31962877c074f679f45b73"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "BSD-3-Clause OR GPL-2.0-or-later"
+      ],
+      "provides": [
+        "so:libzstd.so.1=1.5.7"
+      ],
+      "depend": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "datahash": [
+        "53cb38486fe0a9266b3b66e99c9329241e3a6b82d1c1abb69b1be4e72da42a1e"
+      ]
+    },
+    "index_arch": "x86_64",
+    "index_checksum": "Q1UMgxErVhn0jTbWkZCky3xx8Vx9I=",
+    "signature_members": [
+      ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub"
+    ]
+  }
+]

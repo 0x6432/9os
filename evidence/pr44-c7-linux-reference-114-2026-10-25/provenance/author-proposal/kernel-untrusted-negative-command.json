@@ -1,0 +1,16 @@
+{
+  "provenance": "Reconstructed verbatim from executed tool input; not a new execution",
+  "command": [
+    "/data/linux-reference-114-analysis/native/lib/ld-musl-x86_64.so.1",
+    "--library-path",
+    "/data/linux-reference-114-analysis/native/lib:/data/linux-reference-114-analysis/native/usr/lib",
+    "/data/linux-reference-114-analysis/native/sbin/apk",
+    "--keys-dir",
+    "/data/linux-reference-114-analysis/no-trusted-keys",
+    "--repositories-file",
+    "/dev/null",
+    "--no-network",
+    "verify",
+    "/data/linux-reference-114-analysis/verified-copy/linux-virt-6.12.114-r0.apk"
+  ]
+}

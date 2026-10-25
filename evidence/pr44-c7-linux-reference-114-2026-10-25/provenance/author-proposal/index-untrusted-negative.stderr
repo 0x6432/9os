@@ -1,0 +1,4 @@
+WARNING: opening /data/linux-reference-114-analysis/signed-index: UNTRUSTED signature
+ERROR: unable to select packages:
+  linux-virt (no such package):
+    required by: world[linux-virt=6.12.114-r0]

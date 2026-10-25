@@ -1,0 +1,50 @@
+[
+  {
+    "label": "trusted",
+    "argv": [
+      "/data/pr44-114-independent/bootstrap/lib/ld-musl-x86_64.so.1",
+      "--library-path",
+      "/data/pr44-114-independent/bootstrap/lib:/data/pr44-114-independent/bootstrap/usr/lib",
+      "/data/pr44-114-independent/bootstrap/sbin/apk",
+      "--arch",
+      "x86_64",
+      "--root",
+      "/data/pr44-114-independent/resolve-v2-trusted",
+      "--keys-dir",
+      "/data/pr44-114-independent/bootstrap/etc/apk/keys",
+      "--repositories-file",
+      "/data/pr44-114-independent/resolve-v2-trusted/etc/apk/repositories",
+      "--no-network",
+      "fetch",
+      "--world",
+      "--recursive",
+      "--simulate",
+      "--url"
+    ],
+    "returncode": 0
+  },
+  {
+    "label": "emptykeys",
+    "argv": [
+      "/data/pr44-114-independent/bootstrap/lib/ld-musl-x86_64.so.1",
+      "--library-path",
+      "/data/pr44-114-independent/bootstrap/lib:/data/pr44-114-independent/bootstrap/usr/lib",
+      "/data/pr44-114-independent/bootstrap/sbin/apk",
+      "--arch",
+      "x86_64",
+      "--root",
+      "/data/pr44-114-independent/resolve-v2-emptykeys",
+      "--keys-dir",
+      "/data/pr44-114-independent/empty-keys",
+      "--repositories-file",
+      "/data/pr44-114-independent/resolve-v2-emptykeys/etc/apk/repositories",
+      "--no-network",
+      "fetch",
+      "--world",
+      "--recursive",
+      "--simulate",
+      "--url"
+    ],
+    "returncode": 1
+  }
+]

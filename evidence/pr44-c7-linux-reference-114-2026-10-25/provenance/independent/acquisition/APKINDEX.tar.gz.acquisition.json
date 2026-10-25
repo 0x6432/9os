@@ -1,0 +1,8 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz",
+  "start": "2026-10-25T14:41:22.302328+00:00",
+  "status": 200,
+  "bytes": 500486,
+  "sha256": "0bb20ca8f6082e981229755622164e0ce8de535d57558c44b034868d126f00ef",
+  "expected_sha256": "0bb20ca8f6082e981229755622164e0ce8de535d57558c44b034868d126f00ef"
+}

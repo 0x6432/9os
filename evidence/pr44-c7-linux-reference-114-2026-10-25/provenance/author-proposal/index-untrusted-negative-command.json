@@ -1,0 +1,24 @@
+{
+  "provenance": "Reconstructed verbatim from executed tool input; not a new execution",
+  "command": [
+    "/data/linux-reference-114-analysis/native/lib/ld-musl-x86_64.so.1",
+    "--library-path",
+    "/data/linux-reference-114-analysis/native/lib:/data/linux-reference-114-analysis/native/usr/lib",
+    "/data/linux-reference-114-analysis/native/sbin/apk",
+    "--root",
+    "/data/linux-reference-114-analysis/empty-root",
+    "--arch",
+    "x86_64",
+    "--keys-dir",
+    "/data/linux-reference-114-analysis/no-trusted-keys",
+    "--repositories-file",
+    "/data/linux-reference-114-analysis/local-repositories",
+    "--no-network",
+    "--no-cache",
+    "fetch",
+    "--world",
+    "--simulate",
+    "--recursive",
+    "--url"
+  ]
+}

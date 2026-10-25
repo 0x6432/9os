@@ -1,0 +1,21 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk",
+  "bytes": 412387,
+  "sha256": "359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8",
+  "index": {
+    "C": "Q1Kd1D3m57UuRVKkGgKHd5yKqNj0s=",
+    "P": "musl",
+    "V": "1.2.5-r13",
+    "A": "x86_64",
+    "S": "412387",
+    "I": "662120",
+    "T": "the musl c library (libc) implementation",
+    "U": "https://musl.libc.org/",
+    "L": "MIT",
+    "o": "musl",
+    "m": "Natanael Copa <ncopa@alpinelinux.org>",
+    "t": "1792598497",
+    "c": "ddaf59b84bc6983a37d6e24d2210c2c4791642bb",
+    "p": "so:libc.musl-x86_64.so.1=1"
+  }
+}

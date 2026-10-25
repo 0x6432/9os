@@ -1,0 +1,7 @@
+test_exact_original_solver_failure_prevents_qemu (__main__.LegacyBaseline.test_exact_original_solver_failure_prevents_qemu) ... Frozen legacy oracle: 62911e9b2b9e62e1e90ada1871f016551345e028ce571fe904a0eb0e919cfbce solver rc1; no fixture hash/QEMU
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.012s
+
+OK
