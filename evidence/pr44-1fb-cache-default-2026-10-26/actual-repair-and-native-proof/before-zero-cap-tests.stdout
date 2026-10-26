@@ -1,0 +1,20 @@
+Actual non-root cache fixture: new-default {"euid": 1000, "egid": 1000, "tools": "/tmp/oracle-permission-_mdcy1m3/tools with spaces", "dl_uid": 1000, "dl_mode": "0o555", "before_exec": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "000001ffffffffff", "CapPrm": "000001ffffffffff", "CapEff": "000001ffffffffff", "CapBnd": "000001ffffffffff", "CapAmb": "000001ffffffffff", "NoNewPrivs": "0"}, "after_drop": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "0000000000000000", "CapPrm": "0000000000000000", "CapEff": "0000000000000000", "CapBnd": "000001ffffffffff", "CapAmb": "0000000000000000", "NoNewPrivs": "1"}, "post_exec": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "0000000000000000", "CapPrm": "0000000000000000", "CapEff": "0000000000000000", "CapBnd": "000001ffffffffff", "CapAmb": "0000000000000000", "NoNewPrivs": "1"}} rc=1
+Explicit NEW Linux reference: 6.12.114-r0 ; 25 verified APKs; offline installation; modules 6.12.114-0-virt
+Explicit NEW Linux reference: 6.12.114-r0 ; 25 verified APKs; offline installation; modules 6.12.114-0-virt
+Explicit NEW Linux reference: 6.12.114-r0 ; 25 verified APKs; offline installation; modules 6.12.114-0-virt
+Actual non-root cache fixture: denied-default {"euid": 1000, "egid": 1000, "tools": "/tmp/oracle-permission-ce1j28q3/tools with spaces", "dl_uid": 1000, "dl_mode": "0o555", "before_exec": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "000001ffffffffff", "CapPrm": "000001ffffffffff", "CapEff": "000001ffffffffff", "CapBnd": "000001ffffffffff", "CapAmb": "000001ffffffffff", "NoNewPrivs": "0"}, "after_drop": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "0000000000000000", "CapPrm": "0000000000000000", "CapEff": "0000000000000000", "CapBnd": "000001ffffffffff", "CapAmb": "0000000000000000", "NoNewPrivs": "1"}, "post_exec": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "0000000000000000", "CapPrm": "0000000000000000", "CapEff": "0000000000000000", "CapBnd": "000001ffffffffff", "CapAmb": "0000000000000000", "NoNewPrivs": "1"}} rc=1
+Actual non-root cache fixture: denied-override {"euid": 1000, "egid": 1000, "tools": "/tmp/oracle-permission-tmjtpkzh/tools with spaces", "dl_uid": 1000, "dl_mode": "0o555", "before_exec": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "000001ffffffffff", "CapPrm": "000001ffffffffff", "CapEff": "000001ffffffffff", "CapBnd": "000001ffffffffff", "CapAmb": "000001ffffffffff", "NoNewPrivs": "0"}, "after_drop": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "0000000000000000", "CapPrm": "0000000000000000", "CapEff": "0000000000000000", "CapBnd": "000001ffffffffff", "CapAmb": "0000000000000000", "NoNewPrivs": "1"}, "post_exec": {"Uid": "1000\t1000\t1000\t1000", "Gid": "1000\t1000\t1000\t1000", "Groups": "", "CapInh": "0000000000000000", "CapPrm": "0000000000000000", "CapEff": "0000000000000000", "CapBnd": "000001ffffffffff", "CapAmb": "0000000000000000", "NoNewPrivs": "1"}} rc=1
+KILLED semantic mutant: bootstrap-network
+KILLED semantic mutant: bootstrap-repositories
+KILLED semantic mutant: private-tool
+KILLED semantic mutant: trust-key-hash
+KILLED semantic mutant: trust-key-set
+KILLED semantic mutant: checksum
+KILLED semantic mutant: signature
+KILLED semantic mutant: identity
+KILLED semantic mutant: closure
+KILLED semantic mutant: scripts
+KILLED semantic mutant: network
+KILLED semantic mutant: contents
+KILLED semantic mutant: inventory
+Frozen legacy oracle: 62911e9b2b9e62e1e90ada1871f016551345e028ce571fe904a0eb0e919cfbce solver rc1; no fixture hash/QEMU

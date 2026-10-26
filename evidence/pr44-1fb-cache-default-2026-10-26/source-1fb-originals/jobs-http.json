@@ -1,0 +1,33 @@
+{
+  "url": "https://api.github.com/repos/0x6432/9os/actions/runs/40217589696/jobs?per_page=100",
+  "status": 200,
+  "headers": {
+    "Date": "Mon, 26 Oct 2026 15:20:24 GMT",
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "public, max-age=60, s-maxage=60",
+    "Vary": "Accept,Accept-Encoding, Accept, X-Requested-With",
+    "ETag": "W/\"24bc3b4730706b70d9065aa9d8d6137949fd6019eb7405c61cf8bda003090a4b\"",
+    "X-GitHub-Media-Type": "github.v3; format=json",
+    "x-github-api-version-selected": "2022-11-28",
+    "Access-Control-Expose-Headers": "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset, Warning",
+    "Access-Control-Allow-Origin": "*",
+    "Strict-Transport-Security": "max-age=31536000; includeSubdomains; preload",
+    "X-Frame-Options": "deny",
+    "X-Content-Type-Options": "nosniff",
+    "X-XSS-Protection": "0",
+    "Referrer-Policy": "origin-when-cross-origin, strict-origin-when-cross-origin",
+    "Content-Security-Policy": "default-src 'none'",
+    "Server": "github.com",
+    "Accept-Ranges": "bytes",
+    "X-RateLimit-Limit": "60",
+    "X-RateLimit-Remaining": "59",
+    "X-RateLimit-Used": "1",
+    "X-RateLimit-Resource": "core",
+    "X-RateLimit-Reset": "1793031623",
+    "Content-Length": "14428",
+    "X-GitHub-Request-Id": "BE92:16026A:B1DFA04:2443371A:6ADF6FB7",
+    "x-github-edge-region": "iad",
+    "connection": "close"
+  },
+  "observed_at": "2026-10-26T15:20:24.406715+00:00"
+}

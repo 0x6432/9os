@@ -1,0 +1,12 @@
+{
+  "pinned_mini": {
+    "path": "./usr/lib/libapk.so.2.14.10",
+    "bytes": 183992,
+    "sha256": "8b600f47c729459c54ee5a494058cdbfe0b5ebcb3095d1c858e974249b982d6f"
+  },
+  "signed_libapk2": {
+    "path": "usr/lib/libapk.so.2.14.10",
+    "bytes": 183992,
+    "sha256": "8b600f47c729459c54ee5a494058cdbfe0b5ebcb3095d1c858e974249b982d6f"
+  }
+}

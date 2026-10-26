@@ -1,0 +1,5878 @@
+{
+  "summary": {
+    "verified_input_directory_paths": 278,
+    "actual_directory_count": 285,
+    "mode_mismatches": [],
+    "conflicting_header_modes": [],
+    "actual_uid_counts": {
+      "1000": 278
+    },
+    "actual_gid_counts": {
+      "1000": 278
+    },
+    "all_headers_root_owned": true,
+    "observation_context": "READONLYinspection by parent; --no-chown deliberately does not promise hostrootowners; rc0 does not explain 273stderrerrors"
+  },
+  "directories": [
+    {
+      "path": "bin",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "busybox-binsh",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "kmod",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "boot",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "ca-certificates-bundle",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libcrypto3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "mdev-conf",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "mkinitfs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/apk",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/apk/keys",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/apk/protected_paths.d",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/busybox-paths.d",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/logrotate.d",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/mkinitfs",
+      "headers": [
+        {
+          "package": "mkinitfs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/mkinitfs/features.d",
+      "headers": [
+        {
+          "package": "mkinitfs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/network",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/network/if-down.d",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/network/if-post-down.d",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/network/if-post-up.d",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/network/if-pre-down.d",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/network/if-pre-up.d",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/network/if-up.d",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/ssl",
+      "headers": [
+        {
+          "package": "ca-certificates-bundle",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libcrypto3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/ssl/certs",
+      "headers": [
+        {
+          "package": "ca-certificates-bundle",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libcrypto3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/ssl/private",
+      "headers": [
+        {
+          "package": "libcrypto3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/ssl1.1",
+      "headers": [
+        {
+          "package": "ca-certificates-bundle",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "etc/udhcpc",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "mdev-conf",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "musl",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/apk",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/apk/db",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/apk/exec",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/mdev",
+      "headers": [
+        {
+          "package": "mdev-conf",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/arch",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/arch/x86",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/arch/x86/crypto",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/arch/x86/kernel",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/arch/x86/kvm",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/crypto",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/crypto/async_tx",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/acpi",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/acpi/nfit",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/ata",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/base",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/base/firmware_loader",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/block",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/block/drbd",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/block/xen-blkback",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/block/zram",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/cdrom",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/char",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/char/hw_random",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/crypto",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/crypto/ccp",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/crypto/intel",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/crypto/intel/qat",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/crypto/intel/qat/qat_4xxx",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/crypto/intel/qat/qat_common",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/crypto/intel/qat/qat_dh895xccvf",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/crypto/virtio",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/dca",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/dma",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/dma/ioat",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/dma/qcom",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/firmware",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/firmware/efi",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm/hyperv",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm/qxl",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm/tiny",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm/ttm",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm/vboxvideo",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm/virtio",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm/vmwgfx",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/gpu/drm/xen",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/hid",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/hid/usbhid",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/hv",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/hwmon",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/i2c",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/i2c/busses",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/i2c/muxes",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/misc",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/mouse",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/serio",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/iommu",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/md",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/md/bcache",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/md/dm-vdo",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/md/persistent-data",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/message",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/message/fusion",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/misc",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/misc/pvpanic",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/misc/vmw_vmci",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/bonding",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/amazon",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/amazon/ena",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/google",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/google/gve",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/intel",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/intel/e1000",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/intel/e1000e",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/intel/iavf",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/intel/ixgbevf",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/intel/libeth",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/intel/libie",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/mellanox",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/mellanox/mlx4",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/mellanox/mlx5",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ethernet/mellanox/mlx5/core",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ipvlan",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/mdio",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/phy",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/ppp",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/slip",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/team",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/vmxnet3",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/vxlan",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/wireguard",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/net/xen-netback",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/nvdimm",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/nvme",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/nvme/host",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/nvme/target",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/pci",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/pci/controller",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/ptp",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/rpmsg",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/rtc",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/scsi",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/scsi/libsas",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/target",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/tty",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/tty/serial",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/tty/serial/jsm",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/usb",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/usb/common",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/usb/core",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/usb/host",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/usb/mon",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/usb/storage",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/vdpa",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/vdpa/ifcvf",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/vdpa/virtio_pci",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/vhost",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/video",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/video/fbdev",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/video/fbdev/core",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/virt",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/virt/coco",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/virt/coco/efi_secret",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/virt/nitro_enclaves",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/virt/vboxguest",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/virtio",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/watchdog",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/xen",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/xen/xen-pciback",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/9p",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/autofs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/btrfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/cachefiles",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ceph",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/configfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/cramfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/dlm",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ecryptfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/efivarfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/efs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/exfat",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ext2",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ext4",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/f2fs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/fat",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/fuse",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/gfs2",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/isofs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/jbd2",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/jfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/lockd",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/netfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/nfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/nfs/blocklayout",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/nfs/filelayout",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/nfs/flexfilelayout",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/nfs_common",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/nfsd",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/nilfs2",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/nls",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ntfs3",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ocfs2",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ocfs2/cluster",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ocfs2/dlm",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ocfs2/dlmfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/overlayfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/pstore",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/quota",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/reiserfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/romfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/smb",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/smb/client",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/smb/common",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/smb/server",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/squashfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/sysv",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/udf",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/ufs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/vboxsf",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/fs/xfs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/kernel",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/lib",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/lib/crypto",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/lib/lz4",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/lib/math",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/lib/raid6",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/lib/reed_solomon",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/802",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/8021q",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/9p",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/bridge",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/bridge/netfilter",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/ceph",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/core",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/dccp",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/ife",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/ipv4",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/ipv4/netfilter",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/ipv6",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/ipv6/ila",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/ipv6/netfilter",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/key",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/l2tp",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/llc",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/mpls",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/mptcp",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/netfilter",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/netfilter/ipset",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/netfilter/ipvs",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/nsh",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/openvswitch",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/packet",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/sched",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/sctp",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/sunrpc",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/sunrpc/auth_gss",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/tls",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/unix",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/vmw_vsock",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/net/xfrm",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/security",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/security/keys",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/security/keys/encrypted-keys",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/sound",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/sound/core",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/sound/hda",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/sound/pci",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/sound/pci/ac97",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/sound/pci/hda",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/sound/virtio",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/virt",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/virt/lib",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "sbin",
+      "headers": [
+        {
+          "package": "apk-tools",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "kmod",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "mkinitfs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "cryptsetup-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "device-mapper-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "json-c",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "kmod-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "lddtree",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libapk2",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libblkid",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libcrypto3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libeconf",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libssl3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libuuid",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "mkinitfs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "scanelf",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "ssl_client",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "xz-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "zlib",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "zstd-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/bin",
+      "headers": [
+        {
+          "package": "lddtree",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libeconf",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "scanelf",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "ssl_client",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/lib",
+      "headers": [
+        {
+          "package": "cryptsetup-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "device-mapper-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "json-c",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "kmod-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libapk2",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libblkid",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libcrypto3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libeconf",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libssl3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "libuuid",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "xz-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "zlib",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "zstd-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/lib/cryptsetup",
+      "headers": [
+        {
+          "package": "cryptsetup-libs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/lib/engines-3",
+      "headers": [
+        {
+          "package": "libcrypto3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/lib/ossl-modules",
+      "headers": [
+        {
+          "package": "libcrypto3",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/sbin",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/share",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        },
+        {
+          "package": "mkinitfs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/share/kernel",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/share/kernel/virt",
+      "headers": [
+        {
+          "package": "linux-virt",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/share/mkinitfs",
+      "headers": [
+        {
+          "package": "mkinitfs",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    },
+    {
+      "path": "usr/share/udhcpc",
+      "headers": [
+        {
+          "package": "busybox",
+          "mode": "0o755",
+          "uid": 0,
+          "gid": 0
+        }
+      ],
+      "actual": {
+        "mode": "0o755",
+        "uid": 1000,
+        "gid": 1000,
+        "is_directory": true,
+        "symlink": false
+      },
+      "mode_matches_all_headers": true,
+      "headers_agree": true
+    }
+  ]
+}

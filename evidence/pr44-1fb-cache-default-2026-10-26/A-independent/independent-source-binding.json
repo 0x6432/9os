@@ -1,0 +1,71 @@
+{
+  "archive_bytes": 200862,
+  "sha256": "62dcb1951108ba24c7478bbca402ea9a34b3bb09baa161b220d0a18e15645e35",
+  "sha512": "d319980f7d57246ad885202736bb20dd88f031f7e8b058f612fd5df1a5e88387522f599b5a03ab4507b51385675cadd67c6fcf50817ce6dcfdd410d2be5aa5fc",
+  "actual_APKBUILD_declared_sha512_match": true,
+  "chunks": [
+    50000,
+    50000,
+    50000,
+    50000,
+    50000,
+    17816
+  ],
+  "selected_source_byte_matches": [
+    {
+      "path": "src/apk.c",
+      "archive_member": "apk-tools-v2.14.12/src/apk.c",
+      "bytes": 16214,
+      "sha256": "5e90847814e084e5a955717ebd947b30df3463d92b4f34f14f85ee3959e62545"
+    },
+    {
+      "path": "src/apk_archive.h",
+      "archive_member": "apk-tools-v2.14.12/src/apk_archive.h",
+      "bytes": 1061,
+      "sha256": "1dcda09d713b1641d20a90bf2743555375970b05982560a8acf341c2c7da13e1"
+    },
+    {
+      "path": "src/apk_database.h",
+      "archive_member": "apk-tools-v2.14.12/src/apk_database.h",
+      "bytes": 9620,
+      "sha256": "4fde01f14fd82e2aacb133a99d6f9c988706448ebc8d7bb49b1892ce5e9e2842"
+    },
+    {
+      "path": "src/apk_print.h",
+      "archive_member": "apk-tools-v2.14.12/src/apk_print.h",
+      "bytes": 1997,
+      "sha256": "43b79db5e731a3b5bccc802022900af84422de131a2d5a2e6fb76dc0693517f6"
+    },
+    {
+      "path": "src/app_add.c",
+      "archive_member": "apk-tools-v2.14.12/src/app_add.c",
+      "bytes": 6070,
+      "sha256": "6ec211d6a3623f206da9757d230e706e9207d6bd5c83ff1f84c418d5e422a1ba"
+    },
+    {
+      "path": "src/commit.c",
+      "archive_member": "apk-tools-v2.14.12/src/commit.c",
+      "bytes": 22153,
+      "sha256": "de1ca1fb2915c560b08872a58a94470b3ce5d32d939078f13f2335398ba63d44"
+    },
+    {
+      "path": "src/database.c",
+      "archive_member": "apk-tools-v2.14.12/src/database.c",
+      "bytes": 91040,
+      "sha256": "b32fdefbf0582f04f8d4fe5de7199ad1e104e894767237a7a5374d20e4bc9a75"
+    },
+    {
+      "path": "src/io_archive.c",
+      "archive_member": "apk-tools-v2.14.12/src/io_archive.c",
+      "bytes": 12217,
+      "sha256": "1472f4d0a218fcb5c21431a251e7f88c160016c2591be6ada0f92aee9d75fb88"
+    },
+    {
+      "path": "src/print.c",
+      "archive_member": "apk-tools-v2.14.12/src/print.c",
+      "bytes": 7084,
+      "sha256": "d09d3d44b3beb7952777cab115a908e96756ab8958232f6b8c6deacc59779f3f"
+    }
+  ],
+  "no_new_GET_or_source_execution": true
+}

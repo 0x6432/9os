@@ -1,0 +1,467 @@
+{
+  "purpose": "signed-linux-reference-evdev-oracle",
+  "reference_kernel": "6.12.114-r0",
+  "module_release": "6.12.114-0-virt",
+  "native_mini_sha256": "27694aaa55fd7a9e3ef596e0ad4eb66802308bb20172b17030cd5f4d8ae9bac2",
+  "packages": [
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/apk-tools-2.14.12-r0.apk",
+      "sha256": "fdf8a327219e1e6e5d4e45fbd7db7cf4881fe3e641e831e58caa72e83a1acace",
+      "bytes": 34579,
+      "name": "apk-tools",
+      "version": "2.14.12-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "musl>=1.2.3_git20230424",
+        "libcrypto3>=3.5",
+        "ca-certificates-bundle",
+        "so:libapk.so.2.14.10",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:libz.so.1"
+      ],
+      "provides": [
+        "cmd:apk=2.14.12-r0"
+      ],
+      "index_identity": "Q18I7lWn+QFS+hg1rizHjyP1PAAVQ=",
+      "pkginfo_sha256": "dabcbb356521a07ece3e2c0843ef82508e4e17cfcbef25398cacd049b560680c"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-1.37.0-r20.apk",
+      "sha256": "7cc34c2dda2520b456ab4a55abc37fe245ac90f98ab9f1c7a9be3aec035df48e",
+      "bytes": 506116,
+      "name": "busybox",
+      "version": "1.37.0-r20",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "cmd:busybox=1.37.0-r20"
+      ],
+      "index_identity": "Q1Pp11KIKAs8SS6R8w4SbCQA0XAbM=",
+      "pkginfo_sha256": "b65e34e1077c4991215446fb594a4e1acf108c7e6f1fbf588a72ca5de4dd5555"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-binsh-1.37.0-r20.apk",
+      "sha256": "ad33d8d799ed80eab45bb68d63c14062165d3653f4fb52e73959cd31d032210e",
+      "bytes": 1566,
+      "name": "busybox-binsh",
+      "version": "1.37.0-r20",
+      "arch": "noarch",
+      "dependencies": [
+        "busybox=1.37.0-r20"
+      ],
+      "provides": [
+        "/bin/sh",
+        "cmd:sh=1.37.0-r20"
+      ],
+      "index_identity": "Q1rNSVswVIMaejMTeqWiumGToIotI=",
+      "pkginfo_sha256": "67bfcf1700b7e8054716dd04aa1dbfc9d51de6f24ea9ceb4a442371b8d545cbf"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk",
+      "sha256": "d35216a0a9adde79031df246759bad03f235cf201bf0aff8436b88bff59594eb",
+      "bytes": 107116,
+      "name": "ca-certificates-bundle",
+      "version": "20261020-r0",
+      "arch": "noarch",
+      "dependencies": [],
+      "provides": [
+        "ca-certificates-cacert=20261020-r0"
+      ],
+      "index_identity": "Q1S0j4S2Jt6I+Ch50QIEvbuYBnpXs=",
+      "pkginfo_sha256": "10c8c175aec324c75cd4d6df79ec0fedc243d8146a75e86be5e043307d126bd0"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/cryptsetup-libs-2.7.5-r1.apk",
+      "sha256": "9d82982065e82d72add61997b2ed4e89e31b38dc911851441c86a926dcfcd9c4",
+      "bytes": 219604,
+      "name": "cryptsetup-libs",
+      "version": "2.7.5-r1",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libblkid.so.1",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:libdevmapper.so.1.02",
+        "so:libjson-c.so.5",
+        "so:libuuid.so.1"
+      ],
+      "provides": [
+        "so:libcryptsetup.so.12=12.10.0"
+      ],
+      "index_identity": "Q1RPd+vHHqAanjgkPwxdN1Bb2d77g=",
+      "pkginfo_sha256": "7c413e763cf47166a2e45f3194db2af357ca68be9d00aec3dfc6dbb88bfc94b2"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/device-mapper-libs-2.03.32-r0.apk",
+      "sha256": "2b1e8bbf13cc79d1909b31e505f06ce149c9855971f398695d63b100d250a000",
+      "bytes": 138400,
+      "name": "device-mapper-libs",
+      "version": "2.03.32-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "so:libdevmapper.so.1.02=1.02"
+      ],
+      "index_identity": "Q1nGjsRtezgaG7zvgzMzDINmurTN0=",
+      "pkginfo_sha256": "b548239a50bced2140e8070814be0056aac0f47f164898dca9ba1e6e3a55e556"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/json-c-0.18-r1.apk",
+      "sha256": "91d3efdc4577d724e185ad1d655f32437c788533891788885d4267c7bdb84d97",
+      "bytes": 28135,
+      "name": "json-c",
+      "version": "0.18-r1",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "so:libjson-c.so.5=5.4.0"
+      ],
+      "index_identity": "Q1HVlk1UJ6Nyck5hd3bX5Iav6mE78=",
+      "pkginfo_sha256": "d23f12084559d0cdfb35befa512fca8dc7c59f749bee028ad4faa60370e30993"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/kmod-34.2-r0.apk",
+      "sha256": "c38a1c6b7e7baa84a698c32b0b179c2bbb00be67515e64768ea145891ae2fb83",
+      "bytes": 65083,
+      "name": "kmod",
+      "version": "34.2-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "/bin/sh",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:liblzma.so.5",
+        "so:libz.so.1",
+        "so:libzstd.so.1"
+      ],
+      "provides": [
+        "cmd:depmod=34.2-r0",
+        "cmd:insmod=34.2-r0",
+        "cmd:kmod=34.2-r0",
+        "cmd:lsmod=34.2-r0",
+        "cmd:modinfo=34.2-r0",
+        "cmd:modprobe=34.2-r0",
+        "cmd:rmmod=34.2-r0"
+      ],
+      "index_identity": "Q1J6dzc8oSZYD4Ty6fZMIEKimkMto=",
+      "pkginfo_sha256": "b96c4dd2f1061ad6dede238f8ec7f5f95c83a99ca9c09690bc5651b17fd752c7"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/kmod-libs-34.2-r0.apk",
+      "sha256": "47f1e863dc779503ff24977f738135020407b03e5e5ec3d41187df14766613d7",
+      "bytes": 39745,
+      "name": "kmod-libs",
+      "version": "34.2-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:liblzma.so.5",
+        "so:libz.so.1",
+        "so:libzstd.so.1"
+      ],
+      "provides": [
+        "so:libkmod.so.2=2.5.1"
+      ],
+      "index_identity": "Q1XzEiezVs0f71VJQf7pLjOV3t6Mk=",
+      "pkginfo_sha256": "dbb2c3757a0da93b1e03739a19c857a1e5238c9f39dce63c8cf20b4fcb9af7a8"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/lddtree-1.27-r0.apk",
+      "sha256": "01b34f98cf8da09a843f985a04c24d64b225a14c78b08afa099889d269975d98",
+      "bytes": 5447,
+      "name": "lddtree",
+      "version": "1.27-r0",
+      "arch": "noarch",
+      "dependencies": [
+        "scanelf"
+      ],
+      "provides": [
+        "cmd:lddtree=1.27-r0"
+      ],
+      "index_identity": "Q1EYBPwBf6PRBxB//0Y0stALp+Um0=",
+      "pkginfo_sha256": "c891ff52b414eb0dbd68b4b5bcbbaa2eab2b7743a21223f73949d82142e018c1"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libapk2-2.14.12-r0.apk",
+      "sha256": "441d9dc34c4f98f14ba30a3559281d6f4577303b4efa6eb8c1627466979c3f47",
+      "bytes": 89001,
+      "name": "libapk2",
+      "version": "2.14.12-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "musl>=1.2.3_git20230424",
+        "libcrypto3>=3.5",
+        "ca-certificates-bundle",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:libssl.so.3",
+        "so:libz.so.1"
+      ],
+      "provides": [
+        "so:libapk.so.2.14.10=2.14.10"
+      ],
+      "index_identity": "Q1ovar9GIDe78Dafw+78vlQ0+wyl8=",
+      "pkginfo_sha256": "69c2a6a59af9f1bda5364ae9511abc527d4e5423208ca0d8ecc16e2c1ea2891e"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libblkid-2.41.6-r1.apk",
+      "sha256": "ab85cd837c906979c24e5a006a81789ae9715e6e913c421c71950bdf1450164c",
+      "bytes": 95287,
+      "name": "libblkid",
+      "version": "2.41.6-r1",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1",
+        "so:libeconf.so.0"
+      ],
+      "provides": [
+        "so:libblkid.so.1=1.1.0"
+      ],
+      "index_identity": "Q1eQgbaQPphF8CLzAfVFdBmvzF6qw=",
+      "pkginfo_sha256": "6f92d39f5bfcd5a35c0c625f82f76eb1bb785a7764312720cef703b550619a10"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libcrypto3-3.5.9-r0.apk",
+      "sha256": "3f5825ced5fde1c66a5376a3f6076b3c08538ad52d9ef23f069857e212d9175a",
+      "bytes": 1986879,
+      "name": "libcrypto3",
+      "version": "3.5.9-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "so:libcrypto.so.3=3"
+      ],
+      "index_identity": "Q1oh3VN2UxBgaVmtvnt5CjXfB97sk=",
+      "pkginfo_sha256": "85bd3da311f7c993fd8dd858a3af61f06a3c20c8741a80e4703d16345102cf70"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libeconf-0.6.3-r0.apk",
+      "sha256": "fe4fbf324f84f7c8b475cfc708c5505aa630bced7b5f6289bf5ca36d9b587829",
+      "bytes": 24446,
+      "name": "libeconf",
+      "version": "0.6.3-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "so:libeconf.so.0=0.6.2",
+        "cmd:econftool=0.6.3-r0"
+      ],
+      "index_identity": "Q1GU5gIhrpYB9C9seoWe+PRHhXQV0=",
+      "pkginfo_sha256": "f6b8edb923a94be9a45075da0c862282b5a61907a94e0b02c2dc5395c5aed28a"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libssl3-3.5.9-r0.apk",
+      "sha256": "6801c740b9760b5b08da8db6367ebc18b2cc4dbaf371f7148429538b8bb04e23",
+      "bytes": 383680,
+      "name": "libssl3",
+      "version": "3.5.9-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "libcrypto3=3.5.9-r0",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3"
+      ],
+      "provides": [
+        "so:libssl.so.3=3"
+      ],
+      "index_identity": "Q1vg55k+/1wPY5bIUvUA2ERnX9nTc=",
+      "pkginfo_sha256": "a52cdffb3a6cb25a7d2658c61bb61087c36270e02c483c71fa48049ac396b53d"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libuuid-2.41.6-r1.apk",
+      "sha256": "eb8fa9e042b51443a6ac8c9fa4d1dca5a1a458c5f3980bffa5167f005f47a504",
+      "bytes": 14359,
+      "name": "libuuid",
+      "version": "2.41.6-r1",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "so:libuuid.so.1=1.3.0"
+      ],
+      "index_identity": "Q1Z+0XLFhANNDwV+njS0lNOfhk+14=",
+      "pkginfo_sha256": "fa51727b14170e0f9b30978b96d17706543244ce8ecc9f878a0e2c0a62d1db75"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/linux-virt-6.12.114-r0.apk",
+      "sha256": "82b7fee968e553fb34df7102e9622c969872810b729068106ed49a03c0ba4b8a",
+      "bytes": 40732552,
+      "name": "linux-virt",
+      "version": "6.12.114-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "initramfs-generator"
+      ],
+      "provides": [],
+      "index_identity": "Q19mSv3PCACUMRLEq4mwIJsUdPr5k=",
+      "pkginfo_sha256": "bf661d01b0ab0f5f541f8bb4ff656c1b4f63f53633f6d0073e961d3ab01b46f3"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mdev-conf-4.8-r0.apk",
+      "sha256": "2043890a839957af15e430fd0c34a369f6c911eed3dc89a3ac7a073b0d6af2f0",
+      "bytes": 5190,
+      "name": "mdev-conf",
+      "version": "4.8-r0",
+      "arch": "noarch",
+      "dependencies": [],
+      "provides": [],
+      "index_identity": "Q1OhkXCGOSimPdJtHPPnpf8f4RVQk=",
+      "pkginfo_sha256": "ec38ba70196d17207c62de9cc13c939e8d683cf88f17df5d6e11afae3a7af6d4"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mkinitfs-3.12.0-r0.apk",
+      "sha256": "18d6384d6db016ca41d43fe78acf9c72db5eb01a906b17568afed217b309ffc8",
+      "bytes": 35773,
+      "name": "mkinitfs",
+      "version": "3.12.0-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "apk-tools>=2.9.1",
+        "busybox-binsh",
+        "busybox>=1.28.2-r1",
+        "kmod",
+        "lddtree>=1.25",
+        "mdev-conf",
+        "so:libblkid.so.1",
+        "so:libc.musl-x86_64.so.1",
+        "so:libcryptsetup.so.12",
+        "so:libkmod.so.2"
+      ],
+      "provides": [
+        "initramfs-generator",
+        "cmd:bootchartd=3.12.0-r0",
+        "cmd:mkinitfs=3.12.0-r0",
+        "cmd:nlplug-findfs=3.12.0-r0"
+      ],
+      "index_identity": "Q10T6/JLIAQVMIQogbxkobiunZUgg=",
+      "pkginfo_sha256": "7a7b22210b91d1f2fad3eb0878122337598fc0941ce059a30b15a946df0cf644"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk",
+      "sha256": "359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8",
+      "bytes": 412387,
+      "name": "musl",
+      "version": "1.2.5-r13",
+      "arch": "x86_64",
+      "dependencies": [],
+      "provides": [
+        "so:libc.musl-x86_64.so.1=1"
+      ],
+      "index_identity": "Q1Kd1D3m57UuRVKkGgKHd5yKqNj0s=",
+      "pkginfo_sha256": "413e5ab382369aa9e70ba2ecef18306eb790d55e0752dfc6a1def56ec1c8f0fe"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/scanelf-1.3.8-r1.apk",
+      "sha256": "8763270cf55b2a38dae0cea774e8dcab547b710fa59e03054924d61a5eba609e",
+      "bytes": 32500,
+      "name": "scanelf",
+      "version": "1.3.8-r1",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "cmd:scanelf=1.3.8-r1"
+      ],
+      "index_identity": "Q1vW3RyCDUdrzfjuOPADvPKnMyOxM=",
+      "pkginfo_sha256": "95af423e2bcf0e547e93ad62d4d52929f43b6c89a7644dfd8168912b0a367ba1"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ssl_client-1.37.0-r20.apk",
+      "sha256": "11b2a5f91caf8eb5daa9a0bc2586f93545de62897f3a704fd49533e1654b7a68",
+      "bytes": 4686,
+      "name": "ssl_client",
+      "version": "1.37.0-r20",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1",
+        "so:libcrypto.so.3",
+        "so:libssl.so.3"
+      ],
+      "provides": [
+        "cmd:ssl_client=1.37.0-r20"
+      ],
+      "index_identity": "Q1i9+6q0yZpdd4RMqYmXHIcWESZ4Q=",
+      "pkginfo_sha256": "e0b23344a51ede6022ca5bd969c847ceeba1da0d495627764ea4c445e9f893e6"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/xz-libs-5.8.4-r0.apk",
+      "sha256": "37e169b7b400304fa7027cab79f9c1c7a280e83acf6c95463384b8abb7ebb254",
+      "bytes": 118297,
+      "name": "xz-libs",
+      "version": "5.8.4-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "so:liblzma.so.5=5.8.4"
+      ],
+      "index_identity": "Q1X0YmFl0cO3oZ7tOFPfzKPT6m0kU=",
+      "pkginfo_sha256": "ed0d3618356ba1eb56c345377495be4b10e2dad28a0656f578eda096baf7c036"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.3.2-r1.apk",
+      "sha256": "af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216",
+      "bytes": 55457,
+      "name": "zlib",
+      "version": "1.3.2-r1",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "so:libz.so.1=1.3.2"
+      ],
+      "index_identity": "Q1/4h5E7MrlBVDXCCuIDGXwWkzrzs=",
+      "pkginfo_sha256": "2cf5886908cb13761e2307cfd89e979f7f92c5ad8ceb56e24f4e3af598cbb14e"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zstd-libs-1.5.7-r0.apk",
+      "sha256": "1bdd6e57cfbfbfd6e8481cad37ddd5d199950715bec1879b3afb600272dbb09e",
+      "bytes": 377569,
+      "name": "zstd-libs",
+      "version": "1.5.7-r0",
+      "arch": "x86_64",
+      "dependencies": [
+        "so:libc.musl-x86_64.so.1"
+      ],
+      "provides": [
+        "so:libzstd.so.1=1.5.7"
+      ],
+      "index_identity": "Q1UMgxErVhn0jTbWkZCky3xx8Vx9I=",
+      "pkginfo_sha256": "f4ca1ffde137c2d5def0942ca83806c3e239ba1588caaf840903360f7c779e04"
+    }
+  ],
+  "installed_contents": [
+    {
+      "path": "boot/vmlinuz-virt",
+      "sha256": "26f146f664ad057be3b39b211422b03b1f94cb2c3d66522fd4841811a224bfd5",
+      "bytes": 11834368
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/evdev.ko.gz",
+      "sha256": "4a3134caa08701aac3a4bda0ac3f7c60039232d5bc850e537783ce93d10bbf41",
+      "bytes": 14740
+    },
+    {
+      "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/misc/uinput.ko.gz",
+      "sha256": "49af0aa3808bac7c12b074b1cb6028edbd912734ad29c362c3ccb528c2be85b4",
+      "bytes": 12075
+    }
+  ],
+  "historical_113_byte_equivalence": "unknown"
+}

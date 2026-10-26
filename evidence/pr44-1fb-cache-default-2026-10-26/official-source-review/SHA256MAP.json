@@ -1,0 +1,20 @@
+{
+  "fetch-apkbuild-once.py": "2a75dbb30d33ac2fa7a8df4eedd18b6039e076fd8d9d937e796e59fcd46bb8cd",
+  "APKBUILD": "86783fcba97fcfdb2fbcc36d984e0a70e80cae25f9d0a4c7474c2c9a4bb4c6fd",
+  "APKBUILD-provenance.json": "4cd6bd492320eb23446f5ae82a830423a13d9066ec1444d61f21f80bf6214a33",
+  "fetch-declared-source-once.py": "124d4edb93033746c8ef96fa920eb6950b0206e2593d0696eebc88f604a5cce3",
+  "source-provenance.json": "602c9845c0cbeb3e9d732acf965fef57b61b58fab89d9e032539c8f75c9c9be3",
+  "signed-libapk2-PKGINFO": "69c2a6a59af9f1bda5364ae9511abc527d4e5423208ca0d8ecc16e2c1ea2891e",
+  "native-libapk-source-binding.json": "88577cc6f323b726673f4d86417f2b4787c59a5bc6add5a0a0c13948629b930d",
+  "signed-apk-tools-PKGINFO": "dabcbb356521a07ece3e2c0843ef82508e4e17cfcbef25398cacd049b560680c",
+  "STATIC-REVIEW.md": "f19ac282601696fd1a3ce275e8150d0b61259554f8db5a8f0ad1e628d823a343",
+  "selected-source/src/database.c": "b32fdefbf0582f04f8d4fe5de7199ad1e104e894767237a7a5374d20e4bc9a75",
+  "selected-source/src/apk_archive.h": "1dcda09d713b1641d20a90bf2743555375970b05982560a8acf341c2c7da13e1",
+  "selected-source/src/apk_database.h": "4fde01f14fd82e2aacb133a99d6f9c988706448ebc8d7bb49b1892ce5e9e2842",
+  "selected-source/src/app_add.c": "6ec211d6a3623f206da9757d230e706e9207d6bd5c83ff1f84c418d5e422a1ba",
+  "selected-source/src/commit.c": "de1ca1fb2915c560b08872a58a94470b3ce5d32d939078f13f2335398ba63d44",
+  "selected-source/src/io_archive.c": "1472f4d0a218fcb5c21431a251e7f88c160016c2591be6ada0f92aee9d75fb88",
+  "selected-source/src/apk.c": "5e90847814e084e5a955717ebd947b30df3463d92b4f34f14f85ee3959e62545",
+  "selected-source/src/apk_print.h": "43b79db5e731a3b5bccc802022900af84422de131a2d5a2e6fb76dc0693517f6",
+  "selected-source/src/print.c": "d09d3d44b3beb7952777cab115a908e96756ab8958232f6b8c6deacc59779f3f"
+}

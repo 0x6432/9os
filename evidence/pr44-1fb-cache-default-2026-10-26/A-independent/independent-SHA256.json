@@ -1,0 +1,14 @@
+{
+  "INDEPENDENT-REVIEW.md": "e30f4ad6259a54d0c72732362d5d00013931274623d7fb86f77edaeacea6c9db",
+  "independent-source-binding.json": "69c41f545798df370c9794fc6ef961292bb674d276855b31094907590b48e3d4",
+  "baseline.stdout": "f0b5142fbed819e6fc211b85822b9865f0eb70b2eb2f197c2a2299bb7b197587",
+  "baseline.stderr": "df99be578422595b1df909ebe15c6c316f9a88404e355e980a90dd8266d45529",
+  "isolated.stdout": "986cf2e75aa1e76522a3e2a5a8875c60ddd49dac39040601941e9a7ad6983cf9",
+  "isolated.stderr": "ef0232bad2e9581449a23359077425e4a867c9521ff56016413f7f9de000f974",
+  "source/APKBUILD": "86783fcba97fcfdb2fbcc36d984e0a70e80cae25f9d0a4c7474c2c9a4bb4c6fd",
+  "source/APKBUILD-provenance.json": "4cd6bd492320eb23446f5ae82a830423a13d9066ec1444d61f21f80bf6214a33",
+  "source/source-provenance.json": "602c9845c0cbeb3e9d732acf965fef57b61b58fab89d9e032539c8f75c9c9be3",
+  "source/native-libapk-source-binding.json": "88577cc6f323b726673f4d86417f2b4787c59a5bc6add5a0a0c13948629b930d",
+  "source/signed-apk-tools-PKGINFO": "dabcbb356521a07ece3e2c0843ef82508e4e17cfcbef25398cacd049b560680c",
+  "source/signed-libapk2-PKGINFO": "69c2a6a59af9f1bda5364ae9511abc527d4e5423208ca0d8ecc16e2c1ea2891e"
+}

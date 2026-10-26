@@ -1,0 +1,114 @@
+{
+  "public-originals-map.json": {
+    "bytes": 3859,
+    "sha256": "7c2deebf8381571aafaff8efc85e43a28487bc403800018e58a66c29a829d289"
+  },
+  "raw-originals-http-acquisition.json": {
+    "bytes": 25987,
+    "sha256": "9e2edb53ffacafdca13bc55ee9f114d1399f5963bae28193cbe6ab2383ae1259"
+  },
+  "snapshot-once.py": {
+    "bytes": 1240,
+    "sha256": "6079ccd72b456554a37d12524ea393a0d3a53523d1fb07f746842dbfe8a98e96"
+  },
+  "preserve-completed.py": {
+    "bytes": 1877,
+    "sha256": "7d53b4c6ce3fc6eaa6c35ea80ff1053266fad50b2e09e0bccf78fa1a2819bec0"
+  },
+  "ci-originals/run.json": {
+    "bytes": 11656,
+    "sha256": "4cddf93356fe8dc93d5d18586fa8b252cd96ecc6cb0ca716aae7ea238f28cf6f"
+  },
+  "ci-originals/jobs.json": {
+    "bytes": 22128,
+    "sha256": "535ee1ee730201e94a2c26b1895c5f052136381f87ab32eba589dccf5b38fe71"
+  },
+  "ci-originals/snapshot-provenance.json": {
+    "bytes": 3721,
+    "sha256": "0e56ed12ed4515adad313466eeefcef2f3c85f9300cee9a50064056843ee786a"
+  },
+  "ci-originals/artifacts.json": {
+    "bytes": 4252,
+    "sha256": "8bd2bcbd3c1ae56f7a402ac443b5428704d49a52186fc01ca45aedf6ae50e8c9"
+  },
+  "ci-originals/artifacts-provenance.json": {
+    "bytes": 1770,
+    "sha256": "05375219bee2214ef2fefcc870f0bdf73ba2072f82a0e6741984a5e0a1f14740"
+  },
+  "ci-originals/head-commit.json": {
+    "bytes": 1135,
+    "sha256": "ad1591b44fde0ad2e642c311ce628ee791379d544a5d2e0e7b11cbcaa2dce6a0"
+  },
+  "ci-originals/checkout-commit.json": {
+    "bytes": 2537,
+    "sha256": "30987e6edc77c49fccad865a11540f75ea1e1b9b05d3da4a7788e3b494c630ad"
+  },
+  "ci-originals/job-121241997283.txt": {
+    "bytes": 182420,
+    "sha256": "3376043b53a10a10e02c566e799d962486b8305d67868816d360ce1cafa9415e"
+  },
+  "ci-originals/alpine-evidence-x86_64.zip": {
+    "bytes": 8746,
+    "sha256": "d9db8dd9a3bc5ae144c409ef225a336db1ba27548a0695edfe542a1400499cce"
+  },
+  "native-final/native.stderr": {
+    "bytes": 49,
+    "sha256": "f85361b1906bf9088d4d225ff8c3d946ad5b27740da157c4bc9f405c54756cf4"
+  },
+  "native-final/native-status.json": {
+    "bytes": 161,
+    "sha256": "981911399eac908469c34665f6ab87a86fa4c9a30f4e9a96f1708983fe68d2cb"
+  },
+  "native-final/native-zero-cap-proof.json": {
+    "bytes": 1371,
+    "sha256": "77c9557aafc50b978dd2efc6d4fa9be32b5334d2d0ef8ed59e420aaadb13a765"
+  },
+  "native-final/native-helper-sysargv.json": {
+    "bytes": 240,
+    "sha256": "8afda4b35687510ff62c6c9105b03aba8d85ad68866309005e742c1a15afe175"
+  },
+  "native-final/native-watchdog-argv.json": {
+    "bytes": 240,
+    "sha256": "07519b4024d13b5d976d5efc9aaf2807b9e6de33e6b69f1af6e0ade8aed45313"
+  },
+  "native-final/zero-cap-permission-observations.json": {
+    "bytes": 5310,
+    "sha256": "586f8572ec18f6e91f4eb383e70566e12c04c7cba3b56d4f9ec258c5d364a232"
+  },
+  "native-final/ACTUAL-REVIEW.md": {
+    "bytes": 3736,
+    "sha256": "ca3d9c7facec0bca27898f01396d951aa7b635410e22a8ac6c9de621752d30b9"
+  },
+  "native-final/before-zero-cap-tests.stderr": {
+    "bytes": 7771,
+    "sha256": "92de4039e398191968a4ed160a47d77dd4b20bacf6203d17a988457235e37a0d"
+  },
+  "native-final/after-zero-cap-tests.stderr": {
+    "bytes": 3022,
+    "sha256": "2b85134bb23d3633d40699d2843a6b89113e570a08aef0e01df7d0a1400fcc47"
+  },
+  "source-final/STATIC-REVIEW.md": {
+    "bytes": 4264,
+    "sha256": "f19ac282601696fd1a3ce275e8150d0b61259554f8db5a8f0ad1e628d823a343"
+  },
+  "source-final/native-libapk-source-binding.json": {
+    "bytes": 342,
+    "sha256": "88577cc6f323b726673f4d86417f2b4787c59a5bc6add5a0a0c13948629b930d"
+  },
+  "source-final/source-provenance.json": {
+    "bytes": 2065,
+    "sha256": "602c9845c0cbeb3e9d732acf965fef57b61b58fab89d9e032539c8f75c9c9be3"
+  },
+  "source-final/APKBUILD-provenance.json": {
+    "bytes": 1595,
+    "sha256": "4cd6bd492320eb23446f5ae82a830423a13d9066ec1444d61f21f80bf6214a33"
+  },
+  "source-final/signed-apk-tools-PKGINFO": {
+    "bytes": 807,
+    "sha256": "dabcbb356521a07ece3e2c0843ef82508e4e17cfcbef25398cacd049b560680c"
+  },
+  "source-final/signed-libapk2-PKGINFO": {
+    "bytes": 810,
+    "sha256": "69c2a6a59af9f1bda5364ae9511abc527d4e5423208ca0d8ecc16e2c1ea2891e"
+  }
+}

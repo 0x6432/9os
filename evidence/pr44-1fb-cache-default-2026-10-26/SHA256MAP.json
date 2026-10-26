@@ -1,0 +1,450 @@
+{
+  "A-independent/INDEPENDENT-REVIEW.md": {
+    "bytes": 8134,
+    "sha256": "e30f4ad6259a54d0c72732362d5d00013931274623d7fb86f77edaeacea6c9db"
+  },
+  "A-independent/baseline.stderr": {
+    "bytes": 7848,
+    "sha256": "df99be578422595b1df909ebe15c6c316f9a88404e355e980a90dd8266d45529"
+  },
+  "A-independent/baseline.stdout": {
+    "bytes": 3827,
+    "sha256": "f0b5142fbed819e6fc211b85822b9865f0eb70b2eb2f197c2a2299bb7b197587"
+  },
+  "A-independent/bind-retained-source.py": {
+    "bytes": 2019,
+    "sha256": "279943c2c36eab413948e41230e0a207a87fb11018975ee046c70721e34d0837"
+  },
+  "A-independent/independent-SHA256.json": {
+    "bytes": 1178,
+    "sha256": "768ae7fe5606f2c348a1ec5b0f67398964d65e3f271711061b773d362fec7e1c"
+  },
+  "A-independent/independent-source-binding.json": {
+    "bytes": 2361,
+    "sha256": "69c41f545798df370c9794fc6ef961292bb674d276855b31094907590b48e3d4"
+  },
+  "A-independent/isolated.stderr": {
+    "bytes": 3022,
+    "sha256": "ef0232bad2e9581449a23359077425e4a867c9521ff56016413f7f9de000f974"
+  },
+  "A-independent/isolated.stdout": {
+    "bytes": 4797,
+    "sha256": "986cf2e75aa1e76522a3e2a5a8875c60ddd49dac39040601941e9a7ad6983cf9"
+  },
+  "B-final-compact/SHA256MAP.json": {
+    "bytes": 4091,
+    "sha256": "792cd9acdcc0c86036940ba2b2df9b2a5a6fa34dce6858c56be4e021bbf8b4f0"
+  },
+  "B-final-compact/ci-originals/alpine-evidence-x86_64.zip": {
+    "bytes": 8746,
+    "sha256": "d9db8dd9a3bc5ae144c409ef225a336db1ba27548a0695edfe542a1400499cce"
+  },
+  "B-final-compact/ci-originals/artifacts-provenance.json": {
+    "bytes": 1770,
+    "sha256": "05375219bee2214ef2fefcc870f0bdf73ba2072f82a0e6741984a5e0a1f14740"
+  },
+  "B-final-compact/ci-originals/artifacts.json": {
+    "bytes": 4252,
+    "sha256": "8bd2bcbd3c1ae56f7a402ac443b5428704d49a52186fc01ca45aedf6ae50e8c9"
+  },
+  "B-final-compact/ci-originals/checkout-commit.json": {
+    "bytes": 2537,
+    "sha256": "30987e6edc77c49fccad865a11540f75ea1e1b9b05d3da4a7788e3b494c630ad"
+  },
+  "B-final-compact/ci-originals/head-commit.json": {
+    "bytes": 1135,
+    "sha256": "ad1591b44fde0ad2e642c311ce628ee791379d544a5d2e0e7b11cbcaa2dce6a0"
+  },
+  "B-final-compact/ci-originals/job-121241997283.txt": {
+    "bytes": 182420,
+    "sha256": "3376043b53a10a10e02c566e799d962486b8305d67868816d360ce1cafa9415e"
+  },
+  "B-final-compact/ci-originals/jobs.json": {
+    "bytes": 22128,
+    "sha256": "535ee1ee730201e94a2c26b1895c5f052136381f87ab32eba589dccf5b38fe71"
+  },
+  "B-final-compact/ci-originals/run.json": {
+    "bytes": 11656,
+    "sha256": "4cddf93356fe8dc93d5d18586fa8b252cd96ecc6cb0ca716aae7ea238f28cf6f"
+  },
+  "B-final-compact/ci-originals/snapshot-provenance.json": {
+    "bytes": 3721,
+    "sha256": "0e56ed12ed4515adad313466eeefcef2f3c85f9300cee9a50064056843ee786a"
+  },
+  "B-final-compact/native-final/ACTUAL-REVIEW.md": {
+    "bytes": 3736,
+    "sha256": "ca3d9c7facec0bca27898f01396d951aa7b635410e22a8ac6c9de621752d30b9"
+  },
+  "B-final-compact/native-final/after-zero-cap-tests.stderr": {
+    "bytes": 3022,
+    "sha256": "2b85134bb23d3633d40699d2843a6b89113e570a08aef0e01df7d0a1400fcc47"
+  },
+  "B-final-compact/native-final/before-zero-cap-tests.stderr": {
+    "bytes": 7771,
+    "sha256": "92de4039e398191968a4ed160a47d77dd4b20bacf6203d17a988457235e37a0d"
+  },
+  "B-final-compact/native-final/native-helper-sysargv.json": {
+    "bytes": 240,
+    "sha256": "8afda4b35687510ff62c6c9105b03aba8d85ad68866309005e742c1a15afe175"
+  },
+  "B-final-compact/native-final/native-status.json": {
+    "bytes": 161,
+    "sha256": "981911399eac908469c34665f6ab87a86fa4c9a30f4e9a96f1708983fe68d2cb"
+  },
+  "B-final-compact/native-final/native-watchdog-argv.json": {
+    "bytes": 240,
+    "sha256": "07519b4024d13b5d976d5efc9aaf2807b9e6de33e6b69f1af6e0ade8aed45313"
+  },
+  "B-final-compact/native-final/native-zero-cap-proof.json": {
+    "bytes": 1371,
+    "sha256": "77c9557aafc50b978dd2efc6d4fa9be32b5334d2d0ef8ed59e420aaadb13a765"
+  },
+  "B-final-compact/native-final/native.stderr": {
+    "bytes": 49,
+    "sha256": "f85361b1906bf9088d4d225ff8c3d946ad5b27740da157c4bc9f405c54756cf4"
+  },
+  "B-final-compact/native-final/zero-cap-permission-observations.json": {
+    "bytes": 5310,
+    "sha256": "586f8572ec18f6e91f4eb383e70566e12c04c7cba3b56d4f9ec258c5d364a232"
+  },
+  "B-final-compact/preserve-completed.py": {
+    "bytes": 1877,
+    "sha256": "7d53b4c6ce3fc6eaa6c35ea80ff1053266fad50b2e09e0bccf78fa1a2819bec0"
+  },
+  "B-final-compact/public-originals-map.json": {
+    "bytes": 3859,
+    "sha256": "7c2deebf8381571aafaff8efc85e43a28487bc403800018e58a66c29a829d289"
+  },
+  "B-final-compact/raw-originals-http-acquisition.json": {
+    "bytes": 25987,
+    "sha256": "9e2edb53ffacafdca13bc55ee9f114d1399f5963bae28193cbe6ab2383ae1259"
+  },
+  "B-final-compact/snapshot-once.py": {
+    "bytes": 1240,
+    "sha256": "6079ccd72b456554a37d12524ea393a0d3a53523d1fb07f746842dbfe8a98e96"
+  },
+  "B-final-compact/source-final/APKBUILD-provenance.json": {
+    "bytes": 1595,
+    "sha256": "4cd6bd492320eb23446f5ae82a830423a13d9066ec1444d61f21f80bf6214a33"
+  },
+  "B-final-compact/source-final/STATIC-REVIEW.md": {
+    "bytes": 4264,
+    "sha256": "f19ac282601696fd1a3ce275e8150d0b61259554f8db5a8f0ad1e628d823a343"
+  },
+  "B-final-compact/source-final/native-libapk-source-binding.json": {
+    "bytes": 342,
+    "sha256": "88577cc6f323b726673f4d86417f2b4787c59a5bc6add5a0a0c13948629b930d"
+  },
+  "B-final-compact/source-final/signed-apk-tools-PKGINFO": {
+    "bytes": 807,
+    "sha256": "dabcbb356521a07ece3e2c0843ef82508e4e17cfcbef25398cacd049b560680c"
+  },
+  "B-final-compact/source-final/signed-libapk2-PKGINFO": {
+    "bytes": 810,
+    "sha256": "69c2a6a59af9f1bda5364ae9511abc527d4e5423208ca0d8ecc16e2c1ea2891e"
+  },
+  "B-final-compact/source-final/source-provenance.json": {
+    "bytes": 2065,
+    "sha256": "602c9845c0cbeb3e9d732acf965fef57b61b58fab89d9e032539c8f75c9c9be3"
+  },
+  "README.md": {
+    "bytes": 4113,
+    "sha256": "94288fcaff1dd5d0c4282e94595d94d6aa426f58833385c7481163fd18a5751f"
+  },
+  "actual-repair-and-native-proof/ACTUAL-REVIEW.md": {
+    "bytes": 3736,
+    "sha256": "ca3d9c7facec0bca27898f01396d951aa7b635410e22a8ac6c9de621752d30b9"
+  },
+  "actual-repair-and-native-proof/SHA256MAP.json": {
+    "bytes": 2757,
+    "sha256": "04a980310862c483e277d39dafd79130f91fe3b384a12503c75215df7e3b45c3"
+  },
+  "actual-repair-and-native-proof/add-child-cap-reduction.py": {
+    "bytes": 3167,
+    "sha256": "aac791e05b4ac5d438008f639153f64eed4bb28eeb0c0fe24daf23fa8eccfabb"
+  },
+  "actual-repair-and-native-proof/add-tests.py": {
+    "bytes": 6405,
+    "sha256": "21d33790cb7d9024b7f1f6ddd7b8fb935c3f6d966387255d0d45f79cb4a480fd"
+  },
+  "actual-repair-and-native-proof/after-source-shas.json": {
+    "bytes": 550,
+    "sha256": "0a68e7151cc2391f3473ce971e1a486d59bbf28d1fcb124b3b8d7e5a16e2897b"
+  },
+  "actual-repair-and-native-proof/after-zero-cap-tests.stderr": {
+    "bytes": 3022,
+    "sha256": "2b85134bb23d3633d40699d2843a6b89113e570a08aef0e01df7d0a1400fcc47"
+  },
+  "actual-repair-and-native-proof/after-zero-cap-tests.stdout": {
+    "bytes": 4797,
+    "sha256": "ae5d71b767caaf9a324fbf821af10109dc45525d2ad89984b66481baf7e8a19c"
+  },
+  "actual-repair-and-native-proof/before-new-tests.stderr": {
+    "bytes": 8727,
+    "sha256": "b02a38139955d3ad97da9752f8e30e44a0656fba1bf122313be7193ecc709111"
+  },
+  "actual-repair-and-native-proof/before-new-tests.stdout": {
+    "bytes": 1442,
+    "sha256": "e7b5baf34f1fe28cf7a868511b04d514cb4b8d3ae414576e0c2ab2468f3d8637"
+  },
+  "actual-repair-and-native-proof/before-source-shas.json": {
+    "bytes": 749,
+    "sha256": "c8550c796b5ed3c0f991717ab8a3d5cbb5ed41aed41c17f45d8eb0ff4df7ecc7"
+  },
+  "actual-repair-and-native-proof/before-zero-cap-tests.stderr": {
+    "bytes": 7771,
+    "sha256": "92de4039e398191968a4ed160a47d77dd4b20bacf6203d17a988457235e37a0d"
+  },
+  "actual-repair-and-native-proof/before-zero-cap-tests.stdout": {
+    "bytes": 3827,
+    "sha256": "460d3c73fdf997674b6b81088240a2413b2d48f0ab5c3008a3cd6252dea9388d"
+  },
+  "actual-repair-and-native-proof/cache-default-and-tests.patch": {
+    "bytes": 10191,
+    "sha256": "2b88b97891468622c8deae65a6acce9e7c15ca31aa37ae8501d1de6d3a3c2793"
+  },
+  "actual-repair-and-native-proof/native-content-and-input-verification.json": {
+    "bytes": 6884,
+    "sha256": "e0cae8881cfc6249d50f2bb18c2136cbb0846ce035e1477afea4bd20869c41f7"
+  },
+  "actual-repair-and-native-proof/native-directory-header-comparison.json": {
+    "bytes": 129136,
+    "sha256": "d286f7d056f3efe753b7f4d3a3058b8bb7c9261f64783ce27db50356a8a10cd4"
+  },
+  "actual-repair-and-native-proof/native-helper-sysargv.json": {
+    "bytes": 240,
+    "sha256": "8afda4b35687510ff62c6c9105b03aba8d85ad68866309005e742c1a15afe175"
+  },
+  "actual-repair-and-native-proof/native-installed-db": {
+    "bytes": 78189,
+    "sha256": "f782f72c7f0876cce2ca764043fa75520a249e8bf425a03142f12a68c73a338c"
+  },
+  "actual-repair-and-native-proof/native-result-manifest.json": {
+    "bytes": 16464,
+    "sha256": "378a71683bac0047d4b219a7250e719ea7a9ca0728ee2d74cb27e4d8583dd110"
+  },
+  "actual-repair-and-native-proof/native-seed-empty-target-proof.json": {
+    "bytes": 5636,
+    "sha256": "fc90a40137e569cf5b664767431c2eb170c8233ed9a21bcfe92ae82961e44457"
+  },
+  "actual-repair-and-native-proof/native-status.json": {
+    "bytes": 161,
+    "sha256": "981911399eac908469c34665f6ab87a86fa4c9a30f4e9a96f1708983fe68d2cb"
+  },
+  "actual-repair-and-native-proof/native-watchdog-argv.json": {
+    "bytes": 240,
+    "sha256": "07519b4024d13b5d976d5efc9aaf2807b9e6de33e6b69f1af6e0ade8aed45313"
+  },
+  "actual-repair-and-native-proof/native-zero-cap-child.py": {
+    "bytes": 2667,
+    "sha256": "79339d494f0199e5e8e58e4c75d1744f7f3a945559851996762a24a0abd6028f"
+  },
+  "actual-repair-and-native-proof/native-zero-cap-proof.json": {
+    "bytes": 1371,
+    "sha256": "77c9557aafc50b978dd2efc6d4fa9be32b5334d2d0ef8ed59e420aaadb13a765"
+  },
+  "actual-repair-and-native-proof/native.stderr": {
+    "bytes": 49,
+    "sha256": "f85361b1906bf9088d4d225ff8c3d946ad5b27740da157c4bc9f405c54756cf4"
+  },
+  "actual-repair-and-native-proof/native.stdout": {
+    "bytes": 4305,
+    "sha256": "16f79aaff9b716fde39fae98e063a99f8256aafc20b9c31ee6ce15e1009da82a"
+  },
+  "actual-repair-and-native-proof/prepare-private-inputs.py": {
+    "bytes": 1787,
+    "sha256": "d7bf91edb552758f6a37b40f48614a64f864160b5054efd2f9bae2b5cea06dc3"
+  },
+  "actual-repair-and-native-proof/run-native-once.py": {
+    "bytes": 908,
+    "sha256": "e51ef11dfb9d2a167e174e1dc9700c6223f892837cfa7b4436c701738747aef2"
+  },
+  "actual-repair-and-native-proof/worktree.log": {
+    "bytes": 135,
+    "sha256": "d3c86dba33687577c24a8c6da8bc7c4b48ba6c6fcd4f3df5450008647d01c84f"
+  },
+  "actual-repair-and-native-proof/zero-cap-permission-observations.json": {
+    "bytes": 5310,
+    "sha256": "586f8572ec18f6e91f4eb383e70566e12c04c7cba3b56d4f9ec258c5d364a232"
+  },
+  "official-source-review/APKBUILD": {
+    "bytes": 3427,
+    "sha256": "86783fcba97fcfdb2fbcc36d984e0a70e80cae25f9d0a4c7474c2c9a4bb4c6fd"
+  },
+  "official-source-review/APKBUILD-provenance.json": {
+    "bytes": 1595,
+    "sha256": "4cd6bd492320eb23446f5ae82a830423a13d9066ec1444d61f21f80bf6214a33"
+  },
+  "official-source-review/SHA256MAP.json": {
+    "bytes": 1803,
+    "sha256": "b1406ed5b226effbff6bf0f61c1d17d3edb8afe8d45d8d76e25504945b8d4496"
+  },
+  "official-source-review/STATIC-REVIEW.md": {
+    "bytes": 4264,
+    "sha256": "f19ac282601696fd1a3ce275e8150d0b61259554f8db5a8f0ad1e628d823a343"
+  },
+  "official-source-review/fetch-apkbuild-once.py": {
+    "bytes": 793,
+    "sha256": "2a75dbb30d33ac2fa7a8df4eedd18b6039e076fd8d9d937e796e59fcd46bb8cd"
+  },
+  "official-source-review/fetch-declared-source-once.py": {
+    "bytes": 1373,
+    "sha256": "124d4edb93033746c8ef96fa920eb6950b0206e2593d0696eebc88f604a5cce3"
+  },
+  "official-source-review/native-libapk-source-binding.json": {
+    "bytes": 342,
+    "sha256": "88577cc6f323b726673f4d86417f2b4787c59a5bc6add5a0a0c13948629b930d"
+  },
+  "official-source-review/selected-source/src/apk.c": {
+    "bytes": 16214,
+    "sha256": "5e90847814e084e5a955717ebd947b30df3463d92b4f34f14f85ee3959e62545"
+  },
+  "official-source-review/selected-source/src/apk_archive.h": {
+    "bytes": 1061,
+    "sha256": "1dcda09d713b1641d20a90bf2743555375970b05982560a8acf341c2c7da13e1"
+  },
+  "official-source-review/selected-source/src/apk_database.h": {
+    "bytes": 9620,
+    "sha256": "4fde01f14fd82e2aacb133a99d6f9c988706448ebc8d7bb49b1892ce5e9e2842"
+  },
+  "official-source-review/selected-source/src/apk_print.h": {
+    "bytes": 1997,
+    "sha256": "43b79db5e731a3b5bccc802022900af84422de131a2d5a2e6fb76dc0693517f6"
+  },
+  "official-source-review/selected-source/src/app_add.c": {
+    "bytes": 6070,
+    "sha256": "6ec211d6a3623f206da9757d230e706e9207d6bd5c83ff1f84c418d5e422a1ba"
+  },
+  "official-source-review/selected-source/src/commit.c": {
+    "bytes": 22153,
+    "sha256": "de1ca1fb2915c560b08872a58a94470b3ce5d32d939078f13f2335398ba63d44"
+  },
+  "official-source-review/selected-source/src/database.c": {
+    "bytes": 91040,
+    "sha256": "b32fdefbf0582f04f8d4fe5de7199ad1e104e894767237a7a5374d20e4bc9a75"
+  },
+  "official-source-review/selected-source/src/io_archive.c": {
+    "bytes": 12217,
+    "sha256": "1472f4d0a218fcb5c21431a251e7f88c160016c2591be6ada0f92aee9d75fb88"
+  },
+  "official-source-review/selected-source/src/print.c": {
+    "bytes": 7084,
+    "sha256": "d09d3d44b3beb7952777cab115a908e96756ab8958232f6b8c6deacc59779f3f"
+  },
+  "official-source-review/signed-apk-tools-PKGINFO": {
+    "bytes": 807,
+    "sha256": "dabcbb356521a07ece3e2c0843ef82508e4e17cfcbef25398cacd049b560680c"
+  },
+  "official-source-review/signed-libapk2-PKGINFO": {
+    "bytes": 810,
+    "sha256": "69c2a6a59af9f1bda5364ae9511abc527d4e5423208ca0d8ecc16e2c1ea2891e"
+  },
+  "official-source-review/source-provenance.json": {
+    "bytes": 2065,
+    "sha256": "602c9845c0cbeb3e9d732acf965fef57b61b58fab89d9e032539c8f75c9c9be3"
+  },
+  "product-local-object.json": {
+    "bytes": 595,
+    "sha256": "2c53c3b4c35b4fe85daf7da402e3a67e019d724b1e1ae8bfd7e096c371181b1c"
+  },
+  "reviewed-two-path.patch": {
+    "bytes": 10191,
+    "sha256": "2b88b97891468622c8deae65a6acce9e7c15ca31aa37ae8501d1de6d3a3c2793"
+  },
+  "signed-1fb-originals/alpine-desktop-evidence-aarch64.zip": {
+    "bytes": 1407087,
+    "sha256": "9c2e5f78462fbb0c7dcdb85304f43d96f07d0be4e0da4b8037cc3166872bd51a"
+  },
+  "signed-1fb-originals/alpine-desktop-evidence-riscv64.zip": {
+    "bytes": 1433442,
+    "sha256": "d39173c9fc90eae9c7522d489e6c081189f43888a4e14efa509177d01a6777bd"
+  },
+  "signed-1fb-originals/alpine-desktop-evidence-x86_64.zip": {
+    "bytes": 1406894,
+    "sha256": "97e1c2e5d025be829499ea52643dcb55cf6b057aa60e9f64a4eb87dd35a12f2d"
+  },
+  "signed-1fb-originals/alpine-evidence-aarch64.zip": {
+    "bytes": 38036,
+    "sha256": "6b518352cf5182e63d34e1123eb88700a9a8ba569bb7b68be3c9dc2965ddebd7"
+  },
+  "signed-1fb-originals/alpine-evidence-riscv64.zip": {
+    "bytes": 65318,
+    "sha256": "21eea65ccb412fa46b0b8dc6127fa9f5ea25be8e7a581b3adb59bd804592dcec"
+  },
+  "signed-1fb-originals/alpine-evidence-x86_64.zip": {
+    "bytes": 8746,
+    "sha256": "d9db8dd9a3bc5ae144c409ef225a336db1ba27548a0695edfe542a1400499cce"
+  },
+  "signed-1fb-originals/job-121241997038.txt": {
+    "bytes": 380613,
+    "sha256": "328e4373eaa514727c8306e7981bdaef073679f7c9b0e23b2b02b51e52a5b17c"
+  },
+  "signed-1fb-originals/job-121241997173.txt": {
+    "bytes": 2144225,
+    "sha256": "a3dd76f8c5510c4f310553338c4eab9b304c40410e2f456d1d2d2c6c88e16666"
+  },
+  "signed-1fb-originals/job-121241997204.txt": {
+    "bytes": 616315,
+    "sha256": "05d2c0efb300e2a53315de0941aee172bd87be09ef844e0d9821c2ff77737ee8"
+  },
+  "signed-1fb-originals/job-121241997233.txt": {
+    "bytes": 1905083,
+    "sha256": "eda923f28fc62e9bb592e60d78e7bdb9ac92ce7f042529c14a240b83fdd07856"
+  },
+  "signed-1fb-originals/job-121241997256.txt": {
+    "bytes": 1915336,
+    "sha256": "8cfaf282cf18187b5f48cd00d5968d553f8afdc071a930d10ec6509942e46505"
+  },
+  "signed-1fb-originals/job-121241997283.txt": {
+    "bytes": 182420,
+    "sha256": "3376043b53a10a10e02c566e799d962486b8305d67868816d360ce1cafa9415e"
+  },
+  "signed-original-reacquisition.json": {
+    "bytes": 28039,
+    "sha256": "985e7855a8a235ac7653d72f410a5ddc9f3400b0cf83d7292eaa5572ad93df86"
+  },
+  "source-1fb-originals/REVIEW.md": {
+    "bytes": 2393,
+    "sha256": "9ce6788c435bcf60110fba247c9bf763c130c989db7850952556621c7ade17d9"
+  },
+  "source-1fb-originals/SHA256SUMS.json": {
+    "bytes": 1450,
+    "sha256": "5c36e2ba7cf6bb0d0d7080fe8ce5a24c7c654c04cfe929a01dd6fb4927c77efb"
+  },
+  "source-1fb-originals/completed-failure-map.json": {
+    "bytes": 3,
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "source-1fb-originals/job-121242026966-original.txt": {
+    "bytes": 617791,
+    "sha256": "ab725145a80b9bd9dde8d0bafe9dd6d967bd02e5279bd2cc42f0360200ac422c"
+  },
+  "source-1fb-originals/job-121242027012-original.txt": {
+    "bytes": 1314926,
+    "sha256": "276ce330c6eaf20c24d8ff54f2968f131c373138dae7dd6598f7c6aec167afd9"
+  },
+  "source-1fb-originals/job-121242027094-original.txt": {
+    "bytes": 475663,
+    "sha256": "4b115012cc6999f8548a85091436d54328156ac946d672d437444837eeb373b8"
+  },
+  "source-1fb-originals/jobs-http.json": {
+    "bytes": 1678,
+    "sha256": "a0448d005b5c28518443d32e88f09a0d650476edf8733a32630cc99eef910e27"
+  },
+  "source-1fb-originals/jobs.json": {
+    "bytes": 14428,
+    "sha256": "d96ec7151b3e2979245053bb4c989aa6cf7a65238eb9a7644fdd555766c872de"
+  },
+  "source-1fb-originals/original-acquisition.json": {
+    "bytes": 4650,
+    "sha256": "0ac8fba17c2ed2a62f7442ad80d854e87137fb84fe16b142033e28f0ee541a47"
+  },
+  "source-1fb-originals/run-http.json": {
+    "bytes": 1658,
+    "sha256": "52f0361796cd7b27557a830ad74368b6407d729df1f87d8a5ccae0ca62c3d112"
+  },
+  "source-1fb-originals/run.json": {
+    "bytes": 11654,
+    "sha256": "37cb864c53332db344a844e44a1cc26b8b6326662b2db4f736becec94efd5fae"
+  }
+}

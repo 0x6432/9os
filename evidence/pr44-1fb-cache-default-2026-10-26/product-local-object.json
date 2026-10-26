@@ -1,0 +1,14 @@
+{
+  "parent": "1fbeb9a18b3529866856a04f327ac2e37eff17c0",
+  "commit": "c05a3fcd851297161f3981b38dd04900c49e8467",
+  "tree": "cde9b7a6aab724251795074fa5bf350072fab13f",
+  "changed_paths": [
+    "scripts/evdev-linux-oracle-packages-host-tests.py",
+    "scripts/evdev-linux-oracle-packages.py"
+  ],
+  "patch_bytes": 10191,
+  "patch_sha256": "2b88b97891468622c8deae65a6acce9e7c15ca31aa37ae8501d1de6d3a3c2793",
+  "contents_equal_independently_tested_candidate": true,
+  "new_tests_or_assembly_run_during_integration": false,
+  "expected_evidence_parent": "571c56259b39febca8613b6e5e76f7eddebf1d7a"
+}

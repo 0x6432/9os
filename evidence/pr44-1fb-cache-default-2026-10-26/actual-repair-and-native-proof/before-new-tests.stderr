@@ -1,0 +1,89 @@
+test_actual_nonroot_cache_default_avoids_readonly_dl (__main__.HelperContracts.test_actual_nonroot_cache_default_avoids_readonly_dl) ... FAIL
+test_bad_checksum_and_offline_missing_prevent_any_add (__main__.HelperContracts.test_bad_checksum_and_offline_missing_prevent_any_add) ... ok
+test_clean_orchestration_verify_all_then_strict_offline_add (__main__.HelperContracts.test_clean_orchestration_verify_all_then_strict_offline_add) ... ok
+test_cli_default_cache_spaces_unset_and_explicit_override (__main__.HelperContracts.test_cli_default_cache_spaces_unset_and_explicit_override) ... 
+  test_cli_default_cache_spaces_unset_and_explicit_override (__main__.HelperContracts.test_cli_default_cache_spaces_unset_and_explicit_override) (env={'TOOLS_DIR': '/tmp/oracle-cli-891qm37t/tools with spaces'}, extra=[]) ... FAIL
+  test_cli_default_cache_spaces_unset_and_explicit_override (__main__.HelperContracts.test_cli_default_cache_spaces_unset_and_explicit_override) (env={}, extra=[]) ... FAIL
+test_denied_selected_cache_fatal_without_fallback_or_bootstrap (__main__.HelperContracts.test_denied_selected_cache_fatal_without_fallback_or_bootstrap) ... 
+  test_denied_selected_cache_fatal_without_fallback_or_bootstrap (__main__.HelperContracts.test_denied_selected_cache_fatal_without_fallback_or_bootstrap) (selected='denied-default') ... FAIL
+  test_denied_selected_cache_fatal_without_fallback_or_bootstrap (__main__.HelperContracts.test_denied_selected_cache_fatal_without_fallback_or_bootstrap) (selected='denied-override') ... FAIL
+test_dependency_solver_failure_prevents_actual_install (__main__.HelperContracts.test_dependency_solver_failure_prevents_actual_install) ... ok
+test_dryrun_unexpected_state_prevents_actual_add (__main__.HelperContracts.test_dryrun_unexpected_state_prevents_actual_add) ... ok
+test_installed_hash_abi_and_inventory_checked (__main__.HelperContracts.test_installed_hash_abi_and_inventory_checked) ... ok
+test_invalid_lock_inventory_arch_trust_and_version_rejected (__main__.HelperContracts.test_invalid_lock_inventory_arch_trust_and_version_rejected) ... ok
+test_native_add_failure_is_not_rescued (__main__.HelperContracts.test_native_add_failure_is_not_rescued) ... ok
+test_nonempty_and_symlink_targets_rejected (__main__.HelperContracts.test_nonempty_and_symlink_targets_rejected) ... ok
+test_post_download_independent_checksum_guard (__main__.HelperContracts.test_post_download_independent_checksum_guard) ... ok
+test_private_bootstrap_command_is_offline_with_empty_repositories (__main__.HelperContracts.test_private_bootstrap_command_is_offline_with_empty_repositories) ... ok
+test_private_verifier_tool_key_hash_and_extra_key_fail_closed (__main__.HelperContracts.test_private_verifier_tool_key_hash_and_extra_key_fail_closed) ... ok
+test_real_lock_exact_identity_inventory (__main__.HelperContracts.test_real_lock_exact_identity_inventory) ... ok
+test_semantic_mutants_not_setup_failures (__main__.HelperContracts.test_semantic_mutants_not_setup_failures) ... ok
+test_signature_failure_prevents_metadata_dryrun_install (__main__.HelperContracts.test_signature_failure_prevents_metadata_dryrun_install) ... ok
+test_signed_metadata_mismatch_and_duplicate_rejected_before_add (__main__.HelperContracts.test_signed_metadata_mismatch_and_duplicate_rejected_before_add) ... ok
+test_exact_original_solver_failure_prevents_qemu (__main__.LegacyBaseline.test_exact_original_solver_failure_prevents_qemu) ... ok
+test_helper_and_new_module_path_only_consumer_unchanged (__main__.OracleWiring.test_helper_and_new_module_path_only_consumer_unchanged) ... ok
+test_workflow_only_one_new_host_invocation_each (__main__.OracleWiring.test_workflow_only_one_new_host_invocation_each) ... ok
+
+======================================================================
+FAIL: test_actual_nonroot_cache_default_avoids_readonly_dl (__main__.HelperContracts.test_actual_nonroot_cache_default_avoids_readonly_dl)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/linux-oracle-cache-product/scripts/evdev-linux-oracle-packages-host-tests.py", line 294, in test_actual_nonroot_cache_default_avoids_readonly_dl
+    self.assertTrue((tools / 'linux-oracle').is_dir())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_cli_default_cache_spaces_unset_and_explicit_override (__main__.HelperContracts.test_cli_default_cache_spaces_unset_and_explicit_override) (env={'TOOLS_DIR': '/tmp/oracle-cli-891qm37t/tools with spaces'}, extra=[])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/linux-oracle-cache-product/scripts/evdev-linux-oracle-packages-host-tests.py", line 216, in test_cli_default_cache_spaces_unset_and_explicit_override
+    assemble.assert_called_once_with(LOCK, expected, target, True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/unittest/mock.py", line 991, in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/unittest/mock.py", line 979, in assert_called_with
+    raise AssertionError(_error_message()) from cause
+AssertionError: expected call not found.
+Expected: assemble(PosixPath('/data/linux-oracle-cache-product/userland/ports/linux-oracle-lock.json'), PosixPath('/tmp/oracle-cli-891qm37t/tools with spaces/linux-oracle'), PosixPath('/tmp/oracle-cli-891qm37t/target'), True)
+  Actual: assemble(PosixPath('/data/linux-oracle-cache-product/userland/ports/linux-oracle-lock.json'), PosixPath('/tmp/oracle-cli-891qm37t/tools with spaces/dl/alpine-linux-oracle'), PosixPath('/tmp/oracle-cli-891qm37t/target'), True)
+
+======================================================================
+FAIL: test_cli_default_cache_spaces_unset_and_explicit_override (__main__.HelperContracts.test_cli_default_cache_spaces_unset_and_explicit_override) (env={}, extra=[])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/linux-oracle-cache-product/scripts/evdev-linux-oracle-packages-host-tests.py", line 216, in test_cli_default_cache_spaces_unset_and_explicit_override
+    assemble.assert_called_once_with(LOCK, expected, target, True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/unittest/mock.py", line 991, in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/unittest/mock.py", line 979, in assert_called_with
+    raise AssertionError(_error_message()) from cause
+AssertionError: expected call not found.
+Expected: assemble(PosixPath('/data/linux-oracle-cache-product/userland/ports/linux-oracle-lock.json'), PosixPath('/data/linux-oracle-cache-product/.tools/linux-oracle'), PosixPath('/tmp/oracle-cli-891qm37t/target'), True)
+  Actual: assemble(PosixPath('/data/linux-oracle-cache-product/userland/ports/linux-oracle-lock.json'), PosixPath('/data/linux-oracle-cache-product/.tools/dl/alpine-linux-oracle'), PosixPath('/tmp/oracle-cli-891qm37t/target'), True)
+
+======================================================================
+FAIL: test_denied_selected_cache_fatal_without_fallback_or_bootstrap (__main__.HelperContracts.test_denied_selected_cache_fatal_without_fallback_or_bootstrap) (selected='denied-default')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/linux-oracle-cache-product/scripts/evdev-linux-oracle-packages-host-tests.py", line 306, in test_denied_selected_cache_fatal_without_fallback_or_bootstrap
+    self.assertEqual(result.returncode, 1)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_denied_selected_cache_fatal_without_fallback_or_bootstrap (__main__.HelperContracts.test_denied_selected_cache_fatal_without_fallback_or_bootstrap) (selected='denied-override')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/linux-oracle-cache-product/scripts/evdev-linux-oracle-packages-host-tests.py", line 306, in test_denied_selected_cache_fatal_without_fallback_or_bootstrap
+    self.assertEqual(result.returncode, 1)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.971s
+
+FAILED (failures=5)

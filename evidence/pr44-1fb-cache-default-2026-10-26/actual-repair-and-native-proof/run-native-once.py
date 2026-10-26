@@ -1,0 +1,4 @@
+import pathlib,subprocess,json,datetime,time,hashlib
+p=pathlib.Path(__file__).parent;cmd=['timeout','--signal=TERM','--kill-after=10s','600s','env','TOOLS_DIR=/data/linux-oracle-zero-cap-tools-once','PYTHONDONTWRITEBYTECODE=1','python',str(p/'native-zero-cap-child.py')];(p/'native-watchdog-argv.json').write_text(json.dumps(cmd,indent=2)+'\n');start=time.monotonic();utc=datetime.datetime.now(datetime.timezone.utc).isoformat()
+with (p/'native.stdout').open('wb')as out,(p/'native.stderr').open('wb')as err:result=subprocess.run(cmd,stdout=out,stderr=err,cwd='/data/linux-oracle-cache-product')
+status={'utc_start':utc,'utc_end':datetime.datetime.now(datetime.timezone.utc).isoformat(),'elapsed_s':round(time.monotonic()-start,3),'returncode':result.returncode,'attempts':1};(p/'native-status.json').write_text(json.dumps(status,indent=2)+'\n');print(json.dumps(status));raise SystemExit(result.returncode)

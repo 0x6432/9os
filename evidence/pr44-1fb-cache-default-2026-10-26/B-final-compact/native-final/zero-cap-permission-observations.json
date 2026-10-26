@@ -1,0 +1,178 @@
+[
+  {
+    "case": "Actual non-root cache fixture: new-default",
+    "observation": {
+      "euid": 1000,
+      "egid": 1000,
+      "tools": "/tmp/oracle-permission-9343vi08/tools with spaces",
+      "dl_uid": 1000,
+      "dl_mode": "0o555",
+      "before_exec": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "000001ffffffffff",
+        "CapPrm": "000001ffffffffff",
+        "CapEff": "000001ffffffffff",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "000001ffffffffff",
+        "NoNewPrivs": "0"
+      },
+      "after_drop": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "0000000000000000",
+        "NoNewPrivs": "1"
+      },
+      "post_exec": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "0000000000000000",
+        "NoNewPrivs": "1"
+      }
+    },
+    "result": " rc=0"
+  },
+  {
+    "case": "Actual non-root cache fixture: old-default",
+    "observation": {
+      "euid": 1000,
+      "egid": 1000,
+      "tools": "/tmp/oracle-permission-h30glejd/tools with spaces",
+      "dl_uid": 1000,
+      "dl_mode": "0o555",
+      "before_exec": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "000001ffffffffff",
+        "CapPrm": "000001ffffffffff",
+        "CapEff": "000001ffffffffff",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "000001ffffffffff",
+        "NoNewPrivs": "0"
+      },
+      "after_drop": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "0000000000000000",
+        "NoNewPrivs": "1"
+      },
+      "post_exec": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "0000000000000000",
+        "NoNewPrivs": "1"
+      }
+    },
+    "result": " rc=1"
+  },
+  {
+    "case": "Actual non-root cache fixture: denied-default",
+    "observation": {
+      "euid": 1000,
+      "egid": 1000,
+      "tools": "/tmp/oracle-permission-spu8g_12/tools with spaces",
+      "dl_uid": 1000,
+      "dl_mode": "0o555",
+      "before_exec": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "000001ffffffffff",
+        "CapPrm": "000001ffffffffff",
+        "CapEff": "000001ffffffffff",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "000001ffffffffff",
+        "NoNewPrivs": "0"
+      },
+      "after_drop": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "0000000000000000",
+        "NoNewPrivs": "1"
+      },
+      "post_exec": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "0000000000000000",
+        "NoNewPrivs": "1"
+      }
+    },
+    "result": " rc=1"
+  },
+  {
+    "case": "Actual non-root cache fixture: denied-override",
+    "observation": {
+      "euid": 1000,
+      "egid": 1000,
+      "tools": "/tmp/oracle-permission-2hy4ekci/tools with spaces",
+      "dl_uid": 1000,
+      "dl_mode": "0o555",
+      "before_exec": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "000001ffffffffff",
+        "CapPrm": "000001ffffffffff",
+        "CapEff": "000001ffffffffff",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "000001ffffffffff",
+        "NoNewPrivs": "0"
+      },
+      "after_drop": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "0000000000000000",
+        "NoNewPrivs": "1"
+      },
+      "post_exec": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1000\t1000\t1000\t1000",
+        "Groups": "",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "000001ffffffffff",
+        "CapAmb": "0000000000000000",
+        "NoNewPrivs": "1"
+      }
+    },
+    "result": " rc=1"
+  }
+]

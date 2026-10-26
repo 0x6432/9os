@@ -1,0 +1,45 @@
+{
+  "before_exec": {
+    "Uid": "1000\t1000\t1000\t1000",
+    "Gid": "1000\t1000\t1000\t1000",
+    "Groups": "",
+    "CapInh": "000001ffffffffff",
+    "CapPrm": "000001ffffffffff",
+    "CapEff": "000001ffffffffff",
+    "CapBnd": "000001ffffffffff",
+    "CapAmb": "000001ffffffffff",
+    "NoNewPrivs": "0"
+  },
+  "after_drop": {
+    "Uid": "1000\t1000\t1000\t1000",
+    "Gid": "1000\t1000\t1000\t1000",
+    "Groups": "",
+    "CapInh": "0000000000000000",
+    "CapPrm": "0000000000000000",
+    "CapEff": "0000000000000000",
+    "CapBnd": "000001ffffffffff",
+    "CapAmb": "0000000000000000",
+    "NoNewPrivs": "1"
+  },
+  "post_exec": {
+    "Uid": "1000\t1000\t1000\t1000",
+    "Gid": "1000\t1000\t1000\t1000",
+    "Groups": "",
+    "CapInh": "0000000000000000",
+    "CapPrm": "0000000000000000",
+    "CapEff": "0000000000000000",
+    "CapBnd": "000001ffffffffff",
+    "CapAmb": "0000000000000000",
+    "NoNewPrivs": "1"
+  },
+  "euid": 1000,
+  "egid": 1000,
+  "tools": "/data/linux-oracle-zero-cap-tools-once",
+  "default_cache": "/data/linux-oracle-zero-cap-tools-once/linux-oracle",
+  "dl_mode": "0o555",
+  "dl_uid": 1000,
+  "target": "/data/linux-oracle-zero-cap-target-once",
+  "target_entries_before": 0,
+  "readonly_dl_probe": "genuine PermissionError",
+  "actual_python_entry": "runpy.run_path executes unchanged production main in THIS post-exec zero-cap process"
+}

@@ -1,0 +1,104 @@
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+pkgname=apk-tools
+pkgver=2.14.12
+pkgrel=0
+pkgdesc="Alpine Package Keeper - package manager for alpine"
+arch="all"
+url="https://gitlab.alpinelinux.org/alpine/apk-tools"
+license="GPL-2.0-only"
+subpackages="$pkgname-dbg $pkgname-dev $pkgname-static $pkgname-doc $pkgname-zsh-completion libapk2:libapk"
+# Musl 1.2 introduced new ABI for time64 => upgrading apk-tools
+# while staying on musl <1.2 causes missing symbols
+# starting with musl 1.2.3_git (pre 1.2.3), we added DT_RELR
+# it is possible for old systems to upgrade, and apk-tools would upgrade first,
+# which would upgrade to a binary that cannot run until musl is upgraded.
+# forcing this constraint makes apk upgrade musl as part of the 'critical' transaction,
+# and update musl first.
+# openssl 3.5(?) introduced new symbols:
+# https://gitlab.alpinelinux.org/alpine/aports/-/issues/17199
+depends="musl>=1.2.3_git20230424 libcrypto3>=3.5"
+makedepends_build="openssl>3 lua5.3 lua5.3-lzlib scdoc"
+makedepends_host="zlib-dev openssl-dev>=3.5 zlib-static openssl-libs-static linux-headers"
+makedepends="$makedepends_build $makedepends_host"
+_lua="no"
+if [ "$CBUILD" = "$CHOST" ]; then
+	_lua="lua5.3"
+	subpackages="$subpackages $_lua-apk:luaapk"
+	makedepends="$makedepends $_lua-dev"
+
+	# ca-certificates-bundle needed for https certificate validation
+	depends="$depends ca-certificates-bundle"
+fi
+source="https://gitlab.alpinelinux.org/alpine/apk-tools/-/archive/v$pkgver/apk-tools-v$pkgver.tar.gz
+	_apk
+	"
+builddir="$srcdir/$pkgname-v$pkgver"
+
+# secfixes:
+#   2.12.6-r0:
+#     - CVE-2021-36159
+#   2.12.5-r0:
+#     - CVE-2021-30139
+
+prepare() {
+	default_prepare
+	sed -i -e 's:-Werror::' Make.rules
+	echo "FULL_VERSION=$pkgver-r$pkgrel" > config.mk
+}
+
+build() {
+	make LUA="$_lua"
+	make static LUA="$_lua"
+}
+
+check() {
+	make check LUA="$_lua"
+}
+
+libapk() {
+	amove usr/lib/libapk.so.*
+}
+
+package() {
+	make LIBDIR="/usr/lib" DESTDIR="$pkgdir" LUA="$_lua" install
+	install -d "$pkgdir"/lib/apk/db \
+		"$pkgdir"/lib/apk/exec \
+		"$pkgdir"/etc/apk/keys \
+		"$pkgdir"/etc/apk/protected_paths.d
+
+	install -Dm644 "$srcdir"/_apk "$pkgdir"/usr/share/zsh/site-functions/_apk
+	rm -r "$pkgdir"/usr/share/doc
+}
+
+static() {
+	pkgdesc="Alpine Package Keeper - static binary"
+	depends=""
+	install -Dm755 "$builddir"/src/apk.static \
+		"$subpkgdir"/sbin/apk.static
+
+	# lets sign the static binary so it can be vefified from distros
+	# that does not have apk-tools
+	local abuild_home=${ABUILD_USERDIR:-"$HOME/.abuild"}
+	local abuild_userconf=${ABUILD_USERCONF:-"$abuild_home/abuild.conf"}
+	[ -f "$abuild_userconf" ] && . "$abuild_userconf"
+	local privkey="$PACKAGER_PRIVKEY"
+	local pubkey=${PACKAGER_PUBKEY:-"$privkey.pub"}
+	local keyname=${pubkey##*/}
+	${CROSS_COMPILE}strip "$subpkgdir"/sbin/apk.static
+	openssl dgst -sha1 -sign "$privkey" \
+		-out "$subpkgdir"/sbin/apk.static.SIGN.RSA.$keyname \
+		"$subpkgdir"/sbin/apk.static
+	openssl dgst -sha256 -sign "$privkey" \
+		-out "$subpkgdir"/sbin/apk.static.SIGN.RSA.sha256.$keyname \
+		"$subpkgdir"/sbin/apk.static
+}
+
+luaapk() {
+	pkgdesc="Lua module for apk-tools"
+	amove usr/lib/lua
+}
+
+sha512sums="
+d319980f7d57246ad885202736bb20dd88f031f7e8b058f612fd5df1a5e88387522f599b5a03ab4507b51385675cadd67c6fcf50817ce6dcfdd410d2be5aa5fc  apk-tools-v2.14.12.tar.gz
+92d5ee1edaae8e9bf32938e6b901e2a6f97530fcb6493060acfbb8883bf8bc825462f2e8ce6a6cfeba43acb4dd6d36acd33d060a4bce3907562e60c7cdb65e5f  _apk
+"

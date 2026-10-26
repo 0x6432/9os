@@ -1,0 +1,1981 @@
+﻿2026-10-25T17:40:28.9569940Z Current runner version: '2.338.0'
+2026-10-25T17:40:28.9600356Z ##[group]Runner Image Provisioner
+2026-10-25T17:40:28.9601377Z Hosted Compute Agent
+2026-10-25T17:40:28.9602008Z Version: 20261021.618
+2026-10-25T17:40:28.9602997Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-10-25T17:40:28.9603883Z Build Date: 2026-10-21T00:45:21Z
+2026-10-25T17:40:28.9604688Z Worker ID: {672b387f-2208-4d0d-ad3f-9b009437360b}
+2026-10-25T17:40:28.9605465Z Region: centralus
+2026-10-25T17:40:28.9606069Z Cloud: Azure
+2026-10-25T17:40:28.9606700Z ##[endgroup]
+2026-10-25T17:40:28.9608401Z ##[group]Operating System
+2026-10-25T17:40:28.9609141Z Ubuntu
+2026-10-25T17:40:28.9609842Z 24.04.5
+2026-10-25T17:40:28.9610392Z LTS
+2026-10-25T17:40:28.9611003Z ##[endgroup]
+2026-10-25T17:40:28.9611639Z ##[group]Runner Image
+2026-10-25T17:40:28.9612285Z Image: ubuntu-24.04
+2026-10-25T17:40:28.9613234Z Version: 20261012.334.1
+2026-10-25T17:40:28.9614762Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-25T17:40:28.9616725Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-25T17:40:28.9617840Z ##[endgroup]
+2026-10-25T17:40:28.9619111Z ##[group]GITHUB_TOKEN Permissions
+2026-10-25T17:40:28.9622287Z Contents: read
+2026-10-25T17:40:28.9623321Z Metadata: read
+2026-10-25T17:40:28.9623937Z ##[endgroup]
+2026-10-25T17:40:28.9627313Z Secret source: Actions
+2026-10-25T17:40:28.9628386Z Cache mode: write
+2026-10-25T17:40:28.9629521Z Prepare workflow directory
+2026-10-25T17:40:29.0310488Z Prepare all required actions
+2026-10-25T17:40:29.0369385Z Getting action download info
+2026-10-25T17:40:29.2909148Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-25T17:40:29.7565753Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+2026-10-25T17:40:30.2879869Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-25T17:40:30.5185513Z Complete job name: alpine (x86_64)
+2026-10-25T17:40:30.5966229Z ##[group]Run actions/checkout@v4
+2026-10-25T17:40:30.5967274Z with:
+2026-10-25T17:40:30.5967958Z   repository: 0x6432/9os
+2026-10-25T17:40:30.5974060Z   token: ***
+2026-10-25T17:40:30.5974776Z   ssh-strict: true
+2026-10-25T17:40:30.5975701Z   ssh-user: git
+2026-10-25T17:40:30.5976451Z   persist-credentials: true
+2026-10-25T17:40:30.5977271Z   clean: true
+2026-10-25T17:40:30.5978054Z   sparse-checkout-cone-mode: true
+2026-10-25T17:40:30.5978917Z   fetch-depth: 1
+2026-10-25T17:40:30.5979645Z   fetch-tags: false
+2026-10-25T17:40:30.5980396Z   show-progress: true
+2026-10-25T17:40:30.5981156Z   lfs: false
+2026-10-25T17:40:30.5982013Z   submodules: false
+2026-10-25T17:40:30.5983025Z   set-safe-directory: true
+2026-10-25T17:40:30.5983868Z   allow-unsafe-pr-checkout: false
+2026-10-25T17:40:30.5985046Z env:
+2026-10-25T17:40:30.5985784Z   ARCH: x86_64
+2026-10-25T17:40:30.5986564Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:40:30.5987494Z ##[endgroup]
+2026-10-25T17:40:30.6856794Z Syncing repository: 0x6432/9os
+2026-10-25T17:40:30.6859544Z ##[group]Getting Git version info
+2026-10-25T17:40:30.6860762Z Working directory is '/home/runner/work/9os/9os'
+2026-10-25T17:40:30.6863052Z [command]/usr/bin/git version
+2026-10-25T17:40:30.6864091Z git version 2.55.0
+2026-10-25T17:40:30.6877899Z ##[endgroup]
+2026-10-25T17:40:30.6890884Z Temporarily overriding HOME='/home/runner/work/_temp/25e6ed02-820a-4094-998d-7c60595ac165' before making global git config changes
+2026-10-25T17:40:30.6893184Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-25T17:40:30.6894893Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/9os/9os
+2026-10-25T17:40:30.6964381Z Deleting the contents of '/home/runner/work/9os/9os'
+2026-10-25T17:40:30.6966544Z ##[group]Initializing the repository
+2026-10-25T17:40:30.6967972Z [command]/usr/bin/git init /home/runner/work/9os/9os
+2026-10-25T17:40:30.7066525Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-25T17:40:30.7069710Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-25T17:40:30.7071613Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-25T17:40:30.7073355Z hint: call:
+2026-10-25T17:40:30.7074263Z hint:
+2026-10-25T17:40:30.7075264Z hint: 	git config --global init.defaultBranch <name>
+2026-10-25T17:40:30.7076647Z hint:
+2026-10-25T17:40:30.7077882Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-25T17:40:30.7079296Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-25T17:40:30.7080424Z hint:
+2026-10-25T17:40:30.7081081Z hint: 	git branch -m <name>
+2026-10-25T17:40:30.7081824Z hint:
+2026-10-25T17:40:30.7083006Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-25T17:40:30.7084519Z Initialized empty Git repository in /home/runner/work/9os/9os/.git/
+2026-10-25T17:40:30.7086936Z [command]/usr/bin/git remote add origin https://github.com/0x6432/9os
+2026-10-25T17:40:30.7130075Z ##[endgroup]
+2026-10-25T17:40:30.7131615Z ##[group]Disabling automatic garbage collection
+2026-10-25T17:40:30.7134911Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-25T17:40:30.7159801Z ##[endgroup]
+2026-10-25T17:40:30.7161349Z ##[group]Setting up auth
+2026-10-25T17:40:30.7165863Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-25T17:40:30.7197525Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-25T17:40:30.7493186Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-25T17:40:30.7518613Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-25T17:40:30.7663089Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-25T17:40:30.7687048Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-25T17:40:30.7829446Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-25T17:40:30.7860351Z ##[endgroup]
+2026-10-25T17:40:30.7861744Z ##[group]Fetching the repository
+2026-10-25T17:40:30.7868582Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +36826527b7cd2a9d5b1ee2bce0bfc5dd64b64a8f:refs/remotes/pull/44/merge
+2026-10-25T17:40:31.4697643Z From https://github.com/0x6432/9os
+2026-10-25T17:40:31.4700046Z  * [new ref]         36826527b7cd2a9d5b1ee2bce0bfc5dd64b64a8f -> pull/44/merge
+2026-10-25T17:40:31.4712829Z ##[endgroup]
+2026-10-25T17:40:31.4714559Z ##[group]Determining the checkout info
+2026-10-25T17:40:31.4722873Z ##[endgroup]
+2026-10-25T17:40:31.4723948Z [command]/usr/bin/git sparse-checkout disable
+2026-10-25T17:40:31.4771436Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-25T17:40:31.4799389Z ##[group]Checking out the ref
+2026-10-25T17:40:31.4802190Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/44/merge
+2026-10-25T17:40:31.5169109Z Note: switching to 'refs/remotes/pull/44/merge'.
+2026-10-25T17:40:31.5169484Z 
+2026-10-25T17:40:31.5169775Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-25T17:40:31.5170432Z changes and commit them, and you can discard any commits you make in this
+2026-10-25T17:40:31.5171064Z state without impacting any branches by switching back to a branch.
+2026-10-25T17:40:31.5171444Z 
+2026-10-25T17:40:31.5171760Z If you want to create a new branch to retain commits you create, you may
+2026-10-25T17:40:31.5172943Z do so (now or later) by using -c with the switch command. Example:
+2026-10-25T17:40:31.5173297Z 
+2026-10-25T17:40:31.5173547Z   git switch -c <new-branch-name>
+2026-10-25T17:40:31.5173778Z 
+2026-10-25T17:40:31.5173994Z Or undo this operation with:
+2026-10-25T17:40:31.5174226Z 
+2026-10-25T17:40:31.5174410Z   git switch -
+2026-10-25T17:40:31.5174649Z 
+2026-10-25T17:40:31.5174988Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-25T17:40:31.5175395Z 
+2026-10-25T17:40:31.5175780Z HEAD is now at 3682652 Merge 1fbeb9a18b3529866856a04f327ac2e37eff17c0 into e0521e7d5b36540c5b0806d11cc8cae81a476d09
+2026-10-25T17:40:31.5178526Z ##[endgroup]
+2026-10-25T17:40:31.5215402Z [command]/usr/bin/git log -1 --format=%H
+2026-10-25T17:40:31.5235499Z 36826527b7cd2a9d5b1ee2bce0bfc5dd64b64a8f
+2026-10-25T17:40:31.5428585Z ##[group]Run sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 -o APT::Update::Error-Mode=any update -q
+2026-10-25T17:40:31.5429719Z [36;1msudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 -o APT::Update::Error-Mode=any update -q[0m
+2026-10-25T17:40:31.5430740Z [36;1msudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 install -y -q clang lld llvm make gcc git curl xorriso mtools cpio jq python3-pil tesseract-ocr tesseract-ocr-eng libglib2.0-dev pkg-config[0m
+2026-10-25T17:40:31.5431627Z [36;1mscripts/install-qemu-alpine.sh[0m
+2026-10-25T17:40:31.5432002Z [36;1mecho "$TOOLS_DIR/bin" >> "$GITHUB_PATH"[0m
+2026-10-25T17:40:31.5432557Z [36;1mscripts/fetch-deps.sh[0m
+2026-10-25T17:40:31.5605824Z shell: /usr/bin/bash -e {0}
+2026-10-25T17:40:31.5606309Z env:
+2026-10-25T17:40:31.5606587Z   ARCH: x86_64
+2026-10-25T17:40:31.5607017Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:40:31.5607360Z ##[endgroup]
+2026-10-25T17:40:31.6244788Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-25T17:40:31.6614451Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-10-25T17:40:31.6647185Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-10-25T17:40:31.6673529Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-10-25T17:40:31.6689079Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-10-25T17:40:31.6690943Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-10-25T17:40:31.7527843Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1400 kB]
+2026-10-25T17:40:31.7644151Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [310 kB]
+2026-10-25T17:40:31.7661232Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1706 kB]
+2026-10-25T17:40:31.7737016Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [342 kB]
+2026-10-25T17:40:31.7755694Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1805 kB]
+2026-10-25T17:40:31.7826143Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [411 kB]
+2026-10-25T17:40:31.8295983Z Get:13 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [660 kB]
+2026-10-25T17:40:31.8426253Z Get:14 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [598 kB]
+2026-10-25T17:40:31.8538125Z Get:15 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.4 kB]
+2026-10-25T17:40:31.8605486Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1146 kB]
+2026-10-25T17:40:31.8637972Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [231 kB]
+2026-10-25T17:40:31.8650153Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1222 kB]
+2026-10-25T17:40:31.8690222Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [246 kB]
+2026-10-25T17:40:31.9161871Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1713 kB]
+2026-10-25T17:40:31.9219635Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [392 kB]
+2026-10-25T17:40:37.9175085Z Fetched 12.6 MB in 1s (12.2 MB/s)
+2026-10-25T17:40:38.7018632Z Reading package lists...
+2026-10-25T17:40:38.7270398Z Reading package lists...
+2026-10-25T17:40:38.9145184Z Building dependency tree...
+2026-10-25T17:40:38.9152271Z Reading state information...
+2026-10-25T17:40:39.0710816Z make is already the newest version (4.3-4.1build2).
+2026-10-25T17:40:39.0711820Z gcc is already the newest version (4:13.2.0-7ubuntu1).
+2026-10-25T17:40:39.0712907Z git is already the newest version (1:2.55.0-0ppa1~ubuntu24.04.2).
+2026-10-25T17:40:39.0714090Z git set to manually installed.
+2026-10-25T17:40:39.0714469Z cpio is already the newest version (2.15+dfsg-1ubuntu2.1).
+2026-10-25T17:40:39.0714907Z cpio set to manually installed.
+2026-10-25T17:40:39.0715302Z jq is already the newest version (1.7.1-3ubuntu0.24.04.2).
+2026-10-25T17:40:39.0715800Z pkg-config is already the newest version (1.8.1-2build1).
+2026-10-25T17:40:39.0716256Z The following additional packages will be installed:
+2026-10-25T17:40:39.0716802Z   gir1.2-glib-2.0 libblkid-dev libburn4t64 libcurl3t64-gnutls libcurl4t64
+2026-10-25T17:40:39.0717396Z   libgif7 libgirepository-2.0-0 libglib2.0-0t64 libglib2.0-bin libglib2.0-data
+2026-10-25T17:40:39.0717966Z   libglib2.0-dev-bin libimagequant0 libisoburn1t64 libisofs6t64 liblept5
+2026-10-25T17:40:39.0718495Z   libmount-dev libraqm0 libselinux1-dev libsepol-dev libtesseract5
+2026-10-25T17:40:39.0718968Z   llvm-runtime python3-olefile tesseract-ocr-osd uuid-dev
+2026-10-25T17:40:39.0725624Z Suggested packages:
+2026-10-25T17:40:39.0726151Z   low-memory-monitor gir1.2-glib-2.0-dev libglib2.0-doc libgdk-pixbuf2.0-bin
+2026-10-25T17:40:39.0726688Z   libxml2-utils floppyd python-pil-doc xorriso-tcltk jigit cdck
+2026-10-25T17:40:39.0942819Z The following NEW packages will be installed:
+2026-10-25T17:40:39.0943749Z   clang libblkid-dev libburn4t64 libgif7 libgirepository-2.0-0 libglib2.0-dev
+2026-10-25T17:40:39.0944414Z   libglib2.0-dev-bin libimagequant0 libisoburn1t64 libisofs6t64 liblept5
+2026-10-25T17:40:39.0948849Z   libmount-dev libraqm0 libselinux1-dev libsepol-dev libtesseract5 lld llvm
+2026-10-25T17:40:39.0950726Z   llvm-runtime mtools python3-olefile python3-pil tesseract-ocr
+2026-10-25T17:40:39.0951283Z   tesseract-ocr-eng tesseract-ocr-osd uuid-dev xorriso
+2026-10-25T17:40:39.0954946Z The following packages will be upgraded:
+2026-10-25T17:40:39.0957050Z   curl gir1.2-glib-2.0 libcurl3t64-gnutls libcurl4t64 libglib2.0-0t64
+2026-10-25T17:40:39.0961714Z   libglib2.0-bin libglib2.0-data
+2026-10-25T17:40:39.1100463Z 7 upgraded, 27 newly installed, 0 to remove and 93 not upgraded.
+2026-10-25T17:40:39.1101191Z Need to get 15.9 MB of archives.
+2026-10-25T17:40:39.1101646Z After this operation, 42.5 MB of additional disk space will be used.
+2026-10-25T17:40:39.1102104Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-25T17:40:39.1651499Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libglib2.0-data all 2.80.0-6ubuntu3.10 [50.2 kB]
+2026-10-25T17:40:39.2030539Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libglib2.0-bin amd64 2.80.0-6ubuntu3.10 [97.9 kB]
+2026-10-25T17:40:39.2383777Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gir1.2-glib-2.0 amd64 2.80.0-6ubuntu3.10 [183 kB]
+2026-10-25T17:40:39.2739116Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libglib2.0-0t64 amd64 2.80.0-6ubuntu3.10 [1548 kB]
+2026-10-25T17:40:39.3239554Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 clang amd64 1:18.0-59~exp2 [5846 B]
+2026-10-25T17:40:39.3586259Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 curl amd64 8.5.0-2ubuntu10.16 [226 kB]
+2026-10-25T17:40:39.3946863Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libcurl4t64 amd64 8.5.0-2ubuntu10.16 [344 kB]
+2026-10-25T17:40:39.4288750Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libburn4t64 amd64 1.5.6-1.1build1 [158 kB]
+2026-10-25T17:40:39.4636015Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libcurl3t64-gnutls amd64 8.5.0-2ubuntu10.16 [337 kB]
+2026-10-25T17:40:39.4988722Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgif7 amd64 5.2.2-1ubuntu1.2 [35.6 kB]
+2026-10-25T17:40:39.5312699Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgirepository-2.0-0 amd64 2.80.0-6ubuntu3.10 [73.5 kB]
+2026-10-25T17:40:39.5663907Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libglib2.0-dev-bin amd64 2.80.0-6ubuntu3.10 [138 kB]
+2026-10-25T17:40:39.5986581Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 uuid-dev amd64 2.39.3-9ubuntu6.6 [33.5 kB]
+2026-10-25T17:40:39.6301514Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libblkid-dev amd64 2.39.3-9ubuntu6.6 [205 kB]
+2026-10-25T17:40:39.6632813Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsepol-dev amd64 3.5-2build1 [384 kB]
+2026-10-25T17:40:39.6977179Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libselinux1-dev amd64 3.5-2ubuntu2.1 [164 kB]
+2026-10-25T17:40:39.7298372Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libmount-dev amd64 2.39.3-9ubuntu6.6 [14.9 kB]
+2026-10-25T17:40:39.7613281Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libglib2.0-dev amd64 2.80.0-6ubuntu3.10 [1861 kB]
+2026-10-25T17:40:39.8569448Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libimagequant0 amd64 2.18.0-1build1 [36.3 kB]
+2026-10-25T17:40:39.8887254Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libisofs6t64 amd64 1.5.6.pl01-1.1ubuntu2 [220 kB]
+2026-10-25T17:40:39.9457509Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libisoburn1t64 amd64 1:1.5.6-1.1ubuntu3 [405 kB]
+2026-10-25T17:40:40.1156207Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 liblept5 amd64 1.82.0-3build4 [1099 kB]
+2026-10-25T17:40:40.2023244Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libraqm0 amd64 0.10.1-1build1 [15.0 kB]
+2026-10-25T17:40:40.2299063Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libtesseract5 amd64 5.3.4-1build5 [1291 kB]
+2026-10-25T17:40:40.2756577Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 lld amd64 1:18.0-59~exp2 [5494 B]
+2026-10-25T17:40:40.3031885Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 llvm-runtime amd64 1:18.0-59~exp2 [5496 B]
+2026-10-25T17:40:40.3307988Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 llvm amd64 1:18.0-59~exp2 [4146 B]
+2026-10-25T17:40:40.3580874Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 mtools amd64 4.0.43-1build1 [197 kB]
+2026-10-25T17:40:40.3876772Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 python3-olefile all 0.46-3 [33.8 kB]
+2026-10-25T17:40:40.4156968Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 python3-pil amd64 10.2.0-1ubuntu1.3 [452 kB]
+2026-10-25T17:40:40.4485983Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 tesseract-ocr-eng all 1:4.1.0-2 [1818 kB]
+2026-10-25T17:40:40.5060110Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 tesseract-ocr-osd all 1:4.1.0-2 [3841 kB]
+2026-10-25T17:40:40.5757855Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 tesseract-ocr amd64 5.3.4-1build5 [328 kB]
+2026-10-25T17:40:40.6056313Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xorriso amd64 1:1.5.6-1.1ubuntu3 [297 kB]
+2026-10-25T17:40:40.8350597Z Fetched 15.9 MB in 2s (10.6 MB/s)
+2026-10-25T17:40:40.8709142Z (Reading database ... 
+2026-10-25T17:40:40.8709808Z (Reading database ... 5%
+2026-10-25T17:40:40.8710724Z (Reading database ... 10%
+2026-10-25T17:40:40.8711215Z (Reading database ... 15%
+2026-10-25T17:40:40.8711793Z (Reading database ... 20%
+2026-10-25T17:40:40.8712025Z (Reading database ... 25%
+2026-10-25T17:40:40.8712323Z (Reading database ... 30%
+2026-10-25T17:40:40.8712676Z (Reading database ... 35%
+2026-10-25T17:40:40.8712898Z (Reading database ... 40%
+2026-10-25T17:40:40.8713187Z (Reading database ... 45%
+2026-10-25T17:40:40.8713419Z (Reading database ... 50%
+2026-10-25T17:40:40.8759402Z (Reading database ... 55%
+2026-10-25T17:40:40.9694555Z (Reading database ... 60%
+2026-10-25T17:40:41.1300318Z (Reading database ... 65%
+2026-10-25T17:40:41.3327771Z (Reading database ... 70%
+2026-10-25T17:40:41.5171676Z (Reading database ... 75%
+2026-10-25T17:40:41.6794198Z (Reading database ... 80%
+2026-10-25T17:40:41.8672628Z (Reading database ... 85%
+2026-10-25T17:40:42.0484019Z (Reading database ... 90%
+2026-10-25T17:40:42.2229529Z (Reading database ... 95%
+2026-10-25T17:40:42.2230230Z (Reading database ... 100%
+2026-10-25T17:40:42.2230763Z (Reading database ... 203540 files and directories currently installed.)
+2026-10-25T17:40:42.2273656Z Preparing to unpack .../00-libglib2.0-data_2.80.0-6ubuntu3.10_all.deb ...
+2026-10-25T17:40:42.2400270Z Unpacking libglib2.0-data (2.80.0-6ubuntu3.10) over (2.80.0-6ubuntu3.9) ...
+2026-10-25T17:40:42.2694438Z Preparing to unpack .../01-libglib2.0-bin_2.80.0-6ubuntu3.10_amd64.deb ...
+2026-10-25T17:40:42.2721092Z Unpacking libglib2.0-bin (2.80.0-6ubuntu3.10) over (2.80.0-6ubuntu3.9) ...
+2026-10-25T17:40:42.3169866Z Preparing to unpack .../02-gir1.2-glib-2.0_2.80.0-6ubuntu3.10_amd64.deb ...
+2026-10-25T17:40:42.3199256Z Unpacking gir1.2-glib-2.0:amd64 (2.80.0-6ubuntu3.10) over (2.80.0-6ubuntu3.9) ...
+2026-10-25T17:40:42.3564162Z Preparing to unpack .../03-libglib2.0-0t64_2.80.0-6ubuntu3.10_amd64.deb ...
+2026-10-25T17:40:42.3635267Z Unpacking libglib2.0-0t64:amd64 (2.80.0-6ubuntu3.10) over (2.80.0-6ubuntu3.9) ...
+2026-10-25T17:40:42.4111911Z Selecting previously unselected package clang.
+2026-10-25T17:40:42.4227344Z Preparing to unpack .../04-clang_1%3a18.0-59~exp2_amd64.deb ...
+2026-10-25T17:40:42.4235731Z Unpacking clang (1:18.0-59~exp2) ...
+2026-10-25T17:40:42.4534302Z Preparing to unpack .../05-curl_8.5.0-2ubuntu10.16_amd64.deb ...
+2026-10-25T17:40:42.4561514Z Unpacking curl (8.5.0-2ubuntu10.16) over (8.5.0-2ubuntu10.15) ...
+2026-10-25T17:40:42.4897839Z Preparing to unpack .../06-libcurl4t64_8.5.0-2ubuntu10.16_amd64.deb ...
+2026-10-25T17:40:42.4927670Z Unpacking libcurl4t64:amd64 (8.5.0-2ubuntu10.16) over (8.5.0-2ubuntu10.15) ...
+2026-10-25T17:40:42.5154582Z Selecting previously unselected package libburn4t64:amd64.
+2026-10-25T17:40:42.5265364Z Preparing to unpack .../07-libburn4t64_1.5.6-1.1build1_amd64.deb ...
+2026-10-25T17:40:42.5275668Z Unpacking libburn4t64:amd64 (1.5.6-1.1build1) ...
+2026-10-25T17:40:42.6420934Z Preparing to unpack .../08-libcurl3t64-gnutls_8.5.0-2ubuntu10.16_amd64.deb ...
+2026-10-25T17:40:42.6497128Z Unpacking libcurl3t64-gnutls:amd64 (8.5.0-2ubuntu10.16) over (8.5.0-2ubuntu10.15) ...
+2026-10-25T17:40:42.6765795Z Selecting previously unselected package libgif7:amd64.
+2026-10-25T17:40:42.6878321Z Preparing to unpack .../09-libgif7_5.2.2-1ubuntu1.2_amd64.deb ...
+2026-10-25T17:40:42.6888034Z Unpacking libgif7:amd64 (5.2.2-1ubuntu1.2) ...
+2026-10-25T17:40:42.7047694Z Selecting previously unselected package libgirepository-2.0-0:amd64.
+2026-10-25T17:40:42.7156027Z Preparing to unpack .../10-libgirepository-2.0-0_2.80.0-6ubuntu3.10_amd64.deb ...
+2026-10-25T17:40:42.7165383Z Unpacking libgirepository-2.0-0:amd64 (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:42.7329761Z Selecting previously unselected package libglib2.0-dev-bin.
+2026-10-25T17:40:42.7433002Z Preparing to unpack .../11-libglib2.0-dev-bin_2.80.0-6ubuntu3.10_amd64.deb ...
+2026-10-25T17:40:42.7442959Z Unpacking libglib2.0-dev-bin (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:42.7656503Z Selecting previously unselected package uuid-dev:amd64.
+2026-10-25T17:40:42.7763732Z Preparing to unpack .../12-uuid-dev_2.39.3-9ubuntu6.6_amd64.deb ...
+2026-10-25T17:40:42.7774359Z Unpacking uuid-dev:amd64 (2.39.3-9ubuntu6.6) ...
+2026-10-25T17:40:42.7973215Z Selecting previously unselected package libblkid-dev:amd64.
+2026-10-25T17:40:42.8078486Z Preparing to unpack .../13-libblkid-dev_2.39.3-9ubuntu6.6_amd64.deb ...
+2026-10-25T17:40:42.8089057Z Unpacking libblkid-dev:amd64 (2.39.3-9ubuntu6.6) ...
+2026-10-25T17:40:42.8262641Z Selecting previously unselected package libsepol-dev:amd64.
+2026-10-25T17:40:42.8366605Z Preparing to unpack .../14-libsepol-dev_3.5-2build1_amd64.deb ...
+2026-10-25T17:40:42.8375401Z Unpacking libsepol-dev:amd64 (3.5-2build1) ...
+2026-10-25T17:40:42.8601282Z Selecting previously unselected package libselinux1-dev:amd64.
+2026-10-25T17:40:42.8705529Z Preparing to unpack .../15-libselinux1-dev_3.5-2ubuntu2.1_amd64.deb ...
+2026-10-25T17:40:42.8713392Z Unpacking libselinux1-dev:amd64 (3.5-2ubuntu2.1) ...
+2026-10-25T17:40:42.8941924Z Selecting previously unselected package libmount-dev:amd64.
+2026-10-25T17:40:42.9049280Z Preparing to unpack .../16-libmount-dev_2.39.3-9ubuntu6.6_amd64.deb ...
+2026-10-25T17:40:42.9057557Z Unpacking libmount-dev:amd64 (2.39.3-9ubuntu6.6) ...
+2026-10-25T17:40:42.9198951Z Selecting previously unselected package libglib2.0-dev:amd64.
+2026-10-25T17:40:42.9299670Z Preparing to unpack .../17-libglib2.0-dev_2.80.0-6ubuntu3.10_amd64.deb ...
+2026-10-25T17:40:42.9308816Z Unpacking libglib2.0-dev:amd64 (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:43.0235244Z Selecting previously unselected package libimagequant0:amd64.
+2026-10-25T17:40:43.0351757Z Preparing to unpack .../18-libimagequant0_2.18.0-1build1_amd64.deb ...
+2026-10-25T17:40:43.0358549Z Unpacking libimagequant0:amd64 (2.18.0-1build1) ...
+2026-10-25T17:40:43.0514084Z Selecting previously unselected package libisofs6t64:amd64.
+2026-10-25T17:40:43.0625995Z Preparing to unpack .../19-libisofs6t64_1.5.6.pl01-1.1ubuntu2_amd64.deb ...
+2026-10-25T17:40:43.0635744Z Unpacking libisofs6t64:amd64 (1.5.6.pl01-1.1ubuntu2) ...
+2026-10-25T17:40:43.0818288Z Selecting previously unselected package libisoburn1t64:amd64.
+2026-10-25T17:40:43.0924628Z Preparing to unpack .../20-libisoburn1t64_1%3a1.5.6-1.1ubuntu3_amd64.deb ...
+2026-10-25T17:40:43.0934278Z Unpacking libisoburn1t64:amd64 (1:1.5.6-1.1ubuntu3) ...
+2026-10-25T17:40:43.1124378Z Selecting previously unselected package liblept5:amd64.
+2026-10-25T17:40:43.1229649Z Preparing to unpack .../21-liblept5_1.82.0-3build4_amd64.deb ...
+2026-10-25T17:40:43.1239401Z Unpacking liblept5:amd64 (1.82.0-3build4) ...
+2026-10-25T17:40:43.1591549Z Selecting previously unselected package libraqm0:amd64.
+2026-10-25T17:40:43.1699598Z Preparing to unpack .../22-libraqm0_0.10.1-1build1_amd64.deb ...
+2026-10-25T17:40:43.1708961Z Unpacking libraqm0:amd64 (0.10.1-1build1) ...
+2026-10-25T17:40:43.1866456Z Selecting previously unselected package libtesseract5:amd64.
+2026-10-25T17:40:43.1973427Z Preparing to unpack .../23-libtesseract5_5.3.4-1build5_amd64.deb ...
+2026-10-25T17:40:43.1982683Z Unpacking libtesseract5:amd64 (5.3.4-1build5) ...
+2026-10-25T17:40:43.2300145Z Selecting previously unselected package lld:amd64.
+2026-10-25T17:40:43.2408268Z Preparing to unpack .../24-lld_1%3a18.0-59~exp2_amd64.deb ...
+2026-10-25T17:40:43.2418755Z Unpacking lld:amd64 (1:18.0-59~exp2) ...
+2026-10-25T17:40:43.2559813Z Selecting previously unselected package llvm-runtime:amd64.
+2026-10-25T17:40:43.2667099Z Preparing to unpack .../25-llvm-runtime_1%3a18.0-59~exp2_amd64.deb ...
+2026-10-25T17:40:43.2676420Z Unpacking llvm-runtime:amd64 (1:18.0-59~exp2) ...
+2026-10-25T17:40:43.2815278Z Selecting previously unselected package llvm.
+2026-10-25T17:40:43.2917702Z Preparing to unpack .../26-llvm_1%3a18.0-59~exp2_amd64.deb ...
+2026-10-25T17:40:43.2941092Z Unpacking llvm (1:18.0-59~exp2) ...
+2026-10-25T17:40:43.3116094Z Selecting previously unselected package mtools.
+2026-10-25T17:40:43.3225712Z Preparing to unpack .../27-mtools_4.0.43-1build1_amd64.deb ...
+2026-10-25T17:40:43.3234789Z Unpacking mtools (4.0.43-1build1) ...
+2026-10-25T17:40:43.3437335Z Selecting previously unselected package python3-olefile.
+2026-10-25T17:40:43.3543761Z Preparing to unpack .../28-python3-olefile_0.46-3_all.deb ...
+2026-10-25T17:40:43.3572087Z Unpacking python3-olefile (0.46-3) ...
+2026-10-25T17:40:43.3734674Z Selecting previously unselected package python3-pil:amd64.
+2026-10-25T17:40:43.3839527Z Preparing to unpack .../29-python3-pil_10.2.0-1ubuntu1.3_amd64.deb ...
+2026-10-25T17:40:43.3846403Z Unpacking python3-pil:amd64 (10.2.0-1ubuntu1.3) ...
+2026-10-25T17:40:43.4094650Z Selecting previously unselected package tesseract-ocr-eng.
+2026-10-25T17:40:43.4201971Z Preparing to unpack .../30-tesseract-ocr-eng_1%3a4.1.0-2_all.deb ...
+2026-10-25T17:40:43.4208431Z Unpacking tesseract-ocr-eng (1:4.1.0-2) ...
+2026-10-25T17:40:43.4629387Z Selecting previously unselected package tesseract-ocr-osd.
+2026-10-25T17:40:43.4743673Z Preparing to unpack .../31-tesseract-ocr-osd_1%3a4.1.0-2_all.deb ...
+2026-10-25T17:40:43.4752085Z Unpacking tesseract-ocr-osd (1:4.1.0-2) ...
+2026-10-25T17:40:43.5605249Z Selecting previously unselected package tesseract-ocr.
+2026-10-25T17:40:43.5713194Z Preparing to unpack .../32-tesseract-ocr_5.3.4-1build5_amd64.deb ...
+2026-10-25T17:40:43.5718785Z Unpacking tesseract-ocr (5.3.4-1build5) ...
+2026-10-25T17:40:43.5929851Z Selecting previously unselected package xorriso.
+2026-10-25T17:40:43.6037523Z Preparing to unpack .../33-xorriso_1%3a1.5.6-1.1ubuntu3_amd64.deb ...
+2026-10-25T17:40:43.6049057Z Unpacking xorriso (1:1.5.6-1.1ubuntu3) ...
+2026-10-25T17:40:43.6732858Z Setting up libcurl4t64:amd64 (8.5.0-2ubuntu10.16) ...
+2026-10-25T17:40:43.6753298Z Setting up mtools (4.0.43-1build1) ...
+2026-10-25T17:40:43.6779969Z Setting up lld:amd64 (1:18.0-59~exp2) ...
+2026-10-25T17:40:43.6799340Z Setting up python3-olefile (0.46-3) ...
+2026-10-25T17:40:43.7666579Z Setting up libcurl3t64-gnutls:amd64 (8.5.0-2ubuntu10.16) ...
+2026-10-25T17:40:43.8466712Z Setting up tesseract-ocr-eng (1:4.1.0-2) ...
+2026-10-25T17:40:43.8487597Z Setting up libglib2.0-0t64:amd64 (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:43.8593467Z Setting up libglib2.0-data (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:43.8613983Z Setting up uuid-dev:amd64 (2.39.3-9ubuntu6.6) ...
+2026-10-25T17:40:43.8636008Z Setting up clang (1:18.0-59~exp2) ...
+2026-10-25T17:40:43.8796312Z Setting up libraqm0:amd64 (0.10.1-1build1) ...
+2026-10-25T17:40:43.8816492Z Setting up llvm-runtime:amd64 (1:18.0-59~exp2) ...
+2026-10-25T17:40:43.8836980Z Setting up libimagequant0:amd64 (2.18.0-1build1) ...
+2026-10-25T17:40:43.8857531Z Setting up llvm (1:18.0-59~exp2) ...
+2026-10-25T17:40:43.8878411Z Setting up libsepol-dev:amd64 (3.5-2build1) ...
+2026-10-25T17:40:43.8901567Z Setting up gir1.2-glib-2.0:amd64 (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:43.8923237Z Setting up libgif7:amd64 (5.2.2-1ubuntu1.2) ...
+2026-10-25T17:40:43.8945645Z Setting up libisofs6t64:amd64 (1.5.6.pl01-1.1ubuntu2) ...
+2026-10-25T17:40:43.8966222Z Setting up libburn4t64:amd64 (1.5.6-1.1build1) ...
+2026-10-25T17:40:43.8989000Z Setting up curl (8.5.0-2ubuntu10.16) ...
+2026-10-25T17:40:43.9010351Z Setting up tesseract-ocr-osd (1:4.1.0-2) ...
+2026-10-25T17:40:43.9031325Z Setting up libisoburn1t64:amd64 (1:1.5.6-1.1ubuntu3) ...
+2026-10-25T17:40:43.9053135Z Setting up xorriso (1:1.5.6-1.1ubuntu3) ...
+2026-10-25T17:40:43.9074482Z Setting up libglib2.0-dev-bin (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:44.0115630Z Setting up libblkid-dev:amd64 (2.39.3-9ubuntu6.6) ...
+2026-10-25T17:40:44.0134605Z Setting up libgirepository-2.0-0:amd64 (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:44.0150815Z Setting up libselinux1-dev:amd64 (3.5-2ubuntu2.1) ...
+2026-10-25T17:40:44.0167750Z Setting up libglib2.0-bin (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:44.0184735Z Setting up liblept5:amd64 (1.82.0-3build4) ...
+2026-10-25T17:40:44.0201734Z Setting up python3-pil:amd64 (10.2.0-1ubuntu1.3) ...
+2026-10-25T17:40:44.2132669Z Setting up libtesseract5:amd64 (5.3.4-1build5) ...
+2026-10-25T17:40:44.2148931Z Setting up libmount-dev:amd64 (2.39.3-9ubuntu6.6) ...
+2026-10-25T17:40:44.2165726Z Setting up tesseract-ocr (5.3.4-1build5) ...
+2026-10-25T17:40:44.2182916Z Setting up libglib2.0-dev:amd64 (2.80.0-6ubuntu3.10) ...
+2026-10-25T17:40:44.2204148Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-25T17:40:44.4072275Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-25T17:40:44.4091872Z Not building database; man-db/auto-update is not 'true'.
+2026-10-25T17:40:44.4105394Z Processing triggers for install-info (7.1-3build2) ...
+2026-10-25T17:40:44.9128480Z 
+2026-10-25T17:40:44.9129246Z Running kernel seems to be up-to-date.
+2026-10-25T17:40:44.9129824Z 
+2026-10-25T17:40:44.9129964Z Restarting services...
+2026-10-25T17:40:44.9431592Z  systemctl restart packagekit.service php8.3-fpm.service polkit.service udisks2.service
+2026-10-25T17:40:45.0273743Z 
+2026-10-25T17:40:45.0274893Z Service restarts being deferred:
+2026-10-25T17:40:45.0275368Z  systemctl restart ModemManager.service
+2026-10-25T17:40:45.0276226Z  systemctl restart networkd-dispatcher.service
+2026-10-25T17:40:45.0276537Z 
+2026-10-25T17:40:45.0276701Z No containers need to be restarted.
+2026-10-25T17:40:45.0276897Z 
+2026-10-25T17:40:45.0277112Z No user sessions are running outdated binaries.
+2026-10-25T17:40:45.0277349Z 
+2026-10-25T17:40:45.0277601Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-25T17:40:48.1008284Z ERROR: lib/apk/exec/busybox-1.38.0-r7.trigger: exited with error 127
+2026-10-25T17:40:48.1008782Z Executing glib-2.90.0-r0.trigger
+2026-10-25T17:40:48.1009084Z * unshare: Operation not permitted
+2026-10-25T17:40:48.1009425Z ERROR: lib/apk/exec/glib-2.90.0-r0.trigger: exited with error 127
+2026-10-25T17:40:48.1009759Z 4 errors; 323.0 MiB in 60 packages
+2026-10-25T17:40:48.1149328Z QEMU emulator version 11.1.2
+2026-10-25T17:40:48.1188042Z Cloning into 'third_party/limine-bin'...
+2026-10-25T17:40:49.3519755Z warning: refs/tags/v11.4.1-binary 2b18adea60e0b39fd534cd51b2dc4c00ade3807e is not a commit!
+2026-10-25T17:40:49.4590433Z Note: switching to '5be26a73d7b7b4d4477d18be94e1d16e615adf56'.
+2026-10-25T17:40:49.4591103Z 
+2026-10-25T17:40:49.4591826Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-25T17:40:49.4592770Z changes and commit them, and you can discard any commits you make in this
+2026-10-25T17:40:49.4593449Z state without impacting any branches by switching back to a branch.
+2026-10-25T17:40:49.4593846Z 
+2026-10-25T17:40:49.4594142Z If you want to create a new branch to retain commits you create, you may
+2026-10-25T17:40:49.4594726Z do so (now or later) by using -c with the switch command. Example:
+2026-10-25T17:40:49.4595048Z 
+2026-10-25T17:40:49.4595289Z   git switch -c <new-branch-name>
+2026-10-25T17:40:49.4595611Z 
+2026-10-25T17:40:49.4595776Z Or undo this operation with:
+2026-10-25T17:40:49.4596021Z 
+2026-10-25T17:40:49.4596176Z   git switch -
+2026-10-25T17:40:49.4596396Z 
+2026-10-25T17:40:49.4596688Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-25T17:40:49.4596989Z 
+2026-10-25T17:40:49.8911044Z Cloning into 'third_party/uACPI'...
+2026-10-25T17:40:50.9271644Z deps ready
+2026-10-25T17:40:50.9805411Z ##[group]Run actions/cache@v4
+2026-10-25T17:40:50.9805716Z with:
+2026-10-25T17:40:50.9805973Z   path: /home/runner/work/9os/9os/.tools/dl/alpine
+2026-10-25T17:40:50.9806434Z   key: alpine-v3.22-x86_64-062677b12ab1e07a81835dd4fd1be656616bdd663d1a7b3b2df01501fd22be9c
+2026-10-25T17:40:50.9806824Z   restore-keys: alpine-v3.22-x86_64-
+2026-10-25T17:40:50.9807094Z   enableCrossOsArchive: false
+2026-10-25T17:40:50.9807372Z   fail-on-cache-miss: false
+2026-10-25T17:40:50.9807614Z   lookup-only: false
+2026-10-25T17:40:50.9807851Z   save-always: false
+2026-10-25T17:40:50.9808066Z env:
+2026-10-25T17:40:50.9808267Z   ARCH: x86_64
+2026-10-25T17:40:50.9808544Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:40:50.9808809Z ##[endgroup]
+2026-10-25T17:40:51.0592480Z (node:3091) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-25T17:40:51.0593306Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-25T17:40:51.2114903Z Cache not found for input keys: alpine-v3.22-x86_64-062677b12ab1e07a81835dd4fd1be656616bdd663d1a7b3b2df01501fd22be9c, alpine-v3.22-x86_64-
+2026-10-25T17:40:51.2204912Z ##[group]Run PYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py
+2026-10-25T17:40:51.2205551Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py[0m
+2026-10-25T17:40:51.2206033Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-download-host-tests.py[0m
+2026-10-25T17:40:51.2206527Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py[0m
+2026-10-25T17:40:51.2207041Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py[0m
+2026-10-25T17:40:51.2207452Z [36;1mscripts/fallocate-host-tests.sh[0m
+2026-10-25T17:40:51.2207750Z [36;1mscripts/ptracestop-host-tests.sh[0m
+2026-10-25T17:40:51.2208055Z [36;1mscripts/unixcred-host-tests.sh[0m
+2026-10-25T17:40:51.2208323Z [36;1mscripts/procinfo-host-tests.sh[0m
+2026-10-25T17:40:51.2208618Z [36;1mscripts/dircookie-host-tests.sh[0m
+2026-10-25T17:40:51.2208941Z [36;1mscripts/poll-wake-host-tests.sh[0m
+2026-10-25T17:40:51.2209296Z [36;1mscripts/alarm-cpu-host-tests.sh[0m
+2026-10-25T17:40:51.2209647Z [36;1mscripts/futex-host-tests.sh[0m
+2026-10-25T17:40:51.2209928Z [36;1mscripts/eventfd-host-tests.sh[0m
+2026-10-25T17:40:51.2210207Z [36;1mscripts/poll-filter-host-tests.sh[0m
+2026-10-25T17:40:51.2210513Z [36;1mpython3 tests/epoll-abi-host/run.py --mode native[0m
+2026-10-25T17:40:51.2210913Z [36;1mpython3 tests/epoll-abi-host/run.py --mode model --mutations[0m
+2026-10-25T17:40:51.2211287Z [36;1mpython3 tests/epoll-restart-host/run.py --mutations[0m
+2026-10-25T17:40:51.2211706Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/guest-watchdog-control.py[0m
+2026-10-25T17:40:51.2212248Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 tests/epoll-abi-host/test-guest-watchdog-cleanup.py[0m
+2026-10-25T17:40:51.2212887Z [36;1mpython3 scripts/terminal-attempt-history-host-tests.py[0m
+2026-10-25T17:40:51.2213385Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-transport-host-tests.py[0m
+2026-10-25T17:40:51.2213894Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-status-host-tests.py[0m
+2026-10-25T17:40:51.2214399Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-utility-status-host-tests.py[0m
+2026-10-25T17:40:51.2214923Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 tests/a11y-dbus-host/test-error-identity.py[0m
+2026-10-25T17:40:51.2215429Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 tests/a11y-dbus-host/test-error-identity-mutations.py[0m
+2026-10-25T17:40:51.2215948Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-readbacks.py[0m
+2026-10-25T17:40:51.2216384Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence.py[0m
+2026-10-25T17:40:51.2216841Z [36;1mPYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence-mutations.py[0m
+2026-10-25T17:40:51.2217225Z [36;1mscripts/evdev-host-tests.sh[0m
+2026-10-25T17:40:51.2217544Z [36;1mpython3 scripts/qtdeclarative-cross-host-tests.py[0m
+2026-10-25T17:40:51.2217899Z [36;1mpython3 scripts/host-qsb-host-tests.py[0m
+2026-10-25T17:40:51.2218234Z [36;1mpython3 scripts/quick-pixel-host-tests.py[0m
+2026-10-25T17:40:51.2218547Z [36;1mpython3 scripts/quick-wayland-host-tests.py[0m
+2026-10-25T17:40:51.2218883Z [36;1mpython3 scripts/glib-zlib-cache-host-tests.py[0m
+2026-10-25T17:40:51.2219186Z [36;1mscripts/proctask-host-tests.sh[0m
+2026-10-25T17:40:51.2219551Z [36;1msudo env MOUNTINFO_HOST_MUTATE=1 scripts/mountinfo-host-tests.sh[0m
+2026-10-25T17:40:51.2219885Z [36;1mscripts/pimutex-host-tests.sh[0m
+2026-10-25T17:40:51.2220147Z [36;1mscripts/ioctlwidth-host-tests.sh[0m
+2026-10-25T17:40:51.2220498Z [36;1mpython3 scripts/rootfs-stamp-host-tests.py[0m
+2026-10-25T17:40:51.2220808Z [36;1mpython3 scripts/alpine-host-tests.py[0m
+2026-10-25T17:40:51.2221138Z [36;1mpython3 scripts/alpine-wayland-host-tests.py[0m
+2026-10-25T17:40:51.2221451Z [36;1mpython3 scripts/alpine-plasma-host-tests.py[0m
+2026-10-25T17:40:51.2221879Z [36;1mpython3 scripts/desktopframe-host-tests.py[0m
+2026-10-25T17:40:51.2222333Z [36;1mpython3 scripts/desktopa11y-host-tests.py[0m
+2026-10-25T17:40:51.2222865Z [36;1mpython3 scripts/desktop-terminal-focus-host-tests.py[0m
+2026-10-25T17:40:51.2223242Z [36;1mpython3 scripts/dolphin-discovery-host-tests.py[0m
+2026-10-25T17:40:51.2223618Z [36;1mpython3 scripts/desktop-lifecycle-host-tests.py[0m
+2026-10-25T17:40:51.2223965Z [36;1mpython3 scripts/plasma-failure-diagnostics-host-tests.py[0m
+2026-10-25T17:40:51.2224435Z [36;1mpython3 scripts/plasma-readiness-host-tests.py[0m
+2026-10-25T17:40:51.2224774Z [36;1mpython3 scripts/input-capture-host-tests.py[0m
+2026-10-25T17:40:51.2225103Z [36;1mpython3 scripts/input-capture-status-host-tests.py[0m
+2026-10-25T17:40:51.2225477Z [36;1mpython3 scripts/wayland-keyboard-trace-host-tests.py[0m
+2026-10-25T17:40:51.2225834Z [36;1mpython3 scripts/plasma-input-startup-host-tests.py[0m
+2026-10-25T17:40:51.2226246Z [36;1mpython3 scripts/inner-keyboard-dispatch-host-tests.py[0m
+2026-10-25T17:40:51.2226631Z [36;1mpython3 scripts/konsole-dispatch-trace-host-tests.py[0m
+2026-10-25T17:40:51.2226975Z [36;1mpython3 scripts/qt-key-observer-host-tests.py[0m
+2026-10-25T17:40:51.2227324Z [36;1mpython3 scripts/qt-key-observer-parser-host-tests.py[0m
+2026-10-25T17:40:51.2227687Z [36;1mpython3 scripts/plasma-renderer-thread-host-tests.py[0m
+2026-10-25T17:40:51.2228172Z [36;1mpython3 scripts/desktop-pty-host-tests.py[0m
+2026-10-25T17:40:51.2228503Z [36;1mpython3 scripts/desktop-visible-host-tests.py[0m
+2026-10-25T17:40:51.2228847Z [36;1mpython3 scripts/qemu-type-host-tests.py[0m
+2026-10-25T17:40:51.2229169Z [36;1mpython3 scripts/qemu-qmp-type-host-tests.py[0m
+2026-10-25T17:40:51.2229497Z [36;1mpython3 scripts/alpine-async-image-host-tests.py[0m
+2026-10-25T17:40:51.2269419Z shell: /usr/bin/bash -e {0}
+2026-10-25T17:40:51.2269835Z env:
+2026-10-25T17:40:51.2270105Z   ARCH: x86_64
+2026-10-25T17:40:51.2270364Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:40:51.2270723Z ##[endgroup]
+2026-10-25T17:40:51.3254482Z {"workflow": ".github/workflows/alpine.yml", "job": "alpine", "scenario": "update", "rc": 100, "steps_run": ["Host tools only (no Qt compiler/toolchain build)"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]]]}
+2026-10-25T17:40:51.3477642Z {"workflow": ".github/workflows/alpine.yml", "job": "alpine", "scenario": "partial-index", "rc": 100, "steps_run": ["Host tools only (no Qt compiler/toolchain build)"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]]]}
+2026-10-25T17:40:51.3925021Z {"workflow": ".github/workflows/alpine.yml", "job": "alpine", "scenario": "install", "rc": 101, "steps_run": ["Host tools only (no Qt compiler/toolchain build)"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]], ["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "install", "-y", "-q", "clang", "lld", "llvm", "make", "gcc", "git", "curl", "xorriso", "mtools", "cpio", "jq", "python3-pil", "tesseract-ocr", "tesseract-ocr-eng", "libglib2.0-dev", "pkg-config"]]]}
+2026-10-25T17:40:51.4779734Z {"workflow": ".github/workflows/alpine.yml", "job": "alpine", "scenario": "success", "rc": 0, "steps_run": ["Host tools only (no Qt compiler/toolchain build)"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]], ["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "install", "-y", "-q", "clang", "lld", "llvm", "make", "gcc", "git", "curl", "xorriso", "mtools", "cpio", "jq", "python3-pil", "tesseract-ocr", "tesseract-ocr-eng", "libglib2.0-dev", "pkg-config"]], ["install-qemu-alpine.sh", []], ["fetch-deps.sh", []]]}
+2026-10-25T17:40:51.5009832Z {"workflow": ".github/workflows/alpine.yml", "job": "desktop", "scenario": "update", "rc": 100, "steps_run": ["Host tools only; signed prebuilt desktop dependencies"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]]]}
+2026-10-25T17:40:51.5226299Z {"workflow": ".github/workflows/alpine.yml", "job": "desktop", "scenario": "partial-index", "rc": 100, "steps_run": ["Host tools only; signed prebuilt desktop dependencies"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]]]}
+2026-10-25T17:40:51.5635614Z {"workflow": ".github/workflows/alpine.yml", "job": "desktop", "scenario": "install", "rc": 101, "steps_run": ["Host tools only; signed prebuilt desktop dependencies"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]], ["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "install", "-y", "-q", "clang", "lld", "llvm", "make", "gcc", "git", "curl", "xorriso", "mtools", "cpio", "jq", "python3-pil", "tesseract-ocr", "tesseract-ocr-eng", "e2fsprogs", "fdisk", "libglib2.0-bin", "libglib2.0-dev", "pkg-config", "shared-mime-info"]]]}
+2026-10-25T17:40:51.6470172Z {"workflow": ".github/workflows/alpine.yml", "job": "desktop", "scenario": "success", "rc": 0, "steps_run": ["Host tools only; signed prebuilt desktop dependencies"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]], ["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "install", "-y", "-q", "clang", "lld", "llvm", "make", "gcc", "git", "curl", "xorriso", "mtools", "cpio", "jq", "python3-pil", "tesseract-ocr", "tesseract-ocr-eng", "e2fsprogs", "fdisk", "libglib2.0-bin", "libglib2.0-dev", "pkg-config", "shared-mime-info"]], ["install-qemu-alpine.sh", []], ["fetch-deps.sh", []]]}
+2026-10-25T17:40:51.6701491Z {"workflow": ".github/workflows/release.yml", "job": "build", "scenario": "update", "rc": 100, "steps_run": ["Install host packages"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]]]}
+2026-10-25T17:40:51.6921783Z {"workflow": ".github/workflows/release.yml", "job": "build", "scenario": "partial-index", "rc": 100, "steps_run": ["Install host packages"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]]]}
+2026-10-25T17:40:51.7337448Z {"workflow": ".github/workflows/release.yml", "job": "build", "scenario": "install", "rc": 101, "steps_run": ["Install host packages"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]], ["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "install", "-y", "-q", "clang", "lld", "llvm", "xorriso", "mtools", "cpio", "make", "gcc", "gperf", "cmake", "git", "curl", "jq", "bzip2", "xz-utils", "e2fsprogs", "fdisk", "bison", "flex", "pkg-config", "libexpat1-dev", "libffi-dev", "libxml2-dev", "python3-pip", "python3-pil", "ninja-build", "libglib2.0-dev-bin", "libglib2.0-dev", "qemu-system-x86", "qemu-system-misc", "qemu-system-arm", "qemu-efi-aarch64", "qemu-efi-riscv64"]]]}
+2026-10-25T17:40:51.8601419Z {"workflow": ".github/workflows/release.yml", "job": "build", "scenario": "success", "rc": 0, "steps_run": ["Install host packages", "Install QEMU (Alpine edge, same as the dev sandbox)", "Fetch Limine + uACPI"], "calls": [["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "-o", "APT::Update::Error-Mode=any", "update", "-q"]], ["apt-get", ["-o", "Acquire::http::Timeout=30", "-o", "Acquire::https::Timeout=30", "-o", "Acquire::Retries=2", "install", "-y", "-q", "clang", "lld", "llvm", "xorriso", "mtools", "cpio", "make", "gcc", "gperf", "cmake", "git", "curl", "jq", "bzip2", "xz-utils", "e2fsprogs", "fdisk", "bison", "flex", "pkg-config", "libexpat1-dev", "libffi-dev", "libxml2-dev", "python3-pip", "python3-pil", "ninja-build", "libglib2.0-dev-bin", "libglib2.0-dev", "qemu-system-x86", "qemu-system-misc", "qemu-system-arm", "qemu-efi-aarch64", "qemu-efi-riscv64"]], ["pip3", ["install", "--break-system-packages", "meson>=1.3", "Mako", "PyYAML", "packaging"]], ["clang", ["--version"]], ["install-qemu-alpine.sh", []], ["fetch-deps.sh", []]]}
+2026-10-25T17:40:51.8604595Z test_actual_blocks_fail_closed_and_preserve_sequence (__main__.Controls.test_actual_blocks_fail_closed_and_preserve_sequence) ... ok
+2026-10-25T17:40:51.8605317Z test_host_gates_include_setup_and_download_controls_once (__main__.Controls.test_host_gates_include_setup_and_download_controls_once) ... ok
+2026-10-25T17:40:51.8605741Z 
+2026-10-25T17:40:51.8605897Z ----------------------------------------------------------------------
+2026-10-25T17:40:51.8613450Z Ran 2 tests in 0.560s
+2026-10-25T17:40:51.8613625Z 
+2026-10-25T17:40:51.8613780Z OK
+2026-10-25T17:40:52.0964944Z ..................
+2026-10-25T17:40:52.0965489Z ----------------------------------------------------------------------
+2026-10-25T17:40:52.0965958Z Ran 18 tests in 0.066s
+2026-10-25T17:40:52.0966187Z 
+2026-10-25T17:40:52.0966299Z OK
+2026-10-25T17:40:52.0973461Z SEMANTIC GUARD MUTANT REJECTED: start-clock-unguarded
+2026-10-25T17:40:52.0983984Z SEMANTIC GUARD MUTANT REJECTED: end-clock-unguarded
+2026-10-25T17:40:52.0984517Z SEMANTIC GUARD MUTANT REJECTED: serialization-unguarded
+2026-10-25T17:40:52.0984981Z SEMANTIC GUARD MUTANT REJECTED: oversize-note-allowed
+2026-10-25T17:40:52.0985467Z SEMANTIC GUARD MUTANT REJECTED: nonfinite-json-allowed
+2026-10-25T17:40:52.0985947Z SEMANTIC MUTANT REJECTED: missing-summary
+2026-10-25T17:40:52.0986943Z SEMANTIC MUTANT REJECTED: wrong-attempt-index
+2026-10-25T17:40:52.0987353Z SEMANTIC MUTANT REJECTED: lost-http-status
+2026-10-25T17:40:52.0987717Z SEMANTIC MUTANT REJECTED: wrong-elapsed
+2026-10-25T17:40:52.0988166Z SEMANTIC MUTANT REJECTED: timeout-misclassified
+2026-10-25T17:40:52.0988576Z SEMANTIC MUTANT REJECTED: url-note-altered
+2026-10-25T17:40:52.1703960Z Native shells: /usr/bin/bash, /usr/bin/dash
+2026-10-25T17:40:52.1705937Z Exact command bytes: 933 pre-newline: 949 including newline: 950
+2026-10-25T17:40:52.1723962Z test_actual_argv_source_and_transport_bound (__main__.StraceTail.test_actual_argv_source_and_transport_bound) ... ok
+2026-10-25T17:40:52.2666588Z test_binary_caps_and_lookahead (__main__.StraceTail.test_binary_caps_and_lookahead) ... ok
+2026-10-25T17:40:52.3102968Z test_closed_stdout_fallback_and_trap_errors_are_quiet (__main__.StraceTail.test_closed_stdout_fallback_and_trap_errors_are_quiet) ... ok
+2026-10-25T17:40:52.3774323Z test_complete_valid_utility_output_then_nonzero (__main__.StraceTail.test_complete_valid_utility_output_then_nonzero) ... ok
+2026-10-25T17:40:52.4368909Z test_invalid_hex_or_wrong_length_is_unknown (__main__.StraceTail.test_invalid_hex_or_wrong_length_is_unknown) ... ok
+2026-10-25T17:40:52.5065167Z test_malformed_count_is_unknown (__main__.StraceTail.test_malformed_count_is_unknown) ... ok
+2026-10-25T17:40:52.5270778Z test_missing_trace_and_mktemp_failure (__main__.StraceTail.test_missing_trace_and_mktemp_failure) ... ok
+2026-10-25T17:40:52.5983067Z test_original_status_and_grep_sequence (__main__.StraceTail.test_original_status_and_grep_sequence) ... ok
+2026-10-25T17:40:52.6226245Z test_read_failure_and_final_print_failures_preserve_status (__main__.StraceTail.test_read_failure_and_final_print_failures_preserve_status) ... ok
+2026-10-25T17:40:52.6346490Z KILLED semantic mutant: od-status shell: /usr/bin/bash
+2026-10-25T17:40:52.6422082Z KILLED semantic mutant: od-status shell: /usr/bin/dash
+2026-10-25T17:40:52.6540545Z KILLED semantic mutant: tr-status shell: /usr/bin/bash
+2026-10-25T17:40:52.6621570Z KILLED semantic mutant: tr-status shell: /usr/bin/dash
+2026-10-25T17:40:52.6757172Z KILLED semantic mutant: tail-status shell: /usr/bin/bash
+2026-10-25T17:40:52.6832305Z KILLED semantic mutant: tail-status shell: /usr/bin/dash
+2026-10-25T17:40:52.6949297Z KILLED semantic mutant: wc-status shell: /usr/bin/bash
+2026-10-25T17:40:52.7026732Z KILLED semantic mutant: wc-status shell: /usr/bin/dash
+2026-10-25T17:40:52.7137820Z KILLED semantic mutant: printf-status shell: /usr/bin/bash
+2026-10-25T17:40:52.7212754Z KILLED semantic mutant: printf-status shell: /usr/bin/dash
+2026-10-25T17:40:52.7322037Z KILLED semantic mutant: wrong-rc shell: /usr/bin/bash
+2026-10-25T17:40:52.7394030Z KILLED semantic mutant: wrong-rc shell: /usr/bin/dash
+2026-10-25T17:40:52.7424908Z KILLED semantic mutant: weaken-grep shell: /usr/bin/bash
+2026-10-25T17:40:52.7444002Z KILLED semantic mutant: weaken-grep shell: /usr/bin/dash
+2026-10-25T17:40:52.7548531Z KILLED semantic mutant: lost-lookahead shell: /usr/bin/bash
+2026-10-25T17:40:52.7616088Z KILLED semantic mutant: lost-lookahead shell: /usr/bin/dash
+2026-10-25T17:40:52.7721166Z KILLED semantic mutant: raw-trace shell: /usr/bin/bash
+2026-10-25T17:40:52.7790819Z KILLED semantic mutant: raw-trace shell: /usr/bin/dash
+2026-10-25T17:40:52.7906222Z KILLED semantic mutant: lost-hex-validation shell: /usr/bin/bash
+2026-10-25T17:40:52.7983921Z KILLED semantic mutant: lost-hex-validation shell: /usr/bin/dash
+2026-10-25T17:40:52.8018940Z KILLED semantic mutant: stderr-boundary shell: /usr/bin/bash
+2026-10-25T17:40:52.8040238Z KILLED semantic mutant: stderr-boundary shell: /usr/bin/dash
+2026-10-25T17:40:52.8040903Z test_semantic_mutants (__main__.StraceTail.test_semantic_mutants) ... ok
+2026-10-25T17:40:52.8074401Z test_success_is_quiet_and_no_diagnostic_utilities (__main__.StraceTail.test_success_is_quiet_and_no_diagnostic_utilities) ... ok
+2026-10-25T17:40:52.8228081Z test_transfer_printf_failure_is_unknown (__main__.StraceTail.test_transfer_printf_failure_is_unknown) ... ok
+2026-10-25T17:40:52.8228944Z test_workflow_gate_wiring (__main__.StraceTail.test_workflow_gate_wiring) ... ok
+2026-10-25T17:40:52.8229300Z 
+2026-10-25T17:40:52.8229545Z ----------------------------------------------------------------------
+2026-10-25T17:40:52.8229924Z Ran 13 tests in 0.676s
+2026-10-25T17:40:52.8230078Z 
+2026-10-25T17:40:52.8230172Z OK
+2026-10-25T17:40:52.9242211Z test_bad_checksum_and_offline_missing_prevent_any_add (__main__.HelperContracts.test_bad_checksum_and_offline_missing_prevent_any_add) ... ok
+2026-10-25T17:40:52.9356171Z test_clean_orchestration_verify_all_then_strict_offline_add (__main__.HelperContracts.test_clean_orchestration_verify_all_then_strict_offline_add) ... ok
+2026-10-25T17:40:52.9458340Z test_dependency_solver_failure_prevents_actual_install (__main__.HelperContracts.test_dependency_solver_failure_prevents_actual_install) ... ok
+2026-10-25T17:40:52.9553451Z test_dryrun_unexpected_state_prevents_actual_add (__main__.HelperContracts.test_dryrun_unexpected_state_prevents_actual_add) ... ok
+2026-10-25T17:40:52.9854430Z test_installed_hash_abi_and_inventory_checked (__main__.HelperContracts.test_installed_hash_abi_and_inventory_checked) ... ok
+2026-10-25T17:40:53.0249800Z test_invalid_lock_inventory_arch_trust_and_version_rejected (__main__.HelperContracts.test_invalid_lock_inventory_arch_trust_and_version_rejected) ... ok
+2026-10-25T17:40:53.0345969Z test_native_add_failure_is_not_rescued (__main__.HelperContracts.test_native_add_failure_is_not_rescued) ... ok
+2026-10-25T17:40:53.0439336Z test_nonempty_and_symlink_targets_rejected (__main__.HelperContracts.test_nonempty_and_symlink_targets_rejected) ... ok
+2026-10-25T17:40:53.0486300Z test_post_download_independent_checksum_guard (__main__.HelperContracts.test_post_download_independent_checksum_guard) ... ok
+2026-10-25T17:40:53.0500938Z test_private_bootstrap_command_is_offline_with_empty_repositories (__main__.HelperContracts.test_private_bootstrap_command_is_offline_with_empty_repositories) ... ok
+2026-10-25T17:40:53.0543534Z test_private_verifier_tool_key_hash_and_extra_key_fail_closed (__main__.HelperContracts.test_private_verifier_tool_key_hash_and_extra_key_fail_closed) ... ok
+2026-10-25T17:40:53.0546058Z test_real_lock_exact_identity_inventory (__main__.HelperContracts.test_real_lock_exact_identity_inventory) ... ok
+2026-10-25T17:40:53.0641599Z KILLED semantic mutant: bootstrap-network
+2026-10-25T17:40:53.0736257Z KILLED semantic mutant: bootstrap-repositories
+2026-10-25T17:40:53.0836594Z KILLED semantic mutant: private-tool
+2026-10-25T17:40:53.0938791Z KILLED semantic mutant: trust-key-hash
+2026-10-25T17:40:53.1031652Z KILLED semantic mutant: trust-key-set
+2026-10-25T17:40:53.1168979Z KILLED semantic mutant: checksum
+2026-10-25T17:40:53.1311786Z KILLED semantic mutant: signature
+2026-10-25T17:40:53.1421895Z KILLED semantic mutant: identity
+2026-10-25T17:40:53.1565571Z KILLED semantic mutant: closure
+2026-10-25T17:40:53.1711862Z KILLED semantic mutant: scripts
+2026-10-25T17:40:53.1859025Z KILLED semantic mutant: network
+2026-10-25T17:40:53.2000288Z KILLED semantic mutant: contents
+2026-10-25T17:40:53.2146770Z KILLED semantic mutant: inventory
+2026-10-25T17:40:53.2229291Z test_semantic_mutants_not_setup_failures (__main__.HelperContracts.test_semantic_mutants_not_setup_failures) ... ok
+2026-10-25T17:40:53.2287817Z test_signature_failure_prevents_metadata_dryrun_install (__main__.HelperContracts.test_signature_failure_prevents_metadata_dryrun_install) ... ok
+2026-10-25T17:40:53.3349315Z test_signed_metadata_mismatch_and_duplicate_rejected_before_add (__main__.HelperContracts.test_signed_metadata_mismatch_and_duplicate_rejected_before_add) ... ok
+2026-10-25T17:40:53.3427233Z Frozen legacy oracle: 62911e9b2b9e62e1e90ada1871f016551345e028ce571fe904a0eb0e919cfbce solver rc1; no fixture hash/QEMU
+2026-10-25T17:40:53.3428818Z test_exact_original_solver_failure_prevents_qemu (__main__.LegacyBaseline.test_exact_original_solver_failure_prevents_qemu) ... ok
+2026-10-25T17:40:53.3429920Z test_helper_and_new_module_path_only_consumer_unchanged (__main__.OracleWiring.test_helper_and_new_module_path_only_consumer_unchanged) ... ok
+2026-10-25T17:40:53.3431141Z test_workflow_only_one_new_host_invocation_each (__main__.OracleWiring.test_workflow_only_one_new_host_invocation_each) ... ok
+2026-10-25T17:40:53.3431570Z 
+2026-10-25T17:40:53.3431767Z ----------------------------------------------------------------------
+2026-10-25T17:40:53.3432149Z Ran 18 tests in 0.443s
+2026-10-25T17:40:53.3432318Z 
+2026-10-25T17:40:53.3432521Z OK
+2026-10-25T17:40:53.4511362Z fallocatetest: filesystem reserves and extends the requested range
+2026-10-25T17:40:53.4511909Z fallocatetest: 31 checks, 0 failures
+2026-10-25T17:40:53.4850815Z userland/tests/ptracestoptest.c: In function ‘watchdog’:
+2026-10-25T17:40:53.4851600Z userland/tests/ptracestoptest.c:17:43: warning: ignoring return value of ‘write’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+2026-10-25T17:40:53.4852647Z    17 | static void watchdog(int sig) { (void)sig;write(2,"ptracestoptest: FAIL watchdog\n",29);_exit(124); }
+2026-10-25T17:40:53.4853192Z       |                                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-10-25T17:40:53.5871069Z ptracestoptest: pending signal/continue done
+2026-10-25T17:40:53.5871723Z ptracestoptest: stopped kill done
+2026-10-25T17:40:53.6076359Z ptracestoptest: interrupt/detach preserves prior job stop done
+2026-10-25T17:40:53.6427178Z ptracestoptest: 2492 checks, 0 failures
+2026-10-25T17:40:53.7376923Z unixcredtest: type=2 split=0
+2026-10-25T17:40:53.7377593Z unixcredtest: type=1 split=0
+2026-10-25T17:40:53.7378681Z unixcredtest: split real/effective IDs require root
+2026-10-25T17:40:53.7379266Z unixcredtest: 88 checks, 0 failures
+2026-10-25T17:40:54.0314775Z procinfotest: 183 checks, 0 failures
+2026-10-25T17:40:54.1289167Z DIRECTORY_COOKIES path=/tmp/dircookie-RtRXLC
+2026-10-25T17:40:54.1292913Z DIRECTORY_COOKIES path=/tmp/dircookie-RtRXLC
+2026-10-25T17:40:54.1294634Z DIRECTORY_COOKIES path=/proc/self
+2026-10-25T17:40:54.1300187Z DIRECTORY_COOKIES path=/proc/self/fd
+2026-10-25T17:40:54.1300764Z DIRECTORY_COOKIES path=/proc/self/task
+2026-10-25T17:40:54.1301179Z DIRECTORY_COOKIES path=/sys/class
+2026-10-25T17:40:54.1306983Z dircookietest: 804 checks, 0 failures
+2026-10-25T17:40:54.2531528Z pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=0 transport=eventfd waiter_api=poll
+2026-10-25T17:40:54.2784510Z pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=24 transport=eventfd waiter_api=poll
+2026-10-25T17:40:54.3047184Z pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=poll
+2026-10-25T17:40:54.3310922Z pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=poll
+2026-10-25T17:40:54.3570402Z pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=0 transport=eventfd waiter_api=epoll_pwait
+2026-10-25T17:40:54.3828401Z pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=24 transport=eventfd waiter_api=epoll_pwait
+2026-10-25T17:40:54.4091330Z pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=0 transport=unix-stream waiter_api=epoll_pwait
+2026-10-25T17:40:54.4352950Z pollwakebench: transfers=1000 idle_waiters=24 wall_ms=0 producer_switches=0 waiter_switches=24 failures=0 inotify_waiters=24 transport=unix-stream waiter_api=epoll_pwait
+2026-10-25T17:40:54.6837939Z poll-wake-host: PASS eight exact modes, seven invalid CLI controls and two delivery mutants; no timing thresholds
+2026-10-25T17:40:55.6175794Z unixpolltest: PASSED (382 checks, 0 failures)
+2026-10-25T17:40:55.6183659Z unixpoll-host: PASS exact native endpoint controls and CLI rejection; no GUI proof
+2026-10-25T17:40:57.8297227Z alarmcputest: delivered SIGALRM in busy user loop on cpu0
+2026-10-25T17:40:57.8297868Z alarmcputest: delivered SIGALRM in busy user loop on cpu3
+2026-10-25T17:40:57.8298258Z alarmcputest: PASSED busy user timer delivery on allowed endpoint CPUs
+2026-10-25T17:40:57.8489939Z userland/tests/futexoptest.c: In function ‘main’:
+2026-10-25T17:40:57.8490772Z userland/tests/futexoptest.c:89:38: warning: ignoring return value of ‘write’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+2026-10-25T17:40:57.8491741Z    89 |             if (!pid) { close(p[0]); write(p[1],"R",1); close(p[1]); struct timespec ts={2,0}; _exit(fx(x+1,0,0,(uintptr_t)&ts,NULL,0)==0 ? 0 : 1); }
+2026-10-25T17:40:57.8492204Z       |                                      ^~~~~~~~~~~~~~~~~
+2026-10-25T17:40:57.8492926Z userland/tests/futexoptest.c:100:42: warning: ignoring return value of ‘read’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+2026-10-25T17:40:57.8493542Z   100 |         if (!pid) { char c; close(p[1]); read(p[0],&c,1); close(p[0]); _exit(*cow==7 ? 0 : 1); }
+2026-10-25T17:40:57.8493899Z       |                                          ^~~~~~~~~~~~~~~
+2026-10-25T17:40:57.8494468Z userland/tests/futexoptest.c:102:13: warning: ignoring return value of ‘write’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+2026-10-25T17:40:57.8495095Z   102 |             write(p[1],"R",1); close(p[1]); int st; CHECK(waitpid(pid,&st,0)==pid && WIFEXITED(st) && WEXITSTATUS(st)==0); }
+2026-10-25T17:40:57.8495730Z       |             ^~~~~~~~~~~~~~~~~
+2026-10-25T17:40:58.5099068Z futexoptest: PASSED (128 checks, 0 failures)
+2026-10-25T17:40:58.6098424Z futexbitsettest: PASSED (52 checks, 0 failures)
+2026-10-25T17:40:58.6903180Z futexrequeuetest: PASSED (63 checks, 0 failures)
+2026-10-25T17:40:58.8005331Z futex requeue exact-function list controls: 21 groups passed (mock locks only)
+2026-10-25T17:40:59.0594307Z futex requeue transaction negative rejected: compare-unlocked
+2026-10-25T17:40:59.0604457Z futex requeue transaction negative rejected: compare-wake-gap
+2026-10-25T17:40:59.3368435Z eventfdwaketest: PASSED (51 checks, 0 failures)
+2026-10-25T17:41:08.8512667Z eventfd wake model: 4 routing/enrollment groups passed
+2026-10-25T17:41:08.8513752Z eventfd wake model: rejected missing-private-wake (signal 14)
+2026-10-25T17:41:08.8514411Z eventfd wake model: rejected only-saturated-writer-wake (signal 14)
+2026-10-25T17:41:08.8514938Z eventfd wake model: rejected missing-pollout-wake (signal 14)
+2026-10-25T17:41:08.8515637Z eventfd wake model: rejected unconditional-global-drain (signal 6)
+2026-10-25T17:41:28.5246705Z eventfd installer model: x86 path passed; missing/duplicate mutations rejected
+2026-10-25T17:41:28.5247206Z poll filter installer model: x86 path passed; missing/duplicate mutations rejected
+2026-10-25T17:41:28.5247625Z evdev installer model: x86 path passed; missing/duplicate mutations rejected
+2026-10-25T17:41:28.5248151Z Qt observer installer model: libraries/caller paths and strict flags passed; missing/duplicate libraries rejected
+2026-10-25T17:41:28.5248706Z Qt observer source isolation: standalone mkroot namespace excludes all ABI fixtures
+2026-10-25T17:41:28.5249166Z independent bulk AT-SPI installer: exact nested source/output; missing/duplicate rejected
+2026-10-25T17:41:28.5249605Z snapshot installer: nested source and exact output; missing/duplicate rejected
+2026-10-25T17:41:28.5250012Z non-setuid snapshot target: strict nested source/output; missing/duplicate rejected
+2026-10-25T17:41:28.5250452Z Unix poll installer: exact output; missing/duplicate rejected
+2026-10-25T17:41:28.5250843Z Unix poll installer: missing Werror/fortify flags rejected independently
+2026-10-25T17:41:29.7090006Z epollabitest: exact output; missing/duplicate/strict-flag mutations rejected
+2026-10-25T17:41:29.7090802Z epollrestarttest: exact output; missing/duplicate/strict-flag mutations rejected
+2026-10-25T17:41:29.7091336Z pollfiltertest: PASSED (199 checks, 0 failures)
+2026-10-25T17:41:31.2099490Z poll filter exact-function model: 14 groups passed (mock locks/FDs only)
+2026-10-25T17:41:31.2123193Z poll filter model: rejected exclude-unfiltered
+2026-10-25T17:41:31.2153109Z poll filter model: rejected wake-unrelated
+2026-10-25T17:41:31.2168590Z poll filter model: rejected stale-epoch-enrolls
+2026-10-25T17:41:31.2169903Z poll filter model: rejected missing-publication
+2026-10-25T17:41:31.2170461Z poll filter model: rejected missing-reset
+2026-10-25T17:41:31.2170908Z poll filter model: rejected unsafe-wrapper
+2026-10-25T17:41:31.2171417Z poll filter model: rejected file-not-inode-alias-key
+2026-10-25T17:41:32.9910118Z epoll exact-scanner model: 15 groups passed (mock locks/FDs only)
+2026-10-25T17:41:32.9934405Z epoll scanner model: rejected overwrite-leaf-union
+2026-10-25T17:41:32.9973687Z epoll scanner model: rejected unsafe-wrapper
+2026-10-25T17:41:33.0003188Z epoll scanner model: rejected unsafe-empty
+2026-10-25T17:41:33.0021721Z epoll scanner model: rejected skip-disabled-guard
+2026-10-25T17:41:33.0022561Z epoll scanner model: rejected stale-fd-accepted
+2026-10-25T17:41:33.0028234Z epoll scanner model: rejected missing-et-latch
+2026-10-25T17:41:33.0032597Z epoll scanner model: rejected missing-oneshot
+2026-10-25T17:41:33.0033182Z epoll scanner model: rejected key-after-release
+2026-10-25T17:41:33.0582338Z host: Linux-6.17.0-1022-azure-x86_64-with-glibc2.39
+2026-10-25T17:41:33.0591450Z compiler: cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+2026-10-25T17:41:33.0599127Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host /home/runner/work/9os/9os/tests/epoll-abi-host/native.c -o <tmp>/normal
+2026-10-25T17:41:33.3614308Z PASS pwait nonnull sigset size=0 got=-22 want=-22
+2026-10-25T17:41:33.3615230Z PASS pwait2 nonnull sigset size=0 got=-22 want=-22
+2026-10-25T17:41:33.3616012Z PASS pwait null sigset ignores size=0 got=0 want=0
+2026-10-25T17:41:33.3616603Z PASS pwait2 null sigset ignores size=0 got=0 want=0
+2026-10-25T17:41:33.3617213Z PASS pwait nonnull sigset size=1 got=-22 want=-22
+2026-10-25T17:41:33.3617790Z PASS pwait2 nonnull sigset size=1 got=-22 want=-22
+2026-10-25T17:41:33.3618363Z PASS pwait null sigset ignores size=1 got=0 want=0
+2026-10-25T17:41:33.3618961Z PASS pwait2 null sigset ignores size=1 got=0 want=0
+2026-10-25T17:41:33.3619513Z PASS pwait nonnull sigset size=7 got=-22 want=-22
+2026-10-25T17:41:33.3620102Z PASS pwait2 nonnull sigset size=7 got=-22 want=-22
+2026-10-25T17:41:33.3620753Z PASS pwait null sigset ignores size=7 got=0 want=0
+2026-10-25T17:41:33.3621704Z PASS pwait2 null sigset ignores size=7 got=0 want=0
+2026-10-25T17:41:33.3622817Z PASS pwait nonnull sigset size=9 got=-22 want=-22
+2026-10-25T17:41:33.3623605Z PASS pwait2 nonnull sigset size=9 got=-22 want=-22
+2026-10-25T17:41:33.3624421Z PASS pwait null sigset ignores size=9 got=0 want=0
+2026-10-25T17:41:33.3625291Z PASS pwait2 null sigset ignores size=9 got=0 want=0
+2026-10-25T17:41:33.3626074Z PASS pwait nonnull sigset size=16 got=-22 want=-22
+2026-10-25T17:41:33.3626778Z PASS pwait2 nonnull sigset size=16 got=-22 want=-22
+2026-10-25T17:41:33.3627360Z PASS pwait null sigset ignores size=16 got=0 want=0
+2026-10-25T17:41:33.3627982Z PASS pwait2 null sigset ignores size=16 got=0 want=0
+2026-10-25T17:41:33.3628573Z PASS pwait nonnull sigset size=128 got=-22 want=-22
+2026-10-25T17:41:33.3629113Z PASS pwait2 nonnull sigset size=128 got=-22 want=-22
+2026-10-25T17:41:33.3629748Z PASS pwait null sigset ignores size=128 got=0 want=0
+2026-10-25T17:41:33.3630323Z PASS pwait2 null sigset ignores size=128 got=0 want=0
+2026-10-25T17:41:33.3631274Z PASS pwait nonnull sigset size=18446744073709551615 got=-22 want=-22
+2026-10-25T17:41:33.3632636Z PASS pwait2 nonnull sigset size=18446744073709551615 got=-22 want=-22
+2026-10-25T17:41:33.3633505Z PASS pwait null sigset ignores size=18446744073709551615 got=0 want=0
+2026-10-25T17:41:33.3634558Z PASS pwait2 null sigset ignores size=18446744073709551615 got=0 want=0
+2026-10-25T17:41:33.3635593Z PASS pwait inaccessible mask got=-14 want=-14
+2026-10-25T17:41:33.3636387Z PASS pwait bad size before inaccessible mask got=-22 want=-22
+2026-10-25T17:41:33.3637041Z PASS pwait2 inaccessible timespec got=-14 want=-14
+2026-10-25T17:41:33.3637567Z PASS pwait2 negative seconds got=-22 want=-22
+2026-10-25T17:41:33.3638144Z PASS pwait2 negative nanoseconds got=-22 want=-22
+2026-10-25T17:41:33.3638687Z PASS pwait2 billion nanoseconds got=-22 want=-22
+2026-10-25T17:41:33.3639298Z PASS pwait2 INT64_MAX nanoseconds got=-22 want=-22
+2026-10-25T17:41:33.3639839Z PASS pwait2 invalid time before bad fd got=-22 want=-22
+2026-10-25T17:41:33.3640383Z PASS pwait2 time copy before mask size got=-14 want=-14
+2026-10-25T17:41:33.3641436Z PASS pwait sigset before bad fd got=-22 want=-22
+2026-10-25T17:41:33.3641867Z PASS pwait sigset before max zero got=-14 want=-14
+2026-10-25T17:41:33.3642629Z PASS pwait bad size before max zero got=-22 want=-22
+2026-10-25T17:41:33.3643136Z PASS pwait2 sigset before max zero got=-14 want=-14
+2026-10-25T17:41:33.3643577Z PASS pwait2 bad timespec before max zero got=-22 want=-22
+2026-10-25T17:41:33.3643987Z PASS pwait2 inaccessible mask got=-14 want=-14
+2026-10-25T17:41:33.3644452Z PASS pwait2 bad size before inaccessible mask got=-22 want=-22
+2026-10-25T17:41:33.3644911Z PASS pwait2 INT64_MIN seconds got=-22 want=-22
+2026-10-25T17:41:33.3645291Z PASS pwait2 INT64_MIN nanoseconds got=-22 want=-22
+2026-10-25T17:41:33.3645695Z PASS pwait valid zero got=0 want=0
+2026-10-25T17:41:33.3646053Z PASS pwait2 valid zero got=0 want=0
+2026-10-25T17:41:33.3646398Z PASS pwait max zero got=-22 want=-22
+2026-10-25T17:41:33.3647429Z PASS pwait2 max zero got=-22 want=-22
+2026-10-25T17:41:33.3647924Z PASS pwait invalid fd got=-9 want=-9
+2026-10-25T17:41:33.3648341Z PASS pwait2 invalid timespec even ready got=-22 want=-22
+2026-10-25T17:41:33.3648758Z PASS pwait2 huge valid ready got=1 want=1
+2026-10-25T17:41:33.3649121Z PASS pwait2 wrap-zero valid ready got=1 want=1
+2026-10-25T17:41:33.3649581Z PASS pwait2 wrap-negative valid ready got=1 want=1
+2026-10-25T17:41:33.3649953Z PASS pwait2 null timeout ready got=1 want=1
+2026-10-25T17:41:33.3650333Z PASS pwait2 huge valid interrupted got=-4 want=-4
+2026-10-25T17:41:33.3650843Z PASS interrupt handler ran got=1 want=1
+2026-10-25T17:41:33.3651417Z PASS original signal mask restored got=1 want=1
+2026-10-25T17:41:33.3651918Z PASS pwait2 int-ms-wrap-zero interrupted got=-4 want=-4
+2026-10-25T17:41:33.3652332Z PASS interrupt handler ran got=1 want=1
+2026-10-25T17:41:33.3652847Z PASS original signal mask restored got=1 want=1
+2026-10-25T17:41:33.3653322Z PASS pwait2 int-ms-wrap-negative interrupted got=-4 want=-4
+2026-10-25T17:41:33.3653745Z PASS interrupt handler ran got=1 want=1
+2026-10-25T17:41:33.3654160Z PASS original signal mask restored got=1 want=1
+2026-10-25T17:41:33.3654510Z PASS pwait2 null timeout interrupted got=-4 want=-4
+2026-10-25T17:41:33.3654886Z PASS interrupt handler ran got=1 want=1
+2026-10-25T17:41:33.3655223Z PASS original signal mask restored got=1 want=1
+2026-10-25T17:41:33.3655605Z PASS pwait INT_MAX milliseconds interrupted got=-4 want=-4
+2026-10-25T17:41:33.3655987Z PASS interrupt handler ran got=1 want=1
+2026-10-25T17:41:33.3656307Z PASS original signal mask restored got=1 want=1
+2026-10-25T17:41:33.3656719Z PASS pwait negative other than -1 interrupted got=-4 want=-4
+2026-10-25T17:41:33.3657105Z PASS interrupt handler ran got=1 want=1
+2026-10-25T17:41:33.3657441Z PASS original signal mask restored got=1 want=1
+2026-10-25T17:41:33.3657846Z PASS finite nanosecond timeout got=0 want=0
+2026-10-25T17:41:33.3658251Z PASS timeout cannot expire before requested duration got=1 want=1
+2026-10-25T17:41:33.3658694Z native Linux reference: 76 checks, 0 failures (NOT 9os runtime proof)
+2026-10-25T17:41:33.4426167Z host: Linux-6.17.0-1022-azure-x86_64-with-glibc2.39
+2026-10-25T17:41:33.4444168Z compiler: cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+2026-10-25T17:41:33.4453471Z extracted syscall sha256: 10432fbf63f499757e0f20e269d5894ea9a57e19d2644a794b6eb74f40974feb
+2026-10-25T17:41:33.4474207Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host <tmp>/normal.c -o <tmp>/normal
+2026-10-25T17:41:33.6088053Z PASS pwait nonnull sigset size=0 got=-22 want=-22
+2026-10-25T17:41:33.6088911Z PASS pwait2 nonnull sigset size=0 got=-22 want=-22
+2026-10-25T17:41:33.6089410Z PASS pwait null sigset ignores size=0 got=0 want=0
+2026-10-25T17:41:33.6089842Z PASS pwait2 null sigset ignores size=0 got=0 want=0
+2026-10-25T17:41:33.6090336Z PASS pwait nonnull sigset size=1 got=-22 want=-22
+2026-10-25T17:41:33.6090791Z PASS pwait2 nonnull sigset size=1 got=-22 want=-22
+2026-10-25T17:41:33.6091251Z PASS pwait null sigset ignores size=1 got=0 want=0
+2026-10-25T17:41:33.6091708Z PASS pwait2 null sigset ignores size=1 got=0 want=0
+2026-10-25T17:41:33.6092128Z PASS pwait nonnull sigset size=7 got=-22 want=-22
+2026-10-25T17:41:33.6092841Z PASS pwait2 nonnull sigset size=7 got=-22 want=-22
+2026-10-25T17:41:33.6093249Z PASS pwait null sigset ignores size=7 got=0 want=0
+2026-10-25T17:41:33.6093627Z PASS pwait2 null sigset ignores size=7 got=0 want=0
+2026-10-25T17:41:33.6109154Z PASS pwait nonnull sigset size=9 got=-22 want=-22
+2026-10-25T17:41:33.6109892Z PASS pwait2 nonnull sigset size=9 got=-22 want=-22
+2026-10-25T17:41:33.6110430Z PASS pwait null sigset ignores size=9 got=0 want=0
+2026-10-25T17:41:33.6110999Z PASS pwait2 null sigset ignores size=9 got=0 want=0
+2026-10-25T17:41:33.6111580Z PASS pwait nonnull sigset size=16 got=-22 want=-22
+2026-10-25T17:41:33.6112151Z PASS pwait2 nonnull sigset size=16 got=-22 want=-22
+2026-10-25T17:41:33.6113306Z PASS pwait null sigset ignores size=16 got=0 want=0
+2026-10-25T17:41:33.6114386Z PASS pwait2 null sigset ignores size=16 got=0 want=0
+2026-10-25T17:41:33.6115005Z PASS pwait nonnull sigset size=128 got=-22 want=-22
+2026-10-25T17:41:33.6115684Z PASS pwait2 nonnull sigset size=128 got=-22 want=-22
+2026-10-25T17:41:33.6116227Z PASS pwait null sigset ignores size=128 got=0 want=0
+2026-10-25T17:41:33.6116855Z PASS pwait2 null sigset ignores size=128 got=0 want=0
+2026-10-25T17:41:33.6117483Z PASS pwait nonnull sigset size=18446744073709551615 got=-22 want=-22
+2026-10-25T17:41:33.6118253Z PASS pwait2 nonnull sigset size=18446744073709551615 got=-22 want=-22
+2026-10-25T17:41:33.6118943Z PASS pwait null sigset ignores size=18446744073709551615 got=0 want=0
+2026-10-25T17:41:33.6119693Z PASS pwait2 null sigset ignores size=18446744073709551615 got=0 want=0
+2026-10-25T17:41:33.6120296Z PASS pwait inaccessible mask got=-14 want=-14
+2026-10-25T17:41:33.6121083Z PASS pwait bad size before inaccessible mask got=-22 want=-22
+2026-10-25T17:41:33.6122162Z PASS pwait2 inaccessible timespec got=-14 want=-14
+2026-10-25T17:41:33.6123402Z PASS pwait2 negative seconds got=-22 want=-22
+2026-10-25T17:41:33.6124103Z PASS pwait2 negative nanoseconds got=-22 want=-22
+2026-10-25T17:41:33.6124733Z PASS pwait2 billion nanoseconds got=-22 want=-22
+2026-10-25T17:41:33.6125312Z PASS pwait2 INT64_MAX nanoseconds got=-22 want=-22
+2026-10-25T17:41:33.6125953Z PASS pwait2 invalid time before bad fd got=-22 want=-22
+2026-10-25T17:41:33.6127100Z PASS pwait2 time copy before mask size got=-14 want=-14
+2026-10-25T17:41:33.6127770Z PASS pwait sigset before bad fd got=-22 want=-22
+2026-10-25T17:41:33.6128327Z PASS pwait sigset before max zero got=-14 want=-14
+2026-10-25T17:41:33.6128995Z PASS pwait bad size before max zero got=-22 want=-22
+2026-10-25T17:41:33.6129512Z PASS pwait2 sigset before max zero got=-14 want=-14
+2026-10-25T17:41:33.6130164Z PASS pwait2 bad timespec before max zero got=-22 want=-22
+2026-10-25T17:41:33.6130758Z PASS pwait2 inaccessible mask got=-14 want=-14
+2026-10-25T17:41:33.6131391Z PASS pwait2 bad size before inaccessible mask got=-22 want=-22
+2026-10-25T17:41:33.6132024Z PASS pwait2 INT64_MIN seconds got=-22 want=-22
+2026-10-25T17:41:33.6132803Z PASS pwait2 INT64_MIN nanoseconds got=-22 want=-22
+2026-10-25T17:41:33.6133375Z PASS pwait valid zero got=0 want=0
+2026-10-25T17:41:33.6133938Z PASS pwait2 valid zero got=0 want=0
+2026-10-25T17:41:33.6134447Z PASS pwait max zero got=-22 want=-22
+2026-10-25T17:41:33.6135059Z PASS pwait2 max zero got=-22 want=-22
+2026-10-25T17:41:33.6135606Z PASS pwait invalid fd got=-9 want=-9
+2026-10-25T17:41:33.6136278Z PASS pwait2 invalid timespec even ready got=-22 want=-22
+2026-10-25T17:41:33.6136814Z PASS pwait2 huge valid ready got=1 want=1
+2026-10-25T17:41:33.6137355Z PASS pwait2 wrap-zero valid ready got=1 want=1
+2026-10-25T17:41:33.6137960Z PASS pwait2 wrap-negative valid ready got=1 want=1
+2026-10-25T17:41:33.6138595Z PASS pwait2 null timeout ready got=1 want=1
+2026-10-25T17:41:33.6139190Z PASS one nanosecond (no millisecond rounding) got=-4 want=-4
+2026-10-25T17:41:33.6139849Z PASS exact wait ns got=1 want=1
+2026-10-25T17:41:33.6140357Z PASS exactly one enrollment got=1 want=1
+2026-10-25T17:41:33.6140967Z PASS 999999 nanoseconds got=-4 want=-4
+2026-10-25T17:41:33.6141514Z PASS exact wait ns got=999999 want=999999
+2026-10-25T17:41:33.6142103Z PASS exactly one enrollment got=1 want=1
+2026-10-25T17:41:33.6142772Z PASS 1000001 nanoseconds got=-4 want=-4
+2026-10-25T17:41:33.6143344Z PASS exact wait ns got=1000001 want=1000001
+2026-10-25T17:41:33.6143933Z PASS exactly one enrollment got=1 want=1
+2026-10-25T17:41:33.6144524Z PASS INT_MAX-ms plus 1 ms got=-4 want=-4
+2026-10-25T17:41:33.6145107Z PASS exact wait ns got=2147483648000000 want=2147483648000000
+2026-10-25T17:41:33.6145746Z PASS exactly one enrollment got=1 want=1
+2026-10-25T17:41:33.6146252Z PASS int-ms wrap to zero got=-4 want=-4
+2026-10-25T17:41:33.6146943Z PASS exact wait ns got=4294967296000000000 want=4294967296000000000
+2026-10-25T17:41:33.6147977Z PASS exactly one enrollment got=1 want=1
+2026-10-25T17:41:33.6148676Z PASS ktime maximum got=-4 want=-4
+2026-10-25T17:41:33.6149212Z PASS exact wait ns got=9223372036731319018 want=9223372036731319018
+2026-10-25T17:41:33.6149773Z PASS exactly one enrollment got=1 want=1
+2026-10-25T17:41:33.6150322Z PASS ktime overflow by one ns got=-4 want=-4
+2026-10-25T17:41:33.6151644Z PASS exact wait ns got=9223372036731319018 want=9223372036731319018
+2026-10-25T17:41:33.6152170Z PASS exactly one enrollment got=1 want=1
+2026-10-25T17:41:33.6152970Z PASS INT64_MAX seconds got=-4 want=-4
+2026-10-25T17:41:33.6153562Z PASS exact wait ns got=9223372036731319018 want=9223372036731319018
+2026-10-25T17:41:33.6154147Z PASS exactly one enrollment got=1 want=1
+2026-10-25T17:41:33.6155164Z PASS pwait negative is infinite got=-4 want=-4
+2026-10-25T17:41:33.6155615Z PASS infinite sentinel got=-1 want=-1
+2026-10-25T17:41:33.6156137Z PASS pwait int max got=-4 want=-4
+2026-10-25T17:41:33.6156513Z PASS pwait int max ns got=2147483647000000 want=2147483647000000
+2026-10-25T17:41:33.6156978Z PASS pwait2 NULL is infinite got=-4 want=-4
+2026-10-25T17:41:33.6157344Z PASS pwait2 infinite sentinel got=-1 want=-1
+2026-10-25T17:41:33.6157706Z PASS spurious wake then EINTR got=-4 want=-4
+2026-10-25T17:41:33.6158096Z PASS original deadline first wait got=500 want=500
+2026-10-25T17:41:33.6158481Z PASS original deadline after wake got=400 want=400
+2026-10-25T17:41:33.6158843Z PASS filter preserved first got=66 want=66
+2026-10-25T17:41:33.6159241Z PASS filter preserved second got=66 want=66
+2026-10-25T17:41:33.6159631Z PASS epoch resampled got=1 want=1
+2026-10-25T17:41:33.6160023Z PASS temporary mask in scan got=-262401 want=-262401
+2026-10-25T17:41:33.6160425Z PASS temporary mask while waiting got=-262401 want=-262401
+2026-10-25T17:41:33.6160823Z PASS EINTR mask deferred got=1 want=1
+2026-10-25T17:41:33.6161177Z PASS EINTR saved mask got=11259375 want=11259375
+2026-10-25T17:41:33.6161552Z PASS finite timeout got=0 want=0
+2026-10-25T17:41:33.6161940Z PASS timeout after exact deadline got=123457289 want=123457289
+2026-10-25T17:41:33.6162360Z PASS timeout mask restored got=11259375 want=11259375
+2026-10-25T17:41:33.6163059Z PASS no deferred restoration on timeout got=0 want=0
+2026-10-25T17:41:33.6163469Z PASS copyout fault got=-14 want=-14
+2026-10-25T17:41:33.6163836Z PASS copyout fault mask restored got=11259375 want=11259375
+2026-10-25T17:41:33.6164235Z PASS allocation failure got=-12 want=-12
+2026-10-25T17:41:33.6164641Z PASS allocation failure mask untouched got=11259375 want=11259375
+2026-10-25T17:41:33.6165046Z PASS non-epoll fd got=-22 want=-22
+2026-10-25T17:41:33.6165428Z PASS non-epoll mask untouched got=11259375 want=11259375
+2026-10-25T17:41:33.6165821Z PASS ready mask wait got=1 want=1
+2026-10-25T17:41:33.6166184Z PASS ready mask restored got=11259375 want=11259375
+2026-10-25T17:41:33.6166595Z PASS ready data preserved got=42 want=42
+2026-10-25T17:41:33.6166923Z PASS ready avoids enrollment got=0 want=0
+2026-10-25T17:41:33.6167409Z PASS invalid size no side effects got=-22 want=-22
+2026-10-25T17:41:33.6167786Z PASS invalid size no scan got=0 want=0
+2026-10-25T17:41:33.6168166Z PASS invalid size mask untouched got=11259375 want=11259375
+2026-10-25T17:41:33.6168610Z PASS invalid size no deferred restoration got=0 want=0
+2026-10-25T17:41:33.6169032Z PASS scan time charged to original deadline got=-4 want=-4
+2026-10-25T17:41:33.6169449Z PASS scan cost deducted got=450 want=450
+2026-10-25T17:41:33.6169857Z PASS deadline addition saturates got=-4 want=-4
+2026-10-25T17:41:33.6170270Z PASS finite saturated deadline not infinite got=10 want=10
+2026-10-25T17:41:33.6170671Z PASS epoll_wait wrapper got=0 want=0
+2026-10-25T17:41:33.6171111Z exact-production syscall model: 119 checks, 0 failures (mock runtime only)
+2026-10-25T17:41:33.6172008Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host <tmp>/ignore-sigset-size.c -o <tmp>/ignore-sigset-size
+2026-10-25T17:41:33.7901563Z rejected ignore-sigset-size: 22 mismatches; first: FAIL pwait nonnull sigset size=0 got=0 want=-22
+2026-10-25T17:41:33.7916830Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host <tmp>/accept-billion-ns.c -o <tmp>/accept-billion-ns
+2026-10-25T17:41:33.9511853Z rejected accept-billion-ns: 2 mismatches; first: FAIL pwait2 billion nanoseconds got=-4 want=-22
+2026-10-25T17:41:33.9514531Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host <tmp>/truncate-to-milliseconds.c -o <tmp>/truncate-to-milliseconds
+2026-10-25T17:41:34.1017231Z rejected truncate-to-milliseconds: 20 mismatches; first: FAIL one nanosecond (no millisecond rounding) got=0 want=-4
+2026-10-25T17:41:34.1018424Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host <tmp>/overflow-seconds.c -o <tmp>/overflow-seconds
+2026-10-25T17:41:34.2683738Z rejected overflow-seconds: 1 mismatches; first: FAIL exact wait ns got=-1 want=9223372036731319018
+2026-10-25T17:41:34.2686675Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host <tmp>/lose-original-deadline.c -o <tmp>/lose-original-deadline
+2026-10-25T17:41:34.4265489Z rejected lose-original-deadline: 6 mismatches; first: FAIL exact wait ns got=9223372036854775807 want=9223372036731319018
+2026-10-25T17:41:34.4274926Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host <tmp>/lose-filter.c -o <tmp>/lose-filter
+2026-10-25T17:41:34.5926262Z rejected lose-filter: 2 mismatches; first: FAIL filter preserved first got=-1 want=66
+2026-10-25T17:41:34.5933311Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -I/home/runner/work/9os/9os/tests/epoll-abi-host <tmp>/restore-mask-too-early.c -o <tmp>/restore-mask-too-early
+2026-10-25T17:41:34.7594583Z rejected restore-mask-too-early: 2 mismatches; first: FAIL EINTR mask deferred got=0 want=1
+2026-10-25T17:41:34.8148960Z host: Linux-6.17.0-1022-azure-x86_64-with-glibc2.39
+2026-10-25T17:41:34.8164257Z compiler: cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+2026-10-25T17:41:34.8168113Z exact no_restart sha256: 802f770c4b97be696c1f74c84cac61f2cbfd2d6f52d7beda5e1a944b3a9a0d85
+2026-10-25T17:41:34.8788710Z normal legacy_present=1
+2026-10-25T17:41:34.8791585Z exact no_restart host policy: 461 checks, 0 failures (classification only)
+2026-10-25T17:41:34.9386468Z normal legacy_present=0
+2026-10-25T17:41:34.9403654Z exact no_restart host policy: 461 checks, 0 failures (classification only)
+2026-10-25T17:41:34.9965456Z rejected restore-original-policy legacy_present=1: 3 mismatches; first: FAIL nr=232 no_restart=0 expected=1
+2026-10-25T17:41:35.0722794Z rejected restore-original-policy legacy_present=0: 2 mismatches; first: FAIL nr=281 no_restart=0 expected=1
+2026-10-25T17:41:35.1714468Z rejected omit-epoll-wait legacy_present=1: 1 mismatches; first: FAIL nr=232 no_restart=0 expected=1
+2026-10-25T17:41:35.2269657Z rejected omit-epoll-pwait legacy_present=1: 1 mismatches; first: FAIL nr=281 no_restart=0 expected=1
+2026-10-25T17:41:35.2814138Z rejected omit-epoll-pwait legacy_present=0: 1 mismatches; first: FAIL nr=281 no_restart=0 expected=1
+2026-10-25T17:41:35.3361778Z rejected omit-epoll-pwait2 legacy_present=1: 1 mismatches; first: FAIL nr=441 no_restart=0 expected=1
+2026-10-25T17:41:35.3908991Z rejected omit-epoll-pwait2 legacy_present=0: 1 mismatches; first: FAIL nr=441 no_restart=0 expected=1
+2026-10-25T17:41:35.4485545Z rejected restart-ppoll-regression legacy_present=1: 1 mismatches; first: FAIL nr=271 no_restart=0 expected=1
+2026-10-25T17:41:35.5061229Z rejected restart-ppoll-regression legacy_present=0: 1 mismatches; first: FAIL nr=271 no_restart=0 expected=1
+2026-10-25T17:41:35.5627112Z rejected change-ordinary-read-policy legacy_present=1: 1 mismatches; first: FAIL nr=0 no_restart=1 expected=0
+2026-10-25T17:41:35.6116326Z rejected change-ordinary-read-policy legacy_present=0: 1 mismatches; first: FAIL nr=0 no_restart=1 expected=0
+2026-10-25T17:41:35.6144221Z required syscall macro presence inspected in all three headers; NOT cross-build proof
+2026-10-25T17:41:35.6880790Z host: Linux-6.17.0-1022-azure-x86_64-with-glibc2.39
+2026-10-25T17:41:35.6891194Z source sha256: 73f2714d5c39b744a2c6fee1432b5c01e9992462fd66fc5c84a17203805953cc
+2026-10-25T17:41:35.6893269Z temporary negative-control sha256: 6642fcd66c13740f11b6c2bda04dad74e0e8a5edbbf3c70d477c5103602c4076
+2026-10-25T17:41:35.6894529Z mutation: replace child run_tests with block-all-signals + permanent pause
+2026-10-25T17:41:35.6895450Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-function -D_FORTIFY_SOURCE=2 <tmp>/watchdog-control.c -o <tmp>/watchdog-control
+2026-10-25T17:41:40.8525859Z epollabitest: FAIL five-second process watchdog
+2026-10-25T17:41:40.8526259Z exit=124; observed elapsed=5.002181s
+2026-10-25T17:41:40.8526817Z PASS: original five-second supervisor rejected signal-blocked child hang
+2026-10-25T17:41:40.8527560Z Six-second outer timeout remains a failure; isolated group kill/reap runs before re-raising exceptions.
+2026-10-25T17:41:40.8528005Z Native Linux control only; NOT 9os guest runtime validation.
+2026-10-25T17:41:40.8858915Z host: Linux-6.17.0-1022-azure-x86_64-with-glibc2.39
+2026-10-25T17:41:40.8859442Z production-consumer sha256: 73f2714d5c39b744a2c6fee1432b5c01e9992462fd66fc5c84a17203805953cc
+2026-10-25T17:41:40.8860005Z temporary supervisor-stall control sha256: 4cce9df7655b9f92a3fe2e999f8805175d457f8a99c3ec9dcc4eecd493a0d6f9
+2026-10-25T17:41:40.8860507Z mutation: block/hang child; STOP supervisor before its original loop
+2026-10-25T17:41:40.8862028Z compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-function -D_FORTIFY_SOURCE=2 <tmp>/supervisor-stall.c -o <tmp>/supervisor-stall
+2026-10-25T17:41:46.9421849Z EXPECTED outer failure: TimeoutExpired, timeout=6, observed=6.007640s
+2026-10-25T17:41:46.9422978Z PASS: original six-second timeout propagated after supervisor kill and adopted child SIGKILL/reap
+2026-10-25T17:41:46.9423956Z PASS: control group absent; child absent/already reaped; unrelated child untouched; subreaper state restored
+2026-10-25T17:41:46.9424984Z Native Linux cleanup control only; not guest/kernel validation.
+2026-10-25T17:41:48.6517968Z .............
+2026-10-25T17:41:48.6518686Z ----------------------------------------------------------------------
+2026-10-25T17:41:48.6519313Z Ran 13 tests in 1.668s
+2026-10-25T17:41:48.6519580Z 
+2026-10-25T17:41:48.6519726Z OK
+2026-10-25T17:41:49.1685671Z .............
+2026-10-25T17:41:49.1686053Z ----------------------------------------------------------------------
+2026-10-25T17:41:49.1686461Z Ran 13 tests in 0.471s
+2026-10-25T17:41:49.1686596Z 
+2026-10-25T17:41:49.1686717Z OK
+2026-10-25T17:41:49.2143163Z production_source_sha256=c34251ccea482ebf23283e712ac08a0abbb63d032bb07beb6eb8c33a1170ab1a
+2026-10-25T17:41:49.2224110Z test_empty_input_still_checks_each_utility_status (__main__.Status.test_empty_input_still_checks_each_utility_status) ... ok
+2026-10-25T17:41:49.2525534Z test_final_raw_sentinel_remains_authoritative (__main__.Status.test_final_raw_sentinel_remains_authoritative) ... ok
+2026-10-25T17:41:49.2637959Z test_independent_od_tr_status_guard_mutations_are_semantically_killed (__main__.Status.test_independent_od_tr_status_guard_mutations_are_semantically_killed) ... ok
+2026-10-25T17:41:49.2813823Z test_nonzero_utilities_zero_partial_and_complete_bytes (__main__.Status.test_nonzero_utilities_zero_partial_and_complete_bytes) ... ok
+2026-10-25T17:41:49.2907912Z test_normal_binary_and_empty_roundtrip (__main__.Status.test_normal_binary_and_empty_roundtrip) ... ok
+2026-10-25T17:41:49.4356832Z test_production_loop_status_failure_preserves_original_outcomes (__main__.Status.test_production_loop_status_failure_preserves_original_outcomes) ... ok
+2026-10-25T17:41:49.4610300Z test_successful_but_malformed_or_short_hex_is_unknown (__main__.Status.test_successful_but_malformed_or_short_hex_is_unknown) ... ok
+2026-10-25T17:41:49.4831073Z test_successful_wc_malformed_noncanonical_or_oversized_count (__main__.Status.test_successful_wc_malformed_noncanonical_or_oversized_count) ... ok
+2026-10-25T17:41:49.4831540Z 
+2026-10-25T17:41:49.4831679Z ----------------------------------------------------------------------
+2026-10-25T17:41:49.4832090Z Ran 8 tests in 0.268s
+2026-10-25T17:41:49.4832237Z 
+2026-10-25T17:41:49.4832313Z OK
+2026-10-25T17:41:49.4854035Z SEMANTIC MUTANT REJECTED: od 1b95047afd9b6307c85a4fedf5fc8a1525034a184704d83e8ef57235a294da0b
+2026-10-25T17:41:49.4854599Z SEMANTIC MUTANT REJECTED: tr 5572d2c5b44a442e3dd9a271b5e3c988fe661899ed69b3811fcd60b8f8a1806d
+2026-10-25T17:41:49.5288704Z FROZEN unfixed emitter SHA256: a667c7e8c2affe6c4e3a9752795ce5de6ffecebd9c3acf5b874c4a321a7c74d1
+2026-10-25T17:41:49.5326972Z test_complete_correct_od_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_od_bytes_then_nonzero_remain_unobserved) ... ok
+2026-10-25T17:41:49.5350368Z test_complete_correct_tr_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_tr_bytes_then_nonzero_remain_unobserved) ... ok
+2026-10-25T17:41:49.5350969Z 
+2026-10-25T17:41:49.5351116Z ----------------------------------------------------------------------
+2026-10-25T17:41:49.5351399Z Ran 2 tests in 0.005s
+2026-10-25T17:41:49.5351569Z 
+2026-10-25T17:41:49.5351641Z OK
+2026-10-25T17:41:49.5373821Z PRESERVED F1: od emitted exact bytes then exit7; emitter rc0, decoder accepted, no transport status
+2026-10-25T17:41:49.5374384Z PRESERVED F1: tr emitted exact bytes then exit9; emitter rc0, decoder accepted, no transport status
+2026-10-25T17:41:49.5755049Z consumer_source_sha256=07c6646292ea1894d82849d04c3f2b662f15e66b892bc0069f0b083e9d7438e8
+2026-10-25T17:41:49.7858313Z test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... ok
+2026-10-25T17:41:49.7874333Z test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... ok
+2026-10-25T17:41:49.7999255Z test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... ok
+2026-10-25T17:41:49.8009885Z test_other_local_error (__main__.Identity.test_other_local_error) ... ok
+2026-10-25T17:41:49.8020951Z test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... ok
+2026-10-25T17:41:49.8035007Z test_real_remote_name (__main__.Identity.test_real_remote_name) ... ok
+2026-10-25T17:41:49.8048863Z test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... ok
+2026-10-25T17:41:49.8050200Z 
+2026-10-25T17:41:49.8050718Z ----------------------------------------------------------------------
+2026-10-25T17:41:49.8051303Z Ran 7 tests in 0.229s
+2026-10-25T17:41:49.8051542Z 
+2026-10-25T17:41:49.8051722Z OK
+2026-10-25T17:41:50.0968237Z PASS unmodified native diagnostic controls
+2026-10-25T17:41:50.3574088Z SEMANTIC MUTANT REJECTED remote-misclassified-as-local-timeout 11316481ad1de5ef7529e26c09899ce5bebd0576f3e2c47f8cd92ba4c4842640
+2026-10-25T17:41:50.6191983Z SEMANTIC MUTANT REJECTED wrong-local-timeout-enum e22e7eb4859075f585fd5ed5ab4cfeab9e47403539c3406c9ace4b85e3a76a09
+2026-10-25T17:41:50.8804934Z SEMANTIC MUTANT REJECTED missing-bundle-not-unknown a00e9c33c1b1685a6a4fb466e29570a71395df0e12d2087ebd44dd2a15c6ce9b
+2026-10-25T17:41:51.1422854Z SEMANTIC MUTANT REJECTED wrong-correlated-bus 50e81a0da848e6bb3e2cb30e9a7d0e3c3efcb2a8854f29363bfdc5d66262eda6
+2026-10-25T17:41:51.4093882Z SEMANTIC MUTANT REJECTED uppercase-hex d61d706531932a893efcf5a5a2243d97f3d0231ce9e37584669df5125cb6b15d
+2026-10-25T17:41:51.6993841Z SEMANTIC MUTANT REJECTED missing-truncation-flag f9b29f9edb0592d0d87da3792999ce88411c77b91a548327b60cb4ba0cb4a2e6
+2026-10-25T17:41:51.9900072Z SEMANTIC MUTANT REJECTED missing-sync-record 7fe24476e3282513688e0ec58bfac337dc10bbf343983730fc0869bfa04271da
+2026-10-25T17:41:52.2755993Z SEMANTIC MUTANT REJECTED missing-async-record 605d76f245f9fc4a7ebf9712fc19e16c8d5f80ea5d01a847c254a3b544f1a669
+2026-10-25T17:41:52.6519529Z SEMANTIC MUTANT REJECTED early-release-before-both-callbacks 0024a3c1fefc18f4b49b5f4864d5fd94f3f8fd889f9ca5ab5abd229ab50d9d32
+2026-10-25T17:41:52.9414179Z SEMANTIC MUTANT REJECTED missing-two-record-cap 78759739a617414228078fa0d6f168b178b0d31c048b8dd4d44818db256a4256
+2026-10-25T17:41:52.9419222Z 10/10 semantic diagnostic mutants rejected; synthetic native only
+2026-10-25T17:41:53.1797865Z test_detached_identity_and_root_decoys_do_not_pass (__main__.ReadbackTests.test_detached_identity_and_root_decoys_do_not_pass) ... ok
+2026-10-25T17:41:53.1965019Z test_helper_rejects_unknown_contract_and_io_errors (__main__.ReadbackTests.test_helper_rejects_unknown_contract_and_io_errors) ... ok
+2026-10-25T17:41:55.7888198Z test_malformed_readbacks (__main__.ReadbackTests.test_malformed_readbacks) ... ok
+2026-10-25T17:41:57.4943962Z test_mount_array_shape_and_injection_fail_closed (__main__.ReadbackTests.test_mount_array_shape_and_injection_fail_closed) ... ok
+2026-10-25T17:41:57.8474168Z test_original_gates_remain_mandatory (__main__.ReadbackTests.test_original_gates_remain_mandatory) ... ok
+2026-10-25T17:41:58.1107571Z test_positive_calls_and_uid (__main__.ReadbackTests.test_positive_calls_and_uid) ... ok
+2026-10-25T17:41:58.3708044Z test_printer_indentation_and_line_endings (__main__.ReadbackTests.test_printer_indentation_and_line_endings) ... ok
+2026-10-25T17:41:59.6650060Z test_scoped_readbacks_reject_unrelated_global_fragments (__main__.ReadbackTests.test_scoped_readbacks_reject_unrelated_global_fragments) ... ok
+2026-10-25T17:42:00.3486156Z test_successful_but_empty_replies_fail (__main__.ReadbackTests.test_successful_but_empty_replies_fail) ... ok
+2026-10-25T17:42:05.0126130Z test_transport_failures_at_every_stage (__main__.ReadbackTests.test_transport_failures_at_every_stage) ... ok
+2026-10-25T17:42:05.0761244Z test_wrong_uid_never_contacts_bus (__main__.ReadbackTests.test_wrong_uid_never_contacts_bus) ... ok
+2026-10-25T17:42:05.0762063Z 
+2026-10-25T17:42:05.0762533Z ----------------------------------------------------------------------
+2026-10-25T17:42:05.0763182Z Ran 11 tests in 12.089s
+2026-10-25T17:42:05.0763485Z 
+2026-10-25T17:42:05.0763698Z OK
+2026-10-25T17:42:05.4070034Z test_actual_byte_roundtrip_and_original_calls (__main__.EvidenceTests.test_actual_byte_roundtrip_and_original_calls) ... ok
+2026-10-25T17:42:05.4073990Z test_binary_nul_newline_sentinel_payload_is_only_lowercase_hex (__main__.EvidenceTests.test_binary_nul_newline_sentinel_payload_is_only_lowercase_hex) ... ok
+2026-10-25T17:42:06.3243615Z test_capture_boundary_does_not_add_an_acceptance_limit (__main__.EvidenceTests.test_capture_boundary_does_not_add_an_acceptance_limit) ... ok
+2026-10-25T17:42:06.6049162Z test_capture_io_failure_after_checker_cannot_veto_success (__main__.EvidenceTests.test_capture_io_failure_after_checker_cannot_veto_success) ... ok
+2026-10-25T17:42:07.0017934Z test_checker_nonzero_status_is_preserved_exactly (__main__.EvidenceTests.test_checker_nonzero_status_is_preserved_exactly) ... ok
+2026-10-25T17:42:07.1923418Z test_checker_rejection_still_failed_but_complete_raw_bytes_recoverable (__main__.EvidenceTests.test_checker_rejection_still_failed_but_complete_raw_bytes_recoverable) ... ok
+2026-10-25T17:42:07.2393836Z test_decoder_never_creates_reply_files_for_missing_or_failed_capture (__main__.EvidenceTests.test_decoder_never_creates_reply_files_for_missing_or_failed_capture) ... ok
+2026-10-25T17:42:07.2396579Z test_decoder_rejects_metadata_corruption_and_never_promotes_unknown (__main__.EvidenceTests.test_decoder_rejects_metadata_corruption_and_never_promotes_unknown) ... ok
+2026-10-25T17:42:07.3615882Z test_empty_successful_file_is_not_complete_reply (__main__.EvidenceTests.test_empty_successful_file_is_not_complete_reply) ... ok
+2026-10-25T17:42:10.4001644Z test_failed_command_partial_or_empty_remains_unknown_and_original_status (__main__.EvidenceTests.test_failed_command_partial_or_empty_remains_unknown_and_original_status) ... ok
+2026-10-25T17:42:10.4595670Z test_invalid_metadata_never_echoed (__main__.EvidenceTests.test_invalid_metadata_never_echoed) ... ok
+2026-10-25T17:42:10.4596718Z test_missing_file_never_fabricates_zero_bytes (__main__.EvidenceTests.test_missing_file_never_fabricates_zero_bytes) ... ok
+2026-10-25T17:42:10.7354839Z test_missing_recorder_explicit_fallback_preserves_success (__main__.EvidenceTests.test_missing_recorder_explicit_fallback_preserves_success) ... ok
+2026-10-25T17:42:11.0556584Z test_offline_decoder_roundtrip_from_timestamped_artifact_style (__main__.EvidenceTests.test_offline_decoder_roundtrip_from_timestamped_artifact_style) ... ok
+2026-10-25T17:42:11.1673717Z test_original_stderr_not_recoded_or_hidden (__main__.EvidenceTests.test_original_stderr_not_recoded_or_hidden) ... ok
+2026-10-25T17:42:11.1676554Z test_output_error_is_reported_without_echoing_exception_text (__main__.EvidenceTests.test_output_error_is_reported_without_echoing_exception_text) ... ok
+2026-10-25T17:42:11.4346619Z test_partial_record_then_error_remains_safe_and_hard_bounded (__main__.EvidenceTests.test_partial_record_then_error_remains_safe_and_hard_bounded) ... ok
+2026-10-25T17:42:11.4361292Z test_production_checker_source_and_original_query_bounds_unchanged (__main__.EvidenceTests.test_production_checker_source_and_original_query_bounds_unchanged) ... ok
+2026-10-25T17:42:11.4366626Z test_reader_requests_at_most_cap_plus_one (__main__.EvidenceTests.test_reader_requests_at_most_cap_plus_one) ... ok
+2026-10-25T17:42:12.1446688Z test_recorder_exit_error_does_not_mask_any_original_outcome (__main__.EvidenceTests.test_recorder_exit_error_does_not_mask_any_original_outcome) ... ok
+2026-10-25T17:42:12.6252604Z test_recorder_stderr_isolated_but_original_stderr_unchanged (__main__.EvidenceTests.test_recorder_stderr_isolated_but_original_stderr_unchanged) ... ok
+2026-10-25T17:42:12.6253788Z 
+2026-10-25T17:42:12.6254088Z ----------------------------------------------------------------------
+2026-10-25T17:42:12.6254708Z Ran 21 tests in 7.487s
+2026-10-25T17:42:12.6255053Z 
+2026-10-25T17:42:12.6255322Z OK
+2026-10-25T17:42:14.5307016Z helper_source_sha256=c69ec1e7449aaacc4eac27159059f4461deb13e7cf997b7a5c864f5b5f14d29d
+2026-10-25T17:42:14.5307721Z rejected raw-instead-of-hex: raw bytes reached host sentinel; mutant_sha256=836b8f4341054be3d8b0c40905b4fd974f106569df2e219dea919a3445704463
+2026-10-25T17:42:14.5308470Z rejected double-capture-cap: capture exceeded 1024-byte contract; mutant_sha256=ae6e50931bb4d652d03dd7c56848c83ea27ef777721ecdb6a4ed8039c98a2713
+2026-10-25T17:42:14.5309191Z rejected failed-eof-is-complete: failed response promoted complete; mutant_sha256=cef19d7216e88a205c7824b4149f05682b084c27eeff7d13d944f5ec8750a594
+2026-10-25T17:42:14.5309898Z rejected empty-is-complete: empty file promoted full reply; mutant_sha256=1544f320d9e7866d825d86a7f8646eb37b969b6ac5ecafb062013ef20db97400
+2026-10-25T17:42:14.5310605Z rejected unbounded-read: unbounded or oversized evidence read; mutant_sha256=846c19370da76421dd34d978b72afe6d5b1927bf9ac9a75214112aa719a7931e
+2026-10-25T17:42:14.5311230Z consumer_source_sha256=b7e6138f346a22f468cb8141d143d842a7dbdcbc925c232a92981158cc225030
+2026-10-25T17:42:14.5311814Z rejected swallow-command-error: original command failure swallowed; mutant_sha256=b41c1495b3fc11ef1dcfcc9347c40c63359108f701f0e4add435aa4a3382e953
+2026-10-25T17:42:14.5312744Z rejected swallow-checker-error: original checker failure swallowed; mutant_sha256=2f31df042c893bd6f11d525be946001d186c34f6f2623b46178caf6bdce05c45
+2026-10-25T17:42:14.5313471Z rejected recorder-veto-success: recording vetoed original success; mutant_sha256=0bdec98f97fb6fb578f42bf419ab6140552a58e61b96469595636b6251de0688
+2026-10-25T17:42:14.5314217Z rejected recorder-stderr-leak: recorder stderr reached host sentinel; mutant_sha256=263759b3e4dd248165bc52e86925918cd0ce2bdde9df7d636c9dad08c08b0b7b
+2026-10-25T17:42:14.5314773Z 9/9 mutations rejected by explicit assertion mismatches; no guest/model proof.
+2026-10-25T17:42:20.2554912Z evdev exact-function model: 12 groups passed (mock locks/users only)
+2026-10-25T17:42:20.2583471Z evdev model: rejected publish-incomplete
+2026-10-25T17:42:20.2616585Z evdev model: rejected read-incomplete-tail
+2026-10-25T17:42:20.2627883Z evdev model: rejected poll-incomplete-tail
+2026-10-25T17:42:20.2652703Z evdev model: rejected overflow-stale-packet
+2026-10-25T17:42:20.2653304Z evdev model: rejected duplicate-down-repeat
+2026-10-25T17:42:20.2653810Z evdev model: rejected repeat-mutates-state
+2026-10-25T17:42:20.2654341Z evdev model: rejected unsupported-key
+2026-10-25T17:42:20.5986986Z evdev consumer: minimal/system Linux UAPI builds passed (execution uses Linux VM)
+2026-10-25T17:42:21.7592181Z ........
+2026-10-25T17:42:21.7592966Z ----------------------------------------------------------------------
+2026-10-25T17:42:21.7593493Z Ran 8 tests in 1.109s
+2026-10-25T17:42:21.7593653Z 
+2026-10-25T17:42:21.7593756Z OK
+2026-10-25T17:42:22.7839821Z .......
+2026-10-25T17:42:22.7840233Z ----------------------------------------------------------------------
+2026-10-25T17:42:22.7840724Z Ran 7 tests in 0.977s
+2026-10-25T17:42:22.7840865Z 
+2026-10-25T17:42:22.7840966Z OK
+2026-10-25T17:42:23.4361923Z ....
+2026-10-25T17:42:23.4362709Z ----------------------------------------------------------------------
+2026-10-25T17:42:23.4363615Z Ran 4 tests in 0.570s
+2026-10-25T17:42:23.4363857Z 
+2026-10-25T17:42:23.4364055Z OK
+2026-10-25T17:42:23.4826375Z ....
+2026-10-25T17:42:23.4826903Z ----------------------------------------------------------------------
+2026-10-25T17:42:23.4827265Z Ran 4 tests in 0.004s
+2026-10-25T17:42:23.4827409Z 
+2026-10-25T17:42:23.4827511Z OK
+2026-10-25T17:42:23.5333179Z test_all_bad_fail_closed_without_cache_files (__main__.CacheTests.test_all_bad_fail_closed_without_cache_files) ... ok
+2026-10-25T17:42:23.5336276Z test_bad_hash_falls_back_without_installing_it (__main__.CacheTests.test_bad_hash_falls_back_without_installing_it) ... ok
+2026-10-25T17:42:23.5341475Z test_changed_wrap_fails_before_network (__main__.CacheTests.test_changed_wrap_fails_before_network) ... ok
+2026-10-25T17:42:23.5345862Z test_downloads_replay_fills_missing_packagecache (__main__.CacheTests.test_downloads_replay_fills_missing_packagecache) ... ok
+2026-10-25T17:42:23.5348404Z test_network_failure_falls_back (__main__.CacheTests.test_network_failure_falls_back) ... ok
+2026-10-25T17:42:23.5356016Z test_oversized_cache_is_replaced_not_reused (__main__.CacheTests.test_oversized_cache_is_replaced_not_reused) ... ok
+2026-10-25T17:42:23.5358356Z test_size_bound (__main__.CacheTests.test_size_bound) ... ok
+2026-10-25T17:42:23.5365558Z test_valid_packagecache_repairs_poisoned_downloads_offline (__main__.CacheTests.test_valid_packagecache_repairs_poisoned_downloads_offline) ... ok
+2026-10-25T17:42:23.5494924Z test_valid_wrap_uses_exact_pinned_mirrors_and_cache_paths (__main__.CacheTests.test_valid_wrap_uses_exact_pinned_mirrors_and_cache_paths) ... ok
+2026-10-25T17:42:23.5497922Z test_verified_mirror (__main__.CacheTests.test_verified_mirror) ... ok
+2026-10-25T17:42:23.5498250Z 
+2026-10-25T17:42:23.5498465Z ----------------------------------------------------------------------
+2026-10-25T17:42:23.5499311Z Ran 10 tests in 0.017s
+2026-10-25T17:42:23.5499487Z 
+2026-10-25T17:42:23.5499645Z OK
+2026-10-25T17:42:23.6723664Z proctasktest: 105 checks, 0 failures
+2026-10-25T17:42:23.8592348Z mountinfotest: 1191 checks, 0 failures
+2026-10-25T17:42:23.8843075Z mountinfotest: 5948 checks, 0 failures
+2026-10-25T17:42:23.9235554Z pimutextest: 10 checks, 0 failures
+2026-10-25T17:42:23.9811175Z ioctlwidthtest: 30 checks, 0 failures
+2026-10-25T17:42:24.0188869Z ..
+2026-10-25T17:42:24.0189464Z ----------------------------------------------------------------------
+2026-10-25T17:42:24.0190102Z Ran 2 tests in 0.003s
+2026-10-25T17:42:24.0190456Z 
+2026-10-25T17:42:24.0190550Z OK
+2026-10-25T17:42:24.1102190Z ............
+2026-10-25T17:42:24.1103106Z ----------------------------------------------------------------------
+2026-10-25T17:42:24.1103773Z Ran 12 tests in 0.026s
+2026-10-25T17:42:24.1104088Z 
+2026-10-25T17:42:24.1104538Z OK
+2026-10-25T17:42:24.1757865Z ........
+2026-10-25T17:42:24.1759073Z ----------------------------------------------------------------------
+2026-10-25T17:42:24.1759808Z Ran 8 tests in 0.013s
+2026-10-25T17:42:24.1759977Z 
+2026-10-25T17:42:24.1760119Z OK
+2026-10-25T17:42:24.5238083Z ......
+2026-10-25T17:42:24.5238641Z ----------------------------------------------------------------------
+2026-10-25T17:42:24.5239053Z Ran 6 tests in 0.299s
+2026-10-25T17:42:24.5239218Z 
+2026-10-25T17:42:24.5239381Z OK
+2026-10-25T17:42:24.6860542Z PASS: desktop frame readiness positive and eight negative controls
+2026-10-25T17:42:24.8455308Z PASS valid
+2026-10-25T17:42:24.8455617Z PASS missing
+2026-10-25T17:42:24.8455976Z PASS stale
+2026-10-25T17:42:24.8456181Z PASS wrong-pid
+2026-10-25T17:42:24.8456393Z PASS prefix-not-equal
+2026-10-25T17:42:24.8456626Z PASS invalid-pid
+2026-10-25T17:42:24.8456860Z PASS invalid-directory
+2026-10-25T17:42:24.8457113Z PASS bad-query
+2026-10-25T17:42:24.8457322Z PASS remote-error
+2026-10-25T17:42:24.8457554Z PASS oversized-model
+2026-10-25T17:42:24.8457796Z PASS cyclic-tree
+2026-10-25T17:42:24.8458057Z PASS wrong-role
+2026-10-25T17:42:24.8458278Z PASS bad-row-role
+2026-10-25T17:42:24.8458484Z PASS wrong-directory
+2026-10-25T17:42:24.8458691Z PASS directory-prefix
+2026-10-25T17:42:24.8458937Z PASS directory-suffix
+2026-10-25T17:42:24.8459151Z PASS menu-decoy
+2026-10-25T17:42:24.8459420Z 17/17 observer logic controls (mock only; no GUI claim)
+2026-10-25T17:42:25.5322871Z .....
+2026-10-25T17:42:25.5323482Z ----------------------------------------------------------------------
+2026-10-25T17:42:25.5323819Z Ran 5 tests in 0.650s
+2026-10-25T17:42:25.5323936Z 
+2026-10-25T17:42:25.5324024Z OK
+2026-10-25T17:42:26.1571349Z PASS valid
+2026-10-25T17:42:26.1571748Z PASS missing
+2026-10-25T17:42:26.1572011Z PASS error
+2026-10-25T17:42:26.1572203Z PASS oversize
+2026-10-25T17:42:26.1572590Z PASS deep
+2026-10-25T17:42:26.1572864Z 5/5 bounded-discovery controls (mock only; no GUI claim)
+2026-10-25T17:42:26.4314440Z .......
+2026-10-25T17:42:26.4314956Z ----------------------------------------------------------------------
+2026-10-25T17:42:26.4315304Z Ran 7 tests in 0.237s
+2026-10-25T17:42:26.4315434Z 
+2026-10-25T17:42:26.4315526Z OK
+2026-10-25T17:42:26.4883099Z ......
+2026-10-25T17:42:26.4883474Z ----------------------------------------------------------------------
+2026-10-25T17:42:26.4883922Z Ran 6 tests in 0.018s
+2026-10-25T17:42:26.4884038Z 
+2026-10-25T17:42:26.4884134Z OK
+2026-10-25T17:42:26.5968895Z .........
+2026-10-25T17:42:26.5969291Z ----------------------------------------------------------------------
+2026-10-25T17:42:26.5969692Z Ran 9 tests in 0.069s
+2026-10-25T17:42:26.5969810Z 
+2026-10-25T17:42:26.5969909Z OK
+2026-10-25T17:42:26.6486655Z ....
+2026-10-25T17:42:26.6487154Z ----------------------------------------------------------------------
+2026-10-25T17:42:26.6487601Z Ran 4 tests in 0.009s
+2026-10-25T17:42:26.6487862Z 
+2026-10-25T17:42:26.6488006Z OK
+2026-10-25T17:42:26.7288840Z ....
+2026-10-25T17:42:26.7289526Z ----------------------------------------------------------------------
+2026-10-25T17:42:26.7290035Z Ran 4 tests in 0.043s
+2026-10-25T17:42:26.7290162Z 
+2026-10-25T17:42:26.7290273Z OK
+2026-10-25T17:42:26.7762882Z ......<frozen importlib._bootstrap>:530: DeprecationWarning: the load_module() method is deprecated and slated for removal in Python 3.12; use exec_module() instead
+2026-10-25T17:42:26.7801176Z .
+2026-10-25T17:42:26.7801641Z ----------------------------------------------------------------------
+2026-10-25T17:42:26.7802056Z Ran 7 tests in 0.010s
+2026-10-25T17:42:26.7802211Z 
+2026-10-25T17:42:26.7802337Z OK
+2026-10-25T17:42:27.1629196Z .....
+2026-10-25T17:42:27.1629575Z ----------------------------------------------------------------------
+2026-10-25T17:42:27.1629993Z Ran 5 tests in 0.345s
+2026-10-25T17:42:27.2206062Z 
+2026-10-25T17:42:27.2206858Z OK
+2026-10-25T17:42:27.2207467Z .....
+2026-10-25T17:42:27.2208031Z ----------------------------------------------------------------------
+2026-10-25T17:42:27.2208939Z Ran 5 tests in 0.015s
+2026-10-25T17:42:27.2209158Z 
+2026-10-25T17:42:27.2209464Z OK
+2026-10-25T17:42:27.3069469Z ......
+2026-10-25T17:42:27.3069925Z ----------------------------------------------------------------------
+2026-10-25T17:42:27.3070275Z Ran 6 tests in 0.048s
+2026-10-25T17:42:27.3070416Z 
+2026-10-25T17:42:27.3070487Z OK
+2026-10-25T17:42:27.5305378Z .....
+2026-10-25T17:42:27.5305757Z ----------------------------------------------------------------------
+2026-10-25T17:42:27.5306215Z Ran 5 tests in 0.183s
+2026-10-25T17:42:27.5306341Z 
+2026-10-25T17:42:27.5306432Z OK
+2026-10-25T17:42:27.7231317Z ....
+2026-10-25T17:42:27.7232022Z ----------------------------------------------------------------------
+2026-10-25T17:42:27.7232901Z Ran 4 tests in 0.148s
+2026-10-25T17:42:27.7233187Z 
+2026-10-25T17:42:27.7233384Z OK
+2026-10-25T17:42:27.7633345Z ....
+2026-10-25T17:42:27.7634094Z ----------------------------------------------------------------------
+2026-10-25T17:42:27.7634667Z Ran 4 tests in 0.002s
+2026-10-25T17:42:27.7634869Z 
+2026-10-25T17:42:27.7635010Z OK
+2026-10-25T17:43:40.5233978Z ........
+2026-10-25T17:43:40.5235034Z ----------------------------------------------------------------------
+2026-10-25T17:43:40.5235645Z Ran 8 tests in 72.724s
+2026-10-25T17:43:40.5235948Z 
+2026-10-25T17:43:40.5236168Z OK
+2026-10-25T17:43:40.9559797Z PASS: 11 text and 3 image visibility controls (not GUI evidence)
+2026-10-25T17:43:41.5851173Z PASS: legacy HMP request spacing and rejection controls (not proof of virtual key release)
+2026-10-25T17:43:42.4768382Z ...
+2026-10-25T17:43:42.4769284Z ----------------------------------------------------------------------
+2026-10-25T17:43:42.4769932Z Ran 3 tests in 0.851s
+2026-10-25T17:43:42.4770199Z 
+2026-10-25T17:43:42.4770429Z OK
+2026-10-25T17:43:42.5740868Z PASS: async-image comparison positive and four negative controls (not GUI evidence)
+2026-10-25T17:43:42.5860935Z ##[group]Run sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH"
+2026-10-25T17:43:42.5861530Z [36;1msudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH"[0m
+2026-10-25T17:43:42.5897107Z shell: /usr/bin/bash -e {0}
+2026-10-25T17:43:42.5897440Z env:
+2026-10-25T17:43:42.5897661Z   ARCH: x86_64
+2026-10-25T17:43:42.5897904Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:43:42.5898199Z ##[endgroup]
+2026-10-25T17:43:46.3896798Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/basu-0.2.1-r2.apk: 0 - OK
+2026-10-25T17:43:46.3902774Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/double-conversion-3.3.1-r0.apk: 0 - OK
+2026-10-25T17:43:46.3921648Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/duktape-libs-2.7.0-r2.apk: 0 - OK
+2026-10-25T17:43:46.3926019Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/grim-1.4.1-r0.apk: 0 - OK
+2026-10-25T17:43:46.3935259Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libb2-0.98.1-r3.apk: 0 - OK
+2026-10-25T17:43:46.3946872Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libdisplay-info-0.2.0-r0.apk: 0 - OK
+2026-10-25T17:43:46.3976410Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libelogind-252.24-r1.apk: 0 - OK
+2026-10-25T17:43:46.3982291Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libevdev-1.13.3-r0.apk: 0 - OK
+2026-10-25T17:43:46.4001522Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libinput-libs-1.28.1-r0.apk: 0 - OK
+2026-10-25T17:43:46.4006947Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libproxy-0.5.10-r0.apk: 0 - OK
+2026-10-25T17:43:46.4011277Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libseat-0.9.1-r0.apk: 0 - OK
+2026-10-25T17:43:46.4015104Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mtdev-1.1.7-r0.apk: 0 - OK
+2026-10-25T17:43:46.4673258Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/qt6-qtbase-6.8.3-r0.apk: 0 - OK
+2026-10-25T17:43:46.5640351Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/qt6-qtbase-x11-6.8.3-r0.apk: 0 - OK
+2026-10-25T17:43:46.7254738Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/qt6-qtdeclarative-6.8.3-r0.apk: 0 - OK
+2026-10-25T17:43:46.7401953Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/qt6-qtwayland-6.8.3-r0.apk: 0 - OK
+2026-10-25T17:43:46.7427561Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/sway-1.10.1-r1.apk: 0 - OK
+2026-10-25T17:43:46.7681673Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/sway-wallpapers-1.10.1-r1.apk: 0 - OK
+2026-10-25T17:43:46.7689123Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/swaybar-1.10.1-r1.apk: 0 - OK
+2026-10-25T17:43:46.7694229Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/swaynag-1.10.1-r1.apk: 0 - OK
+2026-10-25T17:43:46.7709380Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/tslib-1.23-r0.apk: 0 - OK
+2026-10-25T17:43:46.7753308Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wlroots-0.18.2-r1.apk: 0 - OK
+2026-10-25T17:43:46.7757117Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-cursor-0.1.5-r0.apk: 0 - OK
+2026-10-25T17:43:46.7760393Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-image-0.4.1-r0.apk: 0 - OK
+2026-10-25T17:43:46.7763695Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-keysyms-0.4.1-r0.apk: 0 - OK
+2026-10-25T17:43:46.7766772Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-renderutil-0.3.10-r0.apk: 0 - OK
+2026-10-25T17:43:46.7771479Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-wm-0.4.2-r0.apk: 0 - OK
+2026-10-25T17:43:46.7783056Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xdg-utils-1.2.1-r1.apk: 0 - OK
+2026-10-25T17:43:46.7787249Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xprop-1.2.8-r0.apk: 0 - OK
+2026-10-25T17:43:46.7790822Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xset-1.2.5-r1.apk: 0 - OK
+2026-10-25T17:43:46.7800177Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/at-spi2-core-2.56.5-r0.apk: 0 - OK
+2026-10-25T17:43:46.7811494Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/at-spi2-core-libs-2.56.5-r0.apk: 0 - OK
+2026-10-25T17:43:46.7819390Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/avahi-libs-0.8-r21.apk: 0 - OK
+2026-10-25T17:43:46.7864620Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/brotli-libs-1.1.0-r2.apk: 0 - OK
+2026-10-25T17:43:46.7915022Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/busybox-1.37.0-r20.apk: 0 - OK
+2026-10-25T17:43:46.7917242Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/busybox-binsh-1.37.0-r20.apk: 0 - OK
+2026-10-25T17:43:46.7931314Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/c-ares-1.34.8-r0.apk: 0 - OK
+2026-10-25T17:43:46.7943160Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/ca-certificates-bundle-20261020-r0.apk: 0 - OK
+2026-10-25T17:43:46.8001278Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/cairo-1.18.4-r0.apk: 0 - OK
+2026-10-25T17:43:46.8004903Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/cairo-gobject-1.18.4-r0.apk: 0 - OK
+2026-10-25T17:43:46.8031885Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/cups-libs-2.4.18-r0.apk: 0 - OK
+2026-10-25T17:43:46.8048422Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/dbus-1.16.2-r1.apk: 0 - OK
+2026-10-25T17:43:46.8053116Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/dbus-daemon-launch-helper-1.16.2-r1.apk: 0 - OK
+2026-10-25T17:43:46.8068765Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/dbus-libs-1.16.2-r1.apk: 0 - OK
+2026-10-25T17:43:46.8104075Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/encodings-1.0.7-r1.apk: 0 - OK
+2026-10-25T17:43:46.8108929Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/eudev-libs-3.2.14-r5.apk: 0 - OK
+2026-10-25T17:43:46.8112181Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/file-5.46-r2.apk: 0 - OK
+2026-10-25T17:43:46.8571406Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/font-dejavu-2.37-r6.apk: 0 - OK
+2026-10-25T17:43:46.8593414Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/fontconfig-2.15.0-r3.apk: 0 - OK
+2026-10-25T17:43:46.8631742Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/freetype-2.13.3-r0.apk: 0 - OK
+2026-10-25T17:43:46.8638371Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/fribidi-1.0.16-r1.apk: 0 - OK
+2026-10-25T17:43:46.8659156Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gdk-pixbuf-2.42.12-r1.apk: 0 - OK
+2026-10-25T17:43:46.8897052Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/glib-2.84.4-r0.apk: 0 - OK
+2026-10-25T17:43:46.8922688Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gmp-6.3.0-r3.apk: 0 - OK
+2026-10-25T17:43:46.9021160Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gnutls-3.8.13-r0.apk: 0 - OK
+2026-10-25T17:43:46.9035957Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gobject-introspection-1.84.0-r0.apk: 0 - OK
+2026-10-25T17:43:46.9045756Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/graphite2-1.3.14-r6.apk: 0 - OK
+2026-10-25T17:43:46.9493090Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gtk+3.0-3.24.50-r0.apk: 0 - OK
+2026-10-25T17:43:46.9497442Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gtk-update-icon-cache-3.24.50-r0.apk: 0 - OK
+2026-10-25T17:43:46.9569425Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/harfbuzz-11.2.1-r0.apk: 0 - OK
+2026-10-25T17:43:46.9588278Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/hicolor-icon-theme-0.18-r0.apk: 0 - OK
+2026-10-25T17:43:46.9638419Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/hwdata-pci-0.395-r0.apk: 0 - OK
+2026-10-25T17:43:46.9753465Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/icu-data-en-76.1-r1.apk: 0 - OK
+2026-10-25T17:43:46.9968055Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/icu-libs-76.1-r1.apk: 0 - OK
+2026-10-25T17:43:46.9988887Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/jq-1.8.2-r0.apk: 0 - OK
+2026-10-25T17:43:46.9994351Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/json-c-0.18-r1.apk: 0 - OK
+2026-10-25T17:43:47.0014477Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/lcms2-2.19-r0.apk: 0 - OK
+2026-10-25T17:43:47.0026072Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libatk-1.0-2.56.5-r0.apk: 0 - OK
+2026-10-25T17:43:47.0037829Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libatk-bridge-2.0-2.56.5-r0.apk: 0 - OK
+2026-10-25T17:43:47.0050378Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libblkid-2.41.6-r1.apk: 0 - OK
+2026-10-25T17:43:47.0056292Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libbsd-0.12.2-r0.apk: 0 - OK
+2026-10-25T17:43:47.0062521Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libbz2-1.0.8-r6.apk: 0 - OK
+2026-10-25T17:43:47.0067436Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libcap2-2.78-r0.apk: 0 - OK
+2026-10-25T17:43:47.0276921Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libcrypto3-3.5.9-r0.apk: 0 - OK
+2026-10-25T17:43:47.0316336Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libcurl-8.14.1-r3.apk: 0 - OK
+2026-10-25T17:43:47.0343117Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libdrm-2.4.124-r0.apk: 0 - OK
+2026-10-25T17:43:47.0372358Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libdw-0.193-r0.apk: 0 - OK
+2026-10-25T17:43:47.0378163Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libeconf-0.6.3-r0.apk: 0 - OK
+2026-10-25T17:43:47.0385690Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libelf-0.193-r0.apk: 0 - OK
+2026-10-25T17:43:47.0416908Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libepoxy-1.5.10-r1.apk: 0 - OK
+2026-10-25T17:43:47.0426990Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libexpat-2.9.0-r0.apk: 0 - OK
+2026-10-25T17:43:47.0431497Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libffi-3.4.8-r0.apk: 0 - OK
+2026-10-25T17:43:47.0435315Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libfontenc-1.1.8-r0.apk: 0 - OK
+2026-10-25T17:43:47.0447442Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libgcc-14.2.0-r6.apk: 0 - OK
+2026-10-25T17:43:47.0467630Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libgomp-14.2.0-r6.apk: 0 - OK
+2026-10-25T17:43:47.0474658Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libice-1.1.2-r0.apk: 0 - OK
+2026-10-25T17:43:47.0487806Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libidn2-2.3.7-r0.apk: 0 - OK
+2026-10-25T17:43:47.0495648Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libintl-0.24.1-r0.apk: 0 - OK
+2026-10-25T17:43:47.0525514Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libjpeg-turbo-3.1.0-r0.apk: 0 - OK
+2026-10-25T17:43:47.0648201Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libmagic-5.46-r2.apk: 0 - OK
+2026-10-25T17:43:47.0653558Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libmd-1.1.0-r0.apk: 0 - OK
+2026-10-25T17:43:47.0670680Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libmount-2.41.6-r1.apk: 0 - OK
+2026-10-25T17:43:47.0674955Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libpciaccess-0.18.1-r0.apk: 0 - OK
+2026-10-25T17:43:47.0711617Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libpcre2-16-10.46-r1.apk: 0 - OK
+2026-10-25T17:43:47.0724872Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libpng-1.6.59-r0.apk: 0 - OK
+2026-10-25T17:43:47.0732145Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libpsl-0.21.5-r3.apk: 0 - OK
+2026-10-25T17:43:47.0736226Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libsharpyuv-1.5.0-r0.apk: 0 - OK
+2026-10-25T17:43:47.0740240Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libsm-1.2.5-r0.apk: 0 - OK
+2026-10-25T17:43:47.0786694Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libssl3-3.5.9-r0.apk: 0 - OK
+2026-10-25T17:43:47.0895651Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libstdc++-14.2.0-r6.apk: 0 - OK
+2026-10-25T17:43:47.0902014Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libtasn1-4.21.0-r0.apk: 0 - OK
+2026-10-25T17:43:47.0977494Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libunistring-1.3-r0.apk: 0 - OK
+2026-10-25T17:43:47.0981415Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libuuid-2.41.6-r1.apk: 0 - OK
+2026-10-25T17:43:47.1011151Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libwebp-1.5.0-r0.apk: 0 - OK
+2026-10-25T17:43:47.1101490Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libx11-1.8.11-r0.apk: 0 - OK
+2026-10-25T17:43:47.1104664Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxau-1.0.12-r0.apk: 0 - OK
+2026-10-25T17:43:47.1138018Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxcb-1.17.0-r0.apk: 0 - OK
+2026-10-25T17:43:47.1140752Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxcomposite-0.4.6-r5.apk: 0 - OK
+2026-10-25T17:43:47.1145641Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxcursor-1.2.3-r0.apk: 0 - OK
+2026-10-25T17:43:47.1148423Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxdamage-1.1.6-r5.apk: 0 - OK
+2026-10-25T17:43:47.1151934Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxdmcp-1.1.5-r1.apk: 0 - OK
+2026-10-25T17:43:47.1157517Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxext-1.3.6-r2.apk: 0 - OK
+2026-10-25T17:43:47.1160798Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxfixes-6.0.1-r4.apk: 0 - OK
+2026-10-25T17:43:47.1167599Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxft-2.3.8-r3.apk: 0 - OK
+2026-10-25T17:43:47.1172962Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxi-1.8.2-r0.apk: 0 - OK
+2026-10-25T17:43:47.1175892Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxinerama-1.1.5-r4.apk: 0 - OK
+2026-10-25T17:43:47.1194448Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxkbcommon-1.8.1-r2.apk: 0 - OK
+2026-10-25T17:43:47.1198466Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxkbcommon-x11-1.8.1-r2.apk: 0 - OK
+2026-10-25T17:43:47.1255038Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxml2-2.13.9-r1.apk: 0 - OK
+2026-10-25T17:43:47.1262759Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxmu-1.2.1-r0.apk: 0 - OK
+2026-10-25T17:43:47.1266954Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxrandr-1.5.4-r1.apk: 0 - OK
+2026-10-25T17:43:47.1271197Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxrender-0.9.12-r0.apk: 0 - OK
+2026-10-25T17:43:47.1274346Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxshmfence-1.3.3-r0.apk: 0 - OK
+2026-10-25T17:43:47.1294246Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxt-1.3.1-r0.apk: 0 - OK
+2026-10-25T17:43:47.1297702Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxtst-1.2.5-r0.apk: 0 - OK
+2026-10-25T17:43:47.1300937Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxxf86vm-1.1.7-r0.apk: 0 - OK
+2026-10-25T17:43:47.8006529Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/llvm20-libs-20.1.8-r0.apk: 0 - OK
+2026-10-25T17:43:48.1782097Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:48.1799114Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-egl-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:48.1802541Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-gbm-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:48.1821852Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-gl-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:48.1826480Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-gles-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:48.1830265Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mkfontscale-1.2.3-r1.apk: 0 - OK
+2026-10-25T17:43:48.1866736Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/musl-1.2.5-r12.apk: 0 - OK
+2026-10-25T17:43:48.2122116Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/musl-dev-1.2.5-r12.apk: 0 - OK
+2026-10-25T17:43:48.2125164Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/musl-fts-1.2.7-r6.apk: 0 - OK
+2026-10-25T17:43:48.2152763Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/nettle-3.10.2-r0.apk: 0 - OK
+2026-10-25T17:43:48.2161277Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/nghttp2-libs-1.69.0-r0.apk: 0 - OK
+2026-10-25T17:43:48.2183571Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/oniguruma-6.9.10-r0.apk: 0 - OK
+2026-10-25T17:43:48.2227087Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/p11-kit-0.26.2-r0.apk: 0 - OK
+2026-10-25T17:43:48.2256178Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/pango-1.56.3-r0.apk: 0 - OK
+2026-10-25T17:43:48.2291073Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/pcre2-10.46-r1.apk: 0 - OK
+2026-10-25T17:43:48.2317715Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/pixman-0.46.4-r0.apk: 0 - OK
+2026-10-25T17:43:48.2326449Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/pkgconf-2.4.3-r0.apk: 0 - OK
+2026-10-25T17:43:48.2376261Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/shared-mime-info-2.4-r6.apk: 0 - OK
+2026-10-25T17:43:48.2551746Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/spirv-tools-1.4.313.0-r0.apk: 0 - OK
+2026-10-25T17:43:48.2554368Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/ssl_client-1.37.0-r20.apk: 0 - OK
+2026-10-25T17:43:48.2603260Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/strace-6.13-r0.apk: 0 - OK
+2026-10-25T17:43:48.2622983Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/tiff-4.7.2-r0.apk: 0 - OK
+2026-10-25T17:43:48.2652190Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/tzdata-2026e-r0.apk: 0 - OK
+2026-10-25T17:43:48.2672710Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/vulkan-loader-1.4.313.0-r0.apk: 0 - OK
+2026-10-25T17:43:48.2677095Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wayland-libs-client-1.23.1-r3.apk: 0 - OK
+2026-10-25T17:43:48.2680170Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wayland-libs-cursor-1.23.1-r3.apk: 0 - OK
+2026-10-25T17:43:48.2682914Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wayland-libs-egl-1.23.1-r3.apk: 0 - OK
+2026-10-25T17:43:48.2688198Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wayland-libs-server-1.23.1-r3.apk: 0 - OK
+2026-10-25T17:43:48.2691035Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-0.4.1-r3.apk: 0 - OK
+2026-10-25T17:43:48.2767798Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xkeyboard-config-2.43-r0.apk: 0 - OK
+2026-10-25T17:43:48.2781111Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xz-libs-5.8.4-r0.apk: 0 - OK
+2026-10-25T17:43:48.2788279Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/zlib-1.3.2-r1.apk: 0 - OK
+2026-10-25T17:43:48.2827242Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/zstd-libs-1.5.7-r0.apk: 0 - OK
+2026-10-25T17:43:48.3188966Z (1/156) Upgrading libcrypto3 (3.5.8-r0 -> 3.5.9-r0)
+2026-10-25T17:43:48.3486176Z (2/156) Upgrading ca-certificates-bundle (20260909-r0 -> 20261020-r0)
+2026-10-25T17:43:48.3499017Z (3/156) Upgrading libssl3 (3.5.8-r0 -> 3.5.9-r0)
+2026-10-25T17:43:48.3564520Z (4/156) Upgrading zlib (1.3.2-r0 -> 1.3.2-r1)
+2026-10-25T17:43:48.3571586Z (5/156) Installing libxau (1.0.12-r0)
+2026-10-25T17:43:48.3573721Z (6/156) Installing libmd (1.1.0-r0)
+2026-10-25T17:43:48.3577771Z (7/156) Installing libbsd (0.12.2-r0)
+2026-10-25T17:43:48.3582329Z (8/156) Installing libxdmcp (1.1.5-r1)
+2026-10-25T17:43:48.3584865Z (9/156) Installing libxcb (1.17.0-r0)
+2026-10-25T17:43:48.3624079Z (10/156) Installing libx11 (1.8.11-r0)
+2026-10-25T17:43:48.3744320Z (11/156) Installing libxext (1.3.6-r2)
+2026-10-25T17:43:48.3748406Z (12/156) Installing libxtst (1.2.5-r0)
+2026-10-25T17:43:48.3750749Z (13/156) Installing libxi (1.8.2-r0)
+2026-10-25T17:43:48.3755136Z (14/156) Installing dbus-libs (1.16.2-r1)
+2026-10-25T17:43:48.3770852Z (15/156) Installing libffi (3.4.8-r0)
+2026-10-25T17:43:48.3774014Z (16/156) Installing libintl (0.24.1-r0)
+2026-10-25T17:43:48.3780508Z (17/156) Installing libeconf (0.6.3-r0)
+2026-10-25T17:43:48.3785222Z (18/156) Installing libblkid (2.41.6-r1)
+2026-10-25T17:43:48.3796463Z (19/156) Installing libmount (2.41.6-r1)
+2026-10-25T17:43:48.3811616Z (20/156) Installing pcre2 (10.46-r1)
+2026-10-25T17:43:48.3848248Z (21/156) Installing glib (2.84.4-r0)
+2026-10-25T17:43:48.4075057Z (22/156) Installing at-spi2-core-libs (2.56.5-r0)
+2026-10-25T17:43:48.4085457Z (23/156) Installing at-spi2-core (2.56.5-r0)
+2026-10-25T17:43:48.4096081Z (24/156) Installing avahi-libs (0.8-r21)
+2026-10-25T17:43:48.4102696Z (25/156) Installing basu (0.2.1-r2)
+2026-10-25T17:43:48.4126541Z (26/156) Installing brotli-libs (1.1.0-r2)
+2026-10-25T17:43:48.4171547Z (27/156) Installing c-ares (1.34.8-r0)
+2026-10-25T17:43:48.4185331Z (28/156) Installing libxrender (0.9.12-r0)
+2026-10-25T17:43:48.4188524Z (29/156) Installing libexpat (2.9.0-r0)
+2026-10-25T17:43:48.4196959Z (30/156) Installing libbz2 (1.0.8-r6)
+2026-10-25T17:43:48.4201797Z (31/156) Installing libpng (1.6.59-r0)
+2026-10-25T17:43:48.4213380Z (32/156) Installing freetype (2.13.3-r0)
+2026-10-25T17:43:48.4249670Z (33/156) Installing fontconfig (2.15.0-r3)
+2026-10-25T17:43:48.4285081Z (34/156) Installing pixman (0.46.4-r0)
+2026-10-25T17:43:48.4312334Z (35/156) Installing cairo (1.18.4-r0)
+2026-10-25T17:43:48.4368620Z (36/156) Installing cairo-gobject (1.18.4-r0)
+2026-10-25T17:43:48.4371162Z (37/156) Installing gmp (6.3.0-r3)
+2026-10-25T17:43:48.4394146Z (38/156) Installing nettle (3.10.2-r0)
+2026-10-25T17:43:48.4422838Z (39/156) Installing libunistring (1.3-r0)
+2026-10-25T17:43:48.4493487Z (40/156) Installing libidn2 (2.3.7-r0)
+2026-10-25T17:43:48.4504802Z (41/156) Installing libtasn1 (4.21.0-r0)
+2026-10-25T17:43:48.4509840Z (42/156) Installing p11-kit (0.26.2-r0)
+2026-10-25T17:43:48.4557631Z (43/156) Installing gnutls (3.8.13-r0)
+2026-10-25T17:43:48.4647607Z (44/156) Installing cups-libs (2.4.18-r0)
+2026-10-25T17:43:48.4674720Z (45/156) Installing dbus (1.16.2-r1)
+2026-10-25T17:43:48.4694804Z (46/156) Installing dbus-daemon-launch-helper (1.16.2-r1)
+2026-10-25T17:43:48.4698394Z (47/156) Installing libgcc (14.2.0-r6)
+2026-10-25T17:43:48.4708753Z (48/156) Installing libstdc++ (14.2.0-r6)
+2026-10-25T17:43:48.4809750Z (49/156) Installing double-conversion (3.3.1-r0)
+2026-10-25T17:43:48.4815604Z (50/156) Installing duktape-libs (2.7.0-r2)
+2026-10-25T17:43:48.4832704Z (51/156) Installing encodings (1.0.7-r1)
+2026-10-25T17:43:48.4878381Z (52/156) Installing eudev-libs (3.2.14-r5)
+2026-10-25T17:43:48.4882609Z (53/156) Installing libmagic (5.46-r2)
+2026-10-25T17:43:48.5011282Z (54/156) Installing file (5.46-r2)
+2026-10-25T17:43:48.5013845Z (55/156) Installing libfontenc (1.1.8-r0)
+2026-10-25T17:43:48.5016478Z (56/156) Installing mkfontscale (1.2.3-r1)
+2026-10-25T17:43:48.5019833Z (57/156) Installing font-dejavu (2.37-r6)
+2026-10-25T17:43:48.5509335Z (58/156) Installing fribidi (1.0.16-r1)
+2026-10-25T17:43:48.5515801Z (59/156) Installing pkgconf (2.4.3-r0)
+2026-10-25T17:43:48.5523022Z (60/156) Installing xz-libs (5.8.4-r0)
+2026-10-25T17:43:48.5536531Z (61/156) Installing libxml2 (2.13.9-r1)
+2026-10-25T17:43:48.5589512Z (62/156) Installing shared-mime-info (2.4-r6)
+2026-10-25T17:43:48.5646394Z (63/156) Installing libjpeg-turbo (3.1.0-r0)
+2026-10-25T17:43:48.5673036Z (64/156) Installing libsharpyuv (1.5.0-r0)
+2026-10-25T17:43:48.5675776Z (65/156) Installing libwebp (1.5.0-r0)
+2026-10-25T17:43:48.5702979Z (66/156) Installing zstd-libs (1.5.7-r0)
+2026-10-25T17:43:48.5742624Z (67/156) Installing tiff (4.7.2-r0)
+2026-10-25T17:43:48.5762807Z (68/156) Installing gdk-pixbuf (2.42.12-r1)
+2026-10-25T17:43:48.5786611Z (69/156) Installing gobject-introspection (1.84.0-r0)
+2026-10-25T17:43:48.5801808Z (70/156) Installing graphite2 (1.3.14-r6)
+2026-10-25T17:43:48.5809976Z (71/156) Installing wayland-libs-client (1.23.1-r3)
+2026-10-25T17:43:48.5813780Z (72/156) Installing grim (1.4.1-r0)
+2026-10-25T17:43:48.5816351Z (73/156) Installing hicolor-icon-theme (0.18-r0)
+2026-10-25T17:43:48.5902524Z (74/156) Installing gtk-update-icon-cache (3.24.50-r0)
+2026-10-25T17:43:48.5905590Z (75/156) Installing libxcomposite (0.4.6-r5)
+2026-10-25T17:43:48.5907629Z (76/156) Installing libxfixes (6.0.1-r4)
+2026-10-25T17:43:48.6054698Z (77/156) Installing libxcursor (1.2.3-r0)
+2026-10-25T17:43:48.6055328Z (78/156) Installing libxdamage (1.1.6-r5)
+2026-10-25T17:43:48.6055746Z (79/156) Installing libxinerama (1.1.5-r4)
+2026-10-25T17:43:48.6056144Z (80/156) Installing libxrandr (1.5.4-r1)
+2026-10-25T17:43:48.6056575Z (81/156) Installing libatk-1.0 (2.56.5-r0)
+2026-10-25T17:43:48.6056994Z (82/156) Installing libatk-bridge-2.0 (2.56.5-r0)
+2026-10-25T17:43:48.6057403Z (83/156) Installing libepoxy (1.5.10-r1)
+2026-10-25T17:43:48.6057783Z (84/156) Installing harfbuzz (11.2.1-r0)
+2026-10-25T17:43:48.6080397Z (85/156) Installing libxft (2.3.8-r3)
+2026-10-25T17:43:48.6080699Z (86/156) Installing pango (1.56.3-r0)
+2026-10-25T17:43:48.6105509Z (87/156) Installing wayland-libs-cursor (1.23.1-r3)
+2026-10-25T17:43:48.6107692Z (88/156) Installing wayland-libs-egl (1.23.1-r3)
+2026-10-25T17:43:48.6109664Z (89/156) Installing xkeyboard-config (2.43-r0)
+2026-10-25T17:43:48.6246539Z (90/156) Installing libxkbcommon (1.8.1-r2)
+2026-10-25T17:43:48.6263233Z (91/156) Installing gtk+3.0 (3.24.50-r0)
+2026-10-25T17:43:48.6669347Z (92/156) Installing hwdata-pci (0.395-r0)
+2026-10-25T17:43:48.6715632Z (93/156) Installing icu-data-en (76.1-r1)
+2026-10-25T17:43:48.6821699Z (94/156) Installing icu-libs (76.1-r1)
+2026-10-25T17:43:48.7019135Z (95/156) Installing oniguruma (6.9.10-r0)
+2026-10-25T17:43:48.7041685Z (96/156) Installing jq (1.8.2-r0)
+2026-10-25T17:43:48.7060443Z (97/156) Installing json-c (0.18-r1)
+2026-10-25T17:43:48.7065045Z (98/156) Installing lcms2 (2.19-r0)
+2026-10-25T17:43:48.7082857Z (99/156) Installing libgomp (14.2.0-r6)
+2026-10-25T17:43:48.7100434Z (100/156) Installing libb2 (0.98.1-r3)
+2026-10-25T17:43:48.7107619Z (101/156) Installing libcap2 (2.78-r0)
+2026-10-25T17:43:48.7111734Z (102/156) Installing nghttp2-libs (1.69.0-r0)
+2026-10-25T17:43:48.7120059Z (103/156) Installing libpsl (0.21.5-r3)
+2026-10-25T17:43:48.7126050Z (104/156) Installing libcurl (8.14.1-r3)
+2026-10-25T17:43:48.7161961Z (105/156) Installing libdisplay-info (0.2.0-r0)
+2026-10-25T17:43:48.7172044Z (106/156) Installing libpciaccess (0.18.1-r0)
+2026-10-25T17:43:48.7175080Z (107/156) Installing libdrm (2.4.124-r0)
+2026-10-25T17:43:48.7203862Z (108/156) Installing libelf (0.193-r0)
+2026-10-25T17:43:48.7209617Z (109/156) Installing musl-fts (1.2.7-r6)
+2026-10-25T17:43:48.7211828Z (110/156) Installing libdw (0.193-r0)
+2026-10-25T17:43:48.7238658Z (111/156) Installing libelogind (252.24-r1)
+2026-10-25T17:43:48.7265603Z (112/156) Installing libevdev (1.13.3-r0)
+2026-10-25T17:43:48.7270067Z (113/156) Installing libice (1.1.2-r0)
+2026-10-25T17:43:48.7275824Z (114/156) Installing mtdev (1.1.7-r0)
+2026-10-25T17:43:48.7278315Z (115/156) Installing libinput-libs (1.28.1-r0)
+2026-10-25T17:43:48.7303534Z (116/156) Installing libpcre2-16 (10.46-r1)
+2026-10-25T17:43:48.7336758Z (117/156) Installing libproxy (0.5.10-r0)
+2026-10-25T17:43:48.7341461Z (118/156) Installing libseat (0.9.1-r0)
+2026-10-25T17:43:48.7344364Z (119/156) Installing libuuid (2.41.6-r1)
+2026-10-25T17:43:48.7347143Z (120/156) Installing libsm (1.2.5-r0)
+2026-10-25T17:43:48.7350027Z (121/156) Installing libxkbcommon-x11 (1.8.1-r2)
+2026-10-25T17:43:48.7353024Z (122/156) Installing libxt (1.3.1-r0)
+2026-10-25T17:43:48.7371115Z (123/156) Installing libxmu (1.2.1-r0)
+2026-10-25T17:43:48.7378501Z (124/156) Installing libxshmfence (1.3.3-r0)
+2026-10-25T17:43:48.7380284Z (125/156) Installing libxxf86vm (1.1.7-r0)
+2026-10-25T17:43:48.7382624Z (126/156) Installing llvm20-libs (20.1.8-r0)
+2026-10-25T17:43:49.4498812Z (127/156) Installing spirv-tools (1.4.313.0-r0)
+2026-10-25T17:43:49.4690636Z (128/156) Installing wayland-libs-server (1.23.1-r3)
+2026-10-25T17:43:49.4694784Z (129/156) Installing mesa (25.1.9-r0)
+2026-10-25T17:43:49.8762273Z (130/156) Installing mesa-gbm (25.1.9-r0)
+2026-10-25T17:43:49.8763464Z (131/156) Installing mesa-egl (25.1.9-r0)
+2026-10-25T17:43:49.8779707Z (132/156) Installing mesa-gl (25.1.9-r0)
+2026-10-25T17:43:49.8801416Z (133/156) Installing mesa-gles (25.1.9-r0)
+2026-10-25T17:43:49.8806735Z (134/156) Installing musl-dev (1.2.5-r12)
+2026-10-25T17:43:49.9117822Z (135/156) Installing tzdata (2026e-r0)
+2026-10-25T17:43:49.9237848Z (136/156) Installing qt6-qtbase (6.8.3-r0)
+2026-10-25T17:43:49.9868951Z (137/156) Installing xprop (1.2.8-r0)
+2026-10-25T17:43:49.9869313Z (138/156) Installing xset (1.2.5-r1)
+2026-10-25T17:43:49.9873496Z (139/156) Installing xdg-utils (1.2.1-r1)
+2026-10-25T17:43:49.9885944Z (140/156) Installing tslib (1.23-r0)
+2026-10-25T17:43:49.9904606Z (141/156) Installing xcb-util (0.4.1-r3)
+2026-10-25T17:43:49.9906585Z (142/156) Installing xcb-util-image (0.4.1-r0)
+2026-10-25T17:43:49.9908680Z (143/156) Installing xcb-util-renderutil (0.3.10-r0)
+2026-10-25T17:43:49.9910589Z (144/156) Installing xcb-util-cursor (0.1.5-r0)
+2026-10-25T17:43:49.9912858Z (145/156) Installing xcb-util-wm (0.4.2-r0)
+2026-10-25T17:43:49.9916831Z (146/156) Installing xcb-util-keysyms (0.4.1-r0)
+2026-10-25T17:43:49.9918972Z (147/156) Installing qt6-qtbase-x11 (6.8.3-r0)
+2026-10-25T17:43:50.0840287Z (148/156) Installing qt6-qtdeclarative (6.8.3-r0)
+2026-10-25T17:43:50.2783565Z (149/156) Installing qt6-qtwayland (6.8.3-r0)
+2026-10-25T17:43:50.2952925Z (150/156) Installing strace (6.13-r0)
+2026-10-25T17:43:50.3004208Z (151/156) Installing vulkan-loader (1.4.313.0-r0)
+2026-10-25T17:43:50.3025055Z (152/156) Installing wlroots (0.18.2-r1)
+2026-10-25T17:43:50.3067628Z (153/156) Installing sway (1.10.1-r1)
+2026-10-25T17:43:50.3093825Z (154/156) Installing sway-wallpapers (1.10.1-r1)
+2026-10-25T17:43:50.3345155Z (155/156) Installing swaybar (1.10.1-r1)
+2026-10-25T17:43:50.3351293Z (156/156) Installing swaynag (1.10.1-r1)
+2026-10-25T17:43:50.3387739Z OK: 513 MiB in 168 packages
+2026-10-25T17:43:50.3495742Z Alpine base/x86_64: 160 signed APKs, no target compilation, 7.7s
+2026-10-25T17:43:50.3496905Z Image: /home/runner/work/9os/9os/userland/alpine-root-x86_64; lock: /home/runner/work/9os/9os/userland/build/alpine-x86_64.lock.json
+2026-10-25T17:43:50.3687496Z ##[group]Run sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --lock "userland/build/alpine-$ARCH.lock.json" --offline
+2026-10-25T17:43:50.3688446Z [36;1msudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --lock "userland/build/alpine-$ARCH.lock.json" --offline[0m
+2026-10-25T17:43:50.3731394Z shell: /usr/bin/bash -e {0}
+2026-10-25T17:43:50.3731609Z env:
+2026-10-25T17:43:50.3731766Z   ARCH: x86_64
+2026-10-25T17:43:50.3732091Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:43:50.3732348Z ##[endgroup]
+2026-10-25T17:43:50.6850227Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/basu-0.2.1-r2.apk: 0 - OK
+2026-10-25T17:43:50.6855942Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/double-conversion-3.3.1-r0.apk: 0 - OK
+2026-10-25T17:43:50.6872966Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/duktape-libs-2.7.0-r2.apk: 0 - OK
+2026-10-25T17:43:50.6876903Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/grim-1.4.1-r0.apk: 0 - OK
+2026-10-25T17:43:50.6884507Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libb2-0.98.1-r3.apk: 0 - OK
+2026-10-25T17:43:50.6894765Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libdisplay-info-0.2.0-r0.apk: 0 - OK
+2026-10-25T17:43:50.6921078Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libelogind-252.24-r1.apk: 0 - OK
+2026-10-25T17:43:50.6926212Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libevdev-1.13.3-r0.apk: 0 - OK
+2026-10-25T17:43:50.6942947Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libinput-libs-1.28.1-r0.apk: 0 - OK
+2026-10-25T17:43:50.6947587Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libproxy-0.5.10-r0.apk: 0 - OK
+2026-10-25T17:43:50.6951367Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libseat-0.9.1-r0.apk: 0 - OK
+2026-10-25T17:43:50.6954619Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mtdev-1.1.7-r0.apk: 0 - OK
+2026-10-25T17:43:50.7542246Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/qt6-qtbase-6.8.3-r0.apk: 0 - OK
+2026-10-25T17:43:50.8421302Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/qt6-qtbase-x11-6.8.3-r0.apk: 0 - OK
+2026-10-25T17:43:50.9977921Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/qt6-qtdeclarative-6.8.3-r0.apk: 0 - OK
+2026-10-25T17:43:51.0126520Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/qt6-qtwayland-6.8.3-r0.apk: 0 - OK
+2026-10-25T17:43:51.0152932Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/sway-1.10.1-r1.apk: 0 - OK
+2026-10-25T17:43:51.0407874Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/sway-wallpapers-1.10.1-r1.apk: 0 - OK
+2026-10-25T17:43:51.0415202Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/swaybar-1.10.1-r1.apk: 0 - OK
+2026-10-25T17:43:51.0419746Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/swaynag-1.10.1-r1.apk: 0 - OK
+2026-10-25T17:43:51.0433839Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/tslib-1.23-r0.apk: 0 - OK
+2026-10-25T17:43:51.0475515Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wlroots-0.18.2-r1.apk: 0 - OK
+2026-10-25T17:43:51.0478905Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-cursor-0.1.5-r0.apk: 0 - OK
+2026-10-25T17:43:51.0482094Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-image-0.4.1-r0.apk: 0 - OK
+2026-10-25T17:43:51.0485099Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-keysyms-0.4.1-r0.apk: 0 - OK
+2026-10-25T17:43:51.0488075Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-renderutil-0.3.10-r0.apk: 0 - OK
+2026-10-25T17:43:51.0492670Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-wm-0.4.2-r0.apk: 0 - OK
+2026-10-25T17:43:51.0503755Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xdg-utils-1.2.1-r1.apk: 0 - OK
+2026-10-25T17:43:51.0507666Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xprop-1.2.8-r0.apk: 0 - OK
+2026-10-25T17:43:51.0511153Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xset-1.2.5-r1.apk: 0 - OK
+2026-10-25T17:43:51.0520257Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/at-spi2-core-2.56.5-r0.apk: 0 - OK
+2026-10-25T17:43:51.0531574Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/at-spi2-core-libs-2.56.5-r0.apk: 0 - OK
+2026-10-25T17:43:51.0538067Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/avahi-libs-0.8-r21.apk: 0 - OK
+2026-10-25T17:43:51.0580547Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/brotli-libs-1.1.0-r2.apk: 0 - OK
+2026-10-25T17:43:51.0627403Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/busybox-1.37.0-r20.apk: 0 - OK
+2026-10-25T17:43:51.0629702Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/busybox-binsh-1.37.0-r20.apk: 0 - OK
+2026-10-25T17:43:51.0643634Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/c-ares-1.34.8-r0.apk: 0 - OK
+2026-10-25T17:43:51.0653554Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/ca-certificates-bundle-20261020-r0.apk: 0 - OK
+2026-10-25T17:43:51.0706535Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/cairo-1.18.4-r0.apk: 0 - OK
+2026-10-25T17:43:51.0709609Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/cairo-gobject-1.18.4-r0.apk: 0 - OK
+2026-10-25T17:43:51.0736063Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/cups-libs-2.4.18-r0.apk: 0 - OK
+2026-10-25T17:43:51.0751640Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/dbus-1.16.2-r1.apk: 0 - OK
+2026-10-25T17:43:51.0756250Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/dbus-daemon-launch-helper-1.16.2-r1.apk: 0 - OK
+2026-10-25T17:43:51.0771362Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/dbus-libs-1.16.2-r1.apk: 0 - OK
+2026-10-25T17:43:51.0805297Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/encodings-1.0.7-r1.apk: 0 - OK
+2026-10-25T17:43:51.0810066Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/eudev-libs-3.2.14-r5.apk: 0 - OK
+2026-10-25T17:43:51.0813438Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/file-5.46-r2.apk: 0 - OK
+2026-10-25T17:43:51.1272601Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/font-dejavu-2.37-r6.apk: 0 - OK
+2026-10-25T17:43:51.1293772Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/fontconfig-2.15.0-r3.apk: 0 - OK
+2026-10-25T17:43:51.1330114Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/freetype-2.13.3-r0.apk: 0 - OK
+2026-10-25T17:43:51.1336166Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/fribidi-1.0.16-r1.apk: 0 - OK
+2026-10-25T17:43:51.1355183Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gdk-pixbuf-2.42.12-r1.apk: 0 - OK
+2026-10-25T17:43:51.1565444Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/glib-2.84.4-r0.apk: 0 - OK
+2026-10-25T17:43:51.1585813Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gmp-6.3.0-r3.apk: 0 - OK
+2026-10-25T17:43:51.1671060Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gnutls-3.8.13-r0.apk: 0 - OK
+2026-10-25T17:43:51.1684053Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gobject-introspection-1.84.0-r0.apk: 0 - OK
+2026-10-25T17:43:51.1692734Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/graphite2-1.3.14-r6.apk: 0 - OK
+2026-10-25T17:43:51.2075883Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gtk+3.0-3.24.50-r0.apk: 0 - OK
+2026-10-25T17:43:51.2079501Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/gtk-update-icon-cache-3.24.50-r0.apk: 0 - OK
+2026-10-25T17:43:51.2142605Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/harfbuzz-11.2.1-r0.apk: 0 - OK
+2026-10-25T17:43:51.2158920Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/hicolor-icon-theme-0.18-r0.apk: 0 - OK
+2026-10-25T17:43:51.2204069Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/hwdata-pci-0.395-r0.apk: 0 - OK
+2026-10-25T17:43:51.2304748Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/icu-data-en-76.1-r1.apk: 0 - OK
+2026-10-25T17:43:51.2492851Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/icu-libs-76.1-r1.apk: 0 - OK
+2026-10-25T17:43:51.2510843Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/jq-1.8.2-r0.apk: 0 - OK
+2026-10-25T17:43:51.2515799Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/json-c-0.18-r1.apk: 0 - OK
+2026-10-25T17:43:51.2533368Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/lcms2-2.19-r0.apk: 0 - OK
+2026-10-25T17:43:51.2543417Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libatk-1.0-2.56.5-r0.apk: 0 - OK
+2026-10-25T17:43:51.2553500Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libatk-bridge-2.0-2.56.5-r0.apk: 0 - OK
+2026-10-25T17:43:51.2564342Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libblkid-2.41.6-r1.apk: 0 - OK
+2026-10-25T17:43:51.2569152Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libbsd-0.12.2-r0.apk: 0 - OK
+2026-10-25T17:43:51.2574522Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libbz2-1.0.8-r6.apk: 0 - OK
+2026-10-25T17:43:51.2578526Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libcap2-2.78-r0.apk: 0 - OK
+2026-10-25T17:43:51.2761101Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libcrypto3-3.5.9-r0.apk: 0 - OK
+2026-10-25T17:43:51.2795797Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libcurl-8.14.1-r3.apk: 0 - OK
+2026-10-25T17:43:51.2818903Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libdrm-2.4.124-r0.apk: 0 - OK
+2026-10-25T17:43:51.2846201Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libdw-0.193-r0.apk: 0 - OK
+2026-10-25T17:43:51.2851131Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libeconf-0.6.3-r0.apk: 0 - OK
+2026-10-25T17:43:51.2857587Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libelf-0.193-r0.apk: 0 - OK
+2026-10-25T17:43:51.2884982Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libepoxy-1.5.10-r1.apk: 0 - OK
+2026-10-25T17:43:51.2893570Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libexpat-2.9.0-r0.apk: 0 - OK
+2026-10-25T17:43:51.2897346Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libffi-3.4.8-r0.apk: 0 - OK
+2026-10-25T17:43:51.2900515Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libfontenc-1.1.8-r0.apk: 0 - OK
+2026-10-25T17:43:51.2911201Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libgcc-14.2.0-r6.apk: 0 - OK
+2026-10-25T17:43:51.2928671Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libgomp-14.2.0-r6.apk: 0 - OK
+2026-10-25T17:43:51.2934939Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libice-1.1.2-r0.apk: 0 - OK
+2026-10-25T17:43:51.2946183Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libidn2-2.3.7-r0.apk: 0 - OK
+2026-10-25T17:43:51.2952794Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libintl-0.24.1-r0.apk: 0 - OK
+2026-10-25T17:43:51.2978329Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libjpeg-turbo-3.1.0-r0.apk: 0 - OK
+2026-10-25T17:43:51.3085092Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libmagic-5.46-r2.apk: 0 - OK
+2026-10-25T17:43:51.3089588Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libmd-1.1.0-r0.apk: 0 - OK
+2026-10-25T17:43:51.3104454Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libmount-2.41.6-r1.apk: 0 - OK
+2026-10-25T17:43:51.3108018Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libpciaccess-0.18.1-r0.apk: 0 - OK
+2026-10-25T17:43:51.3140208Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libpcre2-16-10.46-r1.apk: 0 - OK
+2026-10-25T17:43:51.3151803Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libpng-1.6.59-r0.apk: 0 - OK
+2026-10-25T17:43:51.3157942Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libpsl-0.21.5-r3.apk: 0 - OK
+2026-10-25T17:43:51.3161150Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libsharpyuv-1.5.0-r0.apk: 0 - OK
+2026-10-25T17:43:51.3164632Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libsm-1.2.5-r0.apk: 0 - OK
+2026-10-25T17:43:51.3204658Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libssl3-3.5.9-r0.apk: 0 - OK
+2026-10-25T17:43:51.3301018Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libstdc++-14.2.0-r6.apk: 0 - OK
+2026-10-25T17:43:51.3306960Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libtasn1-4.21.0-r0.apk: 0 - OK
+2026-10-25T17:43:51.3374161Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libunistring-1.3-r0.apk: 0 - OK
+2026-10-25T17:43:51.3378039Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libuuid-2.41.6-r1.apk: 0 - OK
+2026-10-25T17:43:51.3404623Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libwebp-1.5.0-r0.apk: 0 - OK
+2026-10-25T17:43:51.3486205Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libx11-1.8.11-r0.apk: 0 - OK
+2026-10-25T17:43:51.3489272Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxau-1.0.12-r0.apk: 0 - OK
+2026-10-25T17:43:51.3518140Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxcb-1.17.0-r0.apk: 0 - OK
+2026-10-25T17:43:51.3520894Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxcomposite-0.4.6-r5.apk: 0 - OK
+2026-10-25T17:43:51.3524919Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxcursor-1.2.3-r0.apk: 0 - OK
+2026-10-25T17:43:51.3527495Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxdamage-1.1.6-r5.apk: 0 - OK
+2026-10-25T17:43:51.3530676Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxdmcp-1.1.5-r1.apk: 0 - OK
+2026-10-25T17:43:51.3535591Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxext-1.3.6-r2.apk: 0 - OK
+2026-10-25T17:43:51.3538615Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxfixes-6.0.1-r4.apk: 0 - OK
+2026-10-25T17:43:51.3544628Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxft-2.3.8-r3.apk: 0 - OK
+2026-10-25T17:43:51.3549470Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxi-1.8.2-r0.apk: 0 - OK
+2026-10-25T17:43:51.3552104Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxinerama-1.1.5-r4.apk: 0 - OK
+2026-10-25T17:43:51.3568420Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxkbcommon-1.8.1-r2.apk: 0 - OK
+2026-10-25T17:43:51.3572024Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxkbcommon-x11-1.8.1-r2.apk: 0 - OK
+2026-10-25T17:43:51.3622619Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxml2-2.13.9-r1.apk: 0 - OK
+2026-10-25T17:43:51.3629721Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxmu-1.2.1-r0.apk: 0 - OK
+2026-10-25T17:43:51.3633650Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxrandr-1.5.4-r1.apk: 0 - OK
+2026-10-25T17:43:51.3637759Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxrender-0.9.12-r0.apk: 0 - OK
+2026-10-25T17:43:51.3640526Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxshmfence-1.3.3-r0.apk: 0 - OK
+2026-10-25T17:43:51.3659796Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxt-1.3.1-r0.apk: 0 - OK
+2026-10-25T17:43:51.3663083Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxtst-1.2.5-r0.apk: 0 - OK
+2026-10-25T17:43:51.3666456Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/libxxf86vm-1.1.7-r0.apk: 0 - OK
+2026-10-25T17:43:51.9963242Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/llvm20-libs-20.1.8-r0.apk: 0 - OK
+2026-10-25T17:43:52.3725196Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:52.3741279Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-egl-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:52.3745314Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-gbm-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:52.3765811Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-gl-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:52.3769885Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mesa-gles-25.1.9-r0.apk: 0 - OK
+2026-10-25T17:43:52.3773770Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/mkfontscale-1.2.3-r1.apk: 0 - OK
+2026-10-25T17:43:52.3809806Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/musl-1.2.5-r12.apk: 0 - OK
+2026-10-25T17:43:52.4062315Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/musl-dev-1.2.5-r12.apk: 0 - OK
+2026-10-25T17:43:52.4065325Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/musl-fts-1.2.7-r6.apk: 0 - OK
+2026-10-25T17:43:52.4093219Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/nettle-3.10.2-r0.apk: 0 - OK
+2026-10-25T17:43:52.4101618Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/nghttp2-libs-1.69.0-r0.apk: 0 - OK
+2026-10-25T17:43:52.4123356Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/oniguruma-6.9.10-r0.apk: 0 - OK
+2026-10-25T17:43:52.4164923Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/p11-kit-0.26.2-r0.apk: 0 - OK
+2026-10-25T17:43:52.4193453Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/pango-1.56.3-r0.apk: 0 - OK
+2026-10-25T17:43:52.4228012Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/pcre2-10.46-r1.apk: 0 - OK
+2026-10-25T17:43:52.4254920Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/pixman-0.46.4-r0.apk: 0 - OK
+2026-10-25T17:43:52.4262357Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/pkgconf-2.4.3-r0.apk: 0 - OK
+2026-10-25T17:43:52.4312292Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/shared-mime-info-2.4-r6.apk: 0 - OK
+2026-10-25T17:43:52.4486720Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/spirv-tools-1.4.313.0-r0.apk: 0 - OK
+2026-10-25T17:43:52.4490997Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/ssl_client-1.37.0-r20.apk: 0 - OK
+2026-10-25T17:43:52.4539889Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/strace-6.13-r0.apk: 0 - OK
+2026-10-25T17:43:52.4559327Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/tiff-4.7.2-r0.apk: 0 - OK
+2026-10-25T17:43:52.4586537Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/tzdata-2026e-r0.apk: 0 - OK
+2026-10-25T17:43:52.4606541Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/vulkan-loader-1.4.313.0-r0.apk: 0 - OK
+2026-10-25T17:43:52.4610745Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wayland-libs-client-1.23.1-r3.apk: 0 - OK
+2026-10-25T17:43:52.4613693Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wayland-libs-cursor-1.23.1-r3.apk: 0 - OK
+2026-10-25T17:43:52.4616110Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wayland-libs-egl-1.23.1-r3.apk: 0 - OK
+2026-10-25T17:43:52.4621113Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/wayland-libs-server-1.23.1-r3.apk: 0 - OK
+2026-10-25T17:43:52.4624010Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xcb-util-0.4.1-r3.apk: 0 - OK
+2026-10-25T17:43:52.4699950Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xkeyboard-config-2.43-r0.apk: 0 - OK
+2026-10-25T17:43:52.4713375Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/xz-libs-5.8.4-r0.apk: 0 - OK
+2026-10-25T17:43:52.4720230Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/zlib-1.3.2-r1.apk: 0 - OK
+2026-10-25T17:43:52.4758569Z /home/runner/work/9os/9os/.tools/dl/alpine/x86_64/zstd-libs-1.5.7-r0.apk: 0 - OK
+2026-10-25T17:43:52.5115385Z (1/156) Upgrading libcrypto3 (3.5.8-r0 -> 3.5.9-r0)
+2026-10-25T17:43:52.5521295Z (2/156) Upgrading ca-certificates-bundle (20260909-r0 -> 20261020-r0)
+2026-10-25T17:43:52.5534763Z (3/156) Upgrading libssl3 (3.5.8-r0 -> 3.5.9-r0)
+2026-10-25T17:43:52.5577213Z (4/156) Upgrading zlib (1.3.2-r0 -> 1.3.2-r1)
+2026-10-25T17:43:52.5585147Z (5/156) Installing libxau (1.0.12-r0)
+2026-10-25T17:43:52.5586980Z (6/156) Installing libmd (1.1.0-r0)
+2026-10-25T17:43:52.5590596Z (7/156) Installing libbsd (0.12.2-r0)
+2026-10-25T17:43:52.5595025Z (8/156) Installing libxdmcp (1.1.5-r1)
+2026-10-25T17:43:52.5597316Z (9/156) Installing libxcb (1.17.0-r0)
+2026-10-25T17:43:52.5636602Z (10/156) Installing libx11 (1.8.11-r0)
+2026-10-25T17:43:52.5756502Z (11/156) Installing libxext (1.3.6-r2)
+2026-10-25T17:43:52.5760732Z (12/156) Installing libxtst (1.2.5-r0)
+2026-10-25T17:43:52.5763158Z (13/156) Installing libxi (1.8.2-r0)
+2026-10-25T17:43:52.5767375Z (14/156) Installing dbus-libs (1.16.2-r1)
+2026-10-25T17:43:52.5783166Z (15/156) Installing libffi (3.4.8-r0)
+2026-10-25T17:43:52.5786622Z (16/156) Installing libintl (0.24.1-r0)
+2026-10-25T17:43:52.5793099Z (17/156) Installing libeconf (0.6.3-r0)
+2026-10-25T17:43:52.5797794Z (18/156) Installing libblkid (2.41.6-r1)
+2026-10-25T17:43:52.5809161Z (19/156) Installing libmount (2.41.6-r1)
+2026-10-25T17:43:52.5824324Z (20/156) Installing pcre2 (10.46-r1)
+2026-10-25T17:43:52.5861005Z (21/156) Installing glib (2.84.4-r0)
+2026-10-25T17:43:52.6091154Z (22/156) Installing at-spi2-core-libs (2.56.5-r0)
+2026-10-25T17:43:52.6101772Z (23/156) Installing at-spi2-core (2.56.5-r0)
+2026-10-25T17:43:52.6112663Z (24/156) Installing avahi-libs (0.8-r21)
+2026-10-25T17:43:52.6119300Z (25/156) Installing basu (0.2.1-r2)
+2026-10-25T17:43:52.6143215Z (26/156) Installing brotli-libs (1.1.0-r2)
+2026-10-25T17:43:52.6188077Z (27/156) Installing c-ares (1.34.8-r0)
+2026-10-25T17:43:52.6201628Z (28/156) Installing libxrender (0.9.12-r0)
+2026-10-25T17:43:52.6204984Z (29/156) Installing libexpat (2.9.0-r0)
+2026-10-25T17:43:52.6213447Z (30/156) Installing libbz2 (1.0.8-r6)
+2026-10-25T17:43:52.6218477Z (31/156) Installing libpng (1.6.59-r0)
+2026-10-25T17:43:52.6229977Z (32/156) Installing freetype (2.13.3-r0)
+2026-10-25T17:43:52.6266097Z (33/156) Installing fontconfig (2.15.0-r3)
+2026-10-25T17:43:52.6301245Z (34/156) Installing pixman (0.46.4-r0)
+2026-10-25T17:43:52.6328540Z (35/156) Installing cairo (1.18.4-r0)
+2026-10-25T17:43:52.6384343Z (36/156) Installing cairo-gobject (1.18.4-r0)
+2026-10-25T17:43:52.6386850Z (37/156) Installing gmp (6.3.0-r3)
+2026-10-25T17:43:52.6409705Z (38/156) Installing nettle (3.10.2-r0)
+2026-10-25T17:43:52.6438530Z (39/156) Installing libunistring (1.3-r0)
+2026-10-25T17:43:52.6509017Z (40/156) Installing libidn2 (2.3.7-r0)
+2026-10-25T17:43:52.6520394Z (41/156) Installing libtasn1 (4.21.0-r0)
+2026-10-25T17:43:52.6525550Z (42/156) Installing p11-kit (0.26.2-r0)
+2026-10-25T17:43:52.6573044Z (43/156) Installing gnutls (3.8.13-r0)
+2026-10-25T17:43:52.6663008Z (44/156) Installing cups-libs (2.4.18-r0)
+2026-10-25T17:43:52.6690614Z (45/156) Installing dbus (1.16.2-r1)
+2026-10-25T17:43:52.6712505Z (46/156) Installing dbus-daemon-launch-helper (1.16.2-r1)
+2026-10-25T17:43:52.6716198Z (47/156) Installing libgcc (14.2.0-r6)
+2026-10-25T17:43:52.6726799Z (48/156) Installing libstdc++ (14.2.0-r6)
+2026-10-25T17:43:52.6827591Z (49/156) Installing double-conversion (3.3.1-r0)
+2026-10-25T17:43:52.6833416Z (50/156) Installing duktape-libs (2.7.0-r2)
+2026-10-25T17:43:52.6850435Z (51/156) Installing encodings (1.0.7-r1)
+2026-10-25T17:43:52.6897098Z (52/156) Installing eudev-libs (3.2.14-r5)
+2026-10-25T17:43:52.6901358Z (53/156) Installing libmagic (5.46-r2)
+2026-10-25T17:43:52.7029218Z (54/156) Installing file (5.46-r2)
+2026-10-25T17:43:52.7031671Z (55/156) Installing libfontenc (1.1.8-r0)
+2026-10-25T17:43:52.7034602Z (56/156) Installing mkfontscale (1.2.3-r1)
+2026-10-25T17:43:52.7037985Z (57/156) Installing font-dejavu (2.37-r6)
+2026-10-25T17:43:52.7527743Z (58/156) Installing fribidi (1.0.16-r1)
+2026-10-25T17:43:52.7533918Z (59/156) Installing pkgconf (2.4.3-r0)
+2026-10-25T17:43:52.7543535Z (60/156) Installing xz-libs (5.8.4-r0)
+2026-10-25T17:43:52.7557014Z (61/156) Installing libxml2 (2.13.9-r1)
+2026-10-25T17:43:52.7609511Z (62/156) Installing shared-mime-info (2.4-r6)
+2026-10-25T17:43:52.7667034Z (63/156) Installing libjpeg-turbo (3.1.0-r0)
+2026-10-25T17:43:52.7693677Z (64/156) Installing libsharpyuv (1.5.0-r0)
+2026-10-25T17:43:52.7696384Z (65/156) Installing libwebp (1.5.0-r0)
+2026-10-25T17:43:52.7723658Z (66/156) Installing zstd-libs (1.5.7-r0)
+2026-10-25T17:43:52.7763159Z (67/156) Installing tiff (4.7.2-r0)
+2026-10-25T17:43:52.7783614Z (68/156) Installing gdk-pixbuf (2.42.12-r1)
+2026-10-25T17:43:52.7806937Z (69/156) Installing gobject-introspection (1.84.0-r0)
+2026-10-25T17:43:52.7822138Z (70/156) Installing graphite2 (1.3.14-r6)
+2026-10-25T17:43:52.7830457Z (71/156) Installing wayland-libs-client (1.23.1-r3)
+2026-10-25T17:43:52.7834164Z (72/156) Installing grim (1.4.1-r0)
+2026-10-25T17:43:52.7836823Z (73/156) Installing hicolor-icon-theme (0.18-r0)
+2026-10-25T17:43:52.7922157Z (74/156) Installing gtk-update-icon-cache (3.24.50-r0)
+2026-10-25T17:43:52.7925247Z (75/156) Installing libxcomposite (0.4.6-r5)
+2026-10-25T17:43:52.7927318Z (76/156) Installing libxfixes (6.0.1-r4)
+2026-10-25T17:43:52.7929684Z (77/156) Installing libxcursor (1.2.3-r0)
+2026-10-25T17:43:52.7933398Z (78/156) Installing libxdamage (1.1.6-r5)
+2026-10-25T17:43:52.7935296Z (79/156) Installing libxinerama (1.1.5-r4)
+2026-10-25T17:43:52.7937163Z (80/156) Installing libxrandr (1.5.4-r1)
+2026-10-25T17:43:52.7940220Z (81/156) Installing libatk-1.0 (2.56.5-r0)
+2026-10-25T17:43:52.7950838Z (82/156) Installing libatk-bridge-2.0 (2.56.5-r0)
+2026-10-25T17:43:52.7961595Z (83/156) Installing libepoxy (1.5.10-r1)
+2026-10-25T17:43:52.7990939Z (84/156) Installing harfbuzz (11.2.1-r0)
+2026-10-25T17:43:52.8056540Z (85/156) Installing libxft (2.3.8-r3)
+2026-10-25T17:43:52.8061987Z (86/156) Installing pango (1.56.3-r0)
+2026-10-25T17:43:52.8094689Z (87/156) Installing wayland-libs-cursor (1.23.1-r3)
+2026-10-25T17:43:52.8097295Z (88/156) Installing wayland-libs-egl (1.23.1-r3)
+2026-10-25T17:43:52.8099124Z (89/156) Installing xkeyboard-config (2.43-r0)
+2026-10-25T17:43:52.8233983Z (90/156) Installing libxkbcommon (1.8.1-r2)
+2026-10-25T17:43:52.8251016Z (91/156) Installing gtk+3.0 (3.24.50-r0)
+2026-10-25T17:43:52.8657577Z (92/156) Installing hwdata-pci (0.395-r0)
+2026-10-25T17:43:52.8703889Z (93/156) Installing icu-data-en (76.1-r1)
+2026-10-25T17:43:52.8810119Z (94/156) Installing icu-libs (76.1-r1)
+2026-10-25T17:43:52.9007768Z (95/156) Installing oniguruma (6.9.10-r0)
+2026-10-25T17:43:52.9030608Z (96/156) Installing jq (1.8.2-r0)
+2026-10-25T17:43:52.9049365Z (97/156) Installing json-c (0.18-r1)
+2026-10-25T17:43:52.9053798Z (98/156) Installing lcms2 (2.19-r0)
+2026-10-25T17:43:52.9071631Z (99/156) Installing libgomp (14.2.0-r6)
+2026-10-25T17:43:52.9089186Z (100/156) Installing libb2 (0.98.1-r3)
+2026-10-25T17:43:52.9096477Z (101/156) Installing libcap2 (2.78-r0)
+2026-10-25T17:43:52.9100754Z (102/156) Installing nghttp2-libs (1.69.0-r0)
+2026-10-25T17:43:52.9109152Z (103/156) Installing libpsl (0.21.5-r3)
+2026-10-25T17:43:52.9115001Z (104/156) Installing libcurl (8.14.1-r3)
+2026-10-25T17:43:52.9150971Z (105/156) Installing libdisplay-info (0.2.0-r0)
+2026-10-25T17:43:52.9161052Z (106/156) Installing libpciaccess (0.18.1-r0)
+2026-10-25T17:43:52.9164104Z (107/156) Installing libdrm (2.4.124-r0)
+2026-10-25T17:43:52.9192848Z (108/156) Installing libelf (0.193-r0)
+2026-10-25T17:43:52.9198588Z (109/156) Installing musl-fts (1.2.7-r6)
+2026-10-25T17:43:52.9200826Z (110/156) Installing libdw (0.193-r0)
+2026-10-25T17:43:52.9227806Z (111/156) Installing libelogind (252.24-r1)
+2026-10-25T17:43:52.9254834Z (112/156) Installing libevdev (1.13.3-r0)
+2026-10-25T17:43:52.9259337Z (113/156) Installing libice (1.1.2-r0)
+2026-10-25T17:43:52.9265110Z (114/156) Installing mtdev (1.1.7-r0)
+2026-10-25T17:43:52.9267608Z (115/156) Installing libinput-libs (1.28.1-r0)
+2026-10-25T17:43:52.9292773Z (116/156) Installing libpcre2-16 (10.46-r1)
+2026-10-25T17:43:52.9326160Z (117/156) Installing libproxy (0.5.10-r0)
+2026-10-25T17:43:52.9330715Z (118/156) Installing libseat (0.9.1-r0)
+2026-10-25T17:43:52.9333706Z (119/156) Installing libuuid (2.41.6-r1)
+2026-10-25T17:43:52.9336560Z (120/156) Installing libsm (1.2.5-r0)
+2026-10-25T17:43:52.9339503Z (121/156) Installing libxkbcommon-x11 (1.8.1-r2)
+2026-10-25T17:43:52.9342342Z (122/156) Installing libxt (1.3.1-r0)
+2026-10-25T17:43:52.9360775Z (123/156) Installing libxmu (1.2.1-r0)
+2026-10-25T17:43:52.9368135Z (124/156) Installing libxshmfence (1.3.3-r0)
+2026-10-25T17:43:52.9369910Z (125/156) Installing libxxf86vm (1.1.7-r0)
+2026-10-25T17:43:52.9372068Z (126/156) Installing llvm20-libs (20.1.8-r0)
+2026-10-25T17:43:53.5964851Z (127/156) Installing spirv-tools (1.4.313.0-r0)
+2026-10-25T17:43:53.6158135Z (128/156) Installing wayland-libs-server (1.23.1-r3)
+2026-10-25T17:43:53.6162230Z (129/156) Installing mesa (25.1.9-r0)
+2026-10-25T17:43:54.0195482Z (130/156) Installing mesa-gbm (25.1.9-r0)
+2026-10-25T17:43:54.0195897Z (131/156) Installing mesa-egl (25.1.9-r0)
+2026-10-25T17:43:54.0212974Z (132/156) Installing mesa-gl (25.1.9-r0)
+2026-10-25T17:43:54.0235823Z (133/156) Installing mesa-gles (25.1.9-r0)
+2026-10-25T17:43:54.0239561Z (134/156) Installing musl-dev (1.2.5-r12)
+2026-10-25T17:43:54.0554818Z (135/156) Installing tzdata (2026e-r0)
+2026-10-25T17:43:54.0820070Z (136/156) Installing qt6-qtbase (6.8.3-r0)
+2026-10-25T17:43:54.1455530Z (137/156) Installing xprop (1.2.8-r0)
+2026-10-25T17:43:54.1460050Z (138/156) Installing xset (1.2.5-r1)
+2026-10-25T17:43:54.1460826Z (139/156) Installing xdg-utils (1.2.1-r1)
+2026-10-25T17:43:54.1475759Z (140/156) Installing tslib (1.23-r0)
+2026-10-25T17:43:54.1495780Z (141/156) Installing xcb-util (0.4.1-r3)
+2026-10-25T17:43:54.1498000Z (142/156) Installing xcb-util-image (0.4.1-r0)
+2026-10-25T17:43:54.1500251Z (143/156) Installing xcb-util-renderutil (0.3.10-r0)
+2026-10-25T17:43:54.1502315Z (144/156) Installing xcb-util-cursor (0.1.5-r0)
+2026-10-25T17:43:54.1504436Z (145/156) Installing xcb-util-wm (0.4.2-r0)
+2026-10-25T17:43:54.1508965Z (146/156) Installing xcb-util-keysyms (0.4.1-r0)
+2026-10-25T17:43:54.1510536Z (147/156) Installing qt6-qtbase-x11 (6.8.3-r0)
+2026-10-25T17:43:54.2444872Z (148/156) Installing qt6-qtdeclarative (6.8.3-r0)
+2026-10-25T17:43:54.4408280Z (149/156) Installing qt6-qtwayland (6.8.3-r0)
+2026-10-25T17:43:54.4580042Z (150/156) Installing strace (6.13-r0)
+2026-10-25T17:43:54.4633932Z (151/156) Installing vulkan-loader (1.4.313.0-r0)
+2026-10-25T17:43:54.4654928Z (152/156) Installing wlroots (0.18.2-r1)
+2026-10-25T17:43:54.4697334Z (153/156) Installing sway (1.10.1-r1)
+2026-10-25T17:43:54.4723601Z (154/156) Installing sway-wallpapers (1.10.1-r1)
+2026-10-25T17:43:54.4974798Z (155/156) Installing swaybar (1.10.1-r1)
+2026-10-25T17:43:54.4980715Z (156/156) Installing swaynag (1.10.1-r1)
+2026-10-25T17:43:54.5014369Z OK: 513 MiB in 168 packages
+2026-10-25T17:43:54.5894020Z Alpine base/x86_64: 160 signed APKs, no target compilation, 4.2s
+2026-10-25T17:43:54.5895258Z Image: /home/runner/work/9os/9os/userland/alpine-root-x86_64; lock: /home/runner/work/9os/9os/userland/build/alpine-x86_64.lock.json
+2026-10-25T17:43:54.6033530Z ##[group]Run sudo chown -hR "$(id -u):$(id -g)" "userland/alpine-root-$ARCH" userland/build "$TOOLS_DIR/dl/alpine"
+2026-10-25T17:43:54.6034196Z [36;1msudo chown -hR "$(id -u):$(id -g)" "userland/alpine-root-$ARCH" userland/build "$TOOLS_DIR/dl/alpine"[0m
+2026-10-25T17:43:54.6034602Z [36;1m# chown clears setuid. Restore the intentional VM-only BusyBox login bit.[0m
+2026-10-25T17:43:54.6034922Z [36;1mchmod 4755 "userland/alpine-root-$ARCH/bin/busybox"[0m
+2026-10-25T17:43:54.6035191Z [36;1mtest -r "userland/alpine-root-$ARCH/etc/shadow"[0m
+2026-10-25T17:43:54.6035434Z [36;1mtest -x "userland/alpine-root-$ARCH/root"[0m
+2026-10-25T17:43:54.6070879Z shell: /usr/bin/bash -e {0}
+2026-10-25T17:43:54.6071064Z env:
+2026-10-25T17:43:54.6071209Z   ARCH: x86_64
+2026-10-25T17:43:54.6071376Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:43:54.6071572Z ##[endgroup]
+2026-10-25T17:43:54.6413475Z ##[group]Run scripts/alpine-build-tests.sh "$ARCH"
+2026-10-25T17:43:54.6413768Z [36;1mscripts/alpine-build-tests.sh "$ARCH"[0m
+2026-10-25T17:43:54.6444814Z shell: /usr/bin/bash -e {0}
+2026-10-25T17:43:54.6445028Z env:
+2026-10-25T17:43:54.6445181Z   ARCH: x86_64
+2026-10-25T17:43:54.6445377Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:43:54.6445578Z ##[endgroup]
+2026-10-25T17:43:57.3808216Z ##[group]Run scripts/evdev-linux-oracle.sh
+2026-10-25T17:43:57.3808500Z [36;1mscripts/evdev-linux-oracle.sh[0m
+2026-10-25T17:43:57.3846755Z shell: /usr/bin/bash -e {0}
+2026-10-25T17:43:57.3846970Z env:
+2026-10-25T17:43:57.3847128Z   ARCH: x86_64
+2026-10-25T17:43:57.3847306Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:43:57.3847514Z ##[endgroup]
+2026-10-25T17:43:57.4950325Z ##[error]Process completed with exit code 1.
+2026-10-25T17:43:57.5029736Z ##[group]Run actions/upload-artifact@v4
+2026-10-25T17:43:57.5029979Z with:
+2026-10-25T17:43:57.5030159Z   name: alpine-evidence-x86_64
+2026-10-25T17:43:57.5030539Z   path: build/test-alpine*.log
+build/evdev-linux-oracle.log*
+userland/build/alpine-x86_64.lock.json
+
+2026-10-25T17:43:57.5030927Z   if-no-files-found: warn
+2026-10-25T17:43:57.5031143Z   compression-level: 6
+2026-10-25T17:43:57.5031326Z   overwrite: false
+2026-10-25T17:43:57.5031520Z   include-hidden-files: false
+2026-10-25T17:43:57.5031717Z env:
+2026-10-25T17:43:57.5031873Z   ARCH: x86_64
+2026-10-25T17:43:57.5032065Z   TOOLS_DIR: /home/runner/work/9os/9os/.tools
+2026-10-25T17:43:57.5032303Z ##[endgroup]
+2026-10-25T17:43:57.6388809Z (node:47106) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-25T17:43:57.6389499Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-25T17:43:57.6454769Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-25T17:43:57.6469558Z The least common ancestor is /home/runner/work/9os/9os. This will be the root directory of the artifact
+2026-10-25T17:43:57.6470220Z With the provided path, there will be 2 files uploaded
+2026-10-25T17:43:57.6470865Z Artifact name is valid!
+2026-10-25T17:43:57.6471154Z Root directory input is valid!
+2026-10-25T17:43:57.9401189Z Beginning upload of artifact content to blob storage
+2026-10-25T17:43:57.9568068Z (node:47106) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-25T17:43:58.0950479Z Uploaded bytes 8746
+2026-10-25T17:43:58.1381132Z Finished uploading artifact content to blob storage!
+2026-10-25T17:43:58.1381725Z SHA256 digest of uploaded artifact zip is d9db8dd9a3bc5ae144c409ef225a336db1ba27548a0695edfe542a1400499cce
+2026-10-25T17:43:58.1383163Z Finalizing artifact upload
+2026-10-25T17:43:58.5759170Z Artifact alpine-evidence-x86_64.zip successfully finalized. Artifact ID 12608308057
+2026-10-25T17:43:58.5759914Z Artifact alpine-evidence-x86_64 has been successfully uploaded! Final size is 8746 bytes. Artifact ID is 12608308057
+2026-10-25T17:43:58.5766795Z Artifact download URL: https://github.com/0x6432/9os/actions/runs/40217589621/artifacts/12608308057
+2026-10-25T17:43:58.5935294Z Post job cleanup.
+2026-10-25T17:43:58.6605844Z [command]/usr/bin/git version
+2026-10-25T17:43:58.6638994Z git version 2.55.0
+2026-10-25T17:43:58.6667145Z Temporarily overriding HOME='/home/runner/work/_temp/4498d39b-c684-4ca8-83a8-3b5646d70674' before making global git config changes
+2026-10-25T17:43:58.6668052Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-25T17:43:58.6670787Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/9os/9os
+2026-10-25T17:43:58.6703501Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-25T17:43:58.6729452Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-25T17:43:58.6910568Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-25T17:43:58.6931543Z http.https://github.com/.extraheader
+2026-10-25T17:43:58.6941191Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-25T17:43:58.6970287Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-25T17:43:58.7154600Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-25T17:43:58.7180727Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-25T17:43:58.7499071Z Cleaning up orphan processes
+2026-10-25T17:43:58.7757549Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

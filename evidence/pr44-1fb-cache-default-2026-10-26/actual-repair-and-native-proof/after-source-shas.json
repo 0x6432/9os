@@ -1,0 +1,7 @@
+{
+  "scripts/evdev-linux-oracle-packages.py": "79b7b114379b6b0c2340269b04fb8c664ac62374227ab7e8cc1d1551b1d4262c",
+  "scripts/evdev-linux-oracle-packages-host-tests.py": "49feba0f7568f28c724df8cf4f03ae29d30ed284fcbd49765e9c39e9ce32199b",
+  "scripts/evdev-linux-oracle.sh": "f423909be59cee15e2820278a97321fa99f94d525f2aa6e7fb2a6957c49b2ddf",
+  "userland/alpine/build.py": "fe5b23dd4970b1423fd32c0dda02228619ac664c506e6b4f91ecef64075a4dae",
+  "userland/ports/linux-oracle-lock.json": "bc2ea9794acd5cb4c18f63512a12c56063188dd349de1cc121d7ff3486cbf3db"
+}

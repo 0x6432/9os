@@ -1,0 +1,22 @@
+{
+  "scripts/evdev-linux-oracle-packages.py": {
+    "bytes": 11733,
+    "sha256": "f82b005a8565b204ec4dd9ec26325e6c477d8c6669e61085821bd45b5d4b3258"
+  },
+  "scripts/evdev-linux-oracle-packages-host-tests.py": {
+    "bytes": 24070,
+    "sha256": "3d20e1e2b0103f7a11103362f541e3b2b8196e60e911d6314921bcca34ec34c4"
+  },
+  "scripts/evdev-linux-oracle.sh": {
+    "bytes": 2113,
+    "sha256": "f423909be59cee15e2820278a97321fa99f94d525f2aa6e7fb2a6957c49b2ddf"
+  },
+  "userland/alpine/build.py": {
+    "bytes": 15446,
+    "sha256": "fe5b23dd4970b1423fd32c0dda02228619ac664c506e6b4f91ecef64075a4dae"
+  },
+  "userland/ports/linux-oracle-lock.json": {
+    "bytes": 18735,
+    "sha256": "bc2ea9794acd5cb4c18f63512a12c56063188dd349de1cc121d7ff3486cbf3db"
+  }
+}

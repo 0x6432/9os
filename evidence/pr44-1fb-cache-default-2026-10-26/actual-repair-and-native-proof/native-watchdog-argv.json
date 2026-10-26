@@ -1,0 +1,11 @@
+[
+  "timeout",
+  "--signal=TERM",
+  "--kill-after=10s",
+  "600s",
+  "env",
+  "TOOLS_DIR=/data/linux-oracle-zero-cap-tools-once",
+  "PYTHONDONTWRITEBYTECODE=1",
+  "python",
+  "/data/signed-1fb-review/cache-repair/native-zero-cap-child.py"
+]

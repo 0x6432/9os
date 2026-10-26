@@ -1,0 +1,8 @@
+[
+  "/data/linux-oracle-cache-product/scripts/evdev-linux-oracle-packages.py",
+  "--target",
+  "/data/linux-oracle-zero-cap-target-once",
+  "--manifest",
+  "/data/signed-1fb-review/cache-repair/native-result-manifest.json",
+  "--offline"
+]
