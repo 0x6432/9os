@@ -212,7 +212,8 @@ def assemble(lock_path, cache, target, offline=False, runner=checked):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--target', type=Path, required=True)
-    parser.add_argument('--cache', type=Path, default=Path(os.environ.get('TOOLS_DIR', ROOT / '.tools')) / 'dl/alpine-linux-oracle')
+    # Keep the runner-owned cache outside dl, whose parent may be created by sudo runtime assembly.
+    parser.add_argument('--cache', type=Path, default=Path(os.environ.get('TOOLS_DIR', ROOT / '.tools')) / 'linux-oracle')
     parser.add_argument('--lock', type=Path, default=LOCK)
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--offline', action='store_true')
