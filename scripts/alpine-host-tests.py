@@ -7,6 +7,77 @@ spec = importlib.util.spec_from_file_location('alpine_builder', p)
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 class TrustTests(unittest.TestCase):
+    def assert_cares_locks(self, locks):
+        expected_url = m.BASE + '/v3.22/main/x86_64/c-ares-1.34.9-r0.apk'
+        expected_sha = '9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97'
+        for lock in locks:
+            records = [entry for entry in lock['packages']
+                       if entry['url'].rsplit('/', 1)[-1].startswith('c-ares-')]
+            self.assertEqual(len(records), 1, 'Expected exactly one c-ares package')
+            self.assertEqual(records[0]['url'], expected_url)
+            self.assertEqual(records[0]['sha256'], expected_sha)
+
+    def test_x86_cares_locks_match_reviewed_candidate(self):
+        top = p.parents[2]
+        paths = ['userland/alpine/locks/x86_64.json',
+                 'userland/alpine/locks/x86_64-desktop.json',
+                 'userland/ports/host-qsb-lock.json']
+        for name in paths:
+            with self.subTest(path=name):
+                self.assert_cares_locks([json.loads((top / name).read_text())])
+
+    def test_cares_guard_rejects_url_hash_missing_and_duplicate(self):
+        entry = {'url': m.BASE + '/v3.22/main/x86_64/c-ares-1.34.9-r0.apk',
+                 'sha256': '9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97'}
+        good = {'packages': [dict(entry)]}
+        self.assert_cares_locks([good] * 3)
+        bad_sets = [[], [dict(entry), dict(entry)],
+                    [dict(entry, url=entry['url'].replace('/main/', '/community/'))],
+                    [dict(entry, sha256='0' * 64)]]
+        for position in range(3):
+            for bad in bad_sets:
+                with self.subTest(position=position, bad=bad):
+                    locks = copy.deepcopy([good] * 3)
+                    locks[position] = {'packages': bad}
+                    with self.assertRaises(AssertionError):
+                        self.assert_cares_locks(locks)
+
+    def assert_musl_pair(self, lock):
+        expected = {
+            'musl': '359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8',
+            'musl-dev': '2ca496dd68c0b340b50cf9940bc2f3312eac8b56ec2d3284a621be6f0c09ffb1',
+        }
+        for name, sha in expected.items():
+            records = [entry for entry in lock['packages']
+                       if entry['url'].rsplit('/', 1)[-1].rsplit('-', 2)[0] == name]
+            self.assertEqual(len(records), 1, 'Expected exactly one musl pair member')
+            self.assertEqual(records[0]['url'], m.BASE + '/v3.22/main/x86_64/' + name + '-1.2.5-r13.apk')
+            self.assertEqual(records[0]['sha256'], sha)
+
+    def test_base_desktop_musl_pair_matches_reviewed_candidate(self):
+        top = p.parents[2]
+        for name in ['x86_64.json', 'x86_64-desktop.json']:
+            with self.subTest(profile=name):
+                self.assert_musl_pair(json.loads((top / 'userland/alpine/locks' / name).read_text()))
+
+    def test_musl_pair_guard_rejects_missing_duplicate_url_hash_and_mixed_revision(self):
+        good = {'packages': [
+            {'url': m.BASE + '/v3.22/main/x86_64/musl-1.2.5-r13.apk',
+             'sha256': '359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8'},
+            {'url': m.BASE + '/v3.22/main/x86_64/musl-dev-1.2.5-r13.apk',
+             'sha256': '2ca496dd68c0b340b50cf9940bc2f3312eac8b56ec2d3284a621be6f0c09ffb1'}]}
+        self.assert_musl_pair(good)
+        for member in range(2):
+            for fault in ['missing', 'duplicate', 'url', 'sha', 'mixed_revision']:
+                with self.subTest(member=member, fault=fault):
+                    bad = copy.deepcopy(good)
+                    if fault == 'missing': bad['packages'].pop(member)
+                    elif fault == 'duplicate': bad['packages'].append(dict(bad['packages'][member]))
+                    elif fault == 'url': bad['packages'][member]['url'] = bad['packages'][member]['url'].replace('/main/', '/community/')
+                    elif fault == 'sha': bad['packages'][member]['sha256'] = '0' * 64
+                    else: bad['packages'][member]['url'] = bad['packages'][member]['url'].replace('-r13.apk', '-r12.apk')
+                    with self.assertRaises(AssertionError): self.assert_musl_pair(bad)
+
     def certificate_pin(self, lock):
         records = [entry for entry in lock['packages']
                    if entry['url'].rsplit('/', 1)[-1].startswith('ca-certificates-bundle-')]
