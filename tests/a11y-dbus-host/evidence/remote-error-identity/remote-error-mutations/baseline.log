@@ -1,0 +1,13 @@
+consumer_source_sha256=07c6646292ea1894d82849d04c3f2b662f15e66b892bc0069f0b083e9d7438e8
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... ok
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... ok
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... ok
+test_other_local_error (__main__.Identity.test_other_local_error) ... ok
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... ok
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... ok
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.313s
+
+OK

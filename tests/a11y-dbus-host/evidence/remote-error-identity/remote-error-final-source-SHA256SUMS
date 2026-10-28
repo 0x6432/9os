@@ -1,0 +1,9 @@
+74d30ae30e39203ae98b6b374f73629263439654974b4045952c11b1632090c4  tests/a11y-dbus-host/ERROR-IDENTITY.md
+857d5aca2dc9475aab4cdf066dff31251afa5df2c32852c63c35434f172cf440  tests/a11y-dbus-host/error-identity-model.c
+71c4e489f70ad754d6abcbc8f9aed2bf4625a6b3e6308119f09b13730221de81  tests/a11y-dbus-host/mock-server.c
+8f8508f88fe90b1bafab100eae81ab483e70cc9aa020e7ff0bb3fdcdd27536d3  tests/a11y-dbus-host/optional-symbol-consumer.c
+7d60b519f1124a3c23dbbde2071448c71ad6f108dba133f2f771f160c09a7cdb  tests/a11y-dbus-host/test-error-identity-mutations.py
+cc82a7abe1e3bc28929e3b8055ae7cf5768caa69f5ab63abce3816f2ad4f36be  tests/a11y-dbus-host/test-error-identity.py
+4436e0abb02ef984fb2b46c1f38cd9d2a0c36ad76b4b3716af8adeafdfe723b2  tests/a11y-dbus-host/test-native.py
+3dd8f7662af50300ebb0cdd0e53a24a1dd4ba2c11def5b2c21cb6a09d9bdac32  tests/a11y-dbus-host/test-witness-mutations.py
+07c6646292ea1894d82849d04c3f2b662f15e66b892bc0069f0b083e9d7438e8  userland/tests/a11y-dbus/terminal-dbus.c

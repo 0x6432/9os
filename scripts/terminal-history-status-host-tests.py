@@ -147,16 +147,22 @@ class Status(unittest.TestCase):
                 self.assertFalse(result.returncode == 0 and re.search(rb'\bFAIL', result.stdout.encode()) is None)
 
     def test_independent_od_tr_status_guard_mutations_are_semantically_killed(self):
-        # Locate the checked utility command substitution, then neutralize only
-        # its status. This removes the guard's effect without breaking syntax or
-        # changing emitted bytes. A surviving mutant must fail this test.
+        # Remove only the explicit status guard, leaving the utility command
+        # substitution and emitted bytes unchanged. Do not append `; :` inside
+        # the substitution: dash may stop there on the failing utility under -e,
+        # even in this caller's OR-list, so that would leave the guard effective.
+        # A surviving guard-removal mutant must fail the semantic assertion.
         for utility, status in [('od', 7), ('tr', 9)]:
             with self.subTest(utility=utility):
-                pattern = re.compile(r'\$\(([^\n]*?LC_ALL=C ' + utility + r'[^\n]*?)\)')
-                matches = list(pattern.finditer(H.FUNCTIONS))
-                self.assertEqual(len(matches), 1, 'expected one checked utility substitution for ' + utility)
-                match = matches[0]
-                mutant = H.FUNCTIONS[:match.start()] + '$(' + match[1] + '; :)' + H.FUNCTIONS[match.end():]
+                guard = (
+                    " || {\n"
+                    "   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=" + utility + "\\n' \"$query_slot\"\n"
+                    "   return 1\n"
+                    "  }"
+                )
+                self.assertEqual(H.FUNCTIONS.count(guard), 1,
+                                 'expected one explicit utility status guard for ' + utility)
+                mutant = H.FUNCTIONS.replace(guard, ' || :', 1)
                 good, good_rc, _ = emit(PAYLOAD, faulty(utility, 'complete', status))
                 self.assert_unknown(good, good_rc, utility)
                 result, rc, _ = emit(PAYLOAD, faulty(utility, 'complete', status), functions=mutant)

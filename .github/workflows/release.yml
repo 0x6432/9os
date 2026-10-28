@@ -47,9 +47,9 @@ jobs:
 
       - name: Install host packages
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl jq bzip2 xz-utils e2fsprogs fdisk \
-            bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip python3-pil ninja-build libglib2.0-dev-bin \
+          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 -o APT::Update::Error-Mode=any update -q
+          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl jq bzip2 xz-utils e2fsprogs fdisk \
+            bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip python3-pil ninja-build libglib2.0-dev-bin libglib2.0-dev \
             qemu-system-x86 qemu-system-misc qemu-system-arm qemu-efi-aarch64 qemu-efi-riscv64
           pip3 install --break-system-packages 'meson>=1.3' Mako PyYAML packaging
           clang --version | head -1
@@ -76,6 +76,10 @@ jobs:
       - name: Allocator and scheduler host regressions
         if: matrix.arch == 'x86_64'
         run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/apt-host-setup-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-download-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
           scripts/pmm-host-tests.sh
           scripts/slab-host-tests.sh
           scripts/sched-host-tests.sh
@@ -94,6 +98,8 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-transport-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-status-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/terminal-history-utility-status-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/a11y-dbus-host/test-error-identity.py
+          PYTHONDONTWRITEBYTECODE=1 python3 tests/a11y-dbus-host/test-error-identity-mutations.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-readbacks.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence-mutations.py

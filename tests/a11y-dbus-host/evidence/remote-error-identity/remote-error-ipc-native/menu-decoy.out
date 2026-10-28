@@ -1,0 +1,24 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2884652087289
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2884652429593
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2884652878156
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884653249809
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2884653265543
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=2884653410525
+DBUS_A11Y_OWNER bus=:1.60 pid=53767 target=53767
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.60 path=/org/a11y/atspi/accessible/app mono_ns=2884653417500
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.60 path=/org/a11y/atspi/accessible/app mono_ns=2884653444540
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884653691169
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884653711045
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.60 path=/org/a11y/atspi/accessible/frame mono_ns=2884653722558
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.60 path=/org/a11y/atspi/accessible/frame mono_ns=2884653767119
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884654069308
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884654101361
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.60 path=/org/a11y/atspi/accessible/menu mono_ns=2884654117231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.60 path=/org/a11y/atspi/accessible/menu mono_ns=2884654142513
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884654392921
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884654430508
+DBUS_A11Y_NODE depth=2 node=3 role=34
+DBUS_A11Y_WITNESS pid=53767 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=0
+terminal-dbus: pid=53767 applications=1 models=0 visited=3 NOT_OBSERVED (diagnostic only)

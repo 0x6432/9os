@@ -1,0 +1,135 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2884636941660
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2884637197640
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2884637520744
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884637799057
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2884637808032
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=2884637911809
+DBUS_A11Y_OWNER bus=:1.57 pid=53759 target=53759
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/app mono_ns=2884637916626
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/app mono_ns=2884637934660
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884638154251
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884638178301
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884638197228
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884638219579
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884638416271
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884638437806
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884638451703
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884638470226
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884638657789
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884638677078
+DBUS_A11Y_NODE depth=2 node=3 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884638699968
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884638739341
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884638933696
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884638955217
+DBUS_A11Y_NODE depth=3 node=4 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884638963691
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884638983071
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884639177428
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884639213084
+DBUS_A11Y_NODE depth=4 node=5 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884639221552
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884639239705
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884639467013
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884639489474
+DBUS_A11Y_NODE depth=5 node=6 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884639497742
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884639520459
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884639704991
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884639730327
+DBUS_A11Y_NODE depth=6 node=7 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884639747274
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884639767968
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884639957567
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884639978062
+DBUS_A11Y_NODE depth=7 node=8 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884639991468
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884640042720
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884640286227
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884640311167
+DBUS_A11Y_NODE depth=8 node=9 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884640328640
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884640355336
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884640563579
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884640590607
+DBUS_A11Y_NODE depth=9 node=10 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884640598757
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884640617136
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884640809840
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884640833273
+DBUS_A11Y_NODE depth=10 node=11 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884640847558
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884640866586
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884641068620
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884641089096
+DBUS_A11Y_NODE depth=11 node=12 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884641105345
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884641130383
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884641335031
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884641356946
+DBUS_A11Y_NODE depth=12 node=13 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884641374736
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884641395949
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884641610267
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884641632433
+DBUS_A11Y_NODE depth=13 node=14 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884641649443
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884641671760
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884641898781
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884641923444
+DBUS_A11Y_NODE depth=14 node=15 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884641939765
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884641967843
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884642165712
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884642187909
+DBUS_A11Y_NODE depth=15 node=16 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884642203059
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884642221962
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884642436465
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884642460983
+DBUS_A11Y_NODE depth=16 node=17 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884642477408
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884642502597
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884642744235
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884642778796
+DBUS_A11Y_NODE depth=17 node=18 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884642797560
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884642835151
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884643067973
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884643098150
+DBUS_A11Y_NODE depth=18 node=19 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884643106313
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884643127117
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884643333771
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884643361808
+DBUS_A11Y_NODE depth=19 node=20 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884643369748
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884643390267
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884643588075
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884643612356
+DBUS_A11Y_NODE depth=20 node=21 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884643620785
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884643644114
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884643856395
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884643880100
+DBUS_A11Y_NODE depth=21 node=22 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884643886723
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884643905986
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884644168757
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884644196074
+DBUS_A11Y_NODE depth=22 node=23 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884644204339
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884644225063
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884644424937
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884644463205
+DBUS_A11Y_NODE depth=23 node=24 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884644473231
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.57 path=/org/a11y/atspi/accessible/frame mono_ns=2884644495262
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2884644716519
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2884644746326
+DBUS_A11Y_NODE depth=24 node=25 role=23
+DBUS_A11Y_ERROR reason=tree-bound
+DBUS_A11Y_WITNESS pid=53759 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=53759 applications=1 models=0 visited=25 NOT_OBSERVED (diagnostic only)

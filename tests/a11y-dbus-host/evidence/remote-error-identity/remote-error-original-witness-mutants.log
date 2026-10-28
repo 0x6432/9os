@@ -1,0 +1,6 @@
+PASS independently rejected witness mutation lost-focus-count
+PASS independently rejected witness mutation invalid-state-counted
+PASS independently rejected witness mutation hidden-protocol-error
+PASS independently rejected witness mutation cross-terminal-state-merge
+PASS independently rejected witness mutation unauthenticated-application
+5/5 independent witness/acceptance mutations rejected; synthetic IPC only

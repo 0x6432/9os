@@ -1,0 +1,31 @@
+consumer_source_sha256=605d76f245f9fc4a7ebf9712fc19e16c8d5f80ea5d01a847c254a3b544f1a669
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... FAIL
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... ok
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... ok
+test_other_local_error (__main__.Identity.test_other_local_error) ... ok
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... ok
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... ok
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... ok
+
+======================================================================
+FAIL: test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 112, in test_both_async_callbacks_correlate_and_drain_in_reverse_order
+    children, role = self.run_model('async-both')
+                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 68, in run_model
+    self.assertEqual(len(identities), 2 if mode in ('long', 'async-both') else 1, r.stdout)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 2 : DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.42 path=/org/a11y/atspi/accessible/FAIL mono_ns=2780545593688
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.42 path=/org/a11y/atspi/accessible/FAIL mono_ns=2780545613499
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=0 mono_ns=2780545988188
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_QUERY method=GetRole phase=end ok=0 mono_ns=2780545995883
+DBUS_A11Y_ERROR reason=remote-call
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.319s
+
+FAILED (failures=1)

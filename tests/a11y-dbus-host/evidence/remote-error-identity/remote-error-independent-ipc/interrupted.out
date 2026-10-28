@@ -1,0 +1,9 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=3054057859411
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=3054058220810
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=3054058634721
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3054058953579
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=3054058964508
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=3054059119090
+DBUS_A11Y_OWNER bus=:1.120 pid=55296 target=55296
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.120 path=/org/a11y/atspi/accessible/app mono_ns=3054059123894
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.120 path=/org/a11y/atspi/accessible/app mono_ns=3054059148248
