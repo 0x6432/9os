@@ -1,0 +1,7 @@
+apk-tools 2.14.12, compiled for x86_64.
+
+usage: apk verify [<OPTIONS>...] FILES...
+
+Description:
+  apk verify verifies the integrity of the package files specified,
+  validating the checksums and cryptographic signature.

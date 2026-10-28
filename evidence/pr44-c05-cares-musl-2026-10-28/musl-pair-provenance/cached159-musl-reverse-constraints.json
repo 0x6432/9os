@@ -1,0 +1,2863 @@
+[
+  {
+    "filename": "basu-0.2.1-r2.apk",
+    "pkgname": [
+      "basu"
+    ],
+    "pkgver": [
+      "0.2.1-r2"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libbasu.so.0=0",
+      "cmd:basuctl=0.2.1-r2"
+    ]
+  },
+  {
+    "filename": "double-conversion-3.3.1-r0.apk",
+    "pkgname": [
+      "double-conversion"
+    ],
+    "pkgver": [
+      "3.3.1-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libgcc_s.so.1",
+      "so:libstdc++.so.6"
+    ],
+    "provides": [
+      "so:libdouble-conversion.so.3=3.3.0"
+    ]
+  },
+  {
+    "filename": "duktape-libs-2.7.0-r2.apk",
+    "pkgname": [
+      "duktape-libs"
+    ],
+    "pkgver": [
+      "2.7.0-r2"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libduktape.so.207=207.20700"
+    ]
+  },
+  {
+    "filename": "grim-1.4.1-r0.apk",
+    "pkgname": [
+      "grim"
+    ],
+    "pkgver": [
+      "1.4.1-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libjpeg.so.8",
+      "so:libpixman-1.so.0",
+      "so:libpng16.so.16",
+      "so:libwayland-client.so.0"
+    ],
+    "provides": [
+      "cmd:grim=1.4.1-r0"
+    ]
+  },
+  {
+    "filename": "libb2-0.98.1-r3.apk",
+    "pkgname": [
+      "libb2"
+    ],
+    "pkgver": [
+      "0.98.1-r3"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libgomp.so.1"
+    ],
+    "provides": [
+      "so:libb2.so.1=1.0.4"
+    ]
+  },
+  {
+    "filename": "libdisplay-info-0.2.0-r0.apk",
+    "pkgname": [
+      "libdisplay-info"
+    ],
+    "pkgver": [
+      "0.2.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libdisplay-info.so.2=0.2.0"
+    ]
+  },
+  {
+    "filename": "libelogind-252.24-r1.apk",
+    "pkgname": [
+      "libelogind"
+    ],
+    "pkgver": [
+      "252.24-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libcap.so.2"
+    ],
+    "provides": [
+      "so:libelogind.so.0=0.35.0"
+    ]
+  },
+  {
+    "filename": "libevdev-1.13.3-r0.apk",
+    "pkgname": [
+      "libevdev"
+    ],
+    "pkgver": [
+      "1.13.3-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libevdev.so.2=2.3.0"
+    ]
+  },
+  {
+    "filename": "libinput-libs-1.28.1-r0.apk",
+    "pkgname": [
+      "libinput-libs"
+    ],
+    "pkgver": [
+      "1.28.1-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libevdev.so.2",
+      "so:libmtdev.so.1",
+      "so:libudev.so.1"
+    ],
+    "provides": [
+      "so:libinput.so.10=10.13.0"
+    ]
+  },
+  {
+    "filename": "libproxy-0.5.10-r0.apk",
+    "pkgname": [
+      "libproxy"
+    ],
+    "pkgver": [
+      "0.5.10-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libcurl.so.4",
+      "so:libduktape.so.207",
+      "so:libgio-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0"
+    ],
+    "provides": [
+      "so:libproxy.so.1=0.5.10",
+      "so:libpxbackend-1.0.so=0"
+    ]
+  },
+  {
+    "filename": "libseat-0.9.1-r0.apk",
+    "pkgname": [
+      "libseat"
+    ],
+    "pkgver": [
+      "0.9.1-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libelogind.so.0"
+    ],
+    "provides": [
+      "so:libseat.so.1=1"
+    ]
+  },
+  {
+    "filename": "mtdev-1.1.7-r0.apk",
+    "pkgname": [
+      "mtdev"
+    ],
+    "pkgver": [
+      "1.1.7-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libmtdev.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "qt6-qtbase-6.8.3-r0.apk",
+    "pkgname": [
+      "qt6-qtbase"
+    ],
+    "pkgver": [
+      "6.8.3-r0"
+    ],
+    "depend": [
+      "tzdata",
+      "so:libb2.so.1",
+      "so:libbrotlidec.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libcrypto.so.3",
+      "so:libdbus-1.so.3",
+      "so:libdouble-conversion.so.3",
+      "so:libgcc_s.so.1",
+      "so:libgio-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libicui18n.so.76",
+      "so:libicuuc.so.76",
+      "so:libpcre2-16.so.0",
+      "so:libproxy.so.1",
+      "so:libssl.so.3",
+      "so:libstdc++.so.6",
+      "so:libz.so.1",
+      "so:libzstd.so.1"
+    ],
+    "provides": [
+      "so:libQt6Concurrent.so.6=6.8.3",
+      "so:libQt6Core.so.6=6.8.3",
+      "so:libQt6DBus.so.6=6.8.3",
+      "so:libQt6Network.so.6=6.8.3",
+      "so:libQt6Sql.so.6=6.8.3",
+      "so:libQt6Test.so.6=6.8.3",
+      "so:libQt6Xml.so.6=6.8.3"
+    ]
+  },
+  {
+    "filename": "qt6-qtbase-x11-6.8.3-r0.apk",
+    "pkgname": [
+      "qt6-qtbase-x11"
+    ],
+    "pkgver": [
+      "6.8.3-r0"
+    ],
+    "depend": [
+      "hicolor-icon-theme",
+      "xdg-utils",
+      "so:libEGL.so.1",
+      "so:libGL.so.1",
+      "so:libQt6Core.so.6",
+      "so:libQt6DBus.so.6",
+      "so:libQt6Network.so.6",
+      "so:libX11-xcb.so.1",
+      "so:libX11.so.6",
+      "so:libc.musl-x86_64.so.1",
+      "so:libcups.so.2",
+      "so:libdrm.so.2",
+      "so:libfontconfig.so.1",
+      "so:libfreetype.so.6",
+      "so:libgbm.so.1",
+      "so:libgcc_s.so.1",
+      "so:libgdk-3.so.0",
+      "so:libgdk_pixbuf-2.0.so.0",
+      "so:libgio-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libgtk-3.so.0",
+      "so:libharfbuzz.so.0",
+      "so:libinput.so.10",
+      "so:libjpeg.so.8",
+      "so:libpango-1.0.so.0",
+      "so:libpng16.so.16",
+      "so:libstdc++.so.6",
+      "so:libts.so.0",
+      "so:libudev.so.1",
+      "so:libxcb-cursor.so.0",
+      "so:libxcb-glx.so.0",
+      "so:libxcb-icccm.so.4",
+      "so:libxcb-image.so.0",
+      "so:libxcb-keysyms.so.1",
+      "so:libxcb-randr.so.0",
+      "so:libxcb-render-util.so.0",
+      "so:libxcb-render.so.0",
+      "so:libxcb-shape.so.0",
+      "so:libxcb-shm.so.0",
+      "so:libxcb-sync.so.1",
+      "so:libxcb-xfixes.so.0",
+      "so:libxcb-xinput.so.0",
+      "so:libxcb-xkb.so.1",
+      "so:libxcb.so.1",
+      "so:libxkbcommon-x11.so.0",
+      "so:libxkbcommon.so.0",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libQt6EglFSDeviceIntegration.so.6=6.8.3",
+      "so:libQt6EglFsKmsGbmSupport.so.6=6.8.3",
+      "so:libQt6EglFsKmsSupport.so.6=6.8.3",
+      "so:libQt6Gui.so.6=6.8.3",
+      "so:libQt6OpenGL.so.6=6.8.3",
+      "so:libQt6OpenGLWidgets.so.6=6.8.3",
+      "so:libQt6PrintSupport.so.6=6.8.3",
+      "so:libQt6Widgets.so.6=6.8.3",
+      "so:libQt6XcbQpa.so.6=6.8.3"
+    ]
+  },
+  {
+    "filename": "qt6-qtdeclarative-6.8.3-r0.apk",
+    "pkgname": [
+      "qt6-qtdeclarative"
+    ],
+    "pkgver": [
+      "6.8.3-r0"
+    ],
+    "depend": [
+      "so:libQt6Core.so.6",
+      "so:libQt6Gui.so.6",
+      "so:libQt6Network.so.6",
+      "so:libQt6OpenGL.so.6",
+      "so:libQt6Sql.so.6",
+      "so:libQt6Test.so.6",
+      "so:libQt6Widgets.so.6",
+      "so:libc.musl-x86_64.so.1",
+      "so:libgcc_s.so.1",
+      "so:libstdc++.so.6"
+    ],
+    "provides": [
+      "so:libQt6LabsAnimation.so.6=6.8.3",
+      "so:libQt6LabsFolderListModel.so.6=6.8.3",
+      "so:libQt6LabsPlatform.so.6=6.8.3",
+      "so:libQt6LabsQmlModels.so.6=6.8.3",
+      "so:libQt6LabsSettings.so.6=6.8.3",
+      "so:libQt6LabsSharedImage.so.6=6.8.3",
+      "so:libQt6LabsWavefrontMesh.so.6=6.8.3",
+      "so:libQt6Qml.so.6=6.8.3",
+      "so:libQt6QmlCompiler.so.6=6.8.3",
+      "so:libQt6QmlCore.so.6=6.8.3",
+      "so:libQt6QmlLocalStorage.so.6=6.8.3",
+      "so:libQt6QmlMeta.so.6=6.8.3",
+      "so:libQt6QmlModels.so.6=6.8.3",
+      "so:libQt6QmlNetwork.so.6=6.8.3",
+      "so:libQt6QmlWorkerScript.so.6=6.8.3",
+      "so:libQt6QmlXmlListModel.so.6=6.8.3",
+      "so:libQt6Quick.so.6=6.8.3",
+      "so:libQt6QuickControls2.so.6=6.8.3",
+      "so:libQt6QuickControls2Basic.so.6=6.8.3",
+      "so:libQt6QuickControls2BasicStyleImpl.so.6=6.8.3",
+      "so:libQt6QuickControls2FluentWinUI3StyleImpl.so.6=6.8.3",
+      "so:libQt6QuickControls2Fusion.so.6=6.8.3",
+      "so:libQt6QuickControls2FusionStyleImpl.so.6=6.8.3",
+      "so:libQt6QuickControls2Imagine.so.6=6.8.3",
+      "so:libQt6QuickControls2ImagineStyleImpl.so.6=6.8.3",
+      "so:libQt6QuickControls2Impl.so.6=6.8.3",
+      "so:libQt6QuickControls2Material.so.6=6.8.3",
+      "so:libQt6QuickControls2MaterialStyleImpl.so.6=6.8.3",
+      "so:libQt6QuickControls2Universal.so.6=6.8.3",
+      "so:libQt6QuickControls2UniversalStyleImpl.so.6=6.8.3",
+      "so:libQt6QuickDialogs2.so.6=6.8.3",
+      "so:libQt6QuickDialogs2QuickImpl.so.6=6.8.3",
+      "so:libQt6QuickDialogs2Utils.so.6=6.8.3",
+      "so:libQt6QuickEffects.so.6=6.8.3",
+      "so:libQt6QuickLayouts.so.6=6.8.3",
+      "so:libQt6QuickParticles.so.6=6.8.3",
+      "so:libQt6QuickShapes.so.6=6.8.3",
+      "so:libQt6QuickTemplates2.so.6=6.8.3",
+      "so:libQt6QuickTest.so.6=6.8.3",
+      "so:libQt6QuickWidgets.so.6=6.8.3"
+    ]
+  },
+  {
+    "filename": "qt6-qtwayland-6.8.3-r0.apk",
+    "pkgname": [
+      "qt6-qtwayland"
+    ],
+    "pkgver": [
+      "6.8.3-r0"
+    ],
+    "depend": [
+      "so:libEGL.so.1",
+      "so:libGL.so.1",
+      "so:libQt6Core.so.6",
+      "so:libQt6Gui.so.6",
+      "so:libQt6OpenGL.so.6",
+      "so:libQt6Qml.so.6",
+      "so:libQt6Quick.so.6",
+      "so:libc.musl-x86_64.so.1",
+      "so:libstdc++.so.6",
+      "so:libwayland-client.so.0",
+      "so:libwayland-cursor.so.0",
+      "so:libwayland-egl.so.1",
+      "so:libwayland-server.so.0",
+      "so:libxkbcommon.so.0"
+    ],
+    "provides": [
+      "so:libQt6WaylandClient.so.6=6.8.3",
+      "so:libQt6WaylandCompositor.so.6=6.8.3",
+      "so:libQt6WaylandCompositorIviapplication.so.6=6.8.3",
+      "so:libQt6WaylandCompositorPresentationTime.so.6=6.8.3",
+      "so:libQt6WaylandCompositorWLShell.so.6=6.8.3",
+      "so:libQt6WaylandCompositorXdgShell.so.6=6.8.3",
+      "so:libQt6WaylandEglClientHwIntegration.so.6=6.8.3",
+      "so:libQt6WaylandEglCompositorHwIntegration.so.6=6.8.3",
+      "so:libQt6WlShellIntegration.so.6=6.8.3"
+    ]
+  },
+  {
+    "filename": "sway-1.10.1-r1.apk",
+    "pkgname": [
+      "sway"
+    ],
+    "pkgver": [
+      "1.10.1-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libcairo.so.2",
+      "so:libdrm.so.2",
+      "so:libevdev.so.2",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libinput.so.10",
+      "so:libjson-c.so.5",
+      "so:libpango-1.0.so.0",
+      "so:libpangocairo-1.0.so.0",
+      "so:libpcre2-8.so.0",
+      "so:libpixman-1.so.0",
+      "so:libudev.so.1",
+      "so:libwayland-server.so.0",
+      "so:libwlroots-0.18.so",
+      "so:libxcb-icccm.so.4",
+      "so:libxcb.so.1",
+      "so:libxkbcommon.so.0"
+    ],
+    "provides": [
+      "sway-virtual",
+      "sxmo-sway=1.10.1-r1",
+      "cmd:sway=1.10.1-r1",
+      "cmd:swaymsg=1.10.1-r1"
+    ]
+  },
+  {
+    "filename": "swaybar-1.10.1-r1.apk",
+    "pkgname": [
+      "swaybar"
+    ],
+    "pkgver": [
+      "1.10.1-r1"
+    ],
+    "depend": [
+      "so:libbasu.so.0",
+      "so:libc.musl-x86_64.so.1",
+      "so:libcairo.so.2",
+      "so:libgdk_pixbuf-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libjson-c.so.5",
+      "so:libpango-1.0.so.0",
+      "so:libpangocairo-1.0.so.0",
+      "so:libwayland-client.so.0",
+      "so:libwayland-cursor.so.0"
+    ],
+    "provides": [
+      "cmd:swaybar=1.10.1-r1"
+    ]
+  },
+  {
+    "filename": "swaynag-1.10.1-r1.apk",
+    "pkgname": [
+      "swaynag"
+    ],
+    "pkgver": [
+      "1.10.1-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libcairo.so.2",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libpango-1.0.so.0",
+      "so:libpangocairo-1.0.so.0",
+      "so:libwayland-client.so.0",
+      "so:libwayland-cursor.so.0"
+    ],
+    "provides": [
+      "cmd:swaynag=1.10.1-r1"
+    ]
+  },
+  {
+    "filename": "tslib-1.23-r0.apk",
+    "pkgname": [
+      "tslib"
+    ],
+    "pkgver": [
+      "1.23-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libts.so.0=0.10.5",
+      "cmd:ts_calibrate=1.23-r0",
+      "cmd:ts_conf=1.23-r0",
+      "cmd:ts_finddev=1.23-r0",
+      "cmd:ts_harvest=1.23-r0",
+      "cmd:ts_print=1.23-r0",
+      "cmd:ts_print_mt=1.23-r0",
+      "cmd:ts_print_raw=1.23-r0",
+      "cmd:ts_test=1.23-r0",
+      "cmd:ts_test_mt=1.23-r0",
+      "cmd:ts_uinput=1.23-r0",
+      "cmd:ts_verify=1.23-r0"
+    ]
+  },
+  {
+    "filename": "wlroots-0.18.2-r1.apk",
+    "pkgname": [
+      "wlroots"
+    ],
+    "pkgver": [
+      "0.18.2-r1"
+    ],
+    "depend": [
+      "so:libEGL.so.1",
+      "so:libGLESv2.so.2",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdisplay-info.so.2",
+      "so:libdrm.so.2",
+      "so:libgbm.so.1",
+      "so:libinput.so.10",
+      "so:liblcms2.so.2",
+      "so:libpixman-1.so.0",
+      "so:libseat.so.1",
+      "so:libudev.so.1",
+      "so:libvulkan.so.1",
+      "so:libwayland-client.so.0",
+      "so:libwayland-server.so.0",
+      "so:libxcb-composite.so.0",
+      "so:libxcb-dri3.so.0",
+      "so:libxcb-ewmh.so.2",
+      "so:libxcb-icccm.so.4",
+      "so:libxcb-present.so.0",
+      "so:libxcb-render-util.so.0",
+      "so:libxcb-render.so.0",
+      "so:libxcb-res.so.0",
+      "so:libxcb-shm.so.0",
+      "so:libxcb-xfixes.so.0",
+      "so:libxcb-xinput.so.0",
+      "so:libxcb.so.1",
+      "so:libxkbcommon.so.0"
+    ],
+    "provides": [
+      "so:libwlroots-0.18.so=0"
+    ]
+  },
+  {
+    "filename": "xcb-util-cursor-0.1.5-r0.apk",
+    "pkgname": [
+      "xcb-util-cursor"
+    ],
+    "pkgver": [
+      "0.1.5-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libxcb-image.so.0",
+      "so:libxcb-render-util.so.0",
+      "so:libxcb-render.so.0",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libxcb-cursor.so.0=0.0.0"
+    ]
+  },
+  {
+    "filename": "xcb-util-image-0.4.1-r0.apk",
+    "pkgname": [
+      "xcb-util-image"
+    ],
+    "pkgver": [
+      "0.4.1-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libxcb-shm.so.0",
+      "so:libxcb-util.so.1",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libxcb-image.so.0=0.0.0"
+    ]
+  },
+  {
+    "filename": "xcb-util-keysyms-0.4.1-r0.apk",
+    "pkgname": [
+      "xcb-util-keysyms"
+    ],
+    "pkgver": [
+      "0.4.1-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libxcb-keysyms.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "xcb-util-renderutil-0.3.10-r0.apk",
+    "pkgname": [
+      "xcb-util-renderutil"
+    ],
+    "pkgver": [
+      "0.3.10-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libxcb-render.so.0",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libxcb-render-util.so.0=0.0.0"
+    ]
+  },
+  {
+    "filename": "xcb-util-wm-0.4.2-r0.apk",
+    "pkgname": [
+      "xcb-util-wm"
+    ],
+    "pkgver": [
+      "0.4.2-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libxcb-ewmh.so.2=2.0.0",
+      "so:libxcb-icccm.so.4=4.0.0"
+    ]
+  },
+  {
+    "filename": "xprop-1.2.8-r0.apk",
+    "pkgname": [
+      "xprop"
+    ],
+    "pkgver": [
+      "1.2.8-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "cmd:xprop=1.2.8-r0"
+    ]
+  },
+  {
+    "filename": "xset-1.2.5-r1.apk",
+    "pkgname": [
+      "xset"
+    ],
+    "pkgver": [
+      "1.2.5-r1"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libXmuu.so.1",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "cmd:xset=1.2.5-r1"
+    ]
+  },
+  {
+    "filename": "at-spi2-core-2.56.5-r0.apk",
+    "pkgname": [
+      "at-spi2-core"
+    ],
+    "pkgver": [
+      "2.56.5-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXtst.so.6",
+      "so:libatspi.so.0",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdbus-1.so.3",
+      "so:libgio-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0"
+    ],
+    "provides": []
+  },
+  {
+    "filename": "at-spi2-core-libs-2.56.5-r0.apk",
+    "pkgname": [
+      "at-spi2-core-libs"
+    ],
+    "pkgver": [
+      "2.56.5-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXi.so.6",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdbus-1.so.3",
+      "so:libgio-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libintl.so.8"
+    ],
+    "provides": [
+      "so:libatspi.so.0=0.0.1"
+    ]
+  },
+  {
+    "filename": "avahi-libs-0.8-r21.apk",
+    "pkgname": [
+      "avahi-libs"
+    ],
+    "pkgver": [
+      "0.8-r21"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libdbus-1.so.3",
+      "so:libintl.so.8"
+    ],
+    "provides": [
+      "so:libavahi-client.so.3=3.2.9",
+      "so:libavahi-common.so.3=3.5.4"
+    ]
+  },
+  {
+    "filename": "brotli-libs-1.1.0-r2.apk",
+    "pkgname": [
+      "brotli-libs"
+    ],
+    "pkgver": [
+      "1.1.0-r2"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libbrotlicommon.so.1=1.1.0",
+      "so:libbrotlidec.so.1=1.1.0",
+      "so:libbrotlienc.so.1=1.1.0"
+    ]
+  },
+  {
+    "filename": "busybox-1.37.0-r20.apk",
+    "pkgname": [
+      "busybox"
+    ],
+    "pkgver": [
+      "1.37.0-r20"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "cmd:busybox=1.37.0-r20"
+    ]
+  },
+  {
+    "filename": "c-ares-1.34.9-r0.apk",
+    "pkgname": [
+      "c-ares"
+    ],
+    "pkgver": [
+      "1.34.9-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libcares.so.2=2.19.8"
+    ]
+  },
+  {
+    "filename": "cairo-1.18.4-r0.apk",
+    "pkgname": [
+      "cairo"
+    ],
+    "pkgver": [
+      "1.18.4-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libXrender.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libfontconfig.so.1",
+      "so:libfreetype.so.6",
+      "so:libpixman-1.so.0",
+      "so:libpng16.so.16",
+      "so:libxcb-render.so.0",
+      "so:libxcb-shm.so.0",
+      "so:libxcb.so.1",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libcairo-script-interpreter.so.2=2.11804.4",
+      "so:libcairo.so.2=2.11804.4"
+    ]
+  },
+  {
+    "filename": "cups-libs-2.4.18-r0.apk",
+    "pkgname": [
+      "cups-libs"
+    ],
+    "pkgver": [
+      "2.4.18-r0"
+    ],
+    "depend": [
+      "so:libavahi-client.so.3",
+      "so:libavahi-common.so.3",
+      "so:libc.musl-x86_64.so.1",
+      "so:libgnutls.so.30",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libcups.so.2=2",
+      "so:libcupsimage.so.2=2"
+    ]
+  },
+  {
+    "filename": "dbus-1.16.2-r1.apk",
+    "pkgname": [
+      "dbus"
+    ],
+    "pkgver": [
+      "1.16.2-r1"
+    ],
+    "depend": [
+      "/bin/sh",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdbus-1.so.3",
+      "so:libexpat.so.1"
+    ],
+    "provides": [
+      "cmd:dbus-cleanup-sockets=1.16.2-r1",
+      "cmd:dbus-daemon=1.16.2-r1",
+      "cmd:dbus-monitor=1.16.2-r1",
+      "cmd:dbus-run-session=1.16.2-r1",
+      "cmd:dbus-send=1.16.2-r1",
+      "cmd:dbus-test-tool=1.16.2-r1",
+      "cmd:dbus-update-activation-environment=1.16.2-r1",
+      "cmd:dbus-uuidgen=1.16.2-r1"
+    ]
+  },
+  {
+    "filename": "dbus-daemon-launch-helper-1.16.2-r1.apk",
+    "pkgname": [
+      "dbus-daemon-launch-helper"
+    ],
+    "pkgver": [
+      "1.16.2-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libdbus-1.so.3",
+      "so:libexpat.so.1"
+    ],
+    "provides": []
+  },
+  {
+    "filename": "dbus-libs-1.16.2-r1.apk",
+    "pkgname": [
+      "dbus-libs"
+    ],
+    "pkgver": [
+      "1.16.2-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libdbus-1.so.3=3.38.3"
+    ]
+  },
+  {
+    "filename": "eudev-libs-3.2.14-r5.apk",
+    "pkgname": [
+      "eudev-libs"
+    ],
+    "pkgver": [
+      "3.2.14-r5"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libudev.so.1=1.6.3"
+    ]
+  },
+  {
+    "filename": "file-5.46-r2.apk",
+    "pkgname": [
+      "file"
+    ],
+    "pkgver": [
+      "5.46-r2"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libmagic.so.1"
+    ],
+    "provides": [
+      "cmd:file=5.46-r2"
+    ]
+  },
+  {
+    "filename": "fontconfig-2.15.0-r3.apk",
+    "pkgname": [
+      "fontconfig"
+    ],
+    "pkgver": [
+      "2.15.0-r3"
+    ],
+    "depend": [
+      "/bin/sh",
+      "so:libc.musl-x86_64.so.1",
+      "so:libexpat.so.1",
+      "so:libfreetype.so.6"
+    ],
+    "provides": [
+      "so:libfontconfig.so.1=1.12.1",
+      "cmd:fc-cache=2.15.0-r3",
+      "cmd:fc-cat=2.15.0-r3",
+      "cmd:fc-conflist=2.15.0-r3",
+      "cmd:fc-list=2.15.0-r3",
+      "cmd:fc-match=2.15.0-r3",
+      "cmd:fc-pattern=2.15.0-r3",
+      "cmd:fc-query=2.15.0-r3",
+      "cmd:fc-scan=2.15.0-r3",
+      "cmd:fc-validate=2.15.0-r3"
+    ]
+  },
+  {
+    "filename": "freetype-2.13.3-r0.apk",
+    "pkgname": [
+      "freetype"
+    ],
+    "pkgver": [
+      "2.13.3-r0"
+    ],
+    "depend": [
+      "so:libbrotlidec.so.1",
+      "so:libbz2.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libpng16.so.16",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libfreetype.so.6=6.20.2"
+    ]
+  },
+  {
+    "filename": "fribidi-1.0.16-r1.apk",
+    "pkgname": [
+      "fribidi"
+    ],
+    "pkgver": [
+      "1.0.16-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libfribidi.so.0=0.4.0",
+      "cmd:fribidi=1.0.16-r1"
+    ]
+  },
+  {
+    "filename": "gdk-pixbuf-2.42.12-r1.apk",
+    "pkgname": [
+      "gdk-pixbuf"
+    ],
+    "pkgver": [
+      "2.42.12-r1"
+    ],
+    "depend": [
+      "shared-mime-info",
+      "/bin/sh",
+      "so:libc.musl-x86_64.so.1",
+      "so:libgio-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgmodule-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libintl.so.8",
+      "so:libjpeg.so.8",
+      "so:libpng16.so.16",
+      "so:libtiff.so.6"
+    ],
+    "provides": [
+      "so:libgdk_pixbuf-2.0.so.0=0.4200.12",
+      "cmd:gdk-pixbuf-csource=2.42.12-r1",
+      "cmd:gdk-pixbuf-pixdata=2.42.12-r1",
+      "cmd:gdk-pixbuf-query-loaders=2.42.12-r1",
+      "cmd:gdk-pixbuf-thumbnailer=2.42.12-r1"
+    ]
+  },
+  {
+    "filename": "glib-2.84.4-r0.apk",
+    "pkgname": [
+      "glib"
+    ],
+    "pkgver": [
+      "2.84.4-r0"
+    ],
+    "depend": [
+      "/bin/sh",
+      "so:libc.musl-x86_64.so.1",
+      "so:libffi.so.8",
+      "so:libintl.so.8",
+      "so:libmount.so.1",
+      "so:libpcre2-8.so.0",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libgio-2.0.so.0=0.8400.4",
+      "so:libgirepository-2.0.so.0=0.8400.4",
+      "so:libglib-2.0.so.0=0.8400.4",
+      "so:libgmodule-2.0.so.0=0.8400.4",
+      "so:libgobject-2.0.so.0=0.8400.4",
+      "so:libgthread-2.0.so.0=0.8400.4",
+      "cmd:gapplication=2.84.4-r0",
+      "cmd:gdbus=2.84.4-r0",
+      "cmd:gi-compile-repository=2.84.4-r0",
+      "cmd:gi-decompile-typelib=2.84.4-r0",
+      "cmd:gi-inspect-typelib=2.84.4-r0",
+      "cmd:gio-querymodules=2.84.4-r0",
+      "cmd:gio=2.84.4-r0",
+      "cmd:glib-compile-schemas=2.84.4-r0",
+      "cmd:gsettings=2.84.4-r0"
+    ]
+  },
+  {
+    "filename": "gmp-6.3.0-r3.apk",
+    "pkgname": [
+      "gmp"
+    ],
+    "pkgver": [
+      "6.3.0-r3"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libgmp.so.10=10.5.0"
+    ]
+  },
+  {
+    "filename": "gnutls-3.8.13-r0.apk",
+    "pkgname": [
+      "gnutls"
+    ],
+    "pkgver": [
+      "3.8.13-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libgmp.so.10",
+      "so:libhogweed.so.6",
+      "so:libidn2.so.0",
+      "so:libnettle.so.8",
+      "so:libp11-kit.so.0",
+      "so:libtasn1.so.6",
+      "so:libunistring.so.5",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libgnutls.so.30=30.42.0"
+    ]
+  },
+  {
+    "filename": "gobject-introspection-1.84.0-r0.apk",
+    "pkgname": [
+      "gobject-introspection"
+    ],
+    "pkgver": [
+      "1.84.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libffi.so.8",
+      "so:libglib-2.0.so.0",
+      "so:libgmodule-2.0.so.0",
+      "so:libgobject-2.0.so.0"
+    ],
+    "provides": [
+      "so:libgirepository-1.0.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "graphite2-1.3.14-r6.apk",
+    "pkgname": [
+      "graphite2"
+    ],
+    "pkgver": [
+      "1.3.14-r6"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libgraphite2.so.3=3.2.1"
+    ]
+  },
+  {
+    "filename": "gtk+3.0-3.24.50-r0.apk",
+    "pkgname": [
+      "gtk+3.0"
+    ],
+    "pkgver": [
+      "3.24.50-r0"
+    ],
+    "depend": [
+      "gobject-introspection",
+      "gtk-update-icon-cache",
+      "shared-mime-info",
+      "/bin/sh",
+      "so:libX11.so.6",
+      "so:libXcomposite.so.1",
+      "so:libXcursor.so.1",
+      "so:libXdamage.so.1",
+      "so:libXext.so.6",
+      "so:libXfixes.so.3",
+      "so:libXi.so.6",
+      "so:libXinerama.so.1",
+      "so:libXrandr.so.2",
+      "so:libatk-1.0.so.0",
+      "so:libatk-bridge-2.0.so.0",
+      "so:libc.musl-x86_64.so.1",
+      "so:libcairo-gobject.so.2",
+      "so:libcairo.so.2",
+      "so:libcups.so.2",
+      "so:libepoxy.so.0",
+      "so:libfontconfig.so.1",
+      "so:libfribidi.so.0",
+      "so:libgdk_pixbuf-2.0.so.0",
+      "so:libgio-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgmodule-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libharfbuzz.so.0",
+      "so:libintl.so.8",
+      "so:libpango-1.0.so.0",
+      "so:libpangocairo-1.0.so.0",
+      "so:libpangoft2-1.0.so.0",
+      "so:libwayland-client.so.0",
+      "so:libwayland-cursor.so.0",
+      "so:libwayland-egl.so.1",
+      "so:libxkbcommon.so.0"
+    ],
+    "provides": [
+      "so:libgailutil-3.so.0=0.0.0",
+      "so:libgdk-3.so.0=0.2418.32",
+      "so:libgtk-3.so.0=0.2418.32",
+      "cmd:broadwayd=3.24.50-r0",
+      "cmd:gtk-launch=3.24.50-r0",
+      "cmd:gtk-query-immodules-3.0=3.24.50-r0"
+    ]
+  },
+  {
+    "filename": "gtk-update-icon-cache-3.24.50-r0.apk",
+    "pkgname": [
+      "gtk-update-icon-cache"
+    ],
+    "pkgver": [
+      "3.24.50-r0"
+    ],
+    "depend": [
+      "hicolor-icon-theme",
+      "/bin/sh",
+      "so:libc.musl-x86_64.so.1",
+      "so:libgdk_pixbuf-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libintl.so.8"
+    ],
+    "provides": [
+      "cmd:gtk-update-icon-cache=3.24.50-r0",
+      "cmd:gtk4-update-icon-cache=3.24.50-r0"
+    ]
+  },
+  {
+    "filename": "harfbuzz-11.2.1-r0.apk",
+    "pkgname": [
+      "harfbuzz"
+    ],
+    "pkgver": [
+      "11.2.1-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libfreetype.so.6",
+      "so:libglib-2.0.so.0",
+      "so:libgraphite2.so.3"
+    ],
+    "provides": [
+      "so:libharfbuzz.so.0=0.61121.0"
+    ]
+  },
+  {
+    "filename": "icu-libs-76.1-r1.apk",
+    "pkgname": [
+      "icu-libs"
+    ],
+    "pkgver": [
+      "76.1-r1"
+    ],
+    "depend": [
+      "icu-data=76.1-r1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libgcc_s.so.1",
+      "so:libstdc++.so.6"
+    ],
+    "provides": [
+      "so:libicudata.so.76=76.1",
+      "so:libicui18n.so.76=76.1",
+      "so:libicuio.so.76=76.1",
+      "so:libicuuc.so.76=76.1"
+    ]
+  },
+  {
+    "filename": "jq-1.8.2-r0.apk",
+    "pkgname": [
+      "jq"
+    ],
+    "pkgver": [
+      "1.8.2-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libonig.so.5"
+    ],
+    "provides": [
+      "so:libjq.so.1=1.0.4",
+      "cmd:jq=1.8.2-r0"
+    ]
+  },
+  {
+    "filename": "json-c-0.18-r1.apk",
+    "pkgname": [
+      "json-c"
+    ],
+    "pkgver": [
+      "0.18-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libjson-c.so.5=5.4.0"
+    ]
+  },
+  {
+    "filename": "lcms2-2.19-r0.apk",
+    "pkgname": [
+      "lcms2"
+    ],
+    "pkgver": [
+      "2.19-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:liblcms2.so.2=2.0.19"
+    ]
+  },
+  {
+    "filename": "libatk-1.0-2.56.5-r0.apk",
+    "pkgname": [
+      "libatk-1.0"
+    ],
+    "pkgver": [
+      "2.56.5-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libintl.so.8"
+    ],
+    "provides": [
+      "so:libatk-1.0.so.0=0.25614.1"
+    ]
+  },
+  {
+    "filename": "libatk-bridge-2.0-2.56.5-r0.apk",
+    "pkgname": [
+      "libatk-bridge-2.0"
+    ],
+    "pkgver": [
+      "2.56.5-r0"
+    ],
+    "depend": [
+      "so:libatk-1.0.so.0",
+      "so:libatspi.so.0",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdbus-1.so.3",
+      "so:libglib-2.0.so.0",
+      "so:libgmodule-2.0.so.0",
+      "so:libgobject-2.0.so.0"
+    ],
+    "provides": [
+      "so:libatk-bridge-2.0.so.0=0.0.0"
+    ]
+  },
+  {
+    "filename": "libblkid-2.41.6-r1.apk",
+    "pkgname": [
+      "libblkid"
+    ],
+    "pkgver": [
+      "2.41.6-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libeconf.so.0"
+    ],
+    "provides": [
+      "so:libblkid.so.1=1.1.0"
+    ]
+  },
+  {
+    "filename": "libbsd-0.12.2-r0.apk",
+    "pkgname": [
+      "libbsd"
+    ],
+    "pkgver": [
+      "0.12.2-r0"
+    ],
+    "depend": [
+      "musl",
+      "so:libc.musl-x86_64.so.1",
+      "so:libmd.so.0"
+    ],
+    "provides": [
+      "so:libbsd.so.0=0.12.2"
+    ]
+  },
+  {
+    "filename": "libbz2-1.0.8-r6.apk",
+    "pkgname": [
+      "libbz2"
+    ],
+    "pkgver": [
+      "1.0.8-r6"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libbz2.so.1=1.0.8"
+    ]
+  },
+  {
+    "filename": "libcap2-2.78-r0.apk",
+    "pkgname": [
+      "libcap2"
+    ],
+    "pkgver": [
+      "2.78-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libcap.so.2=2.78",
+      "so:libpsx.so.2=2.78"
+    ]
+  },
+  {
+    "filename": "libcrypto3-3.5.9-r0.apk",
+    "pkgname": [
+      "libcrypto3"
+    ],
+    "pkgver": [
+      "3.5.9-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libcrypto.so.3=3"
+    ]
+  },
+  {
+    "filename": "libcurl-8.14.1-r3.apk",
+    "pkgname": [
+      "libcurl"
+    ],
+    "pkgver": [
+      "8.14.1-r3"
+    ],
+    "depend": [
+      "ca-certificates-bundle",
+      "so:libbrotlidec.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libcares.so.2",
+      "so:libcrypto.so.3",
+      "so:libidn2.so.0",
+      "so:libnghttp2.so.14",
+      "so:libpsl.so.5",
+      "so:libssl.so.3",
+      "so:libz.so.1",
+      "so:libzstd.so.1"
+    ],
+    "provides": [
+      "so:libcurl.so.4=4.8.0"
+    ]
+  },
+  {
+    "filename": "libdrm-2.4.124-r0.apk",
+    "pkgname": [
+      "libdrm"
+    ],
+    "pkgver": [
+      "2.4.124-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libpciaccess.so.0"
+    ],
+    "provides": [
+      "so:libdrm.so.2=2.124.0",
+      "so:libdrm_amdgpu.so.1=1.124.0",
+      "so:libdrm_etnaviv.so.1=1.124.0",
+      "so:libdrm_exynos.so.1=1.124.0",
+      "so:libdrm_freedreno.so.1=1.124.0",
+      "so:libdrm_intel.so.1=1.124.0",
+      "so:libdrm_nouveau.so.2=2.124.0",
+      "so:libdrm_omap.so.1=1.124.0",
+      "so:libdrm_radeon.so.1=1.124.0",
+      "so:libdrm_tegra.so.0=0.124.0"
+    ]
+  },
+  {
+    "filename": "libdw-0.193-r0.apk",
+    "pkgname": [
+      "libdw"
+    ],
+    "pkgver": [
+      "0.193-r0"
+    ],
+    "depend": [
+      "libelf=0.193-r0",
+      "so:libbz2.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libelf.so.1",
+      "so:libfts.so.0",
+      "so:liblzma.so.5",
+      "so:libz.so.1",
+      "so:libzstd.so.1"
+    ],
+    "provides": [
+      "so:libdw.so.1=0"
+    ]
+  },
+  {
+    "filename": "libeconf-0.6.3-r0.apk",
+    "pkgname": [
+      "libeconf"
+    ],
+    "pkgver": [
+      "0.6.3-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libeconf.so.0=0.6.2",
+      "cmd:econftool=0.6.3-r0"
+    ]
+  },
+  {
+    "filename": "libelf-0.193-r0.apk",
+    "pkgname": [
+      "libelf"
+    ],
+    "pkgver": [
+      "0.193-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libz.so.1",
+      "so:libzstd.so.1"
+    ],
+    "provides": [
+      "elfutils-libelf=0.193-r0",
+      "so:libelf.so.1=0"
+    ]
+  },
+  {
+    "filename": "libepoxy-1.5.10-r1.apk",
+    "pkgname": [
+      "libepoxy"
+    ],
+    "pkgver": [
+      "1.5.10-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libepoxy.so.0=0.0.0"
+    ]
+  },
+  {
+    "filename": "libexpat-2.9.0-r0.apk",
+    "pkgname": [
+      "libexpat"
+    ],
+    "pkgver": [
+      "2.9.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libexpat.so.1=1.13.0"
+    ]
+  },
+  {
+    "filename": "libffi-3.4.8-r0.apk",
+    "pkgname": [
+      "libffi"
+    ],
+    "pkgver": [
+      "3.4.8-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libffi.so.8=8.1.4"
+    ]
+  },
+  {
+    "filename": "libfontenc-1.1.8-r0.apk",
+    "pkgname": [
+      "libfontenc"
+    ],
+    "pkgver": [
+      "1.1.8-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libfontenc.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "libgcc-14.2.0-r6.apk",
+    "pkgname": [
+      "libgcc"
+    ],
+    "pkgver": [
+      "14.2.0-r6"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libgcc_s.so.1=1"
+    ]
+  },
+  {
+    "filename": "libgomp-14.2.0-r6.apk",
+    "pkgname": [
+      "libgomp"
+    ],
+    "pkgver": [
+      "14.2.0-r6"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libgomp.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "libice-1.1.2-r0.apk",
+    "pkgname": [
+      "libice"
+    ],
+    "pkgver": [
+      "1.1.2-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libICE.so.6=6.3.0"
+    ]
+  },
+  {
+    "filename": "libidn2-2.3.7-r0.apk",
+    "pkgname": [
+      "libidn2"
+    ],
+    "pkgver": [
+      "2.3.7-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libunistring.so.5"
+    ],
+    "provides": [
+      "so:libidn2.so.0=0.4.0"
+    ]
+  },
+  {
+    "filename": "libintl-0.24.1-r0.apk",
+    "pkgname": [
+      "libintl"
+    ],
+    "pkgver": [
+      "0.24.1-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libintl.so.8=8.4.3"
+    ]
+  },
+  {
+    "filename": "libjpeg-turbo-3.1.0-r0.apk",
+    "pkgname": [
+      "libjpeg-turbo"
+    ],
+    "pkgver": [
+      "3.1.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libjpeg.so.8=8.3.2"
+    ]
+  },
+  {
+    "filename": "libmagic-5.46-r2.apk",
+    "pkgname": [
+      "libmagic"
+    ],
+    "pkgver": [
+      "5.46-r2"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libmagic.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "libmd-1.1.0-r0.apk",
+    "pkgname": [
+      "libmd"
+    ],
+    "pkgver": [
+      "1.1.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libmd.so.0=0.1.0"
+    ]
+  },
+  {
+    "filename": "libmount-2.41.6-r1.apk",
+    "pkgname": [
+      "libmount"
+    ],
+    "pkgver": [
+      "2.41.6-r1"
+    ],
+    "depend": [
+      "so:libblkid.so.1",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libmount.so.1=1.1.0"
+    ]
+  },
+  {
+    "filename": "libpciaccess-0.18.1-r0.apk",
+    "pkgname": [
+      "libpciaccess"
+    ],
+    "pkgver": [
+      "0.18.1-r0"
+    ],
+    "depend": [
+      "hwdata-pci",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libpciaccess.so.0=0.11.1"
+    ]
+  },
+  {
+    "filename": "libpcre2-16-10.46-r1.apk",
+    "pkgname": [
+      "libpcre2-16"
+    ],
+    "pkgver": [
+      "10.46-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libpcre2-16.so.0=0.14.0"
+    ]
+  },
+  {
+    "filename": "libpng-1.6.59-r0.apk",
+    "pkgname": [
+      "libpng"
+    ],
+    "pkgver": [
+      "1.6.59-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libpng16.so.16=16.59.0"
+    ]
+  },
+  {
+    "filename": "libpsl-0.21.5-r3.apk",
+    "pkgname": [
+      "libpsl"
+    ],
+    "pkgver": [
+      "0.21.5-r3"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libidn2.so.0",
+      "so:libunistring.so.5"
+    ],
+    "provides": [
+      "so:libpsl.so.5=5.3.5"
+    ]
+  },
+  {
+    "filename": "libsharpyuv-1.5.0-r0.apk",
+    "pkgname": [
+      "libsharpyuv"
+    ],
+    "pkgver": [
+      "1.5.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libsharpyuv.so.0=0.1.1"
+    ]
+  },
+  {
+    "filename": "libsm-1.2.5-r0.apk",
+    "pkgname": [
+      "libsm"
+    ],
+    "pkgver": [
+      "1.2.5-r0"
+    ],
+    "depend": [
+      "so:libICE.so.6",
+      "so:libc.musl-x86_64.so.1",
+      "so:libuuid.so.1"
+    ],
+    "provides": [
+      "so:libSM.so.6=6.0.1"
+    ]
+  },
+  {
+    "filename": "libssl3-3.5.9-r0.apk",
+    "pkgname": [
+      "libssl3"
+    ],
+    "pkgver": [
+      "3.5.9-r0"
+    ],
+    "depend": [
+      "libcrypto3=3.5.9-r0",
+      "so:libc.musl-x86_64.so.1",
+      "so:libcrypto.so.3"
+    ],
+    "provides": [
+      "so:libssl.so.3=3"
+    ]
+  },
+  {
+    "filename": "libstdc++-14.2.0-r6.apk",
+    "pkgname": [
+      "libstdc++"
+    ],
+    "pkgver": [
+      "14.2.0-r6"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libgcc_s.so.1"
+    ],
+    "provides": [
+      "so:libstdc++.so.6=6.0.33"
+    ]
+  },
+  {
+    "filename": "libtasn1-4.21.0-r0.apk",
+    "pkgname": [
+      "libtasn1"
+    ],
+    "pkgver": [
+      "4.21.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libtasn1.so.6=6.6.5"
+    ]
+  },
+  {
+    "filename": "libunistring-1.3-r0.apk",
+    "pkgname": [
+      "libunistring"
+    ],
+    "pkgver": [
+      "1.3-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libunistring.so.5=5.2.0"
+    ]
+  },
+  {
+    "filename": "libuuid-2.41.6-r1.apk",
+    "pkgname": [
+      "libuuid"
+    ],
+    "pkgver": [
+      "2.41.6-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libuuid.so.1=1.3.0"
+    ]
+  },
+  {
+    "filename": "libwebp-1.5.0-r0.apk",
+    "pkgname": [
+      "libwebp"
+    ],
+    "pkgver": [
+      "1.5.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libsharpyuv.so.0"
+    ],
+    "provides": [
+      "so:libwebp.so.7=7.1.10"
+    ]
+  },
+  {
+    "filename": "libx11-1.8.11-r0.apk",
+    "pkgname": [
+      "libx11"
+    ],
+    "pkgver": [
+      "1.8.11-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libX11-xcb.so.1=1.0.0",
+      "so:libX11.so.6=6.4.0"
+    ]
+  },
+  {
+    "filename": "libxau-1.0.12-r0.apk",
+    "pkgname": [
+      "libxau"
+    ],
+    "pkgver": [
+      "1.0.12-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXau.so.6=6.0.0"
+    ]
+  },
+  {
+    "filename": "libxcb-1.17.0-r0.apk",
+    "pkgname": [
+      "libxcb"
+    ],
+    "pkgver": [
+      "1.17.0-r0"
+    ],
+    "depend": [
+      "so:libXau.so.6",
+      "so:libXdmcp.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libxcb-composite.so.0=0.0.0",
+      "so:libxcb-damage.so.0=0.0.0",
+      "so:libxcb-dbe.so.0=0.0.0",
+      "so:libxcb-dpms.so.0=0.0.0",
+      "so:libxcb-dri2.so.0=0.0.0",
+      "so:libxcb-dri3.so.0=0.1.0",
+      "so:libxcb-glx.so.0=0.0.0",
+      "so:libxcb-present.so.0=0.0.0",
+      "so:libxcb-randr.so.0=0.1.0",
+      "so:libxcb-record.so.0=0.0.0",
+      "so:libxcb-render.so.0=0.0.0",
+      "so:libxcb-res.so.0=0.0.0",
+      "so:libxcb-screensaver.so.0=0.0.0",
+      "so:libxcb-shape.so.0=0.0.0",
+      "so:libxcb-shm.so.0=0.0.0",
+      "so:libxcb-sync.so.1=1.0.0",
+      "so:libxcb-xf86dri.so.0=0.0.0",
+      "so:libxcb-xfixes.so.0=0.0.0",
+      "so:libxcb-xinerama.so.0=0.0.0",
+      "so:libxcb-xinput.so.0=0.1.0",
+      "so:libxcb-xkb.so.1=1.0.0",
+      "so:libxcb-xtest.so.0=0.0.0",
+      "so:libxcb-xv.so.0=0.0.0",
+      "so:libxcb-xvmc.so.0=0.0.0",
+      "so:libxcb.so.1=1.1.0"
+    ]
+  },
+  {
+    "filename": "libxcomposite-0.4.6-r5.apk",
+    "pkgname": [
+      "libxcomposite"
+    ],
+    "pkgver": [
+      "0.4.6-r5"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXcomposite.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "libxcursor-1.2.3-r0.apk",
+    "pkgname": [
+      "libxcursor"
+    ],
+    "pkgver": [
+      "1.2.3-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXfixes.so.3",
+      "so:libXrender.so.1",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXcursor.so.1=1.0.2"
+    ]
+  },
+  {
+    "filename": "libxdamage-1.1.6-r5.apk",
+    "pkgname": [
+      "libxdamage"
+    ],
+    "pkgver": [
+      "1.1.6-r5"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXdamage.so.1=1.1.0"
+    ]
+  },
+  {
+    "filename": "libxdmcp-1.1.5-r1.apk",
+    "pkgname": [
+      "libxdmcp"
+    ],
+    "pkgver": [
+      "1.1.5-r1"
+    ],
+    "depend": [
+      "so:libbsd.so.0",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXdmcp.so.6=6.0.0"
+    ]
+  },
+  {
+    "filename": "libxext-1.3.6-r2.apk",
+    "pkgname": [
+      "libxext"
+    ],
+    "pkgver": [
+      "1.3.6-r2"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXext.so.6=6.4.0"
+    ]
+  },
+  {
+    "filename": "libxfixes-6.0.1-r4.apk",
+    "pkgname": [
+      "libxfixes"
+    ],
+    "pkgver": [
+      "6.0.1-r4"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXfixes.so.3=3.1.0"
+    ]
+  },
+  {
+    "filename": "libxft-2.3.8-r3.apk",
+    "pkgname": [
+      "libxft"
+    ],
+    "pkgver": [
+      "2.3.8-r3"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXrender.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libfontconfig.so.1",
+      "so:libfreetype.so.6"
+    ],
+    "provides": [
+      "so:libXft.so.2=2.3.8"
+    ]
+  },
+  {
+    "filename": "libxi-1.8.2-r0.apk",
+    "pkgname": [
+      "libxi"
+    ],
+    "pkgver": [
+      "1.8.2-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXi.so.6=6.1.0"
+    ]
+  },
+  {
+    "filename": "libxinerama-1.1.5-r4.apk",
+    "pkgname": [
+      "libxinerama"
+    ],
+    "pkgver": [
+      "1.1.5-r4"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXinerama.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "libxkbcommon-1.8.1-r2.apk",
+    "pkgname": [
+      "libxkbcommon"
+    ],
+    "pkgver": [
+      "1.8.1-r2"
+    ],
+    "depend": [
+      "xkeyboard-config",
+      "so:libc.musl-x86_64.so.1",
+      "so:libxml2.so.2"
+    ],
+    "provides": [
+      "so:libxkbcommon.so.0=0.8.1",
+      "so:libxkbregistry.so.0=0.8.1"
+    ]
+  },
+  {
+    "filename": "libxkbcommon-x11-1.8.1-r2.apk",
+    "pkgname": [
+      "libxkbcommon-x11"
+    ],
+    "pkgver": [
+      "1.8.1-r2"
+    ],
+    "depend": [
+      "xkeyboard-config",
+      "so:libc.musl-x86_64.so.1",
+      "so:libxcb-xkb.so.1",
+      "so:libxcb.so.1",
+      "so:libxkbcommon.so.0"
+    ],
+    "provides": [
+      "so:libxkbcommon-x11.so.0=0.8.1"
+    ]
+  },
+  {
+    "filename": "libxml2-2.13.9-r1.apk",
+    "pkgname": [
+      "libxml2"
+    ],
+    "pkgver": [
+      "2.13.9-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:liblzma.so.5",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "so:libxml2.so.2=2.13.9"
+    ]
+  },
+  {
+    "filename": "libxmu-1.2.1-r0.apk",
+    "pkgname": [
+      "libxmu"
+    ],
+    "pkgver": [
+      "1.2.1-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libXt.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXmu.so.6=6.2.0",
+      "so:libXmuu.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "libxrandr-1.5.4-r1.apk",
+    "pkgname": [
+      "libxrandr"
+    ],
+    "pkgver": [
+      "1.5.4-r1"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libXrender.so.1",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXrandr.so.2=2.2.0"
+    ]
+  },
+  {
+    "filename": "libxrender-0.9.12-r0.apk",
+    "pkgname": [
+      "libxrender"
+    ],
+    "pkgver": [
+      "0.9.12-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXrender.so.1=1.3.0"
+    ]
+  },
+  {
+    "filename": "libxshmfence-1.3.3-r0.apk",
+    "pkgname": [
+      "libxshmfence"
+    ],
+    "pkgver": [
+      "1.3.3-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libxshmfence.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "libxt-1.3.1-r0.apk",
+    "pkgname": [
+      "libxt"
+    ],
+    "pkgver": [
+      "1.3.1-r0"
+    ],
+    "depend": [
+      "so:libICE.so.6",
+      "so:libSM.so.6",
+      "so:libX11.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXt.so.6=6.0.0"
+    ]
+  },
+  {
+    "filename": "libxtst-1.2.5-r0.apk",
+    "pkgname": [
+      "libxtst"
+    ],
+    "pkgver": [
+      "1.2.5-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXtst.so.6=6.1.0"
+    ]
+  },
+  {
+    "filename": "libxxf86vm-1.1.7-r0.apk",
+    "pkgname": [
+      "libxxf86vm"
+    ],
+    "pkgver": [
+      "1.1.7-r0"
+    ],
+    "depend": [
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libXxf86vm.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "llvm20-libs-20.1.8-r0.apk",
+    "pkgname": [
+      "llvm20-libs"
+    ],
+    "pkgver": [
+      "20.1.8-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libffi.so.8",
+      "so:libgcc_s.so.1",
+      "so:libstdc++.so.6",
+      "so:libxml2.so.2",
+      "so:libz.so.1",
+      "so:libzstd.so.1"
+    ],
+    "provides": [
+      "so:libLLVM.so.20.1=20.1"
+    ]
+  },
+  {
+    "filename": "mesa-25.1.9-r0.apk",
+    "pkgname": [
+      "mesa"
+    ],
+    "pkgver": [
+      "25.1.9-r0"
+    ],
+    "depend": [
+      "so:libLLVM.so.20.1",
+      "so:libSPIRV-Tools.so",
+      "so:libX11-xcb.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdrm.so.2",
+      "so:libdrm_amdgpu.so.1",
+      "so:libdrm_intel.so.1",
+      "so:libelf.so.1",
+      "so:libexpat.so.1",
+      "so:libgcc_s.so.1",
+      "so:libstdc++.so.6",
+      "so:libwayland-server.so.0",
+      "so:libxcb-dri3.so.0",
+      "so:libxcb-present.so.0",
+      "so:libxcb-randr.so.0",
+      "so:libxcb-sync.so.1",
+      "so:libxcb-xfixes.so.0",
+      "so:libxcb.so.1",
+      "so:libxshmfence.so.1",
+      "so:libz.so.1",
+      "so:libzstd.so.1"
+    ],
+    "provides": [
+      "so:libgallium-25.1.9.so=0"
+    ]
+  },
+  {
+    "filename": "mesa-egl-25.1.9-r0.apk",
+    "pkgname": [
+      "mesa-egl"
+    ],
+    "pkgver": [
+      "25.1.9-r0"
+    ],
+    "depend": [
+      "mesa=25.1.9-r0",
+      "so:libX11-xcb.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdrm.so.2",
+      "so:libexpat.so.1",
+      "so:libgallium-25.1.9.so",
+      "so:libgbm.so.1",
+      "so:libgcc_s.so.1",
+      "so:libwayland-client.so.0",
+      "so:libwayland-server.so.0",
+      "so:libxcb-dri3.so.0",
+      "so:libxcb-present.so.0",
+      "so:libxcb-randr.so.0",
+      "so:libxcb-shm.so.0",
+      "so:libxcb-xfixes.so.0",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libEGL.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "mesa-gbm-25.1.9-r0.apk",
+    "pkgname": [
+      "mesa-gbm"
+    ],
+    "pkgver": [
+      "25.1.9-r0"
+    ],
+    "depend": [
+      "mesa=25.1.9-r0",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdrm.so.2",
+      "so:libexpat.so.1"
+    ],
+    "provides": [
+      "so:libgbm.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "mesa-gl-25.1.9-r0.apk",
+    "pkgname": [
+      "mesa-gl"
+    ],
+    "pkgver": [
+      "25.1.9-r0"
+    ],
+    "depend": [
+      "mesa=25.1.9-r0",
+      "so:libX11-xcb.so.1",
+      "so:libX11.so.6",
+      "so:libXext.so.6",
+      "so:libXxf86vm.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libdrm.so.2",
+      "so:libexpat.so.1",
+      "so:libgallium-25.1.9.so",
+      "so:libxcb-dri3.so.0",
+      "so:libxcb-glx.so.0",
+      "so:libxcb-present.so.0",
+      "so:libxcb-shm.so.0",
+      "so:libxcb-xfixes.so.0",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libGL.so.1=1.2.0"
+    ]
+  },
+  {
+    "filename": "mkfontscale-1.2.3-r1.apk",
+    "pkgname": [
+      "mkfontscale"
+    ],
+    "pkgver": [
+      "1.2.3-r1"
+    ],
+    "depend": [
+      "/bin/sh",
+      "so:libc.musl-x86_64.so.1",
+      "so:libfontenc.so.1",
+      "so:libfreetype.so.6",
+      "so:libz.so.1"
+    ],
+    "provides": [
+      "mkfontdir=1.2.3-r1",
+      "cmd:mkfontdir=1.2.3-r1",
+      "cmd:mkfontscale=1.2.3-r1"
+    ]
+  },
+  {
+    "filename": "musl-1.2.5-r12.apk",
+    "pkgname": [
+      "musl"
+    ],
+    "pkgver": [
+      "1.2.5-r12"
+    ],
+    "depend": [],
+    "provides": [
+      "so:libc.musl-x86_64.so.1=1"
+    ]
+  },
+  {
+    "filename": "musl-fts-1.2.7-r6.apk",
+    "pkgname": [
+      "musl-fts"
+    ],
+    "pkgver": [
+      "1.2.7-r6"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "fts=1.2.7-r6",
+      "so:libfts.so.0=0.0.0"
+    ]
+  },
+  {
+    "filename": "nettle-3.10.2-r0.apk",
+    "pkgname": [
+      "nettle"
+    ],
+    "pkgver": [
+      "3.10.2-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libgmp.so.10"
+    ],
+    "provides": [
+      "so:libhogweed.so.6=6.11",
+      "so:libnettle.so.8=8.11"
+    ]
+  },
+  {
+    "filename": "nghttp2-libs-1.69.0-r0.apk",
+    "pkgname": [
+      "nghttp2-libs"
+    ],
+    "pkgver": [
+      "1.69.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libnghttp2.so.14=14.29.4"
+    ]
+  },
+  {
+    "filename": "oniguruma-6.9.10-r0.apk",
+    "pkgname": [
+      "oniguruma"
+    ],
+    "pkgver": [
+      "6.9.10-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libonig.so.5=5.5.0"
+    ]
+  },
+  {
+    "filename": "p11-kit-0.26.2-r0.apk",
+    "pkgname": [
+      "p11-kit"
+    ],
+    "pkgver": [
+      "0.26.2-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libffi.so.8",
+      "so:libtasn1.so.6"
+    ],
+    "provides": [
+      "so:libp11-kit.so.0=0.4.8",
+      "cmd:p11-kit=0.26.2-r0"
+    ]
+  },
+  {
+    "filename": "pango-1.56.3-r0.apk",
+    "pkgname": [
+      "pango"
+    ],
+    "pkgver": [
+      "1.56.3-r0"
+    ],
+    "depend": [
+      "/bin/sh",
+      "so:libX11.so.6",
+      "so:libXft.so.2",
+      "so:libXrender.so.1",
+      "so:libc.musl-x86_64.so.1",
+      "so:libcairo.so.2",
+      "so:libfontconfig.so.1",
+      "so:libfreetype.so.6",
+      "so:libfribidi.so.0",
+      "so:libgio-2.0.so.0",
+      "so:libglib-2.0.so.0",
+      "so:libgobject-2.0.so.0",
+      "so:libharfbuzz.so.0"
+    ],
+    "provides": [
+      "so:libpango-1.0.so.0=0.5600.3",
+      "so:libpangocairo-1.0.so.0=0.5600.3",
+      "so:libpangoft2-1.0.so.0=0.5600.3",
+      "so:libpangoxft-1.0.so.0=0.5600.3"
+    ]
+  },
+  {
+    "filename": "pcre2-10.46-r1.apk",
+    "pkgname": [
+      "pcre2"
+    ],
+    "pkgver": [
+      "10.46-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libpcre2-8.so.0=0.14.0",
+      "so:libpcre2-posix.so.3=3.0.6"
+    ]
+  },
+  {
+    "filename": "pixman-0.46.4-r0.apk",
+    "pkgname": [
+      "pixman"
+    ],
+    "pkgver": [
+      "0.46.4-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libpixman-1.so.0=0.46.4"
+    ]
+  },
+  {
+    "filename": "pkgconf-2.4.3-r0.apk",
+    "pkgname": [
+      "pkgconf"
+    ],
+    "pkgver": [
+      "2.4.3-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "pkgconfig=1",
+      "so:libpkgconf.so.6=6.0.0",
+      "cmd:bomtool=2.4.3-r0",
+      "cmd:pkg-config=2.4.3-r0",
+      "cmd:pkgconf=2.4.3-r0"
+    ]
+  },
+  {
+    "filename": "shared-mime-info-2.4-r6.apk",
+    "pkgname": [
+      "shared-mime-info"
+    ],
+    "pkgver": [
+      "2.4-r6"
+    ],
+    "depend": [
+      "/bin/sh",
+      "pkgconfig",
+      "so:libc.musl-x86_64.so.1",
+      "so:libgcc_s.so.1",
+      "so:libglib-2.0.so.0",
+      "so:libstdc++.so.6",
+      "so:libxml2.so.2"
+    ],
+    "provides": [
+      "pc:shared-mime-info=2.4",
+      "cmd:update-mime-database=2.4-r6"
+    ]
+  },
+  {
+    "filename": "spirv-tools-1.4.313.0-r0.apk",
+    "pkgname": [
+      "spirv-tools"
+    ],
+    "pkgver": [
+      "1.4.313.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libstdc++.so.6"
+    ],
+    "provides": [
+      "so:libSPIRV-Tools-diff.so=0",
+      "so:libSPIRV-Tools-link.so=0",
+      "so:libSPIRV-Tools-lint.so=0",
+      "so:libSPIRV-Tools-opt.so=0",
+      "so:libSPIRV-Tools-reduce.so=0",
+      "so:libSPIRV-Tools-shared.so=0",
+      "so:libSPIRV-Tools.so=0",
+      "cmd:spirv-as=1.4.313.0-r0",
+      "cmd:spirv-cfg=1.4.313.0-r0",
+      "cmd:spirv-dis=1.4.313.0-r0",
+      "cmd:spirv-lesspipe.sh=1.4.313.0-r0",
+      "cmd:spirv-link=1.4.313.0-r0",
+      "cmd:spirv-lint=1.4.313.0-r0",
+      "cmd:spirv-objdump=1.4.313.0-r0",
+      "cmd:spirv-opt=1.4.313.0-r0",
+      "cmd:spirv-reduce=1.4.313.0-r0",
+      "cmd:spirv-val=1.4.313.0-r0"
+    ]
+  },
+  {
+    "filename": "ssl_client-1.37.0-r20.apk",
+    "pkgname": [
+      "ssl_client"
+    ],
+    "pkgver": [
+      "1.37.0-r20"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libcrypto.so.3",
+      "so:libssl.so.3"
+    ],
+    "provides": [
+      "cmd:ssl_client=1.37.0-r20"
+    ]
+  },
+  {
+    "filename": "strace-6.13-r0.apk",
+    "pkgname": [
+      "strace"
+    ],
+    "pkgver": [
+      "6.13-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libdw.so.1"
+    ],
+    "provides": [
+      "cmd:strace-log-merge=6.13-r0",
+      "cmd:strace=6.13-r0"
+    ]
+  },
+  {
+    "filename": "tiff-4.7.2-r0.apk",
+    "pkgname": [
+      "tiff"
+    ],
+    "pkgver": [
+      "4.7.2-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libjpeg.so.8",
+      "so:libwebp.so.7",
+      "so:libz.so.1",
+      "so:libzstd.so.1"
+    ],
+    "provides": [
+      "so:libtiff.so.6=6.3.0"
+    ]
+  },
+  {
+    "filename": "vulkan-loader-1.4.313.0-r0.apk",
+    "pkgname": [
+      "vulkan-loader"
+    ],
+    "pkgver": [
+      "1.4.313.0-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libvulkan.so.1=1.4.313"
+    ]
+  },
+  {
+    "filename": "wayland-libs-client-1.23.1-r3.apk",
+    "pkgname": [
+      "wayland-libs-client"
+    ],
+    "pkgver": [
+      "1.23.1-r3"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libffi.so.8"
+    ],
+    "provides": [
+      "so:libwayland-client.so.0=0.23.1"
+    ]
+  },
+  {
+    "filename": "wayland-libs-cursor-1.23.1-r3.apk",
+    "pkgname": [
+      "wayland-libs-cursor"
+    ],
+    "pkgver": [
+      "1.23.1-r3"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libwayland-client.so.0"
+    ],
+    "provides": [
+      "so:libwayland-cursor.so.0=0.23.1"
+    ]
+  },
+  {
+    "filename": "wayland-libs-egl-1.23.1-r3.apk",
+    "pkgname": [
+      "wayland-libs-egl"
+    ],
+    "pkgver": [
+      "1.23.1-r3"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libwayland-egl.so.1=1.23.1"
+    ]
+  },
+  {
+    "filename": "wayland-libs-server-1.23.1-r3.apk",
+    "pkgname": [
+      "wayland-libs-server"
+    ],
+    "pkgver": [
+      "1.23.1-r3"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libffi.so.8"
+    ],
+    "provides": [
+      "so:libwayland-server.so.0=0.23.1"
+    ]
+  },
+  {
+    "filename": "xcb-util-0.4.1-r3.apk",
+    "pkgname": [
+      "xcb-util"
+    ],
+    "pkgver": [
+      "0.4.1-r3"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1",
+      "so:libxcb.so.1"
+    ],
+    "provides": [
+      "so:libxcb-util.so.1=1.0.0"
+    ]
+  },
+  {
+    "filename": "xz-libs-5.8.4-r0.apk",
+    "pkgname": [
+      "xz-libs"
+    ],
+    "pkgver": [
+      "5.8.4-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:liblzma.so.5=5.8.4"
+    ]
+  },
+  {
+    "filename": "zlib-1.3.2-r1.apk",
+    "pkgname": [
+      "zlib"
+    ],
+    "pkgver": [
+      "1.3.2-r1"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libz.so.1=1.3.2"
+    ]
+  },
+  {
+    "filename": "zstd-libs-1.5.7-r0.apk",
+    "pkgname": [
+      "zstd-libs"
+    ],
+    "pkgver": [
+      "1.5.7-r0"
+    ],
+    "depend": [
+      "so:libc.musl-x86_64.so.1"
+    ],
+    "provides": [
+      "so:libzstd.so.1=1.5.7"
+    ]
+  }
+]

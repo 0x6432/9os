@@ -1,0 +1,38 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "10",
+    "600",
+    "python3",
+    "userland/alpine/build.py",
+    "--arch",
+    "x86_64",
+    "--profile",
+    "base",
+    "--lock",
+    "userland/alpine/locks/x86_64.json"
+  ],
+  "cwd": "/data/cares-maintenance/product",
+  "environment_overrides": {
+    "TOOLS_DIR": "/data/cares-maintenance/fresh-tools-once",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "uid": 1000,
+  "euid": 1000,
+  "gid": 1000,
+  "groups": [],
+  "empty_tools_before": true,
+  "target_absent_before": true,
+  "builder_sha256": "fe5b23dd4970b1423fd32c0dda02228619ac664c506e6b4f91ecef64075a4dae",
+  "base_lock_sha256": "fa7f2bb75d2f69b2f22a5aaa1cefd933e9a68597a5fe34671bd3ac4da276b703",
+  "started_utc": "2026-10-28T06:22:11.488913+00:00",
+  "attempts": 1,
+  "watchdog_seconds": 600,
+  "kill_grace_seconds": 10,
+  "rc": 1,
+  "elapsed_seconds": 4.12744206800005,
+  "finished_utc": "2026-10-28T06:22:15.616466+00:00",
+  "target_exists_after": false,
+  "cache_entries_after": 163
+}

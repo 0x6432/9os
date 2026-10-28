@@ -1,0 +1,43 @@
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/userland/alpine/build.py", line 277, in <module>
+    main()
+    ~~~~^^
+  File "/data/cares-maintenance/product/userland/alpine/build.py", line 219, in main
+    entries = sorted(pool.map(fetch, entries), key=lambda e: e['url'])
+  File "/usr/lib64/python3.13/concurrent/futures/_base.py", line 625, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/lib64/python3.13/concurrent/futures/_base.py", line 318, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/usr/lib64/python3.13/concurrent/futures/_base.py", line 460, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib64/python3.13/concurrent/futures/_base.py", line 402, in __get_result
+    raise self._exception
+  File "/usr/lib64/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/data/cares-maintenance/product/userland/alpine/build.py", line 216, in fetch
+    download(url, path, entry['sha256'], args.offline)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/cares-maintenance/product/userland/alpine/build.py", line 40, in download
+    with urllib.request.urlopen(url, timeout=60) as r, open(part, 'wb') as f:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/urllib/request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/urllib/request.py", line 495, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.13/urllib/request.py", line 604, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/usr/lib64/python3.13/urllib/request.py", line 533, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/usr/lib64/python3.13/urllib/request.py", line 466, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.13/urllib/request.py", line 613, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: Not Found
+Download failed: https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-dev-1.2.5-r12.apk
+Download attempts: [{"attempt":1,"utc_start":"2026-10-28T06:22:12Z","elapsed_s":0.136,"class":"HTTPError","http_status":404},{"attempt":2,"utc_start":"2026-10-28T06:22:13Z","elapsed_s":0.008,"class":"HTTPError","http_status":404},{"attempt":3,"utc_start":"2026-10-28T06:22:15Z","elapsed_s":0.127,"class":"HTTPError","http_status":404}]

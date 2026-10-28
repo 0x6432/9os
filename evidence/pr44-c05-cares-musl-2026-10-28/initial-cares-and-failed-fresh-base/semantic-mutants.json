@@ -1,0 +1,30 @@
+[
+  {
+    "name": "missing_allowed",
+    "tests": 14,
+    "assertion_failures": 3,
+    "errors": 0,
+    "killed_semantically": true
+  },
+  {
+    "name": "duplicate_allowed",
+    "tests": 14,
+    "assertion_failures": 3,
+    "errors": 0,
+    "killed_semantically": true
+  },
+  {
+    "name": "url_check_removed",
+    "tests": 14,
+    "assertion_failures": 3,
+    "errors": 0,
+    "killed_semantically": true
+  },
+  {
+    "name": "sha_check_removed",
+    "tests": 14,
+    "assertion_failures": 3,
+    "errors": 0,
+    "killed_semantically": true
+  }
+]

@@ -1,0 +1,56 @@
+............FFF.
+======================================================================
+FAIL: test_x86_cares_locks_match_reviewed_candidate (__main__.TrustTests.test_x86_cares_locks_match_reviewed_candidate) (path='userland/alpine/locks/x86_64.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 27, in test_x86_cares_locks_match_reviewed_candidate
+    self.assert_cares_locks([json.loads((top / name).read_text())])
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 17, in assert_cares_locks
+    self.assertEqual(records[0]['url'], expected_url)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.8-r0.apk' != 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk'
+- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.8-r0.apk
+?                                                                     ^
++ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk
+?                                                                     ^
+
+
+======================================================================
+FAIL: test_x86_cares_locks_match_reviewed_candidate (__main__.TrustTests.test_x86_cares_locks_match_reviewed_candidate) (path='userland/alpine/locks/x86_64-desktop.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 27, in test_x86_cares_locks_match_reviewed_candidate
+    self.assert_cares_locks([json.loads((top / name).read_text())])
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 17, in assert_cares_locks
+    self.assertEqual(records[0]['url'], expected_url)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.8-r0.apk' != 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk'
+- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.8-r0.apk
+?                                                                     ^
++ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk
+?                                                                     ^
+
+
+======================================================================
+FAIL: test_x86_cares_locks_match_reviewed_candidate (__main__.TrustTests.test_x86_cares_locks_match_reviewed_candidate) (path='userland/ports/host-qsb-lock.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 27, in test_x86_cares_locks_match_reviewed_candidate
+    self.assert_cares_locks([json.loads((top / name).read_text())])
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 17, in assert_cares_locks
+    self.assertEqual(records[0]['url'], expected_url)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.8-r0.apk' != 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk'
+- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.8-r0.apk
+?                                                                     ^
++ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk
+?                                                                     ^
+
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.027s
+
+FAILED (failures=3)

@@ -1,0 +1,47 @@
+{
+  "base_lock_count": 160,
+  "signature_OK_distinct_count": 160,
+  "installed_exact_union": true,
+  "installed_count": 168,
+  "bootstrap_only_count": 8,
+  "installed_db_sha256": "8f93f09830dbc542097fa4b7a915da46ad65e68d40fa16a715253b785f4ff13d",
+  "bootstrap_db_sha256": "74c01562aa75d8dd6dbb5c8b30f2d2d73c7d445146335962cc68930d751ddab1",
+  "file_manifest_count": 5477,
+  "file_manifest_sha256": "a4659ce209c5cfb5e277100eb8f66bc3e714b78f689187ab11a7c3d28ffa8fa1",
+  "security": {
+    "bin/busybox": {
+      "mode": "0o4755",
+      "uid": 1000,
+      "gid": 1000
+    },
+    "etc/shadow": {
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000
+    },
+    "usr/bin/sway": {
+      "mode": "0o755",
+      "uid": 1000,
+      "gid": 1000,
+      "capability_hex": "0100000200008000000000000000000000000000",
+      "signed_archive_capability_hex": "0100000200008000000000000000000000000000"
+    }
+  },
+  "abi": {
+    "usr/lib/libcares.so.2": {
+      "sha256": "61efa7257189059cb6d6c0098973c27e2428767016f6eae4c56198a32bb8c8c1",
+      "size": 247512,
+      "realpath": "usr/lib/libcares.so.2.19.8",
+      "soname": "libcares.so.2"
+    },
+    "lib/ld-musl-x86_64.so.1": {
+      "sha256": "6600020aec4ea506e4310a4f48ce8a998e85885d90863bade0e7344dcb067552",
+      "size": 662120,
+      "realpath": "lib/ld-musl-x86_64.so.1",
+      "soname": "libc.musl-x86_64.so.1"
+    }
+  },
+  "stderr_bytes": 0,
+  "warning_scan": "no warnings/errors matched",
+  "qualification": "UID1000 with broad capabilities/NNP0; NOT zero-cap CI or whole-root ownership proof. Seeded offline only; no cold acquisition, desktop/QSB integration, VM or guest boot."
+}

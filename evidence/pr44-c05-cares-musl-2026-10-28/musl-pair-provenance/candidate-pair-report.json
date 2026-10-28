@@ -1,0 +1,1924 @@
+[
+  {
+    "filename": "musl-1.2.5-r13.apk",
+    "sha256": "359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8",
+    "size": 412387,
+    "fields": {
+      "pkgname": [
+        "musl"
+      ],
+      "pkgver": [
+        "1.2.5-r13"
+      ],
+      "pkgdesc": [
+        "the musl c library (libc) implementation"
+      ],
+      "url": [
+        "https://musl.libc.org/"
+      ],
+      "builddate": [
+        "1792598497"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "662120"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "musl"
+      ],
+      "commit": [
+        "ddaf59b84bc6983a37d6e24d2210c2c4791642bb"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "MIT"
+      ],
+      "provides": [
+        "so:libc.musl-x86_64.so.1=1"
+      ],
+      "datahash": [
+        "99e7a067556198b9bbdaa5d6fbcfae118d289e0206cc2c0bed991c5d9a8dbe5e"
+      ]
+    },
+    "ELF": [
+      {
+        "path": "lib/ld-musl-x86_64.so.1",
+        "size": 662120,
+        "sha256": "6600020aec4ea506e4310a4f48ce8a998e85885d90863bade0e7344dcb067552",
+        "headers": [
+          "Class:                             ELF64",
+          "Type:                              DYN (Shared object file)",
+          "Machine:                           Advanced Micro Devices X86-64",
+          "0x000000000000000e (SONAME)             Library soname: [libc.musl-x86_64.so.1]"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "name": ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub",
+        "size": 512,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": ".PKGINFO",
+        "size": 558,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "lib",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "lib/ld-musl-x86_64.so.1",
+        "size": 662120,
+        "mode": "0o755",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "lib/libc.musl-x86_64.so.1",
+        "size": 0,
+        "mode": "0o777",
+        "type": "2",
+        "linkname": "ld-musl-x86_64.so.1"
+      }
+    ],
+    "signed_index_all_identity_checksum_fields_match": true
+  },
+  {
+    "filename": "musl-dev-1.2.5-r13.apk",
+    "sha256": "2ca496dd68c0b340b50cf9940bc2f3312eac8b56ec2d3284a621be6f0c09ffb1",
+    "size": 3428787,
+    "fields": {
+      "pkgname": [
+        "musl-dev"
+      ],
+      "pkgver": [
+        "1.2.5-r13"
+      ],
+      "pkgdesc": [
+        "the musl c library (libc) implementation (development files)"
+      ],
+      "url": [
+        "https://musl.libc.org/"
+      ],
+      "builddate": [
+        "1792598497"
+      ],
+      "packager": [
+        "Buildozer <alpine-devel@lists.alpinelinux.org>"
+      ],
+      "size": [
+        "9914555"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "origin": [
+        "musl"
+      ],
+      "commit": [
+        "ddaf59b84bc6983a37d6e24d2210c2c4791642bb"
+      ],
+      "maintainer": [
+        "Natanael Copa <ncopa@alpinelinux.org>"
+      ],
+      "license": [
+        "MIT"
+      ],
+      "provides": [
+        "libc-dev=1.2.5-r13"
+      ],
+      "depend": [
+        "musl=1.2.5-r13"
+      ],
+      "datahash": [
+        "6bb6dde7fa6aa0324b8a29bb43c3e8728c62ea1dbf54b17b36759b97399e5a3e"
+      ]
+    },
+    "ELF": [
+      {
+        "path": "usr/lib/Scrt1.o",
+        "size": 5088,
+        "sha256": "3388454b3be2481629c1738929257a25462749df50f073067db08a5aa4ad1a86",
+        "headers": [
+          "Class:                             ELF64",
+          "Type:                              REL (Relocatable file)",
+          "Machine:                           Advanced Micro Devices X86-64"
+        ]
+      },
+      {
+        "path": "usr/lib/crt1.o",
+        "size": 5088,
+        "sha256": "08c9921b6ce7530b944259123903fbde30b5565bc69fd0fd5f83b33c0ea76e73",
+        "headers": [
+          "Class:                             ELF64",
+          "Type:                              REL (Relocatable file)",
+          "Machine:                           Advanced Micro Devices X86-64"
+        ]
+      },
+      {
+        "path": "usr/lib/crti.o",
+        "size": 2784,
+        "sha256": "2130fb19198c5bc7330032630dc76b934c4913c48c1da9cd4b0cea9e53300672",
+        "headers": [
+          "Class:                             ELF64",
+          "Type:                              REL (Relocatable file)",
+          "Machine:                           Advanced Micro Devices X86-64"
+        ]
+      },
+      {
+        "path": "usr/lib/crtn.o",
+        "size": 2728,
+        "sha256": "54dd228dece37dd6683e119dac13a4b29bc1c7f35584ec1fe85f0f2bb7e35b86",
+        "headers": [
+          "Class:                             ELF64",
+          "Type:                              REL (Relocatable file)",
+          "Machine:                           Advanced Micro Devices X86-64"
+        ]
+      },
+      {
+        "path": "usr/lib/rcrt1.o",
+        "size": 10424,
+        "sha256": "ca2aeb12b616c8eadd4ed2ad557c4da2051c2adee421bde47b30135f2cd501c2",
+        "headers": [
+          "Class:                             ELF64",
+          "Type:                              REL (Relocatable file)",
+          "Machine:                           Advanced Micro Devices X86-64"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "name": ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub",
+        "size": 512,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": ".PKGINFO",
+        "size": 599,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/aio.h",
+        "size": 1487,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/alloca.h",
+        "size": 219,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/ar.h",
+        "size": 311,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/arpa",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/arpa/ftp.h",
+        "size": 821,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/arpa/inet.h",
+        "size": 703,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/arpa/nameser.h",
+        "size": 12343,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/arpa/nameser_compat.h",
+        "size": 27,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/arpa/telnet.h",
+        "size": 5752,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/arpa/tftp.h",
+        "size": 544,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/assert.h",
+        "size": 428,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/alltypes.h",
+        "size": 11446,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/dirent.h",
+        "size": 201,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/errno.h",
+        "size": 3669,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/fcntl.h",
+        "size": 940,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/fenv.h",
+        "size": 777,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/float.h",
+        "size": 499,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/hwcap.h",
+        "size": 0,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/io.h",
+        "size": 2023,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/ioctl.h",
+        "size": 3054,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/ioctl_fix.h",
+        "size": 0,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/ipc.h",
+        "size": 157,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/ipcstat.h",
+        "size": 19,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/kd.h",
+        "size": 22,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/limits.h",
+        "size": 22,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/link.h",
+        "size": 29,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/mman.h",
+        "size": 28,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/msg.h",
+        "size": 239,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/poll.h",
+        "size": 0,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/posix.h",
+        "size": 64,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/ptrace.h",
+        "size": 461,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/reg.h",
+        "size": 520,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/resource.h",
+        "size": 0,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/sem.h",
+        "size": 232,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/setjmp.h",
+        "size": 36,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/shm.h",
+        "size": 472,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/signal.h",
+        "size": 3459,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/socket.h",
+        "size": 0,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/soundcard.h",
+        "size": 29,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/stat.h",
+        "size": 434,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/statfs.h",
+        "size": 195,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/stdint.h",
+        "size": 540,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/syscall.h",
+        "size": 20784,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/termios.h",
+        "size": 3509,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/user.h",
+        "size": 1139,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/bits/vt.h",
+        "size": 22,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/byteswap.h",
+        "size": 501,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/complex.h",
+        "size": 3705,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/cpio.h",
+        "size": 551,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/crypt.h",
+        "size": 277,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/ctype.h",
+        "size": 1787,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/dirent.h",
+        "size": 1711,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/dlfcn.h",
+        "size": 803,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/elf.h",
+        "size": 86967,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/endian.h",
+        "size": 1958,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/err.h",
+        "size": 472,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/errno.h",
+        "size": 369,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/fcntl.h",
+        "size": 4661,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/features.h",
+        "size": 865,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/fenv.h",
+        "size": 449,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/float.h",
+        "size": 1060,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/fmtmsg.h",
+        "size": 741,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/fnmatch.h",
+        "size": 386,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/ftw.h",
+        "size": 654,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/getopt.h",
+        "size": 559,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/glob.h",
+        "size": 901,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/grp.h",
+        "size": 1025,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/iconv.h",
+        "size": 385,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/ifaddrs.h",
+        "size": 592,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/inttypes.h",
+        "size": 4638,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/iso646.h",
+        "size": 267,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/langinfo.h",
+        "size": 1820,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/lastlog.h",
+        "size": 18,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/libgen.h",
+        "size": 161,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/limits.h",
+        "size": 4179,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/link.h",
+        "size": 921,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/locale.h",
+        "size": 1705,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/malloc.h",
+        "size": 362,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/math.h",
+        "size": 11491,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/memory.h",
+        "size": 20,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/mntent.h",
+        "size": 837,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/monetary.h",
+        "size": 395,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/mqueue.h",
+        "size": 1102,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/net",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/net/ethernet.h",
+        "size": 1177,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/net/if.h",
+        "size": 3488,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/net/if_arp.h",
+        "size": 2924,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/net/route.h",
+        "size": 2628,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netdb.h",
+        "size": 4001,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/ether.h",
+        "size": 543,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/icmp6.h",
+        "size": 8632,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/if_ether.h",
+        "size": 3675,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/igmp.h",
+        "size": 1030,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/in.h",
+        "size": 12181,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/in_systm.h",
+        "size": 145,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/ip.h",
+        "size": 4361,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/ip6.h",
+        "size": 2674,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/ip_icmp.h",
+        "size": 4660,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/tcp.h",
+        "size": 6438,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netinet/udp.h",
+        "size": 759,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netpacket",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/netpacket/packet.h",
+        "size": 1379,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/nl_types.h",
+        "size": 316,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/paths.h",
+        "size": 902,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/poll.h",
+        "size": 994,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/pthread.h",
+        "size": 9367,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/pty.h",
+        "size": 312,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/pwd.h",
+        "size": 899,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/regex.h",
+        "size": 1227,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/resolv.h",
+        "size": 3587,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sched.h",
+        "size": 4399,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/scsi",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/scsi/scsi.h",
+        "size": 3905,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/scsi/scsi_ioctl.h",
+        "size": 322,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/scsi/sg.h",
+        "size": 3085,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/search.h",
+        "size": 1378,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/semaphore.h",
+        "size": 810,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/setjmp.h",
+        "size": 984,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/shadow.h",
+        "size": 721,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/signal.h",
+        "size": 7500,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/spawn.h",
+        "size": 2913,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdalign.h",
+        "size": 409,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdarg.h",
+        "size": 351,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdbool.h",
+        "size": 167,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdc-predef.h",
+        "size": 302,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stddef.h",
+        "size": 547,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdint.h",
+        "size": 2578,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdio.h",
+        "size": 5863,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdio_ext.h",
+        "size": 611,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdlib.h",
+        "size": 4875,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stdnoreturn.h",
+        "size": 129,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/string.h",
+        "size": 3013,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/strings.h",
+        "size": 964,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/stropts.h",
+        "size": 2399,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/acct.h",
+        "size": 1091,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/auxv.h",
+        "size": 200,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/cachectl.h",
+        "size": 347,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/dir.h",
+        "size": 42,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/epoll.h",
+        "size": 1278,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/errno.h",
+        "size": 86,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/eventfd.h",
+        "size": 404,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/fanotify.h",
+        "size": 3531,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/fcntl.h",
+        "size": 86,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/file.h",
+        "size": 261,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/fsuid.h",
+        "size": 233,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/inotify.h",
+        "size": 1384,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/io.h",
+        "size": 219,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/ioctl.h",
+        "size": 3083,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/ipc.h",
+        "size": 651,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/kd.h",
+        "size": 21,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/klog.h",
+        "size": 150,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/membarrier.h",
+        "size": 654,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/mman.h",
+        "size": 3584,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/mount.h",
+        "size": 1927,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/msg.h",
+        "size": 937,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/mtio.h",
+        "size": 5191,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/param.h",
+        "size": 755,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/personality.h",
+        "size": 1494,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/poll.h",
+        "size": 83,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/prctl.h",
+        "size": 4885,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/procfs.h",
+        "size": 1148,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/ptrace.h",
+        "size": 3619,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/quota.h",
+        "size": 2276,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/random.h",
+        "size": 324,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/reboot.h",
+        "size": 374,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/reg.h",
+        "size": 110,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/resource.h",
+        "size": 2217,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/select.h",
+        "size": 1332,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/sem.h",
+        "size": 1157,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/sendfile.h",
+        "size": 305,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/shm.h",
+        "size": 1444,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/signal.h",
+        "size": 89,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/signalfd.h",
+        "size": 845,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/socket.h",
+        "size": 11299,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/soundcard.h",
+        "size": 28,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/stat.h",
+        "size": 4281,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/statfs.h",
+        "size": 484,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/statvfs.h",
+        "size": 1181,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/stropts.h",
+        "size": 21,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/swap.h",
+        "size": 332,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/syscall.h",
+        "size": 81,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/sysinfo.h",
+        "size": 634,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/syslog.h",
+        "size": 20,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/sysmacros.h",
+        "size": 394,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/termios.h",
+        "size": 92,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/time.h",
+        "size": 2254,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/timeb.h",
+        "size": 356,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/timerfd.h",
+        "size": 591,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/times.h",
+        "size": 301,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/timex.h",
+        "size": 2160,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/ttydefaults.h",
+        "size": 831,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/types.h",
+        "size": 1886,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/ucontext.h",
+        "size": 22,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/uio.h",
+        "size": 1314,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/un.h",
+        "size": 472,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/user.h",
+        "size": 200,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/utsname.h",
+        "size": 372,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/vfs.h",
+        "size": 24,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/vt.h",
+        "size": 21,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/wait.h",
+        "size": 1446,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sys/xattr.h",
+        "size": 921,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/syscall.h",
+        "size": 25,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/sysexits.h",
+        "size": 430,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/syslog.h",
+        "size": 2744,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/tar.h",
+        "size": 578,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/termios.h",
+        "size": 968,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/tgmath.h",
+        "size": 8558,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/threads.h",
+        "size": 1795,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/time.h",
+        "size": 4410,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/uchar.h",
+        "size": 629,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/ucontext.h",
+        "size": 495,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/ulimit.h",
+        "size": 183,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/unistd.h",
+        "size": 13590,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/utime.h",
+        "size": 343,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/utmp.h",
+        "size": 998,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/utmpx.h",
+        "size": 1302,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/values.h",
+        "size": 846,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/wait.h",
+        "size": 87,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/wchar.h",
+        "size": 6875,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/wctype.h",
+        "size": 1915,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/include/wordexp.h",
+        "size": 650,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib",
+        "size": 0,
+        "mode": "0o755",
+        "type": "5",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/Scrt1.o",
+        "size": 5088,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/crt1.o",
+        "size": 5088,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/crti.o",
+        "size": 2784,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/crtn.o",
+        "size": 2728,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libc.a",
+        "size": 9414258,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libc.so",
+        "size": 0,
+        "mode": "0o777",
+        "type": "2",
+        "linkname": "../../lib/ld-musl-x86_64.so.1"
+      },
+      {
+        "name": "usr/lib/libcrypt.a",
+        "size": 8,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libdl.a",
+        "size": 8,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libm.a",
+        "size": 8,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libpthread.a",
+        "size": 8,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libresolv.a",
+        "size": 8,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/librt.a",
+        "size": 8,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libssp_nonshared.a",
+        "size": 3390,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libutil.a",
+        "size": 8,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/libxnet.a",
+        "size": 8,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      },
+      {
+        "name": "usr/lib/rcrt1.o",
+        "size": 10424,
+        "mode": "0o644",
+        "type": "0",
+        "linkname": ""
+      }
+    ],
+    "signed_index_all_identity_checksum_fields_match": true
+  }
+]

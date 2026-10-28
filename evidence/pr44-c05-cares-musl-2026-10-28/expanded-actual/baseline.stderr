@@ -1,0 +1,39 @@
+..FF.............
+======================================================================
+FAIL: test_base_desktop_musl_pair_matches_reviewed_candidate (__main__.TrustTests.test_base_desktop_musl_pair_matches_reviewed_candidate) (profile='x86_64.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 61, in test_base_desktop_musl_pair_matches_reviewed_candidate
+    self.assert_musl_pair(json.loads((top / 'userland/alpine/locks' / name).read_text()))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 54, in assert_musl_pair
+    self.assertEqual(records[0]['url'], m.BASE + '/v3.22/main/x86_64/' + name + '-1.2.5-r13.apk')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r12.apk' != 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk'
+- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r12.apk
+?                                                                      ^
++ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk
+?                                                                      ^
+
+
+======================================================================
+FAIL: test_base_desktop_musl_pair_matches_reviewed_candidate (__main__.TrustTests.test_base_desktop_musl_pair_matches_reviewed_candidate) (profile='x86_64-desktop.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 61, in test_base_desktop_musl_pair_matches_reviewed_candidate
+    self.assert_musl_pair(json.loads((top / 'userland/alpine/locks' / name).read_text()))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 54, in assert_musl_pair
+    self.assertEqual(records[0]['url'], m.BASE + '/v3.22/main/x86_64/' + name + '-1.2.5-r13.apk')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r12.apk' != 'https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk'
+- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r12.apk
+?                                                                      ^
++ https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk
+?                                                                      ^
+
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.022s
+
+FAILED (failures=2)

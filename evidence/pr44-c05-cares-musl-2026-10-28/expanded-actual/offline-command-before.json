@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "10",
+    "600",
+    "python3",
+    "userland/alpine/build.py",
+    "--arch",
+    "x86_64",
+    "--profile",
+    "base",
+    "--lock",
+    "userland/alpine/locks/x86_64.json",
+    "--offline"
+  ],
+  "cwd": "/data/cares-maintenance/seeded-product-once",
+  "environment_overrides": {
+    "TOOLS_DIR": "/data/cares-maintenance/seeded-tools-once",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "uid": 1000,
+  "euid": 1000,
+  "gid": 1000,
+  "groups": [],
+  "new_tools_absent_before_seed": true,
+  "new_target_absent": true,
+  "original_failed_target_still_absent": true,
+  "builder_sha256": "fe5b23dd4970b1423fd32c0dda02228619ac664c506e6b4f91ecef64075a4dae",
+  "lock_sha256": "17d0b3f9c51ddc5ebe7b4627d199d42cc8a767a0fbeb805d4757d8144523da99",
+  "started_utc": "2026-10-28T06:34:41.710085+00:00",
+  "classification": "ONE SEEDED OFFLINE coherence/security experiment, NOT fresh-acquisition/cold CI proof"
+}

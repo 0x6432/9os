@@ -1,0 +1,44 @@
+[
+  {
+    "path": ".SIGN.RSA.alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub",
+    "size": 512,
+    "mode": "0o644",
+    "type": "0",
+    "link": ""
+  },
+  {
+    "path": ".PKGINFO",
+    "size": 596,
+    "mode": "0o644",
+    "type": "0",
+    "link": ""
+  },
+  {
+    "path": "usr",
+    "size": 0,
+    "mode": "0o755",
+    "type": "5",
+    "link": ""
+  },
+  {
+    "path": "usr/lib",
+    "size": 0,
+    "mode": "0o755",
+    "type": "5",
+    "link": ""
+  },
+  {
+    "path": "usr/lib/libcares.so.2",
+    "size": 0,
+    "mode": "0o777",
+    "type": "2",
+    "link": "libcares.so.2.19.8"
+  },
+  {
+    "path": "usr/lib/libcares.so.2.19.8",
+    "size": 247512,
+    "mode": "0o755",
+    "type": "0",
+    "link": ""
+  }
+]

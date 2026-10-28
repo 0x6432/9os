@@ -1,0 +1,49 @@
+test_account_overlay_preserves_distro_groups_and_locked_accounts (carestest_mutant.TrustTests.test_account_overlay_preserves_distro_groups_and_locked_accounts) ... ok
+test_bad_download_is_not_published (carestest_mutant.TrustTests.test_bad_download_is_not_published) ... ok
+test_cares_guard_rejects_url_hash_missing_and_duplicate (carestest_mutant.TrustTests.test_cares_guard_rejects_url_hash_missing_and_duplicate) ... 
+  test_cares_guard_rejects_url_hash_missing_and_duplicate (carestest_mutant.TrustTests.test_cares_guard_rejects_url_hash_missing_and_duplicate) (position=0, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/c-ares-1.34.9-r0.apk', 'sha256': '9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97'}]) ... FAIL
+  test_cares_guard_rejects_url_hash_missing_and_duplicate (carestest_mutant.TrustTests.test_cares_guard_rejects_url_hash_missing_and_duplicate) (position=1, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/c-ares-1.34.9-r0.apk', 'sha256': '9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97'}]) ... FAIL
+  test_cares_guard_rejects_url_hash_missing_and_duplicate (carestest_mutant.TrustTests.test_cares_guard_rejects_url_hash_missing_and_duplicate) (position=2, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/c-ares-1.34.9-r0.apk', 'sha256': '9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97'}]) ... FAIL
+test_certificate_guard_rejects_url_hash_missing_and_duplicate (carestest_mutant.TrustTests.test_certificate_guard_rejects_url_hash_missing_and_duplicate) ... ok
+test_corrupt_offline_cache_is_rejected (carestest_mutant.TrustTests.test_corrupt_offline_cache_is_rejected) ... ok
+test_desktop_daemon_identity_is_locked_unprivileged_and_idempotent (carestest_mutant.TrustTests.test_desktop_daemon_identity_is_locked_unprivileged_and_idempotent) ... ok
+test_desktop_profile_requires_desktop_packages (carestest_mutant.TrustTests.test_desktop_profile_requires_desktop_packages) ... ok
+test_existing_daemon_identity_cannot_keep_root_group_login_or_password (carestest_mutant.TrustTests.test_existing_daemon_identity_cannot_keep_root_group_login_or_password) ... ok
+test_profile_requires_wayland_packages (carestest_mutant.TrustTests.test_profile_requires_wayland_packages) ... ok
+test_required_unique_hashes (carestest_mutant.TrustTests.test_required_unique_hashes) ... ok
+test_strict_locked_urls (carestest_mutant.TrustTests.test_strict_locked_urls) ... ok
+test_valid_offline_cache_never_uses_network (carestest_mutant.TrustTests.test_valid_offline_cache_never_uses_network) ... ok
+test_x86_cares_locks_match_reviewed_candidate (carestest_mutant.TrustTests.test_x86_cares_locks_match_reviewed_candidate) ... ok
+test_x86_certificate_locks_match_reviewed_reference (carestest_mutant.TrustTests.test_x86_certificate_locks_match_reviewed_reference) ... ok
+
+======================================================================
+FAIL: test_cares_guard_rejects_url_hash_missing_and_duplicate (carestest_mutant.TrustTests.test_cares_guard_rejects_url_hash_missing_and_duplicate) (position=0, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/c-ares-1.34.9-r0.apk', 'sha256': '9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97'}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 42, in test_cares_guard_rejects_url_hash_missing_and_duplicate
+    with self.assertRaises(AssertionError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_cares_guard_rejects_url_hash_missing_and_duplicate (carestest_mutant.TrustTests.test_cares_guard_rejects_url_hash_missing_and_duplicate) (position=1, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/c-ares-1.34.9-r0.apk', 'sha256': '9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97'}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 42, in test_cares_guard_rejects_url_hash_missing_and_duplicate
+    with self.assertRaises(AssertionError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_cares_guard_rejects_url_hash_missing_and_duplicate (carestest_mutant.TrustTests.test_cares_guard_rejects_url_hash_missing_and_duplicate) (position=2, bad=[{'url': 'https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/c-ares-1.34.9-r0.apk', 'sha256': '9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97'}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/cares-maintenance/product/scripts/alpine-host-tests.py", line 42, in test_cares_guard_rejects_url_hash_missing_and_duplicate
+    with self.assertRaises(AssertionError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.016s
+
+FAILED (failures=3)

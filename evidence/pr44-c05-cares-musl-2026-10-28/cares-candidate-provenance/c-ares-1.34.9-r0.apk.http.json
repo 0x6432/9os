@@ -1,0 +1,97 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk",
+  "started_utc": "2026-10-28T06:15:22.822569+00:00",
+  "request_count": 1,
+  "timeout": 60,
+  "cap": 2097152,
+  "request_method": "GET",
+  "request_headers": "urllib defaults; no manual UA/proxy overrides",
+  "status": 200,
+  "effective_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk",
+  "headers": [
+    [
+      "Connection",
+      "close"
+    ],
+    [
+      "Content-Length",
+      "111865"
+    ],
+    [
+      "Content-Security-Policy",
+      "script-src 'self'"
+    ],
+    [
+      "Content-Type",
+      "application/octet-stream"
+    ],
+    [
+      "Etag",
+      "\"6ad8c1e0-1b4f9\""
+    ],
+    [
+      "Last-Modified",
+      "Wed, 21 Oct 2026 13:45:04 GMT"
+    ],
+    [
+      "Referrer-Policy",
+      "origin-when-cross-origin"
+    ],
+    [
+      "Server",
+      "nginx/1.27.5"
+    ],
+    [
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload"
+    ],
+    [
+      "X-Content-Type-Options",
+      "nosniff"
+    ],
+    [
+      "X-Frame-Options",
+      "DENY"
+    ],
+    [
+      "Via",
+      "1.1 varnish, 1.1 varnish"
+    ],
+    [
+      "Accept-Ranges",
+      "bytes"
+    ],
+    [
+      "Date",
+      "Wed, 28 Oct 2026 06:15:22 GMT"
+    ],
+    [
+      "Age",
+      "577765"
+    ],
+    [
+      "X-Served-By",
+      "cache-ams-eham8680043-AMS, cache-iad-kcgs7200111-IAD"
+    ],
+    [
+      "X-Cache",
+      "MISS, HIT"
+    ],
+    [
+      "X-Cache-Hits",
+      "0, 1553"
+    ],
+    [
+      "X-Timer",
+      "S1793168123.839959,VS0,VE0"
+    ],
+    [
+      "Vary",
+      "Origin"
+    ]
+  ],
+  "size": 111865,
+  "sha256": "9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97",
+  "result": "PASS",
+  "finished_utc": "2026-10-28T06:15:22.849771+00:00"
+}

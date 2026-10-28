@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "/data/cares-provenance/verifier/lib/ld-musl-x86_64.so.1",
+    "--library-path",
+    "/data/cares-provenance/verifier/lib:/data/cares-provenance/verifier/usr/lib",
+    "/data/cares-provenance/verifier/sbin/apk",
+    "--keys-dir",
+    "/data/cares-provenance/verifier/etc/apk/keys",
+    "--no-network",
+    "verify",
+    "/data/cares-provenance/c-ares-1.34.9-r0.apk"
+  ],
+  "rc": 0
+}

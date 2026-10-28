@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "/data/cares-provenance/verifier/lib/ld-musl-x86_64.so.1",
+    "--library-path",
+    "/data/cares-provenance/verifier/lib:/data/cares-provenance/verifier/usr/lib",
+    "/data/cares-provenance/verifier/sbin/apk",
+    "--keys-dir",
+    "/data/cares-provenance/verifier/etc/apk/keys",
+    "--no-network",
+    "verify",
+    "/data/cares-provenance/musl-1.2.5-r13.apk",
+    "/data/cares-provenance/musl-dev-1.2.5-r13.apk"
+  ],
+  "rc": 0
+}

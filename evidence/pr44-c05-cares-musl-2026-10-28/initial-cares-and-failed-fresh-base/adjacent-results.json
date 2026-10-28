@@ -1,0 +1,23 @@
+[
+  {
+    "argv": [
+      "python3",
+      "scripts/alpine-download-host-tests.py"
+    ],
+    "rc": 0
+  },
+  {
+    "argv": [
+      "python3",
+      "scripts/host-qsb-host-tests.py"
+    ],
+    "rc": 0
+  },
+  {
+    "argv": [
+      "python3",
+      "scripts/evdev-linux-oracle-packages-host-tests.py"
+    ],
+    "rc": 0
+  }
+]

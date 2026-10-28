@@ -1,0 +1,114 @@
+{
+  "index_sha256": "86cfe402b7968736024b67ca1d1334ae5824371822ae803e271af9675d280f3b",
+  "reverse_dependency_records": [
+    {
+      "P": "c-ares-dev",
+      "V": "1.34.9-r0",
+      "A": "x86_64",
+      "D": "c-ares=1.34.9-r0 pkgconfig",
+      "p": "pc:libcares=1.34.9"
+    },
+    {
+      "P": "c-ares-utils",
+      "V": "1.34.9-r0",
+      "A": "x86_64",
+      "D": "so:libc.musl-x86_64.so.1 so:libcares.so.2",
+      "p": "cmd:adig=1.34.9-r0 cmd:ahost=1.34.9-r0"
+    },
+    {
+      "P": "curl-dev",
+      "V": "8.14.1-r4",
+      "A": "x86_64",
+      "D": "brotli-dev c-ares-dev libidn2-dev libpsl-dev nghttp2-dev openssl-dev>3 zlib-dev zstd-dev libcurl=8.14.1-r4 pc:libbrotlicommon pc:libbrotlidec pc:libcares pc:libidn2 pc:libnghttp2 pc:libpsl pc:libzstd pc:openssl pc:zlib pkgconfig",
+      "p": "pc:libcurl=8.14.1 cmd:cd2nroff=8.14.1-r4 cmd:curl-config=8.14.1-r4"
+    },
+    {
+      "P": "gross",
+      "V": "1.0.4-r0",
+      "A": "x86_64",
+      "D": "/bin/sh so:libc.musl-x86_64.so.1 so:libcares.so.2",
+      "p": "so:grosscheck.so=0 cmd:gclient=1.0.4-r0 cmd:grossd=1.0.4-r0"
+    },
+    {
+      "P": "libcurl",
+      "V": "8.14.1-r4",
+      "A": "x86_64",
+      "D": "ca-certificates-bundle so:libbrotlidec.so.1 so:libc.musl-x86_64.so.1 so:libcares.so.2 so:libcrypto.so.3 so:libidn2.so.0 so:libnghttp2.so.14 so:libpsl.so.5 so:libssl.so.3 so:libz.so.1 so:libzstd.so.1",
+      "p": "so:libcurl.so.4=4.8.0"
+    },
+    {
+      "P": "mosquitto-libs",
+      "V": "2.0.21-r0",
+      "A": "x86_64",
+      "D": "so:libc.musl-x86_64.so.1 so:libcares.so.2 so:libcrypto.so.3 so:libssl.so.3",
+      "p": "so:libmosquitto.so.1=1"
+    },
+    {
+      "P": "nghttp2",
+      "V": "1.69.0-r0",
+      "A": "x86_64",
+      "D": "so:libc.musl-x86_64.so.1 so:libcares.so.2 so:libcrypto.so.3 so:libev.so.4 so:libgcc_s.so.1 so:libnghttp2.so.14 so:libssl.so.3 so:libstdc++.so.6 so:libz.so.1",
+      "p": "cmd:h2load=1.69.0-r0 cmd:nghttp=1.69.0-r0 cmd:nghttpd=1.69.0-r0 cmd:nghttpx=1.69.0-r0"
+    },
+    {
+      "P": "nodejs",
+      "V": "22.23.4-r0",
+      "A": "x86_64",
+      "D": "ca-certificates /bin/sh so:libada.so.2 so:libbrotlidec.so.1 so:libbrotlienc.so.1 so:libc.musl-x86_64.so.1 so:libcares.so.2 so:libcrypto.so.3 so:libgcc_s.so.1 so:libicui18n.so.76 so:libicuuc.so.76 so:libnghttp2.so.14 so:libsimdjson.so.25 so:libsimdutf.so.24 so:libsqlite3.so.0 so:libssl.so.3 so:libstdc++.so.6 so:libz.so.1 so:libzstd.so.1",
+      "p": "nodejs-lts=22.23.4-r0 cmd:node=22.23.4-r0"
+    },
+    {
+      "P": "nodejs-libs",
+      "V": "22.23.4-r0",
+      "A": "x86_64",
+      "D": "so:libada.so.2 so:libbrotlidec.so.1 so:libbrotlienc.so.1 so:libc.musl-x86_64.so.1 so:libcares.so.2 so:libcrypto.so.3 so:libgcc_s.so.1 so:libicui18n.so.76 so:libicuuc.so.76 so:libnghttp2.so.14 so:libsimdjson.so.25 so:libsimdutf.so.24 so:libsqlite3.so.0 so:libssl.so.3 so:libstdc++.so.6 so:libz.so.1 so:libzstd.so.1",
+      "p": "so:libnode.so.127=127"
+    },
+    {
+      "P": "opennhrp",
+      "V": "0.14.1-r12",
+      "A": "x86_64",
+      "D": "so:libc.musl-x86_64.so.1 so:libcares.so.2",
+      "p": "cmd:opennhrp=0.14.1-r12 cmd:opennhrpctl=0.14.1-r12"
+    },
+    {
+      "P": "quagga",
+      "V": "1.2.4-r10",
+      "A": "x86_64",
+      "D": "iproute2 /bin/sh so:libc.musl-x86_64.so.1 so:libcares.so.2 so:libnetsnmp.so.40 so:libnetsnmpagent.so.40 so:libreadline.so.8",
+      "p": "quagga-nhrp=1.2.4 so:libfpm_pb.so.0=0.0.0 so:libospf.so.0=0.0.0 so:libospfapiclient.so.0=0.0.0 so:libquagga_pb.so.0=0.0.0 so:libzebra.so.1=1.0.0 cmd:bgp_btoa=1.2.4-r10 cmd:bgpd=1.2.4-r10 cmd:isisd=1.2.4-r10 cmd:nhrpd=1.2.4-r10 cmd:ospf6d=1.2.4-r10 cmd:ospfclient=1.2.4-r10 cmd:ospfd=1.2.4-r10 cmd:pimd=1.2.4-r10 cmd:ripd=1.2.4-r10 cmd:ripngd=1.2.4-r10 cmd:test_igmpv3_join=1.2.4-r10 cmd:vtysh=1.2.4-r10 cmd:watchquagga=1.2.4-r10 cmd:zebra=1.2.4-r10"
+    },
+    {
+      "P": "sipsak",
+      "V": "0.9.8.1-r1",
+      "A": "x86_64",
+      "D": "so:libc.musl-x86_64.so.1 so:libcares.so.2 so:libcrypto.so.3",
+      "p": "cmd:sipsak=0.9.8.1-r1"
+    }
+  ],
+  "exact_locked_records": {
+    "libcurl": [],
+    "musl": []
+  },
+  "current_records": {
+    "libcurl": [
+      {
+        "P": "libcurl",
+        "V": "8.14.1-r4",
+        "A": "x86_64",
+        "D": "ca-certificates-bundle so:libbrotlidec.so.1 so:libc.musl-x86_64.so.1 so:libcares.so.2 so:libcrypto.so.3 so:libidn2.so.0 so:libnghttp2.so.14 so:libpsl.so.5 so:libssl.so.3 so:libz.so.1 so:libzstd.so.1",
+        "p": "so:libcurl.so.4=4.8.0"
+      }
+    ],
+    "musl": [
+      {
+        "P": "musl",
+        "V": "1.2.5-r13",
+        "A": "x86_64",
+        "D": null,
+        "p": "so:libc.musl-x86_64.so.1=1"
+      }
+    ]
+  },
+  "scope": "current already fetched signed index only; absent old records not old closure proof"
+}

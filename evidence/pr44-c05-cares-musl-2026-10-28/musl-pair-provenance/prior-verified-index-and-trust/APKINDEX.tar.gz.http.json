@@ -1,0 +1,97 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz",
+  "started_utc": "2026-10-28T06:14:52.148104+00:00",
+  "request_count": 1,
+  "timeout": 60,
+  "cap": 2097152,
+  "request_method": "GET",
+  "request_headers": "urllib defaults; no manual UA/proxy overrides",
+  "status": 200,
+  "effective_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz",
+  "headers": [
+    [
+      "Connection",
+      "close"
+    ],
+    [
+      "Content-Length",
+      "500502"
+    ],
+    [
+      "Content-Security-Policy",
+      "script-src 'self'"
+    ],
+    [
+      "Content-Type",
+      "application/octet-stream"
+    ],
+    [
+      "Etag",
+      "\"6ae09203-7a316\""
+    ],
+    [
+      "Last-Modified",
+      "Tue, 27 Oct 2026 11:58:59 GMT"
+    ],
+    [
+      "Referrer-Policy",
+      "origin-when-cross-origin"
+    ],
+    [
+      "Server",
+      "nginx/1.27.5"
+    ],
+    [
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload"
+    ],
+    [
+      "X-Content-Type-Options",
+      "nosniff"
+    ],
+    [
+      "X-Frame-Options",
+      "DENY"
+    ],
+    [
+      "Via",
+      "1.1 varnish, 1.1 varnish"
+    ],
+    [
+      "Accept-Ranges",
+      "bytes"
+    ],
+    [
+      "Date",
+      "Wed, 28 Oct 2026 06:14:52 GMT"
+    ],
+    [
+      "Age",
+      "5"
+    ],
+    [
+      "X-Served-By",
+      "cache-ams-eham8680056-AMS, cache-iad-kcgs7200123-IAD"
+    ],
+    [
+      "X-Cache",
+      "HIT, HIT"
+    ],
+    [
+      "X-Cache-Hits",
+      "5, 1"
+    ],
+    [
+      "X-Timer",
+      "S1793168092.156542,VS0,VE1"
+    ],
+    [
+      "Vary",
+      "Origin"
+    ]
+  ],
+  "size": 500502,
+  "sha256": "86cfe402b7968736024b67ca1d1334ae5824371822ae803e271af9675d280f3b",
+  "result": "PASS",
+  "finished_utc": "2026-10-28T06:14:52.168967+00:00"
+}

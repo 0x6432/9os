@@ -1,0 +1,97 @@
+{
+  "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-minirootfs-3.22.6-x86_64.tar.gz",
+  "started_utc": "2026-10-28T06:14:41.120443+00:00",
+  "request_count": 1,
+  "timeout": 60,
+  "cap": 4194304,
+  "request_method": "GET",
+  "request_headers": "urllib defaults; no manual UA/proxy overrides",
+  "status": 200,
+  "effective_url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-minirootfs-3.22.6-x86_64.tar.gz",
+  "headers": [
+    [
+      "Connection",
+      "close"
+    ],
+    [
+      "Content-Length",
+      "3646244"
+    ],
+    [
+      "Content-Security-Policy",
+      "script-src 'self'"
+    ],
+    [
+      "Content-Type",
+      "application/octet-stream"
+    ],
+    [
+      "Etag",
+      "\"6aac24ad-37a324\""
+    ],
+    [
+      "Last-Modified",
+      "Thu, 17 Sep 2026 17:34:37 GMT"
+    ],
+    [
+      "Referrer-Policy",
+      "origin-when-cross-origin"
+    ],
+    [
+      "Server",
+      "nginx/1.27.5"
+    ],
+    [
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload"
+    ],
+    [
+      "X-Content-Type-Options",
+      "nosniff"
+    ],
+    [
+      "X-Frame-Options",
+      "DENY"
+    ],
+    [
+      "Via",
+      "1.1 varnish, 1.1 varnish"
+    ],
+    [
+      "Accept-Ranges",
+      "bytes"
+    ],
+    [
+      "Age",
+      "747207"
+    ],
+    [
+      "Date",
+      "Wed, 28 Oct 2026 06:14:41 GMT"
+    ],
+    [
+      "X-Served-By",
+      "cache-ams-eham8680077-AMS, cache-iad-kcgs7200139-IAD"
+    ],
+    [
+      "X-Cache",
+      "HIT, HIT"
+    ],
+    [
+      "X-Cache-Hits",
+      "17, 0"
+    ],
+    [
+      "X-Timer",
+      "S1793168081.140831,VS0,VE1"
+    ],
+    [
+      "Vary",
+      "Origin"
+    ]
+  ],
+  "size": 3646244,
+  "sha256": "27694aaa55fd7a9e3ef596e0ad4eb66802308bb20172b17030cd5f4d8ae9bac2",
+  "result": "PASS",
+  "finished_utc": "2026-10-28T06:14:41.165183+00:00"
+}

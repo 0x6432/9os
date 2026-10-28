@@ -1,0 +1,3 @@
+WARNING: No provider for the dependencies:
+  so:libc.musl-x86_64.so.1
+WARNING: Total of 1 unsatisfiable package names. Your repository may be broken.

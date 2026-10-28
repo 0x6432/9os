@@ -1,0 +1,49 @@
+{
+  "base": "c05a3fcd851297161f3981b38dd04900c49e8467",
+  "bytes": 4353,
+  "sha256": "d8e361786c3b7b9565c64a01eff0b44c4e87706834494e2dc9977ec01d5048ef",
+  "paths": [
+    "scripts/alpine-host-tests.py",
+    "userland/alpine/locks/x86_64-desktop.json",
+    "userland/alpine/locks/x86_64.json",
+    "userland/ports/host-qsb-lock.json"
+  ],
+  "all_other_tracked_blobs_verified": 869,
+  "before": {
+    "scripts/alpine-host-tests.py": {
+      "sha256": "2a830efc37f6929352b103df5ccbf1999d572ea134c73266fac87a8d440f34b0",
+      "size": 9299
+    },
+    "userland/alpine/locks/x86_64-desktop.json": {
+      "sha256": "7820e5d8d3f5b64a29ea1a918737de4644fb6b1b2188aa89bba051bebef8e694",
+      "size": 116863
+    },
+    "userland/alpine/locks/x86_64.json": {
+      "sha256": "9b27ceb91d05e2a4e38b137ad4a2b4f7f6f3c2cd9ea6729b7688e213491221f6",
+      "size": 30978
+    },
+    "userland/ports/host-qsb-lock.json": {
+      "sha256": "20dba1e5afcec55f33b7bd0a3bd7c4fdf5bc22c216890028e8ce71ce2f44141c",
+      "size": 26222
+    }
+  },
+  "after": {
+    "scripts/alpine-host-tests.py": {
+      "sha256": "40bf7151c6ebd338d2df5df55a07cedc96e9aa5ffe7542110a576314114048ba",
+      "size": 11167
+    },
+    "userland/alpine/locks/x86_64-desktop.json": {
+      "sha256": "e0e5b652c47572822225d3f731fe9e3315babdd8e9252caeac9e8d597c41300c",
+      "size": 116863
+    },
+    "userland/alpine/locks/x86_64.json": {
+      "sha256": "fa7f2bb75d2f69b2f22a5aaa1cefd933e9a68597a5fe34671bd3ac4da276b703",
+      "size": 30978
+    },
+    "userland/ports/host-qsb-lock.json": {
+      "sha256": "bbd7d85e013c7d448275cf48adbfcb87af59c88a157ebf2524e34b8e44e7761d",
+      "size": 26222
+    }
+  },
+  "builder_unchanged": "fe5b23dd4970b1423fd32c0dda02228619ac664c506e6b4f91ecef64075a4dae"
+}
