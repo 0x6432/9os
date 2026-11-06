@@ -1,0 +1,867 @@
+--- a/scripts/dolphin-discovery-host-tests.py
++++ b/scripts/dolphin-discovery-host-tests.py
+@@ -2,6 +2,7 @@
+ """Mock-only controls for bounded introspection; no desktop evidence."""
+ from pathlib import Path
+ import os
++import shlex
+ import subprocess
+ import tempfile
+ 
+@@ -32,3 +33,163 @@
+         assert p.stdout==('/dolphin/Dolphin_29\n' if mode=='valid' else ''),(mode,p.stdout)
+         print('PASS',mode)
+     print('5/5 bounded-discovery controls (mock only; no GUI claim)')
++
++# Exercise the verbatim production URL-readiness helpers/loop with a persistent
++# fake wall clock and fake D-Bus tools. ROOT is this repo copy, so `source` above
++# always binds to the live candidate file being tested.
++URL_GUARD = '   readback_now=$(date +%s) && [ "$readback_now" -lt "$deadline" ] || break\n'
++assert URL_GUARD in source, 'candidate URL deadline guard missing from live source'
++url_block = source[source.index('call_bool() {'):source.index('# isItemVisibleInAnyView')]
++
++
++def put_exec(path, text):
++    path.write_text(text)
++    path.chmod(0o755)
++
++
++def run_url_block(program, scenario):
++    with tempfile.TemporaryDirectory(prefix='9os-dolphin-url-') as tmp:
++        root=Path(tmp); b=root/'bin'; state=root/'state'; b.mkdir(); state.mkdir()
++        (state/'clock').write_text('0'); (state/'methods').write_text('0'); (state/'date-calls').write_text('0')
++        put_exec(b/'date', '''#!/usr/bin/env python3
++import os,sys
++from pathlib import Path
++if sys.argv[1:] != ['+%s']: raise SystemExit(2)
++state=Path(os.environ['FAKE_ROOT'],'state'); calls=state/'date-calls'
++n=int(calls.read_text())+1; calls.write_text(str(n))
++print(state.joinpath('clock').read_text().strip())
++if os.environ['SCENARIO']=='date-output-failure' and n==3: raise SystemExit(1)
++''')
++        put_exec(b/'sleep', '''#!/usr/bin/env python3
++import os
++from pathlib import Path
++r=Path(os.environ['FAKE_ROOT']); p=r/'state'/'clock'; n=int(p.read_text())
++if os.environ['SCENARIO']=='transient-then-true':
++    if n < 20: p.write_text('20')
++elif n < 90: p.write_text('90')
++''')
++        put_exec(b/'timeout', '''#!/bin/sh
++while [ "$#" -gt 0 ]; do
++ case "$1" in
++  -s|-k) shift 2 ;;
++  --) shift; break ;;
++  -*) shift ;;
++  *) shift; break ;;
++ esac
++done
++[ "$#" -gt 0 ] || exit 2
++exec "$@"
++''')
++        put_exec(b/'strace', '#!/bin/sh\nexit 1\n')
++        put_exec(b/'dbus-send', r'''#!/usr/bin/env python3
++import os,sys
++from pathlib import Path
++root=Path(os.environ['FAKE_ROOT']); state=root/'state'; clock=state/'clock'; methods=state/'methods'
++mode=os.environ['SCENARIO']; a=sys.argv[1:]
++method=a[-2] if len(a)>2 and a[-2].endswith('org.kde.dolphin.MainWindow.isUrlOpen') else a[-1]
++obj=a[-3] if method.endswith('org.kde.dolphin.MainWindow.isUrlOpen') else a[-2]
++def now(): return int(clock.read_text())
++def at(n): clock.write_text(str(n))
++if method.endswith('org.freedesktop.DBus.ListNames'):
++    if mode=='no-service': print(' string "org.freedesktop.DBus"'); raise SystemExit(0)
++    if mode=='late-service': at(91)
++    elif mode in ('true89','true90','true91','late-method','always-false','method-error','postfailure-diagnostic','date-output-failure'): at(89)
++    elif mode=='transient-then-true' and now()<5: at(5)
++    print(' string "org.kde.dolphin-42"')
++elif method.endswith('org.freedesktop.DBus.Introspectable.Introspect'):
++    if mode=='late-discovery' and obj=='/': at(91)
++    if mode=='no-object':
++        if obj=='/': print('<node>\n<node name="Other"/>\n</node>')
++        else: print('<node/>')
++    elif obj=='/': print('<node>\n<node name="dolphin"/>\n</node>')
++    elif obj=='/dolphin': print('<node>\n<node name="Dolphin_1"/>\n</node>')
++    elif obj=='/dolphin/Dolphin_1': print('<node>\n<interface name="org.kde.dolphin.MainWindow">\n</interface>\n</node>')
++    else: print('<node/>')
++elif method.endswith('org.kde.dolphin.MainWindow.isUrlOpen'):
++    n=int(methods.read_text())+1; methods.write_text(str(n))
++    if mode=='true89': at(89); print(' boolean true')
++    elif mode=='true90': at(90); print(' boolean true')
++    elif mode=='true91': at(91); print(' boolean true')
++    elif mode=='date-output-failure': at(89); print(' boolean true')
++    elif mode in ('late-service','late-discovery'): print(' boolean true')
++    elif mode=='late-method': at(91); print(' boolean true')
++    elif mode=='always-false': at(91); print(' boolean false')
++    elif mode=='postfailure-diagnostic': at(90); print(' boolean false')
++    elif mode=='method-error': at(91); print(' synthetic method error',file=sys.stderr); raise SystemExit(1)
++    elif mode=='transient-then-true':
++        if n==1: at(10); print(' synthetic transient D-Bus error',file=sys.stderr); raise SystemExit(1)
++        at(30); print(' boolean true')
++    else: raise SystemExit('unhandled scenario '+mode)
++else: raise SystemExit('unhandled dbus-send method '+method)
++''')
++        put_exec(b/'qdbus', '''#!/usr/bin/env python3
++import os,sys
++mode=os.environ['SCENARIO']; a=sys.argv[1:]
++if a==['org.kde.dolphin*']: print('org.kde.dolphin-42')
++elif len(a)==1: print('/dolphin/Dolphin_1')
++elif len(a)>=3 and a[2].endswith('.isUrlOpen'): print('true' if mode=='postfailure-diagnostic' else 'false')
++''')
++        harness='#!/bin/sh\nset -eu\nD='+shlex.quote(str(state))+'\nclient=$$\nQ='+shlex.quote(str(b/'qdbus'))+'\n'+program
++        run=root/'run-url-block.sh'; run.write_text(harness)
++        env={**os.environ,'PATH':str(b)+os.pathsep+os.environ['PATH'],'FAKE_ROOT':str(root),'SCENARIO':scenario}
++        p=subprocess.run(['/bin/sh',str(run)],capture_output=True,text=True,env=env,timeout=10)
++        return {'rc':p.returncode,'out':p.stdout,'err':p.stderr,'clock':int((state/'clock').read_text()),'method_calls':int((state/'methods').read_text())}
++
++
++def require_ready(r):
++    assert r['rc']==0,(r['rc'],r['out'],r['err'])
++    assert 'DOLPHIN_URL_READY service=org.kde.dolphin-42 object=/dolphin/Dolphin_1' in r['out'],r
++    assert 'alpine-dolphin: FAIL real directory URL readback' not in r['out'],r
++
++
++def require_failed(r):
++    assert r['rc']==1,(r['rc'],r['out'],r['err'])
++    assert 'alpine-dolphin: FAIL real directory URL readback' in r['out'],r
++    assert 'DOLPHIN_URL_READY' not in r['out'],r
++
++
++# Candidate positive at t=89 and a transient method error followed by timely true.
++require_ready(run_url_block(url_block,'true89'))
++r=run_url_block(url_block,'transient-then-true'); require_ready(r); assert r['method_calls']==2,r
++print('PASS URL readiness: true at t=89 accepted; transient D-Bus method error then timely true accepted (2 calls)')
++
++# At t=90 the strict existing `< deadline` predicate rejects; t=91 and late
++# service/object/method completions likewise remain failures.
++for mode in ('true90','true91','late-service','late-discovery','late-method','always-false','no-service','no-object','method-error','postfailure-diagnostic','date-output-failure'):
++    r=run_url_block(url_block,mode); require_failed(r)
++    if mode=='postfailure-diagnostic':
++        assert 'DOLPHIN_DIAGNOSTIC_OBJECT=/dolphin/Dolphin_1\ntrue\n' in r['out'],r
++    print('PASS URL readiness:',mode,'rc=1','clock='+str(r['clock']))
++
++# Baseline mutant: remove only the candidate guard from the live source. It
++# reproduces the old in-flight acceptance; the production-policy assertion
++# rejects it. No vendored source/original file or fixed source hash is used.
++unguarded=source.replace(URL_GUARD,'',1)
++for mode in ('true89','true90','true91','late-service','late-discovery','late-method','date-output-failure'):
++    mutant=run_url_block(unguarded[unguarded.index('call_bool() {'):unguarded.index('# isItemVisibleInAnyView')],mode)
++    require_ready(mutant)
++    if mode!='true89':
++        try: require_failed(mutant)
++        except AssertionError: pass
++        else: raise AssertionError('guard-removal mutant survived '+mode)
++print('PASS mutation: guard-removal mutant is caught for t=90/t=91, late service/object/method, and date error')
++
++# Boundary mutation: inclusive comparison must not accept t=90.
++inclusive=source.replace(URL_GUARD,'   [ "$(date +%s)" -le "$deadline" ] || break\n',1)
++inclusive_block=inclusive[inclusive.index('call_bool() {'):inclusive.index('# isItemVisibleInAnyView')]
++inclusive_result=run_url_block(inclusive_block,'true90'); require_ready(inclusive_result)
++try: require_failed(inclusive_result)
++except AssertionError: pass
++else: raise AssertionError('inclusive <= boundary mutant survived')
++print('PASS mutation: <= boundary mutant is caught at t=90')
++
++# Command substitution can print a numeric value and still exit nonzero. The old
++# unchecked form accepts that value; the checked assignment must fail closed.
++unchecked=source.replace(URL_GUARD,'   [ "$(date +%s)" -lt "$deadline" ] || break\n',1)
++unchecked_block=unchecked[unchecked.index('call_bool() {'):unchecked.index('# isItemVisibleInAnyView')]
++unchecked_result=run_url_block(unchecked_block,'date-output-failure'); require_ready(unchecked_result)
++try: require_failed(unchecked_result)
++except AssertionError: pass
++else: raise AssertionError('unchecked date-status mutant survived')
++print('PASS mutation: date output plus nonzero status is rejected by the checked guard')
++print('PASS: URL deadline scenarios and mutants ran against the live candidate source')
+--- a/scripts/terminal-attempt-history-host-tests.py
++++ b/scripts/terminal-attempt-history-host-tests.py
+@@ -14,50 +14,97 @@
+ TEXT = (ROOT/'userland/alpine/desktop-overlay/usr/bin/alpine-plasma-probe').read_text()
+ FUNCTIONS = TEXT[TEXT.index('focused_terminal_query() {'):TEXT.index('# Diagnostic only: all samples')]
+ LOOP = TEXT[TEXT.index(' query_attempt=0;'):TEXT.index(' if [ "$pty_ready" != 1 ]')]
++FAILURE_START = TEXT.index(' if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then')
++FAILURE_BRANCH = TEXT[FAILURE_START:TEXT.index(' echo KONSOLE_FOCUSED_TERMINAL_READY', FAILURE_START)]
+ TERMINAL = 'DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1\n'
+ REMOTE = 'DBUS_A11Y_ERROR reason=remote-call\n'
+ WITNESS = ('DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 '
+            'showing_states=1 visible_states=1 qualified=0 protocol_error=1\n')
+ FINAL = 'terminal-dbus: pid=777 applications=1 models=0 visited=12 NOT_OBSERVED (diagnostic only)\n'
+ MOCKS = r'''
++set -eu
+ client=777
+-# First date sets deadline220; subsequent calls allow exactly fixture count.
++NOW=100
++DEADLINE=220
++printf '0\n' > "$D/date-calls"
++printf '0\n' > "$D/queries"
++printf '0\n' > "$D/diagnostic-calls"
++cat() {
++ case "${1:-}" in /proc/*) return 0 ;; esac
++ command cat "$@"
++}
+ date() {
+- n=$(cat "$D/dates"); n=$((n+1)); echo "$n" > "$D/dates"
+- if [ "$n" -le "$fixture_count" ];then echo 100;else echo 220;fi
++ n=$(cat "$D/date-calls");n=$((n+1));printf '%s\n' "$n" > "$D/date-calls"
++ printf '%s\n' "$NOW"
++ if [ "$date_fail_call" != 0 ] && [ "$n" = "$date_fail_call" ];then return 1;fi
++ return 0
+ }
+ sleep() { :; }
+-kill() { return 0; }
++kill() {
++ n=$(cat "$D/queries")
++ [ "$pty_ready" = 1 ] && [ "$n" -lt "$fixture_count" ]
++}
+ timeout() {
++ case " $* " in *' grim '*|*' strace '*) return 1 ;; esac
+  printf '%s\n' "$*" >> "$D/calls"
+- n=$(cat "$D/queries"); n=$((n+1)); echo "$n" > "$D/queries"
++ n=$(cat "$D/queries");n=$((n+1));printf '%s\n' "$n" > "$D/queries"
++ NOW=$(cat "$D/completion-$n")
+  cat "$D/input-$n"
+- return "$(cat "$D/rc-$n")"
+-}
++ rc=$(cat "$D/rc-$n")
++ return "$rc"
++}
++register_failure_diagnostic() { :; }
++terminal_dbus_diagnostic() {
++ n=$(cat "$D/diagnostic-calls");n=$((n+1));printf '%s\n' "$n" > "$D/diagnostic-calls"
++ printf 'STUB_FAILURE_DIAGNOSTIC rc=%s\n' "$diagnostic_rc"
++ return "$diagnostic_rc"
++}
++ps() { printf 'stub process list\n'; }
++ls() { :; }
++tail() { :; }
+ '''
+ 
+-
+-def execute(attempts, backend='live-dbus', pty=True, functions=FUNCTIONS, loop=LOOP, override=''):
+-    with tempfile.TemporaryDirectory() as tmp:
++TEST_POST = r'''
++printf 'RESULT pty=%s terminal=%s\n' "$pty_ready" "$terminal_ready"
++if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then exit 1;fi
++'''
++
++
++def execute(attempts, backend='live-dbus', pty=True, functions=FUNCTIONS,
++            loop=LOOP, override='', completion_times=None, date_fail_call=0,
++            actual_failure_branch=False, diagnostic_rc=0):
++    with tempfile.TemporaryDirectory(prefix='terminal-history-') as tmp:
+         root = Path(tmp)
+-        (root/'dates').write_text('-1')
+         (root/'queries').write_text('0')
++        (root/'date-calls').write_text('0')
++        (root/'diagnostic-calls').write_text('0')
+         if pty:
+             (root/'interactive-pty').write_text('/dev/pts/mock\nKDE_INTERACTIVE_PTY\n')
+-        for n, (rc, text) in enumerate(attempts, 1):
++        if completion_times is None:
++            completion_times = [100] * len(attempts)
++        if len(completion_times) != len(attempts):
++            raise ValueError('one completion time is required per observer fixture')
++        for n, ((rc, text), completion) in enumerate(zip(attempts, completion_times), 1):
+             (root/f'input-{n}').write_text(text)
+             (root/f'rc-{n}').write_text(str(rc))
+-        script = MOCKS+functions+'\n'+override+'\n'+loop+'''\nprintf 'RESULT pty=%s terminal=%s\n' "$pty_ready" "$terminal_ready"
+-if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then exit 1;fi
+-'''
++            (root/f'completion-{n}').write_text(str(completion))
++        (root/'konsole.log').write_text('stub client log\n')
++        suffix = (FAILURE_BRANCH+'\necho KONSOLE_FOCUSED_TERMINAL_READY\n'
++                  if actual_failure_branch else TEST_POST)
++        script = (MOCKS+'\n'+functions+'\n'+override+'\n'+loop+'\n'+suffix)
+         r = subprocess.run(['/bin/sh', '-eu', '-c', script], capture_output=True, text=True,
+-                           timeout=10, env={**os.environ, 'D':tmp, 'fixture_count':str(len(attempts)),
+-                                            'ALPINE_TERMINAL_QUERY':backend})
+-        slots = {p.name.removeprefix('konsole-attempt-'):p.read_text() for p in root.glob('konsole-attempt-*') if p.is_file()}
++                           timeout=10, env={**os.environ, 'D':tmp,
++                                            'fixture_count':str(len(attempts)),
++                                            'ALPINE_TERMINAL_QUERY':backend,
++                                            'date_fail_call':str(date_fail_call),
++                                            'diagnostic_rc':str(diagnostic_rc)})
++        r.date_calls = int((root/'date-calls').read_text())
++        r.query_calls = int((root/'queries').read_text())
++        r.diagnostic_calls = int((root/'diagnostic-calls').read_text())
++        slots = {p.name.removeprefix('konsole-attempt-'):p.read_text()
++                 for p in root.glob('konsole-attempt-*') if p.is_file()}
+         calls = (root/'calls').read_text().splitlines() if (root/'calls').exists() else []
+         return r, slots, calls
+-
+-
+ class History(unittest.TestCase):
+     def test_failed_sequence_preserves_first_terminal_remote_and_incomplete(self):
+         r, slots, calls = execute([(1, TERMINAL+REMOTE+WITNESS+FINAL), (142, 'unfinished\n'), (124, '')])
+@@ -220,8 +267,84 @@
+         self.assertIn('deadline=$(( $(date +%s) + 120 ))', LOOP)
+         self.assertIn('sleep .1', LOOP)
+         self.assertLess(LOOP.index('pty_ready=1'), LOOP.index('if focused_terminal_query'))
+-        self.assertLess(LOOP.index('else query_rc=$?;fi'), LOOP.index('record_terminal_attempt'))
+-        self.assertIn('if [ "$query_rc" = 0 ];then terminal_ready=1;break;fi', LOOP)
++        self.assertLess(LOOP.index('else query_rc=$?;fi'), LOOP.index('query_in_deadline=0'))
++        self.assertLess(LOOP.index('query_in_deadline=0'), LOOP.index('record_terminal_attempt'))
++        self.assertLess(LOOP.index('record_terminal_attempt'), LOOP.index('if [ "$query_in_deadline" = 1 ]'))
++        self.assertIn('if query_now=$(date +%s) && [ "$query_now" -lt "$deadline" ];then query_in_deadline=1;fi', LOOP)
++        self.assertNotIn('if [ "$query_rc" = 0 ];then terminal_ready=1;break;fi', LOOP)
++
++    def test_exact_and_late_success_fail_exclusive_deadline(self):
++        witness = TERMINAL.replace('focused=0','focused=1')+WITNESS.replace('focused_states=0','focused_states=1').replace('qualified=0','qualified=1').replace('protocol_error=1','protocol_error=0')+FINAL.replace('models=0','models=1').replace('NOT_OBSERVED','OBSERVED')
++        for completed in (220, 221):
++            with self.subTest(completed=completed):
++                r, slots, calls = execute([(0, witness)], completion_times=[completed])
++                self.assertEqual(r.returncode, 1, r.stdout+r.stderr)
++                self.assertEqual(r.query_calls, 1)
++                self.assertEqual(r.date_calls, 3)  # init, loop-entry, successful-query completion
++                self.assertIn('attempt=1 rc=0', slots['first'])
++                self.assertIn('RESULT pty=1 terminal=0', r.stdout)
++                self.assertEqual(len(calls), 1)
++
++    def test_failed_query_then_timely_success_retains_both_attempts(self):
++        ready_terminal = TERMINAL.replace('focused=0','focused=1')
++        ready_witness = WITNESS.replace('focused_states=0','focused_states=1').replace('qualified=0','qualified=1').replace('protocol_error=1','protocol_error=0')
++        ready_final = FINAL.replace('models=0','models=1').replace('NOT_OBSERVED','OBSERVED')
++        r, slots, calls = execute([(1, TERMINAL+REMOTE+WITNESS+FINAL),
++                                   (0, ready_terminal+ready_witness+ready_final)],
++                                  completion_times=[110, 219])
++        self.assertEqual(r.returncode, 0, r.stderr)
++        self.assertEqual(r.query_calls, 2)
++        self.assertEqual(len(calls), 2)
++        self.assertEqual(r.date_calls, 4)  # failed query skips the post-query date sample
++        self.assertIn('attempt=1 rc=1', slots['first'])
++        self.assertIn('attempt=2 rc=0', slots['last'])
++        self.assertIn('focused=0', slots['terminal-first'])
++        self.assertIn('focused=1', slots['terminal-last'])
++
++    def test_failed_post_query_date_call_fails_closed(self):
++        ready_terminal = TERMINAL.replace('focused=0','focused=1')
++        ready_witness = WITNESS.replace('focused_states=0','focused_states=1').replace('qualified=0','qualified=1').replace('protocol_error=1','protocol_error=0')
++        ready_final = FINAL.replace('models=0','models=1').replace('NOT_OBSERVED','OBSERVED')
++        r, slots, _ = execute([(0, ready_terminal+ready_witness+ready_final)],
++                              completion_times=[219], date_fail_call=3)
++        self.assertEqual(r.returncode, 1, r.stdout+r.stderr)
++        self.assertEqual(r.query_calls, 1)
++        self.assertEqual(r.date_calls, 3)
++        self.assertIn('attempt=1 rc=0', slots['first'])
++        self.assertIn('RESULT pty=1 terminal=0', r.stdout)
++
++    def test_late_success_cannot_be_rescued_by_actual_production_failure_branch(self):
++        text = TERMINAL.replace('focused=0','focused=1')+WITNESS.replace('focused_states=0','focused_states=1').replace('qualified=0','qualified=1').replace('protocol_error=1','protocol_error=0')+FINAL.replace('models=0','models=1').replace('NOT_OBSERVED','OBSERVED')
++        r, _, _ = execute([(0, text)], completion_times=[221],
++                          actual_failure_branch=True, diagnostic_rc=0)
++        self.assertEqual(r.returncode, 1, r.stdout+r.stderr)
++        self.assertIn('alpine-plasma: FAIL interactive Konsole PTY/focused terminal readiness', r.stdout)
++        self.assertIn('STUB_FAILURE_DIAGNOSTIC rc=0', r.stdout)
++        self.assertEqual(r.diagnostic_calls, 1)
++        self.assertNotIn('KONSOLE_FOCUSED_TERMINAL_READY', r.stdout)
++
++    def test_guard_removal_and_inclusive_boundary_mutants_are_detected(self):
++        guarded = ('   query_in_deadline=0\n'
++                   '   if [ "$query_rc" = 0 ];then\n'
++                   '    if query_now=$(date +%s) && [ "$query_now" -lt "$deadline" ];then query_in_deadline=1;fi\n'
++                   '   fi\n'
++                   '   record_terminal_attempt || query_recording_failed=1\n'
++                   '   if [ "$query_in_deadline" = 1 ];then terminal_ready=1;break;fi\n')
++        removed = ('   record_terminal_attempt || query_recording_failed=1\n'
++                   '   if [ "$query_rc" = 0 ];then terminal_ready=1;break;fi\n')
++        no_guard = LOOP.replace(guarded, removed)
++        self.assertNotEqual(no_guard, LOOP)
++        late = [(0, TERMINAL+WITNESS+FINAL)]
++        good, _, _ = execute(late, loop=LOOP, completion_times=[221])
++        bad, _, _ = execute(late, loop=no_guard, completion_times=[221])
++        self.assertEqual(good.returncode, 1)
++        self.assertEqual(bad.returncode, 0)  # mutant restores late acceptance
++        inclusive = LOOP.replace('[ "$query_now" -lt "$deadline" ]', '[ "$query_now" -le "$deadline" ]')
++        self.assertNotEqual(inclusive, LOOP)
++        good, _, _ = execute(late, loop=LOOP, completion_times=[220])
++        bad, _, _ = execute(late, loop=inclusive, completion_times=[220])
++        self.assertEqual(good.returncode, 1)
++        self.assertEqual(bad.returncode, 0)  # mutant wrongly accepts the boundary
+ 
+ 
+ if __name__ == '__main__':
+--- a/scripts/terminal-history-transport-host-tests.py
++++ b/scripts/terminal-history-transport-host-tests.py
+@@ -201,8 +201,22 @@
+         self.assertEqual(raw_mutant.returncode,0)
+         self.assertFalse(strict_accept(raw_mutant.stdout.encode()))
+ 
+-    def test_only_emitter_changed_from_07fda66_probe(self):
++    def test_only_emitter_and_explicit_deadline_guard_changed_from_07fda66_probe(self):
+         text=H.TEXT
++        candidate_guard=(
++            '   if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then query_rc=0;else query_rc=$?;fi\n'
++            '   query_in_deadline=0\n'
++            '   if [ "$query_rc" = 0 ];then\n'
++            '    if query_now=$(date +%s) && [ "$query_now" -lt "$deadline" ];then query_in_deadline=1;fi\n'
++            '   fi\n'
++            '   record_terminal_attempt || query_recording_failed=1\n'
++            '   if [ "$query_in_deadline" = 1 ];then terminal_ready=1;break;fi\n')
++        previous=(
++            '   if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then query_rc=0;else query_rc=$?;fi\n'
++            '   record_terminal_attempt || query_recording_failed=1\n'
++            '   if [ "$query_rc" = 0 ];then terminal_ready=1;break;fi\n')
++        self.assertEqual(text.count(candidate_guard),1)
++        text=text.replace(candidate_guard,previous,1)
+         start=text.index('emit_terminal_attempts() {')
+         end=text.index('# Diagnostic only: all samples',start)
+         digest=hashlib.sha256((text[:start]+text[end:]).encode()).hexdigest()
+--- a/userland/alpine/desktop-overlay/usr/bin/alpine-dolphin-probe
++++ b/userland/alpine/desktop-overlay/usr/bin/alpine-dolphin-probe
+@@ -60,6 +60,8 @@
+  for name in $(timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames | sed -n 's/^[[:space:]]*string "\(org\.kde\.dolphin[^" ]*\)"$/\1/p');do
+   path=$(find_window "$name" || true)
+   if [ -n "$path" ] && call_bool "$name" "$path" isUrlOpen "file://$D/files" | tee "$D/readback.out" | grep -qx true;then
++   # A poll that started in time but returned at/after the existing deadline is not ready.
++   readback_now=$(date +%s) && [ "$readback_now" -lt "$deadline" ] || break
+    service=$name;object=$path;break
+   fi
+   [ -z "$object" ] || break
+--- a/userland/alpine/desktop-overlay/usr/bin/alpine-plasma-probe
++++ b/userland/alpine/desktop-overlay/usr/bin/alpine-plasma-probe
+@@ -352,8 +352,12 @@
+   if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then
+    pty_ready=1
+    if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then query_rc=0;else query_rc=$?;fi
++   query_in_deadline=0
++   if [ "$query_rc" = 0 ];then
++    if query_now=$(date +%s) && [ "$query_now" -lt "$deadline" ];then query_in_deadline=1;fi
++   fi
+    record_terminal_attempt || query_recording_failed=1
+-   if [ "$query_rc" = 0 ];then terminal_ready=1;break;fi
++   if [ "$query_in_deadline" = 1 ];then terminal_ready=1;break;fi
+   fi
+   kill -0 "$client" 2>/dev/null || break
+   sleep .1
+diff --git a/docs/M40_INPUT_CHAIN_DIAGNOSTICS.md b/docs/M40_INPUT_CHAIN_DIAGNOSTICS.md
+new file mode 100644
+--- /dev/null
++++ b/docs/M40_INPUT_CHAIN_DIAGNOSTICS.md
+@@ -0,0 +1,68 @@
++# Opt-in M40 input-chain diagnostics
++
++`ALPINE_INPUT_CHAIN_DIAGNOSTICS=1 scripts/alpine-kms-tests.sh x86_64` is a
++diagnostic-only mode. The default remains off. It passes the existing outer
++Wayland, inner libwayland, and Qt platform-submission observers through the
++root-to-user probe boundary, starts the existing non-grabbing evdev collector
++only after both genuine readiness markers and the pre-type screenshot, and
++arranges to retain their streams in one unique host log for that QEMU attempt.
++The before/after/Dolphin screenshots use the same attempt-specific basename.
++Streams not returned before a panic/VM exit make the attempt incomplete, as
++described below.
++
++The raw collector runs for a fixed 45 seconds. Its helper publishes the status
++file only after the bounded collector exits; it has no early-stop control.
++After the pre-type screenshot, the diagnostic path makes at most 10 one-second
++poll waits for exactly one valid `INPUT_CAPTURE_READY` record and a matching
++set of opened-device records. Each inspection snapshots at most 64 KiB of the
++growing collector log, checks inspector exit status and output, and checks the
++collector's atomic completion-status path before accepting readiness. This is
++a bounded-poll/processing contract, **not a strict 10-second wall-clock
++guarantee**: scheduling and per-inspection work can add elapsed time. The
++existing QEMU per-command timeout remains unchanged. The host-side key sender
++independently requires exactly one readiness witness followed by exactly one
++successful `__RC<n>=0` completion for the helper's actual command index in the
++current QEMU attempt log. This sender-side guard is necessary because
++`qemu-test.py` continues to later commands after a failed guest command.
++Missing, malformed, failed, duplicate, or out-of-order collector startup
++therefore cannot authorize the original physical typing command. The
++post-gate readback polls at most 600 times with 0.1-second sleeps for the
++atomic status, then includes the completed raw log and status in the host log.
++This polling count is not a strict wall-clock guarantee.
++
++If a kernel panic or VM exit occurs before the final guest readback, the raw
++collector and other guest streams may not be returned to the host log. Such an
++attempt is incomplete; this workflow does not promise to retain every guest
++stream after a panic/exit, and the checker must fail it as incomplete. The
++collector has no stop/readback shortcut that would make this final step
++unconditional.
++
++`scripts/input-chain-check.py LOG` requires exactly one mode witness, collector
++start/readiness, raw capture, outer trace, inner trace, and Qt trace in one
++orchestrated attempt log. It checks the exact fixed key edges at each boundary,
++validates raw readiness/device-count consistency and raw ABI numeric ranges,
++rejects capture errors/truncation/incomplete records, and requires zero Qt
++autorepeat. The outer checker confirms the outer-compositor-to-KWin wire
++sequence only; it cannot prove forwarding beyond the proxy. The inner checker
++is libwayland pre-listener dispatch; the Qt hook is platform submission. None
++proves terminal consumption or explains a later text discrepancy.
++
++The unique log name and checked section boundaries make this an
++**orchestrated one-run artifact only**. They do not authenticate the producer
++or prove independent same-boot provenance, and they do not detect a
++deliberately spliced log. Do not describe a checker pass as cryptographic or
++source-authenticated evidence.
++
++The original QMP key sequence, pre-existing readiness evidence, deadlines,
++and acceptance commands are unchanged. Diagnostic mode adds a finite-poll
++devices-open gate before that same key command; it does not substitute a new
++key sequence or readiness threshold. The QEMU acceptance result is saved
++separately from the diagnostic checker result: diagnostic success cannot rescue
++an original failure. Tracing can perturb timing, and even a complete
++trace-enabled pass is not an unchanged-timing cold-reliability sample or a
++cause/fix claim. Keep every failed attempt.
++
++This draft does not build missing diagnostic helpers or change dependencies.
++The option fails before disk creation if the existing raw collector or Qt
++observer is not already installed in the selected desktop root. Install/build
++work remains outside this patch and was not run.
+diff --git a/scripts/alpine-kms-tests.sh b/scripts/alpine-kms-tests.sh
+--- a/scripts/alpine-kms-tests.sh
++++ b/scripts/alpine-kms-tests.sh
+@@ -8,6 +8,11 @@
+  0) service_command=alpine-desktop-services ;;
+  1) service_command='export ALPINE_QT_KEY_TRACE=1; alpine-desktop-services' ;;
+  *) echo 'ALPINE_QT_KEY_TRACE must be 0 or 1' >&2;exit 2 ;;
++esac
++case ${ALPINE_INPUT_CHAIN_DIAGNOSTICS:-0} in
++ 0) input_chain_diagnostics=0 ;;
++ 1) input_chain_diagnostics=1;service_command="export ALPINE_INPUT_CHAIN_DIAGNOSTICS=1; echo INPUT_CHAIN_DIAGNOSTICS_ENABLED; $service_command" ;;
++ *) echo 'ALPINE_INPUT_CHAIN_DIAGNOSTICS must be 0 or 1' >&2;exit 2 ;;
+ esac
+ case ${ALPINE_A11Y_DBUS_VALIDATE:-0} in
+  0) ;;
+@@ -35,17 +40,45 @@
+   exit 2
+  }
+ done
++if [ "$input_chain_diagnostics" = 1 ];then
++ for helper in input-capture-session inputeventcapture input-capture-ready konsole-key-trace wayland-presentation-proxy;do
++  [ -x "$ROOT/usr/bin/$helper" ] || {
++   echo "Missing input-chain diagnostic helper: $helper (install the existing diagnostic consumers first)" >&2
++   exit 2
++  }
++ done
++ [ -r "$ROOT/usr/lib/lib9os-qt-key-observer.so" ] || {
++  echo 'Missing input-chain diagnostic Qt observer library (install the existing observer first)' >&2
++  exit 2
++ }
++fi
++if [ "$input_chain_diagnostics" = 1 ];then
++ run_id=$(date +%Y%m%d%H%M%S)-$$
++ L=build/test-alpine-kms-$ARCH-input-chain-$run_id.log
++ P=$(pwd -P)/build/test-alpine-kms-$ARCH-input-chain-$run_id
++fi
+ scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
+ export QEMU_EXTRA="${QEMU_EXTRA:-} -monitor unix:$S,server,nowait -qmp unix:$Q,server,nowait"
+-python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
+- --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" \
+- "$service_command" \
++set -- "$service_command" \
+  'su user -s /bin/sh -c alpine-udisks-smoke' \
+  '(if ALPINE_PLASMA_OUTPUT=kms ALPINE_PLASMA_SERIAL_PNG=0 ALPINE_PLASMA_INTERACTIVE=1 ALPINE_PLASMA_FILEMANAGER=1 ALPINE_PLASMA_INPUT_DONE_FILE=/tmp/kms-input-done ALPINE_DOLPHIN_DONE_FILE=/tmp/dolphin-capture-done alpine-plasma-user-probe >/tmp/plasma-kms.log 2>&1;then echo 0;else echo $?;fi >/tmp/plasma-kms.status.tmp;mv /tmp/plasma-kms.status.tmp /tmp/plasma-kms.status) & echo $! >/tmp/plasma-kms.pid' \
+- 'for i in $(seq 700);do grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -x KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -x ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }' \
++ 'for i in $(seq 700);do grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log && break;kill -0 "$(cat /tmp/plasma-kms.pid)" 2>/dev/null || break;sleep 1;done;grep -x KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -x ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log || { tail -n 160 /tmp/plasma-kms.log; false; }'
++input_type_step="host:python3 scripts/qemu-ready-type.py --log $L --ready-step 3 --qmp $Q 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\n'"
++if [ "$input_chain_diagnostics" = 1 ];then
++ input_type_step="host:python3 scripts/qemu-ready-type.py --require-input-capture-ready --log $L --ready-step 3 --qmp $Q 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\n'"
++fi
++set -- "$@" \
+  'test ! -e /tmp/kms-input-ok && test ! -e /tmp/kms-tty && test ! -e /tmp/kms-uid && test ! -e /tmp/kms-input-done && test ! -e /tmp/dolphin-capture-done' \
+- "host:python3 scripts/qemu-screenshot.py $S $P-before.png" \
+- "host:python3 scripts/qemu-ready-type.py --log $L --ready-step 3 --qmp $Q 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\n'" \
++ "host:python3 scripts/qemu-screenshot.py $S $P-before.png"
++if [ "$input_chain_diagnostics" = 1 ];then
++ # Start after the pre-type screenshot and gate immediately before typing.
++ set -- "$@" 'if grep -qx KONSOLE_FOCUSED_TERMINAL_READY /tmp/plasma-kms.log && grep -qx ALPINE_PLASMA_INPUT_READY /tmp/plasma-kms.log; then if [ -e /tmp/kms-input-chain.raw.log ] || [ -e /tmp/kms-input-chain.raw.status ] || [ -e /tmp/kms-input-chain.raw.pid ]; then echo INPUT_CHAIN_CAPTURE_SKIPPED stale_state; else input-capture-session /tmp/kms-input-chain.raw.log /tmp/kms-input-chain.raw.status 45 >/tmp/kms-input-chain.launch.log 2>&1 & echo "$!" >/tmp/kms-input-chain.raw.pid; echo INPUT_CHAIN_CAPTURE_STARTED seconds=45; fi; else echo INPUT_CHAIN_CAPTURE_SKIPPED readiness_not_established; fi'
++ capture_ready_step=$#
++ set -- "$@" 'input-capture-ready /tmp/kms-input-chain.raw.log 10 /tmp/kms-input-chain.raw.status'
++ input_type_step="host:python3 scripts/qemu-ready-type.py --require-input-capture-ready --capture-ready-step $capture_ready_step --log $L --ready-step 3 --qmp $Q 'tty > /tmp/kms-tty; id -u > /tmp/kms-uid; echo kms-input-ok > /tmp/kms-input-ok.tmp; mv /tmp/kms-input-ok.tmp /tmp/kms-input-ok\n'"
++fi
++set -- "$@" \
++ "$input_type_step" \
+  'for i in $(seq 20);do test ! -e /tmp/kms-input-ok || break;sleep 1;done;cat /tmp/kms-tty;test "$(cat /tmp/kms-input-ok)" = kms-input-ok && grep -q "^/dev/pts/" /tmp/kms-tty && test "$(cat /tmp/kms-uid)" = 1000' \
+  "host:python3 scripts/qemu-screenshot.py $S $P-after.png" \
+  'test "$(cat /tmp/kms-input-ok)" = kms-input-ok && test "$(cat /tmp/kms-uid)" = 1000 && touch /tmp/kms-input-done' \
+@@ -54,3 +87,30 @@
+  'grep -Eq "^DOLPHIN_MODEL_READY uid=1000 service=[^ ]+ object=/[^ ]*$" /tmp/plasma-kms.log && touch /tmp/dolphin-capture-done' \
+  'for i in $(seq 150);do test ! -f /tmp/plasma-kms.status || break;sleep 1;done;cat /tmp/plasma-kms.log;test "$(cat /tmp/plasma-kms.status)" = 0 && grep -qx "alpine-dolphin: PASSED real UID1000 directory listing, rename/create notifications and clean exit" /tmp/plasma-kms.log' \
+  'grep -q "^violations 0" /proc/lockdep'
++if [ "$input_chain_diagnostics" = 1 ];then
++ set -- "$@" 'if [ -f /tmp/kms-input-chain.raw.pid ]; then for i in $(seq 600); do [ -f /tmp/kms-input-chain.raw.status ] && break; sleep .1; done; echo INPUT_CHAIN_RAW_CAPTURE_BEGIN; if [ -f /tmp/kms-input-chain.raw.status ]; then echo "INPUT_CHAIN_RAW_STATUS=$(cat /tmp/kms-input-chain.raw.status)"; else echo INPUT_CHAIN_RAW_STATUS=missing; fi; if [ -f /tmp/kms-input-chain.raw.log ]; then cat /tmp/kms-input-chain.raw.log; else echo INPUT_CHAIN_RAW_LOG_MISSING; fi; if [ -f /tmp/kms-input-chain.launch.log ]; then echo INPUT_CHAIN_LAUNCH_LOG_BEGIN; cat /tmp/kms-input-chain.launch.log; echo INPUT_CHAIN_LAUNCH_LOG_END; fi; echo INPUT_CHAIN_RAW_CAPTURE_END; else echo INPUT_CHAIN_RAW_CAPTURE_NOT_STARTED; fi'
++fi
++if [ "$input_chain_diagnostics" = 1 ];then
++ # Preserve the acceptance result independently; diagnostic failure cannot
++ # turn an original failed gate into success.
++ test_rc=0
++ if python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
++   --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" "$@";then
++  test_rc=0
++ else
++  test_rc=$?
++ fi
++ diag_rc=0
++ if python3 scripts/input-chain-check.py "$L" >"$D/input-chain-check.log" 2>&1;then
++  diag_rc=0
++ else
++  diag_rc=$?
++ fi
++ cat "$D/input-chain-check.log"
++ cat "$D/input-chain-check.log" >>"$L"
++ printf 'INPUT_CHAIN_CHECK_RC=%s\n' "$diag_rc" >>"$L"
++ if [ "$test_rc" -ne 0 ];then exit "$test_rc";fi
++ exit "$diag_rc"
++fi
++python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
++ --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" "$@"
+diff --git a/scripts/input-chain-check.py b/scripts/input-chain-check.py
+new file mode 100644
+--- /dev/null
++++ b/scripts/input-chain-check.py
+@@ -0,0 +1,257 @@
++#!/usr/bin/env python3
++"""Check one retained KMS attempt across raw, outer, inner, and Qt input traces.
++
++This is a diagnostic correlation check, not a desktop acceptance or reliability
++test. The original QEMU gates remain authoritative.
++"""
++from importlib.machinery import SourceFileLoader
++from pathlib import Path
++import argparse
++import json
++import re
++
++HERE = Path(__file__).resolve().parent
++RAW = SourceFileLoader('chain_raw', str(HERE / 'input-capture-check.py')).load_module()
++INNER = SourceFileLoader('chain_inner', str(HERE / 'inner-keyboard-dispatch-check.py')).load_module()
++QT = SourceFileLoader('chain_qt', str(HERE / 'qt-key-observer-check.py')).load_module()
++
++MAX_TRANSCRIPT = 256 * 1024 * 1024
++OUTER_BEGIN = 'OUTER_KEYBOARD_TRACE_BEGIN'
++OUTER_END = 'OUTER_KEYBOARD_TRACE_END'
++RAW_BEGIN = 'INPUT_CHAIN_RAW_CAPTURE_BEGIN'
++RAW_END = 'INPUT_CHAIN_RAW_CAPTURE_END'
++HEADER = re.compile(r'^WAYLAND_KEY_TRACE object=(\d+) event=([a-z_]+) received_ns=(\d+) (.+)$')
++KEY = re.compile(r'^serial=(\d+) time_ms=(\d+) key=(\d+) state=([01])$')
++REPEAT = re.compile(r'^rate=(-?\d+) delay=(-?\d+)$')
++ENTER = re.compile(r'^serial=(\d+) surface=(\d+) held_keys=(\d+)$')
++LEAVE = re.compile(r'^serial=(\d+) surface=(\d+)$')
++READY = re.compile(r'^INPUT_CAPTURE_READY devices=([1-9][0-9]*)$')
++CHAIN_READY = re.compile(r'^INPUT_CHAIN_CAPTURE_READY devices=([1-9][0-9]*)$')
++U64_MAX = 0xffffffffffffffff
++S64_MIN = -(1 << 63)
++S64_MAX = (1 << 63) - 1
++S32_MIN = -(1 << 31)
++S32_MAX = (1 << 31) - 1
++U16_MAX = 0xffff
++
++
++def _one_block(raw, begin, end):
++    pattern = re.compile(r'^' + re.escape(begin) + r'\n(.*?)^' + re.escape(end) + r'$', re.M | re.S)
++    blocks = pattern.findall(raw)
++    starts = len(re.findall(r'^' + re.escape(begin) + r'$', raw, re.M))
++    ends = len(re.findall(r'^' + re.escape(end) + r'$', raw, re.M))
++    if starts != 1 or ends != 1 or len(blocks) != 1:
++        raise ValueError('missing, duplicate, or incomplete ' + begin + ' block')
++    return begin + '\n' + blocks[0] + end + '\n', blocks[0]
++
++
++def _u32(value, field):
++    number = int(value)
++    if not 0 <= number <= 0xffffffff:
++        raise ValueError('outer ' + field + ' outside uint32')
++    return number
++
++
++def _u64(value, field):
++    number = int(value)
++    if not 0 <= number <= U64_MAX:
++        raise ValueError('outer ' + field + ' outside uint64')
++    return number
++
++
++def check_outer(block):
++    lines = block.splitlines()
++    if not lines or len(lines) > 4096:
++        raise ValueError('empty or oversized outer trace')
++    edges, objects, repeats = [], set(), []
++    last_received = 0
++    for line in lines:
++        if line == 'WAYLAND_KEY_TRACE truncated=1':
++            raise ValueError('outer trace explicitly truncated')
++        match = HEADER.fullmatch(line)
++        if not match:
++            raise ValueError('malformed/unexpected outer trace record')
++        obj, event, received_ns, payload = match.groups()
++        obj = _u32(obj, 'object')
++        received_ns = _u64(received_ns, 'receipt time')
++        if received_ns <= 0 or received_ns < last_received:
++            raise ValueError('invalid or nonmonotonic outer receipt time')
++        last_received = received_ns
++        objects.add(obj)
++        if event == 'key':
++            fields = KEY.fullmatch(payload)
++            if not fields:
++                raise ValueError('malformed outer key record')
++            serial, stamp, code, state = fields.groups()
++            _u32(serial, 'serial')
++            _u32(stamp, 'source time')
++            _u32(code, 'key')
++            edges.append((int(code), int(state)))
++        elif event == 'repeat_info':
++            fields = REPEAT.fullmatch(payload)
++            if not fields:
++                raise ValueError('malformed outer repeat record')
++            rate, delay = map(int, fields.groups())
++            if any(not -0x80000000 <= item <= 0x7fffffff for item in (rate, delay)):
++                raise ValueError('outer repeat field outside int32')
++            repeats.append((obj, rate, delay))
++        elif event == 'enter':
++            fields = ENTER.fullmatch(payload)
++            if not fields:
++                raise ValueError('malformed outer enter record')
++            for name, value in zip(('serial', 'surface', 'held_keys'), fields.groups()):
++                _u32(value, name)
++        elif event == 'leave':
++            fields = LEAVE.fullmatch(payload)
++            if not fields:
++                raise ValueError('malformed outer leave record')
++            for name, value in zip(('serial', 'surface'), fields.groups()):
++                _u32(value, name)
++        else:
++            raise ValueError('unknown outer trace event')
++
++    expected = [edge for frame in RAW.expected_frames(RAW.DEFAULT_TEXT) for edge in frame]
++    if len(objects) != 1 or not edges or not repeats:
++        raise ValueError('outer trace missing one keyboard stream or repeat settings')
++    if any(obj not in objects for obj, _, _ in repeats) or len(set(repeats)) != 1:
++        raise ValueError('outer repeat settings are mixed or changing')
++    if edges != expected:
++        mismatch = next((i for i, pair in enumerate(zip(edges, expected)) if pair[0] != pair[1]),
++                        min(len(edges), len(expected)))
++        raise ValueError('outer key mismatch at edge%d got%d expected%d' %
++                         (mismatch, len(edges), len(expected)))
++    return {'key_edges': len(edges), 'intended_taps': len(RAW.expected_frames(RAW.DEFAULT_TEXT)),
++            'repeat_rate': repeats[0][1], 'repeat_delay_ms': repeats[0][2],
++            'scope': 'outer compositor-to-KWin wire observation before forwarding'}
++
++
++def validate_raw_ready(raw_lines):
++    devices = set()
++    ready_counts = []
++    done_records = []
++    for line in raw_lines.splitlines():
++        if line.startswith('INPUT_CAPTURE_ERROR'):
++            raise ValueError('raw collector reported an error')
++        if line.startswith('INPUT_CAPTURE_READY'):
++            match = READY.fullmatch(line)
++            if not match:
++                raise ValueError('malformed raw collector READY record')
++            if len(match.group(1)) > 2 or int(match.group(1)) > 32:
++                raise ValueError('raw READY device count exceeds collector limit')
++            ready_counts.append(int(match.group(1)))
++        elif line.startswith('INPUT_CAPTURE_DEVICE'):
++            match = RAW.DEVICE.fullmatch(line)
++            if not match:
++                raise ValueError('malformed raw collector DEVICE record')
++            index, named, monotonic, _ = match.groups()
++            index = int(index)
++            if not 0 <= index <= 31 or named != '1' or monotonic != '1' or index in devices:
++                raise ValueError('invalid, duplicate, or unsupported raw device record')
++            devices.add(index)
++        elif line.startswith('INPUT_CAPTURE_EVENT'):
++            match = RAW.EVENT.fullmatch(line)
++            if not match:
++                raise ValueError('malformed raw collector EVENT record')
++            device, sec, usec, event_type, code, value, received_ns = map(int, match.groups())
++            if not 0 <= device <= 31:
++                raise ValueError('raw device index outside collector range')
++            if not S64_MIN <= sec <= S64_MAX or not S64_MIN <= usec <= S64_MAX:
++                raise ValueError('raw event timestamp outside signed64 ABI')
++            if not 0 <= usec < 1000000:
++                raise ValueError('raw event usec outside valid timeval range')
++            if not 0 <= event_type <= U16_MAX or not 0 <= code <= U16_MAX:
++                raise ValueError('raw event type/code outside uint16 ABI')
++            if not S32_MIN <= value <= S32_MAX:
++                raise ValueError('raw event value outside signed32 ABI')
++            if not 0 <= received_ns <= U64_MAX:
++                raise ValueError('raw receipt time outside uint64')
++        elif line.startswith('INPUT_CAPTURE_DONE'):
++            match = RAW.DONE.fullmatch(line)
++            if not match:
++                raise ValueError('malformed raw collector DONE record')
++            done_records.append(tuple(map(int, match.groups())))
++    if len(ready_counts) != 1:
++        raise ValueError('raw capture requires exactly one valid READY record')
++    if not devices or ready_counts[0] != len(devices):
++        raise ValueError('raw READY device count does not match valid device records')
++    if len(done_records) != 1:
++        raise ValueError('raw capture requires exactly one valid DONE record')
++    return ready_counts[0]
++
++
++def check(raw):
++    if len(raw) > MAX_TRANSCRIPT:
++        raise ValueError('input-chain transcript exceeds bound')
++    if len(re.findall(r'^INPUT_CHAIN_DIAGNOSTICS_ENABLED$', raw, re.M)) != 1:
++        raise ValueError('missing or duplicate diagnostic-mode witness')
++    started_lines = [i for i, line in enumerate(raw.splitlines())
++                     if line == 'INPUT_CHAIN_CAPTURE_STARTED seconds=45']
++    if len(started_lines) != 1:
++        raise ValueError('raw capture was not started exactly once')
++    transcript_lines = raw.splitlines()
++    chain_ready_lines = [(i, line) for i, line in enumerate(transcript_lines)
++                         if line.startswith('INPUT_CHAIN_CAPTURE_READY')]
++    chain_ready = [(i, CHAIN_READY.fullmatch(line)) for i, line in chain_ready_lines]
++    if len(chain_ready) != 1:
++        raise ValueError('missing or duplicate devices-open readiness witness')
++    if chain_ready[0][1] is None:
++        raise ValueError('malformed devices-open readiness witness')
++    ready_line, ready_match = chain_ready[0]
++    if started_lines[0] >= ready_line:
++        raise ValueError('devices-open readiness witness precedes collector start')
++    if len(ready_match.group(1)) > 2 or int(ready_match.group(1)) > 32:
++        raise ValueError('devices-open readiness count exceeds collector limit')
++    if any(line.startswith('INPUT_CHAIN_CAPTURE_READY_ERROR') for line in transcript_lines):
++        raise ValueError('devices-open readiness reported a failure')
++
++    outer_block, outer_body = _one_block(raw, OUTER_BEGIN, OUTER_END)
++    inner_block, _ = _one_block(raw, 'INNER_KEYBOARD_DISPATCH_TRACE_BEGIN',
++                                'INNER_KEYBOARD_DISPATCH_TRACE_END')
++    qt_block, _ = _one_block(raw, QT.START, QT.END)
++    _, raw_body = _one_block(raw, RAW_BEGIN, RAW_END)
++
++    status = re.findall(r'^INPUT_CHAIN_RAW_STATUS=([^\s]+)$', raw_body, re.M)
++    if status != ['0']:
++        raise ValueError('raw capture completion status missing or nonzero')
++    raw_lines = '\n'.join(line for line in raw_body.splitlines()
++                          if line.startswith(('INPUT_CAPTURE_EVENT', 'INPUT_CAPTURE_DEVICE',
++                                              'INPUT_CAPTURE_DONE', 'INPUT_CAPTURE_READY',
++                                              'INPUT_CAPTURE_ERROR')))
++    raw_device_count = validate_raw_ready(raw_lines)
++    if raw_device_count != int(ready_match.group(1)):
++        raise ValueError('host and retained raw readiness device counts differ')
++    raw_result = RAW.check(raw_lines)
++    outer_result = check_outer(outer_body)
++    inner_result = INNER.check(inner_block)
++    qt_result = QT.check(qt_block)
++    if qt_result['autorepeat_events'] != 0:
++        raise ValueError('Qt platform trace contains autorepeat')
++    expected_edges = sum(len(frame) for frame in RAW.expected_frames(RAW.DEFAULT_TEXT))
++    for name, result, key in (
++            ('raw', raw_result, 'key_events'),
++            ('outer', outer_result, 'key_edges'),
++            ('inner', inner_result, 'key_edges'),
++            ('Qt', qt_result, 'physical_key_edges')):
++        if result[key] != expected_edges:
++            raise ValueError('%s edge count %d differs from expected %d' %
++                             (name, result[key], expected_edges))
++    return {'raw': raw_result, 'outer': outer_result, 'inner': inner_result, 'qt': qt_result,
++            'scope': ('orchestrated one-run artifact only; producer provenance is not authenticated and '
++                      'spliced-log rejection is not provided; not terminal-consumption or cold-reliability proof')}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('log', type=Path, help='unique host log from one KMS attempt')
++    args = parser.parse_args()
++    try:
++        if args.log.stat().st_size > MAX_TRANSCRIPT:
++            raise ValueError('input-chain transcript exceeds bound')
++        result = check(args.log.read_text(errors='replace'))
++    except (OSError, ValueError, KeyError) as error:
++        parser.exit(1, 'FAIL: ' + str(error) + '\n')
++    print(json.dumps(result, sort_keys=True))
++
++
++if __name__ == '__main__':
++    main()
