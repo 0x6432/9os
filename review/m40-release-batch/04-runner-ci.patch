@@ -1,0 +1,20 @@
+--- a/.github/workflows/alpine.yml
++++ b/.github/workflows/alpine.yml
+@@ -40,6 +40,7 @@
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-unpack-mode-host-tests.py
++          PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
+           scripts/fallocate-host-tests.sh
+           scripts/ptracestop-host-tests.sh
+           scripts/unixcred-host-tests.sh
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -81,6 +81,7 @@
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
+           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-unpack-mode-host-tests.py
++          PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
+           scripts/pmm-host-tests.sh
+           scripts/slab-host-tests.sh
+           scripts/sched-host-tests.sh

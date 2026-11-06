@@ -1,0 +1,39 @@
+--- a/scripts/qemu-runner-regression-host-tests.py
++++ b/scripts/qemu-runner-regression-host-tests.py
+@@ -1,6 +1,7 @@
+ #!/usr/bin/env python3
+ """Exercise runner control flow with an inert stub; never invokes make or QEMU."""
+ import hashlib, json, os, pathlib, subprocess, sys, tempfile
++from concurrent.futures import ThreadPoolExecutor
+ 
+ source = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[1] / 'scripts/qemu-test.py').read_text()
+ launch = "    make = ['make',"
+@@ -39,7 +40,8 @@
+     assert launch not in text
+     runner=p/'runner.py';runner.write_text(text)
+     results=[]
+-    for mode in ('success','nonzero','failword','panic','timeout','echoed','echoed-failword','prefix','suffix','early-exit','boot-exit'):
++    modes=('success','nonzero','failword','panic','timeout','echoed','echoed-failword','prefix','suffix','early-exit','boot-exit')
++    def run_mode(mode):
+         cmds=['echo FAIL' if mode=='echoed' else 'echo harmless']
+         if mode in ('early-exit','boot-exit','panic'):cmds+=['echo second']
+         r=subprocess.run([sys.executable,str(runner),'x86_64','--userland','alpine','--disk',str(disk),'--boot-timeout','10','--timeout','0.3',*cmds],env=dict(os.environ,INERT_MODE=mode),capture_output=True,timeout=40)
+@@ -50,9 +52,15 @@
+         if mode=='boot-exit':ok &= 'FAIL   boot' in output and 'SKIP   echo harmless' in output
+         if mode in ('prefix','suffix','failword','echoed-failword'):ok &= 'FAIL   echo harmless' in output
+         assert hashlib.sha256(disk.read_bytes()).hexdigest()==seed
+-        results.append({'mode':mode,'rc':r.returncode,'pass':bool(ok)})
+-        print(mode,'PASS' if ok else 'FAIL',flush=True)
+-        if not ok: print(output,flush=True)
++        result={'mode':mode,'rc':r.returncode,'pass':bool(ok)}
++        if not ok: result['failure_output']=output
++        return result
++    with ThreadPoolExecutor(max_workers=4) as pool:
++        mode_results=list(pool.map(run_mode, modes))
++    for result in mode_results:
++        results.append(result)
++        print(result['mode'], "PASS" if result['pass'] else "FAIL",flush=True)
++        if not result['pass']: print(result.get('failure_output',''),flush=True)
+     for extra in (['--net-test'], ['host:echo unsafe'], ['--disk','/dev/null']):
+         r=subprocess.run([sys.executable,str(runner),'x86_64','--userland','alpine','--disk',str(disk),*extra],capture_output=True,timeout=10)
+         ok=r.returncode!=0 and b'REFUSED:' in r.stderr

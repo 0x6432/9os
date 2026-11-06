@@ -1,0 +1,155 @@
+--- a/scripts/qemu-test.py
++++ b/scripts/qemu-test.py
+@@ -77,6 +77,7 @@
+             time.sleep(0.03)
+ 
+     results = []
++    unexpected_exit = False
+     # the boot console shows a prompt once the shell is up; poke it with newlines until we see one
+     boot_deadline = time.time() + a.boot_timeout
+     pump(min(boot_deadline, time.time() + 20), lambda: b'Welcome to 9os' in buf)
+@@ -85,8 +86,11 @@
+     # M31: the console runs getty+login; log in as root (no password) when asked
+     at_login = lambda: buf.rstrip().endswith(b'login:')
+     while not ok and time.time() < boot_deadline and not state['panic'] and p.poll() is None:
+-        if at_login(): send('root\n')
+-        else: send('\n')
++        try:
++            if at_login(): send('root\n')
++            else: send('\n')
++        except BrokenPipeError:
++            break
+         ok = pump(min(boot_deadline, time.time() + 10), lambda: buf.rstrip().endswith(b'#') or at_login())
+         if ok and at_login(): ok = False
+     if ok:
+@@ -97,6 +101,8 @@
+     else:
+         results.append(('boot', True))
+         for i, cmd in enumerate(a.cmds):
++            # Never execute later guest or host steps after the VM dies.
++            if state['panic'] or p.poll() is not None: break
+             if cmd.startswith('host:'):
+                 try:
+                     hr = subprocess.run(cmd[5:], shell=True, timeout=a.timeout, capture_output=True)
+@@ -112,32 +118,51 @@
+             # wait for the prompt so the shell is reading (line editing in raw mode) before typing;
+             # input typed while the previous command was still finishing could get lost
+             pump(time.time() + 5, lambda: buf.rstrip().endswith(b'#'))
++            if state['panic'] or p.poll() is not None: break
+             start = len(buf)
+-            send('%s; echo %s$?\n' % (cmd, mark))
++            try:
++                send('%s; echo %s$?\n' % (cmd, mark))
++            except BrokenPipeError:
++                print('\n*** guest command aborted: serial pipe closed')
++                results.append((cmd, False))
++                unexpected_exit = True
++                break
+             rx = re.compile(re.escape(mark.encode()) + rb'(\d+)\n')
+             got = pump(time.time() + a.timeout, lambda: rx.search(bytes(buf[start:])) is not None)
+             out = bytes(buf[start:])
+             m = rx.search(out)
+             # skip the echoed command line itself (it contains the marker text but no digits+newline)
+-            body = out[out.find(b'\n') + 1:m.start()] if m else out
++            # Ignore only a confirmed echo; otherwise inspect the first output line.
++            body = out[:m.start()] if m else out
++            if m and b'\n' in body:
++                first, rest = body.split(b'\n', 1)
++                echo = ('%s; echo %s$?' % (cmd, mark)).encode()
++                if first == echo:
++                    body = rest
+             passed = bool(m) and m.group(1) == b'0' and not re.search(rb'\bFAIL', body) and not state['panic']
+             results.append((cmd, passed))
+             if state['panic'] or p.poll() is not None: break
+-        if p.poll() is None:
++        if p.poll() is not None:
++            unexpected_exit = True
++        else:
+             try:
+                 send('poweroff\n')
+                 pump(time.time() + 20, lambda: False)
+             except BrokenPipeError:
+-                pass  # failed/exited VMs still get a useful test summary below
++                unexpected_exit = True
+     try: os.killpg(p.pid, signal.SIGKILL)
+     except ProcessLookupError: pass
+     if server:
+         try: os.killpg(server.pid, signal.SIGKILL)
+         except ProcessLookupError: pass
++    # Every unattempted step is explicitly skipped and makes the run incomplete.
++    results.extend((cmd, None) for cmd in a.cmds[len(results) - 1:])
+     print('\n==== 9os test summary (%s, SMP=%s%s) ====' % (a.arch, a.smp, ', SCHED=' + a.sched if a.sched else ''))
+-    for name, passed in results: print('%-6s %s' % ('PASS' if passed else 'FAIL', name))
++    for name, passed in results:
++        print('%-6s %s' % ('SKIP' if passed is None else 'PASS' if passed else 'FAIL', name))
+     if state['panic']: print('FAIL   kernel panic detected')
+-    bad = [n for n, ok_ in results if not ok_] or (['panic'] if state['panic'] else [])
++    if unexpected_exit: print('FAIL   VM exited before requested shutdown')
++    bad = [n for n, ok_ in results if ok_ is not True] or (['panic'] if state['panic'] else []) or (['unexpected VM exit'] if unexpected_exit else [])
+     print('%d/%d passed' % (sum(1 for _, x in results if x), len(results)))
+     sys.exit(1 if bad else 0)
+ 
+--- /dev/null
++++ b/scripts/qemu-runner-regression-host-tests.py
+@@ -0,0 +1,61 @@
++#!/usr/bin/env python3
++"""Exercise runner control flow with an inert stub; never invokes make or QEMU."""
++import hashlib, json, os, pathlib, subprocess, sys, tempfile
++
++source = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[1] / 'scripts/qemu-test.py').read_text()
++launch = "    make = ['make',"
++spawn = '    p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,\n'
++assert source.count(launch) == source.count(spawn) == source.count('    server = None\n') == 1
++stub = '''import os,sys,re,time
++mode=os.environ.get('INERT_MODE','success')
++if mode=='boot-exit': os._exit(7)
++print('Welcome to 9os\\n# ',end='',flush=True)
++for line in sys.stdin:
++ if line.strip()=='poweroff': break
++ m=re.search(r'__RC(\\d+)=',line)
++ if not m: print('# ',end='',flush=True); continue
++ if mode.startswith('echoed'): print(line.rstrip(),flush=True)
++ if mode=='prefix': print('FAIL before '+line.rstrip(),flush=True)
++ if mode=='suffix': print(line.rstrip()+' FAIL after',flush=True)
++ if mode=='timeout': time.sleep(2); continue
++ if mode=='panic': print('kernel panic: FAKE CONTROL',flush=True); break
++ if mode in ('failword','echoed-failword'): print('FAKE FAIL diagnostic')
++ if mode not in ('prefix','suffix'): print('FAKE CONTROL ONLY')
++ print('__RC%s=%s\\n# ' % (m.group(1),'1' if mode=='nonzero' else '0'),end='',flush=True)
++ if mode=='early-exit': os._exit(7)
++'''
++with tempfile.TemporaryDirectory(prefix='runner-inert-regression-') as td:
++    p=pathlib.Path(td); fake=p/'fake.py'; fake.write_text(stub); disk=p/'inert.raw';disk.write_bytes(b'INERT TEST DISK\n');seed=hashlib.sha256(disk.read_bytes()).hexdigest()
++    guard="    if a.net_test or any(c.startswith('host:') for c in a.cmds):\n        raise SystemExit('REFUSED: inert test prohibits network and host commands')\n    server = None\n"
++    text=source.replace('    server = None\n',guard)
++    a=text.index(launch); b=text.index(spawn,a)
++    replacement=('    # INERT control: only a fixed Python stub and inert disk are permitted.\n'
++                 '    from pathlib import Path\n'
++                 f'    fixed_disk = Path({str(disk)!r})\n'
++                 "    if len(a.disk) != 1 or Path(a.disk[0]) != fixed_disk or fixed_disk.is_symlink() or fixed_disk.read_bytes() != b'INERT TEST DISK\\n':\n"
++                 "        raise SystemExit('REFUSED: inert disk only')\n"
++                 f'    make = [sys.executable, {str(fake)!r}]\n')
++    text=text[:a]+replacement+text[b:]
++    assert launch not in text
++    runner=p/'runner.py';runner.write_text(text)
++    results=[]
++    for mode in ('success','nonzero','failword','panic','timeout','echoed','echoed-failword','prefix','suffix','early-exit','boot-exit'):
++        cmds=['echo FAIL' if mode=='echoed' else 'echo harmless']
++        if mode in ('early-exit','boot-exit','panic'):cmds+=['echo second']
++        r=subprocess.run([sys.executable,str(runner),'x86_64','--userland','alpine','--disk',str(disk),'--boot-timeout','10','--timeout','0.3',*cmds],env=dict(os.environ,INERT_MODE=mode),capture_output=True,timeout=40)
++        output=(r.stdout+r.stderr).decode(errors='replace'); expected=0 if mode in ('success','echoed') else 1
++        ok=r.returncode==expected
++        if mode in ('early-exit','boot-exit','panic'):ok &= 'SKIP   echo second' in output
++        if mode=='early-exit':ok &= 'FAIL   VM exited before requested shutdown' in output and 'PASS   echo harmless' in output
++        if mode=='boot-exit':ok &= 'FAIL   boot' in output and 'SKIP   echo harmless' in output
++        if mode in ('prefix','suffix','failword','echoed-failword'):ok &= 'FAIL   echo harmless' in output
++        assert hashlib.sha256(disk.read_bytes()).hexdigest()==seed
++        results.append({'mode':mode,'rc':r.returncode,'pass':bool(ok)})
++        print(mode,'PASS' if ok else 'FAIL',flush=True)
++        if not ok: print(output,flush=True)
++    for extra in (['--net-test'], ['host:echo unsafe'], ['--disk','/dev/null']):
++        r=subprocess.run([sys.executable,str(runner),'x86_64','--userland','alpine','--disk',str(disk),*extra],capture_output=True,timeout=10)
++        ok=r.returncode!=0 and b'REFUSED:' in r.stderr
++        results.append({'negative':extra,'rc':r.returncode,'pass':ok});print('rejection',extra,'PASS' if ok else 'FAIL',flush=True)
++    print(json.dumps(results),flush=True)
++    if not all(x['pass'] for x in results):raise SystemExit(1)
