@@ -82,6 +82,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-unpack-mode-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/input-chain-host-tests.py
           scripts/pmm-host-tests.sh
           scripts/slab-host-tests.sh
           scripts/sched-host-tests.sh
@@ -106,6 +107,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence.py
           PYTHONDONTWRITEBYTECODE=1 python3 tests/udisks-host/test-evidence-mutations.py
           scripts/evdev-host-tests.sh
+          python3 scripts/dolphin-discovery-host-tests.py
           python3 scripts/plasma-readiness-host-tests.py
           python3 scripts/input-capture-host-tests.py
           python3 scripts/input-capture-status-host-tests.py
