@@ -24,6 +24,10 @@ FINAL = 'terminal-dbus: pid=777 applications=1 models=0 visited=12 NOT_OBSERVED 
 MOCKS = r'''
 set -eu
 client=777
+# The real probe initializes these before its failure branch. Explicitly seed
+# them here so POSIX shells can expand every argument before calling timeout.
+parent=stub-wayland
+output=stub-output
 NOW=100
 DEADLINE=220
 printf '0\n' > "$D/date-calls"
