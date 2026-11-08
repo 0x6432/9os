@@ -1,0 +1,139 @@
+#!/bin/sh
+# Bounded diagnostic-only poll for the existing collector's devices-open
+# witness. Each inspection uses at most 64 KiB; this does not control capture.
+set -u
+
+log=${1:?usage: input-capture-ready LOG [POLL_COUNT [STATUS_FILE]]}
+poll_count=${2:-10}
+status=${3:-}
+case $poll_count in
+  ''|*[!0-9]*) echo 'INPUT_CHAIN_CAPTURE_READY_ERROR invalid_poll_count' ; exit 2 ;;
+esac
+[ "$poll_count" -ge 1 ] && [ "$poll_count" -le 30 ] || {
+ echo 'INPUT_CHAIN_CAPTURE_READY_ERROR invalid_poll_count'
+ exit 2
+}
+
+snapshot=$(mktemp "${TMPDIR:-/tmp}/input-capture-ready.XXXXXX") || {
+ echo 'INPUT_CHAIN_CAPTURE_READY_ERROR snapshot_create_failed'
+ exit 1
+}
+trap 'rm -f "$snapshot"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+polls=0
+while [ "$polls" -lt "$poll_count" ]; do
+ if [ -n "$status" ] && [ -e "$status" ]; then
+  echo 'INPUT_CHAIN_CAPTURE_READY_ERROR collector_finished_before_key_send'
+  exit 1
+ fi
+ if [ ! -e "$log" ]; then
+  if ! sleep 1; then
+   echo 'INPUT_CHAIN_CAPTURE_READY_ERROR poll_sleep_failed'
+   exit 1
+  fi
+  polls=$((polls + 1))
+  continue
+ fi
+ if [ ! -f "$log" ] || [ ! -r "$log" ]; then
+  echo 'INPUT_CHAIN_CAPTURE_READY_ERROR log_unreadable'
+  exit 1
+ fi
+ if ! head -c 65536 "$log" >"$snapshot"; then
+  if [ ! -e "$log" ]; then
+   if ! sleep 1; then
+    echo 'INPUT_CHAIN_CAPTURE_READY_ERROR poll_sleep_failed'
+    exit 1
+   fi
+   polls=$((polls + 1))
+   continue
+  fi
+  echo 'INPUT_CHAIN_CAPTURE_READY_ERROR log_read_failed'
+  exit 1
+ fi
+ result=$(awk '
+  /^INPUT_CAPTURE_ERROR([[:space:]]|$)/ { failed=1 }
+  /^INPUT_CAPTURE_DONE([[:space:]]|$)/ { finished=1 }
+  /^INPUT_CAPTURE_READY([[:space:]]|$)/ {
+   ready++
+   if ($0 !~ /^INPUT_CAPTURE_READY devices=[1-9][0-9]*$/) bad=1
+   else {
+    count=$0
+    sub(/^INPUT_CAPTURE_READY devices=/, "", count)
+    devices=count+0
+   }
+  }
+  /^INPUT_CAPTURE_DEVICE([[:space:]]|$)/ {
+   records++
+   if ($0 !~ /^INPUT_CAPTURE_DEVICE index=(0|[1-9][0-9]*) named=1 monotonic=1 name=.*$/) bad=1
+   else {
+    idx=$0
+    sub(/^INPUT_CAPTURE_DEVICE index=/, "", idx)
+    sub(/ .*/, "", idx)
+    if (idx > 31 || seen[idx]++) bad=1
+   }
+  }
+  END {
+   if (failed) print "ERROR"
+   else if (finished) print "FINISHED"
+   else if (ready > 1) print "INVALID"
+   else if (ready == 1) {
+    if (bad || devices < 1 || devices > 32 || records != devices) print "INVALID"
+    else print "READY " devices
+   } else print "WAIT"
+  }
+ ' "$snapshot" 2>/dev/null)
+ inspector_rc=$?
+ if [ "$inspector_rc" -ne 0 ]; then
+  echo 'INPUT_CHAIN_CAPTURE_READY_ERROR inspector_failed'
+  exit 1
+ fi
+ case $result in
+  'READY '*)
+   devices=${result#READY }
+   case $devices in
+    ''|0*|*[!0-9]*)
+     echo 'INPUT_CHAIN_CAPTURE_READY_ERROR invalid_inspector_output'
+     exit 1
+     ;;
+   esac
+   [ "${#devices}" -le 2 ] && [ "$devices" -le 32 ] || {
+    echo 'INPUT_CHAIN_CAPTURE_READY_ERROR invalid_inspector_output'
+    exit 1
+   }
+   if [ -n "$status" ] && [ -e "$status" ]; then
+    echo 'INPUT_CHAIN_CAPTURE_READY_ERROR collector_finished_before_key_send'
+    exit 1
+   fi
+   echo "INPUT_CHAIN_CAPTURE_READY devices=$devices"
+   exit 0
+   ;;
+  WAIT)
+   ;;
+  ERROR)
+   echo 'INPUT_CHAIN_CAPTURE_READY_ERROR collector_error'
+   exit 1
+   ;;
+  FINISHED)
+   echo 'INPUT_CHAIN_CAPTURE_READY_ERROR collector_finished_before_key_send'
+   exit 1
+   ;;
+  INVALID)
+   echo 'INPUT_CHAIN_CAPTURE_READY_ERROR malformed_or_inconsistent_records'
+   exit 1
+   ;;
+  *)
+   echo 'INPUT_CHAIN_CAPTURE_READY_ERROR invalid_inspector_output'
+   exit 1
+   ;;
+ esac
+ if ! sleep 1; then
+  echo 'INPUT_CHAIN_CAPTURE_READY_ERROR poll_sleep_failed'
+  exit 1
+ fi
+ polls=$((polls + 1))
+done
+echo 'INPUT_CHAIN_CAPTURE_READY_ERROR poll_limit_reached'
+exit 1

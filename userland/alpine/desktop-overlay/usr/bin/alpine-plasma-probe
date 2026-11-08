@@ -352,8 +352,12 @@ if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
   if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then
    pty_ready=1
    if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then query_rc=0;else query_rc=$?;fi
+   query_in_deadline=0
+   if [ "$query_rc" = 0 ];then
+    if query_now=$(date +%s) && [ "$query_now" -lt "$deadline" ];then query_in_deadline=1;fi
+   fi
    record_terminal_attempt || query_recording_failed=1
-   if [ "$query_rc" = 0 ];then terminal_ready=1;break;fi
+   if [ "$query_in_deadline" = 1 ];then terminal_ready=1;break;fi
   fi
   kill -0 "$client" 2>/dev/null || break
   sleep .1

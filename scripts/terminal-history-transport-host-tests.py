@@ -201,8 +201,22 @@ class Transport(unittest.TestCase):
         self.assertEqual(raw_mutant.returncode,0)
         self.assertFalse(strict_accept(raw_mutant.stdout.encode()))
 
-    def test_only_emitter_changed_from_07fda66_probe(self):
+    def test_only_emitter_and_explicit_deadline_guard_changed_from_07fda66_probe(self):
         text=H.TEXT
+        candidate_guard=(
+            '   if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then query_rc=0;else query_rc=$?;fi\n'
+            '   query_in_deadline=0\n'
+            '   if [ "$query_rc" = 0 ];then\n'
+            '    if query_now=$(date +%s) && [ "$query_now" -lt "$deadline" ];then query_in_deadline=1;fi\n'
+            '   fi\n'
+            '   record_terminal_attempt || query_recording_failed=1\n'
+            '   if [ "$query_in_deadline" = 1 ];then terminal_ready=1;break;fi\n')
+        previous=(
+            '   if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then query_rc=0;else query_rc=$?;fi\n'
+            '   record_terminal_attempt || query_recording_failed=1\n'
+            '   if [ "$query_rc" = 0 ];then terminal_ready=1;break;fi\n')
+        self.assertEqual(text.count(candidate_guard),1)
+        text=text.replace(candidate_guard,previous,1)
         start=text.index('emit_terminal_attempts() {')
         end=text.index('# Diagnostic only: all samples',start)
         digest=hashlib.sha256((text[:start]+text[end:]).encode()).hexdigest()

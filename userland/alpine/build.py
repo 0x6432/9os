@@ -110,7 +110,7 @@ def mini(arch, cache, offline=False):
     return path
 
 def unpack(archive, root):
-    subprocess.run(['tar', 'xzf', str(archive), '--no-same-owner', '-C', str(root)], check=True)
+    subprocess.run(['tar', 'xzf', str(archive), '--no-same-owner', '--same-permissions', '-C', str(root)], check=True)
 
 def merge_named_records(original, overlay):
     """Preserve distro account/group names while installing explicit VM users."""

@@ -60,6 +60,8 @@ while [ "$(date +%s)" -lt "$deadline" ];do
  for name in $(timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames | sed -n 's/^[[:space:]]*string "\(org\.kde\.dolphin[^" ]*\)"$/\1/p');do
   path=$(find_window "$name" || true)
   if [ -n "$path" ] && call_bool "$name" "$path" isUrlOpen "file://$D/files" | tee "$D/readback.out" | grep -qx true;then
+   # A poll that started in time but returned at/after the existing deadline is not ready.
+   readback_now=$(date +%s) && [ "$readback_now" -lt "$deadline" ] || break
    service=$name;object=$path;break
   fi
   [ -z "$object" ] || break

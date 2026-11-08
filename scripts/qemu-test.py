@@ -77,6 +77,7 @@ def main():
             time.sleep(0.03)
 
     results = []
+    unexpected_exit = False
     # the boot console shows a prompt once the shell is up; poke it with newlines until we see one
     boot_deadline = time.time() + a.boot_timeout
     pump(min(boot_deadline, time.time() + 20), lambda: b'Welcome to 9os' in buf)
@@ -85,8 +86,11 @@ def main():
     # M31: the console runs getty+login; log in as root (no password) when asked
     at_login = lambda: buf.rstrip().endswith(b'login:')
     while not ok and time.time() < boot_deadline and not state['panic'] and p.poll() is None:
-        if at_login(): send('root\n')
-        else: send('\n')
+        try:
+            if at_login(): send('root\n')
+            else: send('\n')
+        except BrokenPipeError:
+            break
         ok = pump(min(boot_deadline, time.time() + 10), lambda: buf.rstrip().endswith(b'#') or at_login())
         if ok and at_login(): ok = False
     if ok:
@@ -97,6 +101,8 @@ def main():
     else:
         results.append(('boot', True))
         for i, cmd in enumerate(a.cmds):
+            # Never execute later guest or host steps after the VM dies.
+            if state['panic'] or p.poll() is not None: break
             if cmd.startswith('host:'):
                 try:
                     hr = subprocess.run(cmd[5:], shell=True, timeout=a.timeout, capture_output=True)
@@ -112,32 +118,51 @@ def main():
             # wait for the prompt so the shell is reading (line editing in raw mode) before typing;
             # input typed while the previous command was still finishing could get lost
             pump(time.time() + 5, lambda: buf.rstrip().endswith(b'#'))
+            if state['panic'] or p.poll() is not None: break
             start = len(buf)
-            send('%s; echo %s$?\n' % (cmd, mark))
+            try:
+                send('%s; echo %s$?\n' % (cmd, mark))
+            except BrokenPipeError:
+                print('\n*** guest command aborted: serial pipe closed')
+                results.append((cmd, False))
+                unexpected_exit = True
+                break
             rx = re.compile(re.escape(mark.encode()) + rb'(\d+)\n')
             got = pump(time.time() + a.timeout, lambda: rx.search(bytes(buf[start:])) is not None)
             out = bytes(buf[start:])
             m = rx.search(out)
             # skip the echoed command line itself (it contains the marker text but no digits+newline)
-            body = out[out.find(b'\n') + 1:m.start()] if m else out
+            # Ignore only a confirmed echo; otherwise inspect the first output line.
+            body = out[:m.start()] if m else out
+            if m and b'\n' in body:
+                first, rest = body.split(b'\n', 1)
+                echo = ('%s; echo %s$?' % (cmd, mark)).encode()
+                if first == echo:
+                    body = rest
             passed = bool(m) and m.group(1) == b'0' and not re.search(rb'\bFAIL', body) and not state['panic']
             results.append((cmd, passed))
             if state['panic'] or p.poll() is not None: break
-        if p.poll() is None:
+        if p.poll() is not None:
+            unexpected_exit = True
+        else:
             try:
                 send('poweroff\n')
                 pump(time.time() + 20, lambda: False)
             except BrokenPipeError:
-                pass  # failed/exited VMs still get a useful test summary below
+                unexpected_exit = True
     try: os.killpg(p.pid, signal.SIGKILL)
     except ProcessLookupError: pass
     if server:
         try: os.killpg(server.pid, signal.SIGKILL)
         except ProcessLookupError: pass
+    # Every unattempted step is explicitly skipped and makes the run incomplete.
+    results.extend((cmd, None) for cmd in a.cmds[len(results) - 1:])
     print('\n==== 9os test summary (%s, SMP=%s%s) ====' % (a.arch, a.smp, ', SCHED=' + a.sched if a.sched else ''))
-    for name, passed in results: print('%-6s %s' % ('PASS' if passed else 'FAIL', name))
+    for name, passed in results:
+        print('%-6s %s' % ('SKIP' if passed is None else 'PASS' if passed else 'FAIL', name))
     if state['panic']: print('FAIL   kernel panic detected')
-    bad = [n for n, ok_ in results if not ok_] or (['panic'] if state['panic'] else [])
+    if unexpected_exit: print('FAIL   VM exited before requested shutdown')
+    bad = [n for n, ok_ in results if ok_ is not True] or (['panic'] if state['panic'] else []) or (['unexpected VM exit'] if unexpected_exit else [])
     print('%d/%d passed' % (sum(1 for _, x in results if x), len(results)))
     sys.exit(1 if bad else 0)
 
