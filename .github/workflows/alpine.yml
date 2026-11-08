@@ -43,6 +43,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/input-chain-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/desktop-diagnostic-install-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-frozen-host-tests.py
           scripts/fallocate-host-tests.sh
           scripts/ptracestop-host-tests.sh
           scripts/unixcred-host-tests.sh

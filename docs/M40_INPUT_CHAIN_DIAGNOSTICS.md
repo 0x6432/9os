@@ -69,3 +69,46 @@ the small consumers with `scripts/alpine-build-tests.sh x86_64`, run
 raw collector, without packing a disk or starting a VM. This is not fixture
 verification: inspect the resulting disk and provenance separately before any
 boot. No Qt or other desktop library is built by the installer.
+
+## Experimental frozen launcher (review required)
+
+This is a draft host-side launcher, **not approval to boot**. Agree on a single
+attempt and independently review the launcher, full fixture provenance and
+security metadata first. A SHA-256 match alone does not validate the disk's
+ownership, capabilities, executable modes, initramfs limitations, embedded
+kernel command line, host QEMU firmware/libraries, or guest behavior. Hash
+checks have time-of-check/time-of-use limitations; protect the fixture and
+launcher from modification throughout. The frozen path attempts process-group cleanup and final hash checks on Python
+exceptions and interruption, but its failure handling and host environment
+need independent review. Do not use this path until those gates are satisfied. Record unresolved failures and skips, and never substitute inert
+host controls for guest evidence.
+
+The manifest has this exact JSON shape, with absolute paths and reviewed,
+lowercase SHA-256 digests of the actual regular files:
+
+```json
+{
+  "version": 1,
+  "qemu": {"path": "/absolute/path/to/qemu-system-x86_64", "sha256": "<64 lowercase hex digits>"},
+  "iso": {"path": "/absolute/path/to/9os.iso", "sha256": "<64 lowercase hex digits>"},
+  "golden_disk": {"path": "/absolute/path/to/golden.raw", "sha256": "<64 lowercase hex digits>"}
+}
+```
+
+After approval, copy the read-only golden disk to a separate disposable regular
+file, retaining the original. Verify its digest matches before the attempt.
+Set `M40_FROZEN_MANIFEST` to the manifest path, `M40_FROZEN_DISK` to the
+copy, and `ALPINE_INPUT_CHAIN_DIAGNOSTICS=1`, then invoke
+`scripts/alpine-kms-tests.sh x86_64`. It uses the frozen direct QEMU argv,
+not `make` or `mkdisk.sh`. It rejects alternate architecture, memory, CPU
+count, cmdline, QEMU_EXTRA, network forwarding and additional disks in this
+mode. Frozen mode requires a new, exclusively created host log. The cmdline argument is a guard, not injection: independently inspect
+the ISO to verify its embedded `root=/dev/vda1` before launching.
+
+Capture complete host stdout/stderr, the attempt-specific log and screenshots,
+checker result, pre/post hashes, QEMU version and execution environment. The
+original acceptance result and diagnostic checker remain separate. After the
+process and its children stop, retain the disposable disk and recheck the
+manifest, executable, ISO and golden hashes. A changed artifact, missing stream,
+failed command, timeout or skip remains visible and blocks acceptance. Do not
+retry or change the fixture silently.

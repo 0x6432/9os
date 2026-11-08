@@ -57,8 +57,29 @@ if [ "$input_chain_diagnostics" = 1 ];then
  L=build/test-alpine-kms-$ARCH-input-chain-$run_id.log
  P=$(pwd -P)/build/test-alpine-kms-$ARCH-input-chain-$run_id
 fi
-scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
-export QEMU_EXTRA="${QEMU_EXTRA:-} -monitor unix:$S,server,nowait -qmp unix:$Q,server,nowait"
+# The experimental frozen route never creates a disk or invokes make. The
+# caller supplies a fresh disposable disk copy and a separately reviewed manifest.
+frozen=0
+if [ -n "${M40_FROZEN_MANIFEST:-}" ] || [ -n "${M40_FROZEN_DISK:-}" ];then
+ [ -n "${M40_FROZEN_MANIFEST:-}" ] && [ -n "${M40_FROZEN_DISK:-}" ] || { echo 'Frozen manifest and disposable disk are both required' >&2;exit 2; }
+ [ "$ARCH" = x86_64 ] && [ "$input_chain_diagnostics" = 1 ] || { echo 'Frozen mode requires x86_64 input-chain diagnostics' >&2;exit 2; }
+ [ -z "${QEMU_EXTRA:-}" ] || { echo 'Frozen mode refuses QEMU_EXTRA overrides' >&2;exit 2; }
+ DISK=$M40_FROZEN_DISK
+ frozen=1
+else
+ scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
+ export QEMU_EXTRA="${QEMU_EXTRA:-} -monitor unix:$S,server,nowait -qmp unix:$Q,server,nowait"
+fi
+run_qemu_test() {
+ if [ "$frozen" = 1 ];then
+  python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
+   --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" \
+   --frozen-manifest "$M40_FROZEN_MANIFEST" --monitor-socket "$S" --qmp-socket "$Q" "$@"
+ else
+  python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
+   --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" "$@"
+ fi
+}
 set -- "$service_command" \
  'su user -s /bin/sh -c alpine-udisks-smoke' \
  '(if ALPINE_PLASMA_OUTPUT=kms ALPINE_PLASMA_SERIAL_PNG=0 ALPINE_PLASMA_INTERACTIVE=1 ALPINE_PLASMA_FILEMANAGER=1 ALPINE_PLASMA_INPUT_DONE_FILE=/tmp/kms-input-done ALPINE_DOLPHIN_DONE_FILE=/tmp/dolphin-capture-done alpine-plasma-user-probe >/tmp/plasma-kms.log 2>&1;then echo 0;else echo $?;fi >/tmp/plasma-kms.status.tmp;mv /tmp/plasma-kms.status.tmp /tmp/plasma-kms.status) & echo $! >/tmp/plasma-kms.pid' \
@@ -94,8 +115,7 @@ if [ "$input_chain_diagnostics" = 1 ];then
  # Preserve the acceptance result independently; diagnostic failure cannot
  # turn an original failed gate into success.
  test_rc=0
- if python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
-   --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" "$@";then
+ if run_qemu_test "$@";then
   test_rc=0
  else
   test_rc=$?
@@ -112,5 +132,4 @@ if [ "$input_chain_diagnostics" = 1 ];then
  if [ "$test_rc" -ne 0 ];then exit "$test_rc";fi
  exit "$diag_rc"
 fi
-python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
- --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" "$@"
+run_qemu_test "$@"
