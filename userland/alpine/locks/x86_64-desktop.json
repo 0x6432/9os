@@ -1717,8 +1717,8 @@
       "sha256": "3f5825ced5fde1c66a5376a3f6076b3c08538ad52d9ef23f069857e212d9175a"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libcurl-8.14.1-r3.apk",
-      "sha256": "249e5a3a50558cdb3ce1bab1619b15d88243a628d878700c8d05878c2e71ed71"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libcurl-8.14.1-r4.apk",
+      "sha256": "3887f3b2e66b513cb0f8211af6369a0ffaf87270c05ed1f18f7313eddc6b3660"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libdaemon-0.14-r6.apk",
@@ -2241,20 +2241,20 @@
       "sha256": "339188a66be59b3f832dd697a4c6050c0ace6af1e6d8bbc4f8e8bf47e51742cc"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pyc-3.12.15-r0.apk",
-      "sha256": "8eb1af82a5595a924a49add046e8649c27d4a0d71fd7ad49fe78b9a83e3b3488"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pyc-3.12.16-r0.apk",
+      "sha256": "3588fbae1376094b8c73f8300bfeb7ff394d17a666d407649f06d9072a3f2094"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/python3-3.12.15-r0.apk",
-      "sha256": "65abdc4bef40a80beb0cad8238c984937d334cfcdd2719651fe7c3a3f6c909e8"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/python3-3.12.16-r0.apk",
+      "sha256": "4bd1bf5b980cdf906c04a507258cfae8b44b3070d82b7c4cbf77ef2552bbdb06"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/python3-pyc-3.12.15-r0.apk",
-      "sha256": "3f2e74606feb05c51746d60aa5390318d985eb827e93709142c287751f4f8d1c"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/python3-pyc-3.12.16-r0.apk",
+      "sha256": "b49968ff0d8e8378709d4ef6ea2e31b2e7b69b24945207b247bb6bf085ee1dce"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/python3-pycache-pyc0-3.12.15-r0.apk",
-      "sha256": "b30c41e6b84bcd2ef16a687dec7ec5ead85ab0a5061cf5e4e5924bf5d55bc78d"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/python3-pycache-pyc0-3.12.16-r0.apk",
+      "sha256": "b1b1732e093d34ce9c1e126fbc013c9299895ed5a09615d088e220e8303e227b"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/readline-8.2.13-r1.apk",
