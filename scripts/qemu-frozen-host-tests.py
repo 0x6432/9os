@@ -23,7 +23,8 @@ print('Welcome to 9os\\n# ',end='',flush=True)
 for line in sys.stdin:
  if line.strip() == 'poweroff': break
  m = re.search(r'__RC(\\d+)=', line)
- if m: print('FAKE CONTROL ONLY\\n__RC%s=0\\n# ' % m.group(1),end='',flush=True)
+ if '__FROZENROOT=' in line: print('\\n__FROZENROOT=%s\\n# ' % ('1' if os.environ.get('FAKE_ROOT_FAIL') else '0'),end='',flush=True)
+ elif m: print('FAKE CONTROL ONLY\\n__RC%s=0\\n# ' % m.group(1),end='',flush=True)
  else: print('# ',end='',flush=True)
 '''
 
@@ -86,24 +87,27 @@ class Frozen(unittest.TestCase):
             f.data['iso']['path']=str(f.iso);f.data['version']=True;f.save()
             with self.assertRaisesRegex(ValueError, 'manifest shape'):f.load()
 
-    def run_runner(self, mutate=False):
+    def run_runner(self, mutate=False, root_fail=False):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); f=Fixture(root); fakebin=root/'bin';fakebin.mkdir()
             maker=fakebin/'make';maker.write_text('#!/bin/sh\ntouch "$MAKE_CALLED"\nexit 77\n');maker.chmod(0o755)
             env=dict(os.environ, PATH=str(fakebin)+':/usr/bin:/bin', FAKE_CALLED=str(root/'fake-called'), MAKE_CALLED=str(root/'make-called'))
             env.pop('QEMU_EXTRA',None)
+            if root_fail:env['FAKE_ROOT_FAIL']='1'
+            else:env.pop('FAKE_ROOT_FAIL',None)
             if mutate:env['FAKE_MUTATE']=str(f.golden)
             else:env.pop('FAKE_MUTATE',None)
             args=['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
-                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','12','--timeout','3',
-                  '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor,'--qmp-socket',f.qmp,'--log',str(root/'run.log'),'echo harmless']
+                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
+                  '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor,'--qmp-socket',f.qmp,'--log',str(root/'run.log'),'echo harmless','host:touch '+str(root/'host-called')]
             result=subprocess.run(args,env=env,capture_output=True,text=True,timeout=30)
             self.assertTrue((root/'fake-called').exists(), result.stdout+result.stderr)
             self.assertFalse((root/'make-called').exists())
+            self.assertEqual((root/'host-called').exists(), not root_fail)
             return result
 
     def test_runner_rejects_bad_preflight_without_launch_or_make(self):
-        for mode in ('wrong-hash', 'extra', 'missing-qmp', 'wrong-architecture', 'existing-log', 'missing-log'):
+        for mode in ('wrong-hash', 'extra', 'missing-qmp', 'wrong-architecture', 'existing-log', 'missing-log', 'boot-timeout', 'step-timeout'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as td:
                 root=Path(td); f=Fixture(root); fakebin=root/'bin';fakebin.mkdir()
                 maker=fakebin/'make';maker.write_text('#!/bin/sh\ntouch "$MAKE_CALLED"\nexit 77\n');maker.chmod(0o755)
@@ -113,6 +117,8 @@ class Frozen(unittest.TestCase):
                 if mode=='extra': env['QEMU_EXTRA']='-smp 8'
                 args=['python3',str(ROOT/'scripts/qemu-test.py'), 'aarch64' if mode=='wrong-architecture' else 'x86_64',
                       '--userland','alpine','--memory','3072M','--disk',str(f.disk),'--cmdline','root=/dev/vda1',
+                      '--boot-timeout','301' if mode=='boot-timeout' else '300',
+                      '--timeout','781' if mode=='step-timeout' else '780',
                       '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor]
                 if mode!='missing-qmp': args.extend(['--qmp-socket',f.qmp])
                 if mode=='existing-log': (root/'run.log').write_text('must not be truncated')
@@ -124,13 +130,30 @@ class Frozen(unittest.TestCase):
                 self.assertFalse((root/'make-called').exists(),r.stdout+r.stderr)
                 if mode=='existing-log':self.assertEqual((root/'run.log').read_text(),'must not be truncated')
 
+    def test_host_helper_timeout_kills_group_and_keeps_partial_output(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);child=root/'child.py';pidfile=root/'pid'
+            child.write_text("import os,time\nopen("+repr(str(pidfile))+",'w').write(str(os.getpid()))\nprint('PARTIAL CONTROL',flush=True)\ntime.sleep(60)\n")
+            out,passed=FROZEN.run_host('python3 '+str(child),.8)
+            self.assertFalse(passed);self.assertIn(b'PARTIAL CONTROL',out);self.assertIn(b'(timeout)',out)
+            pid=int(pidfile.read_text())
+            # On container systems an adopted dead child may briefly be a zombie.
+            proc=Path('/proc')/str(pid)/'stat'
+            deadline=time.monotonic()+3
+            while proc.exists() and proc.read_text().split()[2] != 'Z' and time.monotonic()<deadline:time.sleep(.05)
+            self.assertTrue(not proc.exists() or proc.read_text().split()[2]=='Z','timed-out child still executing')
+
+    def test_host_helper_status_is_not_hidden(self):
+        out,passed=FROZEN.run_host("printf success",2);self.assertTrue(passed);self.assertEqual(out,b'success')
+        out,passed=FROZEN.run_host("printf failure; exit 7",2);self.assertFalse(passed);self.assertEqual(out,b'failure')
+
     def test_interrupt_reaps_inert_process_group(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td);f=Fixture(root)
             env=dict(os.environ, FAKE_CALLED=str(root/'fake-called'))
             env.pop('QEMU_EXTRA',None);env.pop('FAKE_MUTATE',None)
             args=['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
-                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','12','--timeout','3',
+                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
                   '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor,'--qmp-socket',f.qmp,
                   '--log',str(root/'run.log'),'echo harmless']
             p=subprocess.Popen(args,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -149,6 +172,35 @@ class Frozen(unittest.TestCase):
         r=self.run_runner()
         self.assertEqual(r.returncode,0,r.stdout+r.stderr)
         self.assertIn('PASS   echo harmless',r.stdout)
+
+    def test_failed_root_gate_skips_all_requested_steps(self):
+        r=self.run_runner(root_fail=True)
+        self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertIn('FAIL   frozen root preflight',r.stdout)
+        self.assertIn('SKIP   echo harmless',r.stdout)
+        self.assertIn('SKIP   host:touch ',r.stdout)
+        self.assertNotIn('PASS   echo harmless',r.stdout)
+
+    def test_real_root_gate_expression(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); mounts=root/'mounts'; dbus=root/'dbus'; pam=root/'pam'
+            fakebin=root/'bin'; fakebin.mkdir(); fake_stat=fakebin/'stat'
+            fake_stat.write_text('#!/bin/sh\ncase "$3" in */dbus) echo "${DBUS_META}";; */pam) echo "${PAM_META}";; *) exit 1;; esac\n')
+            fake_stat.chmod(0o755)
+            env=dict(os.environ,PATH=str(fakebin)+':/usr/bin:/bin',DBUS_META='0:81:4750',PAM_META='0:42:2755')
+            command=FROZEN.root_gate_command(str(mounts),str(dbus),str(pam))
+            def check(rows, dbus_meta='0:81:4750', pam_meta='0:42:2755'):
+                mounts.write_text(rows)
+                e=dict(env,DBUS_META=dbus_meta,PAM_META=pam_meta)
+                return subprocess.run(['/bin/sh','-c',command],env=e).returncode
+            good='/dev/vda1 / ext2 rw 0 0\nproc /proc proc rw 0 0\n'
+            self.assertEqual(check(good),0)
+            for rows in ('initramfs / tmpfs rw 0 0\n', '/dev/vda1 / tmpfs rw 0 0\n',
+                         '/dev/vda2 / ext2 rw 0 0\n', good + '/dev/vda1 / ext2 rw 0 0\n', ''):
+                self.assertNotEqual(check(rows),0,rows)
+            self.assertNotEqual(check(good,dbus_meta='0:0:4750'),0)
+            self.assertNotEqual(check(good,pam_meta='0:0:2755'),0)
+            self.assertNotEqual(check(good,pam_meta='0:42:755'),0)
 
     def test_runner_marks_changed_golden_as_failure(self):
         r=self.run_runner(mutate=True)

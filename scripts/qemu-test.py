@@ -34,6 +34,7 @@ def main():
     a = ap.parse_intermixed_args()
     if a.frozen_manifest and (a.arch != 'x86_64' or a.userland != 'alpine' or a.smp != '4'
             or a.memory != '3072M' or a.sched or a.cmdline != 'root=/dev/vda1'
+            or a.boot_timeout != 300 or a.timeout != 780
             or a.net_test or len(a.disk) != 1 or not a.log or os.environ.get('QEMU_EXTRA')):
         ap.error('frozen mode requires the fixed x86 KMS configuration')
     import socket as _s
@@ -110,6 +111,7 @@ def main():
 
         results = []
         unexpected_exit = False
+        attempted_cmds = 0
         # the boot console shows a prompt once the shell is up; poke it with newlines until we see one
         boot_deadline = time.time() + a.boot_timeout
         pump(min(boot_deadline, time.time() + 20), lambda: b'Welcome to 9os' in buf)
@@ -132,19 +134,37 @@ def main():
             results.append(('boot', False))
         else:
             results.append(('boot', True))
-            for i, cmd in enumerate(a.cmds):
+            root_ok = True
+            if frozen_state is not None:
+                # A root= cmdline is not proof of a successful mount: the kernel
+                # can fall back to initramfs. Stop before any requested step.
+                start = len(buf)
+                try:
+                    send(frozen.root_gate_command() + '; echo __FROZENROOT=$?\n')
+                    rx = re.compile(rb'(?m)^__FROZENROOT=(\d+)\n')
+                    pump(time.time() + a.timeout, lambda: rx.search(bytes(buf[start:])) is not None)
+                    m = rx.search(bytes(buf[start:]))
+                    root_ok = bool(m) and m.group(1) == b'0' and not state['panic'] and p.poll() is None
+                except BrokenPipeError:
+                    root_ok = False
+                results.append(('frozen root preflight', root_ok))
+            for i, cmd in enumerate(a.cmds if root_ok else []):
                 # Never execute later guest or host steps after the VM dies.
                 if state['panic'] or p.poll() is not None: break
                 if cmd.startswith('host:'):
-                    try:
-                        hr = subprocess.run(cmd[5:], shell=True, timeout=a.timeout, capture_output=True)
-                        out = hr.stdout + hr.stderr
-                        passed = hr.returncode == 0
-                    except subprocess.TimeoutExpired:
-                        out, passed = b'(timeout)', False
+                    if frozen_state is not None:
+                        out, passed = frozen.run_host(cmd[5:], a.timeout)
+                    else:
+                        try:
+                            hr = subprocess.run(cmd[5:], shell=True, timeout=a.timeout, capture_output=True)
+                            out = hr.stdout + hr.stderr
+                            passed = hr.returncode == 0
+                        except subprocess.TimeoutExpired:
+                            out, passed = b'(timeout)', False
                     sys.stdout.buffer.write(b'\n[host] ' + cmd[5:].encode() + b'\n' + out); sys.stdout.flush()
                     if log: log.write(b'\n[host] ' + cmd[5:].encode() + b'\n' + out); log.flush()
                     results.append((cmd, passed))
+                    attempted_cmds += 1
                     continue
                 mark = '__RC%d=' % i
                 # wait for the prompt so the shell is reading (line editing in raw mode) before typing;
@@ -157,6 +177,7 @@ def main():
                 except BrokenPipeError:
                     print('\n*** guest command aborted: serial pipe closed')
                     results.append((cmd, False))
+                    attempted_cmds += 1
                     unexpected_exit = True
                     break
                 rx = re.compile(re.escape(mark.encode()) + rb'(\d+)\n')
@@ -173,6 +194,7 @@ def main():
                         body = rest
                 passed = bool(m) and m.group(1) == b'0' and not re.search(rb'\bFAIL', body) and not state['panic']
                 results.append((cmd, passed))
+                attempted_cmds += 1
                 if state['panic'] or p.poll() is not None: break
             if p.poll() is not None:
                 unexpected_exit = True
@@ -195,7 +217,7 @@ def main():
             except (OSError, ValueError, subprocess.TimeoutExpired) as e:
                 frozen_error = str(e)
         # Every unattempted step is explicitly skipped and makes the run incomplete.
-        results.extend((cmd, None) for cmd in a.cmds[len(results) - 1:])
+        results.extend((cmd, None) for cmd in a.cmds[attempted_cmds:])
         print('\n==== 9os test summary (%s, SMP=%s%s) ====' % (a.arch, a.smp, ', SCHED=' + a.sched if a.sched else ''))
         for name, passed in results:
             print('%-6s %s' % ('SKIP' if passed is None else 'PASS' if passed else 'FAIL', name))

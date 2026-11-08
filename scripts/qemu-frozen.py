@@ -8,7 +8,10 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
+import signal
 import stat
+import subprocess
 
 SHA = re.compile(r'[0-9a-f]{64}\Z')
 
@@ -96,3 +99,37 @@ def verify_after(state):
     for key, path in paths.items():
         if digest(regular(str(path), key)) != m[key]['sha256']:
             raise ValueError(key + ' changed during run')
+
+
+def run_host(command, timeout):
+    """Host helpers get a separate process group and bounded failure cleanup.
+
+    This does not contain descendants that deliberately create new sessions.
+    """
+    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         start_new_session=True)
+    try:
+        try:
+            output, _ = p.communicate(timeout=timeout)
+            return output, p.returncode == 0
+        except subprocess.TimeoutExpired:
+            try: os.killpg(p.pid, signal.SIGKILL)
+            except ProcessLookupError: pass
+            output, _ = p.communicate(timeout=10)
+            return output + b'\n(timeout)\n', False
+    finally:
+        # Also kill children left behind by a successful shell or interrupted
+        # parent; never leave the host helper running as if it had completed.
+        try: os.killpg(p.pid, signal.SIGKILL)
+        except ProcessLookupError: pass
+        if p.poll() is None: p.wait(timeout=10)
+
+
+def root_gate_command(mounts='/proc/mounts', dbus='/usr/libexec/dbus-daemon-launch-helper',
+                      pam='/usr/sbin/unix_chkpwd'):
+    """Require the mounted disk and narrowly repaired helpers, not initramfs fallback."""
+    q = shlex.quote
+    program = '$2 == "/" { n++; if ($1 == "/dev/vda1" && $3 == "ext2") ok++ } END { exit !(n == 1 && ok == 1) }'
+    return ('awk ' + q(program) + ' ' + q(mounts)
+            + ' && test "$(stat -c %u:%g:%a ' + q(dbus) + ')" = 0:81:4750'
+            + ' && test "$(stat -c %u:%g:%a ' + q(pam) + ')" = 0:42:2755')

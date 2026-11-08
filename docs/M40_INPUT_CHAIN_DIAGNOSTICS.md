@@ -101,9 +101,15 @@ Set `M40_FROZEN_MANIFEST` to the manifest path, `M40_FROZEN_DISK` to the
 copy, and `ALPINE_INPUT_CHAIN_DIAGNOSTICS=1`, then invoke
 `scripts/alpine-kms-tests.sh x86_64`. It uses the frozen direct QEMU argv,
 not `make` or `mkdisk.sh`. It rejects alternate architecture, memory, CPU
-count, cmdline, QEMU_EXTRA, network forwarding and additional disks in this
-mode. Frozen mode requires a new, exclusively created host log. The cmdline argument is a guard, not injection: independently inspect
-the ISO to verify its embedded `root=/dev/vda1` before launching.
+count, cmdline, QEMU_EXTRA, network forwarding, additional disks and changed 300s boot/780s per-command
+deadlines in this mode. Host helpers run in a separate process group, with partial
+output retained on timeout and group cleanup attempted on exit or interruption.
+Descendants that deliberately create new sessions are not contained. Frozen mode requires a new, exclusively created host log. The cmdline argument is a guard, not injection: independently inspect
+the ISO to verify its embedded `root=/dev/vda1` before launching. After the
+shell starts, frozen mode also requires exactly one `/` mount from
+`/dev/vda1` of type `ext2`, and checks the two corrected helper owners and
+modes. If this preflight fails, all requested diagnostic steps are skipped
+and the run fails. These checks are not a complete security audit.
 
 Capture complete host stdout/stderr, the attempt-specific log and screenshots,
 checker result, pre/post hashes, QEMU version and execution environment. The
