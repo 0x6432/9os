@@ -62,7 +62,10 @@ an original failure. Tracing can perturb timing, and even a complete
 trace-enabled pass is not an unchanged-timing cold-reliability sample or a
 cause/fix claim. Keep every failed attempt.
 
-This draft does not build missing diagnostic helpers or change dependencies.
 The option fails before disk creation if the existing raw collector or Qt
-observer is not already installed in the selected desktop root. Install/build
-work remains outside this patch and was not run.
+observer is not already installed in the selected desktop root. After building
+the small consumers with `scripts/alpine-build-tests.sh x86_64`, run
+`scripts/alpine-desktop-install-tests.sh x86_64` to copy them, including the
+raw collector, without packing a disk or starting a VM. This is not fixture
+verification: inspect the resulting disk and provenance separately before any
+boot. No Qt or other desktop library is built by the installer.

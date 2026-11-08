@@ -83,6 +83,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-unpack-mode-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/input-chain-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/desktop-diagnostic-install-host-tests.py
           scripts/pmm-host-tests.sh
           scripts/slab-host-tests.sh
           scripts/sched-host-tests.sh

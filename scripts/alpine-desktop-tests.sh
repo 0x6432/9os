@@ -7,11 +7,8 @@ ARCH=${1:-x86_64}
 ROOT=userland/alpine-desktop-root-$ARCH
 DISK=build/alpine-desktop-$ARCH.img
 L=build/test-alpine-desktop-$ARCH.log
-for test in fallocatetest ptracestoptest unixcredtest procinfotest dircookietest proctasktest mountinfotest pimutextest ioctlwidthtest desktopframecheck desktopa11y desktopa11y-dbus trace-snapshot trace-snapshot-target;do cp "userland/alpine-root-$ARCH/usr/bin/$test" "$ROOT/usr/bin/$test";done
-mkdir -p "$ROOT/usr/lib/9os-tests"
-cp "userland/alpine-root-$ARCH/usr/lib/lib9os-qt-key-observer.so" "$ROOT/usr/lib/"
-cp "userland/alpine-root-$ARCH/usr/lib/9os-tests/libqt-key-observer-mock.so" "$ROOT/usr/lib/9os-tests/"
-cp "userland/alpine-root-$ARCH/usr/bin/qt-key-observer-caller" "$ROOT/usr/bin/"
+# Install only; this separate step never creates a disk or boots a VM.
+scripts/alpine-desktop-install-tests.sh "$ARCH"
 scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
 python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
  --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 480 --log "$L" \
