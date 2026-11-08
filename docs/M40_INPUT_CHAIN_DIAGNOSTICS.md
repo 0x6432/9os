@@ -112,3 +112,24 @@ process and its children stop, retain the disposable disk and recheck the
 manifest, executable, ISO and golden hashes. A changed artifact, missing stream,
 failed command, timeout or skip remains visible and blocks acceptance. Do not
 retry or change the fixture silently.
+
+## Opt-in x86 disk group correction (review required)
+
+For a **new disposable image only**, `mkdisk.sh` supports the explicit setting
+`ALPINE_DESKTOP_OWNER_POLICY=x86_64` and requires
+`ALPINE_DESKTOP_APK_CACHE` to point to an offline cache containing the pinned
+x86 Alpine 3.22.6 mini and the two APKs named in
+`scripts/alpine-desktop-owner-repair.py`. The helper verifies the exact desktop
+lock, pinned bootstrap and trust keys, both APK checksums and signatures, signed
+archive ownership/modes and installed file bytes. It checks the disk's group
+identities, file types, inode links, original owners and modes before changing
+only the two groups (DBus helper 81 and unix_chkpwd 42), and rechecks both.
+Any refusal aborts packing before the partition is copied into the image.
+Do not use a failed or partially created image; keep the error visible.
+
+This narrowly corrects two observed discrepancies. It does not approve setuid
+policy, check all overlay/generated-file metadata, implement file capabilities,
+fix newc ownership/xattr limitations, or verify other architectures. The repair
+has time-of-check races and assumes exclusive control of an unmounted disposable
+image and its inputs. Independent review and full fixture verification remain
+mandatory before any boot; this option is off by default.

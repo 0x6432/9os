@@ -3,10 +3,18 @@
 # usage: scripts/mkdisk.sh OUT SIZE_MB [ROOTDIR] [BLOCKSIZE]
 #   INODE_SIZE=256 in the environment: large inodes (in-inode xattrs, M33)
 #   ROOTDIR: directory copied into the filesystem (mke2fs -d), e.g. userland/root-x86_64
+# ALPINE_DESKTOP_OWNER_POLICY=x86_64 and ALPINE_DESKTOP_APK_CACHE=DIR:
+#   opt in to a narrow, signed-APK-verified two-group repair before publishing.
+#   This is not complete fixture or security-policy verification.
 # needs sfdisk (util-linux) and mke2fs (e2fsprogs)
 set -e
 out=$1; mb=${2:-64}; dir=$3; bs=${4:-4096}
 [ -n "$out" ] || { echo "usage: $0 OUT SIZE_MB [ROOTDIR] [BLOCKSIZE]" >&2; exit 1; }
+case ${ALPINE_DESKTOP_OWNER_POLICY:-} in
+ '') ;;
+ x86_64) [ -n "$dir" ] && [ -n "${ALPINE_DESKTOP_APK_CACHE:-}" ] || { echo 'x86 desktop policy requires a root directory and offline APK cache' >&2;exit 1; } ;;
+ *) echo 'Unknown desktop owner policy' >&2;exit 1 ;;
+esac
 command -v mke2fs >/dev/null || PATH=$PATH:/usr/sbin:/sbin
 rm -f "$out" "$out.part"
 truncate -s "${mb}M" "$out"
@@ -23,6 +31,11 @@ if [ -n "$dir" ] && [ "$(id -u)" != 0 ]; then
     done > "$out.dbg"
     debugfs -w -f "$out.dbg" "$out.part" >/dev/null 2>&1
     rm -f "$out.dbg"
+fi
+if [ "${ALPINE_DESKTOP_OWNER_POLICY:-}" = x86_64 ];then
+    # A failure must stop before the repaired partition is copied to the disk.
+    script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+    python3 "$script_dir/alpine-desktop-owner-repair.py" "$out.part" --cache "$ALPINE_DESKTOP_APK_CACHE"
 fi
 dd if="$out.part" of="$out" bs=1M seek=1 conv=notrunc,sparse status=none
 rm -f "$out.part"
