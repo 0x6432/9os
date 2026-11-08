@@ -176,7 +176,7 @@ class Fixture:
             case.assertNotIn('--allow-untrusted', c)
             case.assertNotIn('--no-deps', c)
         for c in adds:
-            for flag in ['--initdb', '--no-scripts', '--no-chown', 'linux-virt=6.12.114-r0']:
+            for flag in ['--initdb', '--no-scripts', '--no-chown', 'linux-virt=6.12.115-r0']:
                 case.assertIn(flag, c)
             case.assertEqual(len([v for v in c if v.endswith('.apk')]), 25)
         case.assertIn('--simulate', adds[0])
@@ -348,14 +348,14 @@ except BoundaryReached:print('CACHE_BOUNDARY_REACHED')
     def test_real_lock_exact_identity_inventory(self):
         lock = self.m.load_lock(LOCK)
         self.assertEqual(len(lock['packages']), 25)
-        self.assertEqual(lock['kernel']['version'], '6.12.114-r0')
+        self.assertEqual(lock['kernel']['version'], '6.12.115-r0')
         self.assertEqual({e['name'] for e in lock['packages'] if e['arch'] == 'noarch'}, self.m.NOARCH)
 
     def test_clean_orchestration_verify_all_then_strict_offline_add(self):
         f = self.fixture()
         result = f.run()
         f.protocol(self)
-        self.assertEqual(result['reference_kernel'], '6.12.114-r0')
+        self.assertEqual(result['reference_kernel'], '6.12.115-r0')
         self.assertEqual(len(result['installed_contents']), 3)
 
     def test_invalid_lock_inventory_arch_trust_and_version_rejected(self):
@@ -544,9 +544,9 @@ class OracleWiring(unittest.TestCase):
         source = (ROOT / 'scripts/evdev-linux-oracle.sh').read_text()
         self.assertNotIn('--repository https:', source)
         self.assertIn('python3 scripts/evdev-linux-oracle-packages.py', source)
-        self.assertIn('lib/modules/6.12.114-0-virt/', source)
+        self.assertIn('lib/modules/6.12.115-0-virt/', source)
         self.assertNotIn('lib/modules/6.12.113-0-virt/', source)
-        original_tail = LEGACY[LEGACY.index('cp "$S/bin/busybox"'):].replace('6.12.113-0-virt', '6.12.114-0-virt')
+        original_tail = LEGACY[LEGACY.index('cp "$S/bin/busybox"'):].replace('6.12.113-0-virt', '6.12.115-0-virt')
         self.assertTrue(source.endswith(original_tail), 'Consumer/S-root copies/init/QEMU90/strict RC acceptance changed')
 
     def test_workflow_only_one_new_host_invocation_each(self):

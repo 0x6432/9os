@@ -54,41 +54,41 @@
   },
   "kernel": {
     "name": "linux-virt",
-    "version": "6.12.114-r0",
-    "module_release": "6.12.114-0-virt",
+    "version": "6.12.115-r0",
+    "module_release": "6.12.115-0-virt",
     "contents": [
       {
         "path": "boot/vmlinuz-virt",
-        "bytes": 11834368,
-        "sha256": "26f146f664ad057be3b39b211422b03b1f94cb2c3d66522fd4841811a224bfd5"
+        "bytes": 11838464,
+        "sha256": "8ce908a8cb28d55adcacacf8a16609fa400e07a8826f0084ae5b13b8cb91b9ab"
       },
       {
-        "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/evdev.ko.gz",
-        "bytes": 14740,
-        "sha256": "4a3134caa08701aac3a4bda0ac3f7c60039232d5bc850e537783ce93d10bbf41",
+        "path": "lib/modules/6.12.115-0-virt/kernel/drivers/input/evdev.ko.gz",
+        "bytes": 14746,
+        "sha256": "c1680aebaa6d81b3794d175d6e503ce06eacb90d3cbf1bf870694a174204bfff",
         "elf_machine": 62,
         "uncompressed_bytes": 52455,
-        "uncompressed_sha256": "2d113c2a9588d9fab35d7222f318505bfdc82fef4999386c1976aacb2ab7ebd1",
-        "vermagic": "6.12.114-0-virt SMP preempt mod_unload modversions "
+        "uncompressed_sha256": "18d37261ed01fc238a08ca07f0999c1d18751c21a35d83febbb0694ecc8c6190",
+        "vermagic": "6.12.115-0-virt SMP preempt mod_unload modversions "
       },
       {
-        "path": "lib/modules/6.12.114-0-virt/kernel/drivers/input/misc/uinput.ko.gz",
-        "bytes": 12075,
-        "sha256": "49af0aa3808bac7c12b074b1cb6028edbd912734ad29c362c3ccb528c2be85b4",
+        "path": "lib/modules/6.12.115-0-virt/kernel/drivers/input/misc/uinput.ko.gz",
+        "bytes": 12066,
+        "sha256": "e13951ff815be0c6be58dd7e0c08c9024e10feeed287146aaf93ba55c6fb2d20",
         "elf_machine": 62,
         "uncompressed_bytes": 41959,
-        "uncompressed_sha256": "213b4c75a137e4f05aded40d08a105735c3cfe8a1548b3e075a06fa3e59041f6",
-        "vermagic": "6.12.114-0-virt SMP preempt mod_unload modversions "
+        "uncompressed_sha256": "46c74561313f0df4bfd634c9541f46621efbe618ce9aa91b303903b8ead168fd",
+        "vermagic": "6.12.115-0-virt SMP preempt mod_unload modversions "
       }
     ]
   },
   "packages": [
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/apk-tools-2.14.12-r0.apk",
-      "sha256": "fdf8a327219e1e6e5d4e45fbd7db7cf4881fe3e641e831e58caa72e83a1acace",
-      "bytes": 34579,
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/apk-tools-2.14.13-r0.apk",
+      "sha256": "0bda906a0a82c10c028fdabe40f4acab790ab819f5802f817f45fcb711f1d111",
+      "bytes": 34582,
       "name": "apk-tools",
-      "version": "2.14.12-r0",
+      "version": "2.14.13-r0",
       "arch": "x86_64",
       "dependencies": [
         "musl>=1.2.3_git20230424",
@@ -100,10 +100,10 @@
         "so:libz.so.1"
       ],
       "provides": [
-        "cmd:apk=2.14.12-r0"
+        "cmd:apk=2.14.13-r0"
       ],
-      "index_identity": "Q18I7lWn+QFS+hg1rizHjyP1PAAVQ=",
-      "pkginfo_sha256": "dabcbb356521a07ece3e2c0843ef82508e4e17cfcbef25398cacd049b560680c"
+      "index_identity": "Q1mWs3J9trLL2EtEiPiJor1w2Mw0Y=",
+      "pkginfo_sha256": "6c7456397783ead07609128eff58311fb5dcda1128e1e4674bd657545b7a04f5"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-1.37.0-r20.apk",
@@ -269,11 +269,11 @@
       "pkginfo_sha256": "c891ff52b414eb0dbd68b4b5bcbbaa2eab2b7743a21223f73949d82142e018c1"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libapk2-2.14.12-r0.apk",
-      "sha256": "441d9dc34c4f98f14ba30a3559281d6f4577303b4efa6eb8c1627466979c3f47",
-      "bytes": 89001,
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libapk2-2.14.13-r0.apk",
+      "sha256": "c6e80ca7a7e0b4d94f4aa7657b0c1f9f15a8d8e5a19455b8f6c829559e708bd1",
+      "bytes": 88998,
       "name": "libapk2",
-      "version": "2.14.12-r0",
+      "version": "2.14.13-r0",
       "arch": "x86_64",
       "dependencies": [
         "musl>=1.2.3_git20230424",
@@ -287,8 +287,8 @@
       "provides": [
         "so:libapk.so.2.14.10=2.14.10"
       ],
-      "index_identity": "Q1ovar9GIDe78Dafw+78vlQ0+wyl8=",
-      "pkginfo_sha256": "69c2a6a59af9f1bda5364ae9511abc527d4e5423208ca0d8ecc16e2c1ea2891e"
+      "index_identity": "Q1K30Lk8WI24frN7xN3FjS1U/Yr4Q=",
+      "pkginfo_sha256": "3473ccc6869205fc8f53ebc7cdd39829622f9290167d1adbc02a2f0b75a1cbb1"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libblkid-2.41.6-r1.apk",
@@ -375,18 +375,18 @@
       "pkginfo_sha256": "fa51727b14170e0f9b30978b96d17706543244ce8ecc9f878a0e2c0a62d1db75"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/linux-virt-6.12.114-r0.apk",
-      "sha256": "82b7fee968e553fb34df7102e9622c969872810b729068106ed49a03c0ba4b8a",
-      "bytes": 40732552,
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/linux-virt-6.12.115-r0.apk",
+      "sha256": "2c0146b71bb15b1dbfe3056d430ddcdb6f99ed937db51be0a2a7760db6a9b3fc",
+      "bytes": 40742693,
       "name": "linux-virt",
-      "version": "6.12.114-r0",
+      "version": "6.12.115-r0",
       "arch": "x86_64",
       "dependencies": [
         "initramfs-generator"
       ],
       "provides": [],
-      "index_identity": "Q19mSv3PCACUMRLEq4mwIJsUdPr5k=",
-      "pkginfo_sha256": "bf661d01b0ab0f5f541f8bb4ff656c1b4f63f53633f6d0073e961d3ab01b46f3"
+      "index_identity": "Q1+p81ALJSEEj0T76/zlkHOQ9+loQ=",
+      "pkginfo_sha256": "f5b4672bba402990a561190a93d8648996540ea7665377217ca18728ca230aba"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/mdev-conf-4.8-r0.apk",
@@ -493,20 +493,20 @@
       "pkginfo_sha256": "ed0d3618356ba1eb56c345377495be4b10e2dad28a0656f578eda096baf7c036"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.3.2-r1.apk",
-      "sha256": "af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216",
-      "bytes": 55457,
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.4-r0.apk",
+      "sha256": "a271d6491037f7037010ac98b40f7d2b81c733f425b20294ee771b6ed7571038",
+      "bytes": 56274,
       "name": "zlib",
-      "version": "1.3.2-r1",
+      "version": "1.4-r0",
       "arch": "x86_64",
       "dependencies": [
         "so:libc.musl-x86_64.so.1"
       ],
       "provides": [
-        "so:libz.so.1=1.3.2"
+        "so:libz.so.1=1.4"
       ],
-      "index_identity": "Q1/4h5E7MrlBVDXCCuIDGXwWkzrzs=",
-      "pkginfo_sha256": "2cf5886908cb13761e2307cfd89e979f7f92c5ad8ceb56e24f4e3af598cbb14e"
+      "index_identity": "Q1EHjMEsJcFTsyYtFfIcswNU8ZoRA=",
+      "pkginfo_sha256": "8aa770b123b3e6754c5b604a1a48ba774ee7dd9c0bfa9d37c0dece860e70b7a2"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zstd-libs-1.5.7-r0.apk",

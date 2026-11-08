@@ -24,8 +24,8 @@ SPEC = importlib.util.spec_from_file_location('linux_oracle_builder', ROOT / 'us
 BUILD = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(BUILD)
 LOCK = ROOT / 'userland/ports/linux-oracle-lock.json'
-VERSION = '6.12.114-r0'
-RELEASE = '6.12.114-0-virt'
+VERSION = '6.12.115-r0'
+RELEASE = '6.12.115-0-virt'
 NAMES = set('apk-tools busybox busybox-binsh ca-certificates-bundle cryptsetup-libs device-mapper-libs json-c kmod kmod-libs lddtree libapk2 libblkid libcrypto3 libeconf libssl3 libuuid linux-virt mdev-conf mkinitfs musl scanelf ssl_client xz-libs zlib zstd-libs'.split())
 NOARCH = {'busybox-binsh', 'ca-certificates-bundle', 'lddtree', 'mdev-conf'}
 SHA = re.compile(r'[0-9a-f]{64}')
@@ -63,7 +63,7 @@ def load_lock(path):
                 for e in mini['keys']), 'Invalid trust-key inventory')
     kernel = lock['kernel']
     require((kernel['name'], kernel['version'], kernel['module_release']) ==
-            ('linux-virt', VERSION, RELEASE), 'Only explicitly reviewed NEW114 reference is allowed')
+            ('linux-virt', VERSION, RELEASE), 'Only explicitly pinned NEW115 reference is allowed')
     expected_paths = {'boot/vmlinuz-virt'} | {
         f'lib/modules/{RELEASE}/kernel/drivers/input/{n}.ko.gz' for n in ['evdev', 'misc/uinput']}
     require(len(kernel['contents']) == 3 and {e['path'] for e in kernel['contents']} == expected_paths,
