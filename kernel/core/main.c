@@ -122,7 +122,8 @@ void kmain(void) {
     vfs_mount("/sys", sysfs_create_root());
     input_init();
     /* Opt-in only: do not start initramfs userspace if the requested root
-     * has no single recognized root= token or its mount fails. Legacy fallback is unchanged. */
+     * has no single recognized root= token or its mount fails. Without a
+     * recognized root_required token, legacy fallback is unchanged. */
     static char required_root[64];
     int mount_error = 0;
     int strict_root = root_policy_mount(boot_cmdline(), required_root, vfs_mount_root, &mount_error);
