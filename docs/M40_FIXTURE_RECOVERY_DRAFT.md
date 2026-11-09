@@ -66,3 +66,19 @@ Do not boot, run CI, retry, or merge on the strength of these notes. The exact
 host, fixture, launcher and one-attempt protocol remain subject to verification
 and explicit agreement. See `M40_OFFLINE_PROTOCOL_DRAFT.md` and the prior
 [review evidence](https://github.com/0x6432/9os/pull/58#issuecomment-6743466461).
+
+## Subsequent local candidate and archive-packing draft
+
+An unapproved candidate was later rebuilt locally; exact hashes and narrow
+checks are recorded in [PR #61](https://github.com/0x6432/9os/pull/61#issuecomment-6745276795).
+Its original newc archive contained 365 regular multi-link records, including
+254 zero-payload timezone entries. The kernel loader does not reconstruct newc
+hardlinks, so these may unpack as empty files. This is an offline inference,
+not a guest result.
+
+The proposed `initramfs-pack.sh` stages independent file copies before packing.
+This preserves each file's bytes in the archive but intentionally does not
+implement hardlink identity; newc still cannot carry capability xattrs. Host
+controls and an exact archive comparison are not a substitute for review,
+actual kernel extraction, guest behavior, or fixture security inspection.
+Rebuilding changes the ISO and requires a new manifest and exact-input review.

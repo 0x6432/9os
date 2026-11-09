@@ -40,6 +40,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-unpack-mode-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/initramfs-hardlinks-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/m40-ci-gate-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-busybox-wrapper-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-security-preflight-host-tests.py
