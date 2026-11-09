@@ -64,6 +64,15 @@ if [ -n "${M40_FROZEN_MANIFEST:-}" ] || [ -n "${M40_FROZEN_DISK:-}" ];then
  [ -n "${M40_FROZEN_MANIFEST:-}" ] && [ -n "${M40_FROZEN_DISK:-}" ] || { echo 'Frozen manifest and disposable disk are both required' >&2;exit 2; }
  [ "$ARCH" = x86_64 ] && [ "$input_chain_diagnostics" = 1 ] || { echo 'Frozen mode requires x86_64 input-chain diagnostics' >&2;exit 2; }
  [ -z "${QEMU_EXTRA:-}" ] || { echo 'Frozen mode refuses QEMU_EXTRA overrides' >&2;exit 2; }
+ [ "${ALPINE_QT_KEY_TRACE:-0}" = 0 ] && [ "${ALPINE_A11Y_DBUS_VALIDATE:-0}" = 0 ] && [ "${ALPINE_TERMINAL_QUERY:-atspi}" = atspi ] || { echo 'Frozen mode refuses alternate diagnostic options' >&2;exit 2; }
+ command -v tesseract >/dev/null 2>&1 && tesseract --list-langs 2>/dev/null | grep -qx eng || { echo 'Frozen mode requires tesseract OCR with English data' >&2;exit 2; }
+ # Private, fresh output directory; it is retained even after a failure.
+ # Same-UID interference is still outside this pathname-level protection.
+ umask 077
+ output_dir=$(mktemp -d "$(pwd -P)/build/9os-kms-frozen-XXXXXXXX")
+ L=$output_dir/host.log
+ P=$output_dir/capture
+ printf 'FROZEN_OUTPUT_DIR=%s\n' "$output_dir"
  DISK=$M40_FROZEN_DISK
  frozen=1
 else
@@ -121,14 +130,23 @@ if [ "$input_chain_diagnostics" = 1 ];then
   test_rc=$?
  fi
  diag_rc=0
- if python3 scripts/input-chain-check.py "$L" >"$D/input-chain-check.log" 2>&1;then
+ if [ "$frozen" = 1 ] && { [ ! -f "$L" ] || [ -L "$L" ]; };then
+  printf '%s\n' 'SKIP input-chain checker: no regular attempt log' >"$D/input-chain-check.log"
+  diag_rc=1
+ elif python3 scripts/input-chain-check.py "$L" >"$D/input-chain-check.log" 2>&1;then
   diag_rc=0
  else
   diag_rc=$?
  fi
  cat "$D/input-chain-check.log"
- cat "$D/input-chain-check.log" >>"$L"
- printf 'INPUT_CHAIN_CHECK_RC=%s\n' "$diag_rc" >>"$L"
+ # The frozen controller owns its exclusively created log. Never reopen that
+ # pathname for appending; on refusal it may not belong to this attempt.
+ if [ "$frozen" = 1 ];then
+  printf 'ORCHESTRATED_CONTROLLER_RC=%s\nINPUT_CHAIN_CHECK_RC=%s\n' "$test_rc" "$diag_rc"
+ else
+  cat "$D/input-chain-check.log" >>"$L"
+  printf 'INPUT_CHAIN_CHECK_RC=%s\n' "$diag_rc" >>"$L"
+ fi
  if [ "$test_rc" -ne 0 ];then exit "$test_rc";fi
  exit "$diag_rc"
 fi

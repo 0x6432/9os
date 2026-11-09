@@ -235,7 +235,7 @@ class Frozen(unittest.TestCase):
 
 
 class FrozenKmsWrapper(unittest.TestCase):
-    def run_wrapper(self, manifest=True, disk=True, diagnostic=True, extra=''):
+    def run_wrapper(self, manifest=True, disk=True, diagnostic=True, extra='', option=None, ocr=True):
         with tempfile.TemporaryDirectory(prefix='frozen-kms-inert-') as td:
             root=Path(td);scripts=root/'scripts';scripts.mkdir();(root/'build').mkdir()
             shutil.copy2(ROOT/'scripts/alpine-kms-tests.sh', scripts/'alpine-kms-tests.sh')
@@ -248,11 +248,14 @@ class FrozenKmsWrapper(unittest.TestCase):
                          'inputeventcapture','input-capture-ready','konsole-key-trace','wayland-presentation-proxy'):
                 f=fixture/name;f.write_text('inert');f.chmod(0o755)
             lib=fixture.parent/'lib';lib.mkdir();(lib/'lib9os-qt-key-observer.so').write_text('inert')
-            env=dict(os.environ,PATH='/usr/bin:/bin',CAPTURE=str(root/'capture.json'),
+            bindir=root/'bin';bindir.mkdir();tesseract=bindir/'tesseract'
+            tesseract.write_text('#!/bin/sh\n'+('echo eng\n' if ocr else 'exit 1\n'));tesseract.chmod(0o755)
+            env=dict(os.environ,PATH=str(bindir)+':/usr/bin:/bin',CAPTURE=str(root/'capture.json'),
                      DISK_CALLED=str(root/'disk-called'),QEMU_EXTRA=extra,
                      ALPINE_INPUT_CHAIN_DIAGNOSTICS='1' if diagnostic else '0',
                      ALPINE_QT_KEY_TRACE='0',ALPINE_A11Y_DBUS_VALIDATE='0',ALPINE_TERMINAL_QUERY='atspi')
             env.pop('M40_FROZEN_MANIFEST',None);env.pop('M40_FROZEN_DISK',None)
+            if option:env.update(option)
             if manifest:env['M40_FROZEN_MANIFEST']=str(root/'manifest.json')
             if disk:env['M40_FROZEN_DISK']=str(root/'disposable.raw')
             r=subprocess.run(['/bin/sh',str(scripts/'alpine-kms-tests.sh'),'x86_64'],cwd=root,env=env,
@@ -269,9 +272,15 @@ class FrozenKmsWrapper(unittest.TestCase):
             self.assertEqual(args.count(flag),1)
         self.assertIn('--require-input-capture-ready',next(a for a in args if a.startswith('host:python3 scripts/qemu-ready-type.py')))
         self.assertEqual(args[args.index('--cmdline')+1],'root=/dev/vda1')
+        self.assertIn('ORCHESTRATED_CONTROLLER_RC=0',r.stdout)
+        self.assertIn('INPUT_CHAIN_CHECK_RC=0',r.stdout)
+        self.assertIn('FROZEN_OUTPUT_DIR=',r.stdout)
 
     def test_incomplete_or_overridden_configuration_fails_before_disk_and_runner(self):
-        for kwargs in ({'manifest':False},{'disk':False},{'diagnostic':False},{'extra':'-smp 8'}):
+        for kwargs in ({'manifest':False},{'disk':False},{'diagnostic':False},{'extra':'-smp 8'},
+                       {'ocr':False},{'option':{'ALPINE_QT_KEY_TRACE':'1'}},
+                       {'option':{'ALPINE_A11Y_DBUS_VALIDATE':'1'}},
+                       {'option':{'ALPINE_TERMINAL_QUERY':'live-dbus'}}):
             with self.subTest(kwargs=kwargs):
                 r,args,disk_called,runner_called=self.run_wrapper(**kwargs)
                 self.assertNotEqual(r.returncode,0)

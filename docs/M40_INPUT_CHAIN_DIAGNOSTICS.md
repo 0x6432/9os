@@ -56,9 +56,11 @@ source-authenticated evidence.
 The original QMP key sequence, pre-existing readiness evidence, deadlines,
 and acceptance commands are unchanged. Diagnostic mode adds a finite-poll
 devices-open gate before that same key command; it does not substitute a new
-key sequence or readiness threshold. The QEMU acceptance result is saved
-separately from the diagnostic checker result: diagnostic success cannot rescue
-an original failure. Tracing can perturb timing, and even a complete
+key sequence or readiness threshold. The orchestrated controller result is
+recorded separately from the diagnostic checker result: diagnostic success
+cannot rescue a failed controller. The controller result includes diagnostic
+steps and is not a separately computed original-only acceptance result. Tracing
+can perturb timing, and even a complete
 trace-enabled pass is not an unchanged-timing cold-reliability sample or a
 cause/fix claim. Keep every failed attempt.
 
@@ -109,6 +111,16 @@ log refusals report a preflight failure and explicitly mark the parsed requested
 steps skipped. If QEMU cannot start, the launcher reports that failure and skips
 on stdout and in the fresh host log. A refusal before log creation has no log.
 This does not guarantee a complete summary for arbitrary host exceptions.
+Frozen mode refuses nondefault Qt trace, D-Bus validation and terminal-query
+settings and requires Tesseract with English data. It uses a fresh private
+output directory, never appends checker results to the controller log, and
+prints the orchestrated-controller and checker return codes separately on
+stdout. Capture stdout independently. Screenshots refuse existing output paths
+and use private intermediate files. This freshness rule also applies outside
+frozen mode: a repeated non-diagnostic run must use fresh paths rather than
+silently deleting earlier screenshots. These pathname checks do not prevent
+same-UID interference, bind firmware, host libraries or scripts, establish host
+isolation, or prevent initramfs userspace from running before the root gate.
 The cmdline argument is a guard, not injection: independently inspect
 the ISO to verify its embedded `root=/dev/vda1` before launching. After the
 shell starts, frozen mode also requires exactly one `/` mount from
@@ -120,7 +132,8 @@ check does not replace fixture review or a complete security audit.
 
 Capture complete host stdout/stderr, the attempt-specific log and screenshots,
 checker result, pre/post hashes, QEMU version and execution environment. The
-original acceptance result and diagnostic checker remain separate. After the
+orchestrated controller and diagnostic checker results remain separate; neither
+is an independently computed original-only acceptance result. After the
 process and its children stop, retain the disposable disk and recheck the
 manifest, executable, ISO and golden hashes. A changed artifact, missing stream,
 failed command, timeout or skip remains visible and blocks acceptance. Do not
