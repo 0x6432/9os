@@ -183,15 +183,15 @@ class Frozen(unittest.TestCase):
 
     def test_real_root_gate_expression(self):
         with tempfile.TemporaryDirectory() as td:
-            root=Path(td); mounts=root/'mounts'; dbus=root/'dbus'; pam=root/'pam'
+            root=Path(td); mounts=root/'mounts'; dbus=root/'dbus'; pam=root/'pam'; shadow=root/'shadow'; shadow.touch()
             fakebin=root/'bin'; fakebin.mkdir(); fake_stat=fakebin/'stat'
-            fake_stat.write_text('#!/bin/sh\ncase "$3" in */dbus) echo "${DBUS_META}";; */pam) echo "${PAM_META}";; *) exit 1;; esac\n')
+            fake_stat.write_text('#!/bin/sh\ncase "$3" in */dbus) echo "${DBUS_META}";; */pam) echo "${PAM_META}";; */shadow) echo "${SHADOW_META}";; *) exit 1;; esac\n')
             fake_stat.chmod(0o755)
-            env=dict(os.environ,PATH=str(fakebin)+':/usr/bin:/bin',DBUS_META='0:81:4750',PAM_META='0:42:2755')
-            command=FROZEN.root_gate_command(str(mounts),str(dbus),str(pam))
-            def check(rows, dbus_meta='0:81:4750', pam_meta='0:42:2755'):
+            env=dict(os.environ,PATH=str(fakebin)+':/usr/bin:/bin',DBUS_META='0:81:4750',PAM_META='0:42:2755',SHADOW_META='0:42:640')
+            command=FROZEN.root_gate_command(str(mounts),str(dbus),str(pam),str(shadow))
+            def check(rows, dbus_meta='0:81:4750', pam_meta='0:42:2755', shadow_meta='0:42:640'):
                 mounts.write_text(rows)
-                e=dict(env,DBUS_META=dbus_meta,PAM_META=pam_meta)
+                e=dict(env,DBUS_META=dbus_meta,PAM_META=pam_meta,SHADOW_META=shadow_meta)
                 return subprocess.run(['/bin/sh','-c',command],env=e).returncode
             good='/dev/vda1 / ext2 rw 0 0\nproc /proc proc rw 0 0\n'
             self.assertEqual(check(good),0)
@@ -201,6 +201,10 @@ class Frozen(unittest.TestCase):
             self.assertNotEqual(check(good,dbus_meta='0:0:4750'),0)
             self.assertNotEqual(check(good,pam_meta='0:0:2755'),0)
             self.assertNotEqual(check(good,pam_meta='0:42:755'),0)
+            for bad in ('0:0:640','0:42:644','1:42:640'):
+                self.assertNotEqual(check(good,shadow_meta=bad),0)
+            shadow.unlink();self.assertNotEqual(check(good),0)
+            shadow.symlink_to('/etc/passwd');self.assertNotEqual(check(good),0)
 
     def test_runner_marks_changed_golden_as_failure(self):
         r=self.run_runner(mutate=True)

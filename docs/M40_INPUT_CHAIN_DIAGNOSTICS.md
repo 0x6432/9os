@@ -108,8 +108,11 @@ Descendants that deliberately create new sessions are not contained. Frozen mode
 the ISO to verify its embedded `root=/dev/vda1` before launching. After the
 shell starts, frozen mode also requires exactly one `/` mount from
 `/dev/vda1` of type `ext2`, and checks the two corrected helper owners and
-modes. If this preflight fails, all requested diagnostic steps are skipped
-and the run fails. These checks are not a complete security audit.
+modes. It additionally requires a regular, non-symlink `/etc/shadow` with
+mode 0640 and root:shadow (0:42), because early init must correct the
+root:root group left by offline packaging. If this preflight fails, all
+requested diagnostic steps are skipped and the run fails. This post-boot
+check does not replace fixture review or a complete security audit.
 
 Capture complete host stdout/stderr, the attempt-specific log and screenshots,
 checker result, pre/post hashes, QEMU version and execution environment. The

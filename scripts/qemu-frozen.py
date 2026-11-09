@@ -126,10 +126,12 @@ def run_host(command, timeout):
 
 
 def root_gate_command(mounts='/proc/mounts', dbus='/usr/libexec/dbus-daemon-launch-helper',
-                      pam='/usr/sbin/unix_chkpwd'):
-    """Require the mounted disk and narrowly repaired helpers, not initramfs fallback."""
+                      pam='/usr/sbin/unix_chkpwd', shadow='/etc/shadow'):
+    """Require disk root, repaired helpers, and successful shadow-group setup."""
     q = shlex.quote
     program = '$2 == "/" { n++; if ($1 == "/dev/vda1" && $3 == "ext2") ok++ } END { exit !(n == 1 && ok == 1) }'
     return ('awk ' + q(program) + ' ' + q(mounts)
             + ' && test "$(stat -c %u:%g:%a ' + q(dbus) + ')" = 0:81:4750'
-            + ' && test "$(stat -c %u:%g:%a ' + q(pam) + ')" = 0:42:2755')
+            + ' && test "$(stat -c %u:%g:%a ' + q(pam) + ')" = 0:42:2755'
+            + ' && test ! -L ' + q(shadow) + ' && test -f ' + q(shadow)
+            + ' && test "$(stat -c %u:%g:%a ' + q(shadow) + ')" = 0:42:640')
