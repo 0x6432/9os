@@ -8,13 +8,13 @@ musl or BusyBox. Only the kernel/image packaging is built locally.
 
 Host prerequisites: Python >=3.11, GNU tar/cpio, clang/lld, xorriso, make, and the
 repository's normal Limine/uACPI/QEMU setup. The image builder currently requires
-an x86_64 host; aarch64/riscv64 are cross-installed and tested by PR CI, not locally.
+an x86_64 host; aarch64/riscv64 have CI lanes, but the current draft is not validated.
 Pillow is needed only by the host pixel checker. Alpine Sway carries a signed
 `security.capability` xattr: apk2 extraction needs host `CAP_SETFCAP` (the sandbox
 has it; ordinary GitHub runners do not). CI uses sudo **only for signed assembly**,
-then returns cache/image ownership to the runner and restores the signed restricted
-BusyBox wrapper mode before ordinary unprivileged kernel/image builds. The main
-BusyBox binary is not setuid. No signature bypass,
+then returns cache/image ownership to the runner. This ownership handoff strips
+security metadata: the x86 preflight intentionally fails until a reviewed packaging
+solution is integrated. The main BusyBox binary is not setuid. No signature bypass,
 ignored install failure, target script execution or host capability is required
 inside the guest. The newc initramfs does not preserve file capability xattrs;
 these headless tests do not exercise privileged DRM/seat access.
@@ -35,6 +35,30 @@ The full Alpine dependency closure is substantially larger than the tailored
 source image (~502 MiB installed in the current x86 package set). Tests request
 2 GiB guest RAM; this is a development/compatibility lane, not an image-size
 optimization. Tests use the usual passwordless root/test accounts: VM use only.
+
+## Experimental x86 mode repair (review required; no boot approval)
+
+The default CI ownership handoff strips privileged bits and capability xattrs;
+its narrow x86 preflight deliberately fails rather than boot a damaged image.
+Do not interpret this draft CI path as passing. The experimental opt-in
+`--restore-signed-x86-modes` is for a private build inside a single-ID,
+non-host-root user namespace, with the locked package cache available offline.
+It verifies the exact x86 package closure, mini bootstrap, APK hashes and
+signatures, and the signed header and bytes of ten explicit privileged files
+(two for base), then restores only their signed modes after validating all ten.
+It refuses unexpected owners, links, symlinks, modes or content. Keep the stage
+and cache private: concurrent writers can race the checks. Do not run staged
+executables on the host.
+
+The namespace must also be used for packaging execute-only `bbsuid` and for
+retaining namespaced capability xattrs; the tiny offline host controls are
+`scripts/alpine-userns-mode-repair-host-tests.py CACHE` and
+`scripts/alpine-userns-packaging-host-test.py CACHE`. They require unprivileged
+user/network namespace support and never boot a guest. This remains a proposed
+host packaging approach, not independently reviewed or integrated into CI.
+It does not fix initramfs ownership/capability loss, review the entire overlay,
+verify 9os privilege semantics, approve the launcher or provide guest evidence.
+The disk's two non-root groups still require the separate opt-in owner repair.
 
 ## Provenance and replay
 

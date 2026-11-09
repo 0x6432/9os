@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build an isolated, signed Alpine runtime; never execute target package scripts."""
 import argparse, concurrent.futures, fcntl, hashlib, json, os, pathlib, platform, re
-import shutil, subprocess, tempfile, time, urllib.request
+import shutil, subprocess, sys, tempfile, time, urllib.request
 
 VERSION = '3.22.6'
 BRANCH = 'v3.22'
@@ -180,10 +180,13 @@ def main():
     ap.add_argument('--lock', type=pathlib.Path, help='Replay exact signed APK URLs/hashes; no index refresh')
     ap.add_argument('--offline', action='store_true', help='Require locked, cached artifacts; never contact repositories')
     ap.add_argument('--resolve', action='store_true', help='Explicitly refresh dependency resolution instead of a checked-in lock')
+    ap.add_argument('--restore-signed-x86-modes', action='store_true', help='Experimental: restore a pinned subset of signed modes inside a single-ID user namespace; not a boot approval')
     args = ap.parse_args()
     suffix = '' if args.profile == 'base' else '-desktop'
     image = 'alpine' + suffix
     checked = TOP / f'userland/alpine/locks/{args.arch}{suffix}.json'
+    if args.restore_signed_x86_modes and (args.arch != 'x86_64' or args.resolve):
+        ap.error('signed mode restoration requires a locked x86_64 profile')
     if args.resolve and args.lock:
         ap.error('--resolve and --lock are mutually exclusive')
     if args.lock is None and not args.resolve and checked.exists():
@@ -223,6 +226,12 @@ def main():
             if lock.get('profile', 'base') != args.profile:
                 raise ValueError('lock profile mismatch')
             entries = lock['packages']
+            if args.restore_signed_x86_modes:
+                expected = json.loads(checked.read_text())
+                actual_pins = sorted((e['url'], e['sha256']) for e in entries)
+                expected_pins = sorted((e['url'], e['sha256']) for e in expected['packages'])
+                if actual_pins != expected_pins:
+                    raise ValueError('Signed mode restoration requires the exact checked-in package closure')
         else:
             cmd = apk + ['--root', str(host), '--arch', arch] + trust + [
                 '--repositories-file', str(repos), '--no-cache', 'fetch', '--simulate', '--recursive', '--url'] + PROFILES[args.profile]
@@ -276,6 +285,9 @@ def main():
             shutil.copyfile(stage / 'usr/share/zoneinfo/UTC', stage / 'etc/localtime')
             (stage / 'etc/timezone').write_text('UTC\n')
         os.chmod(stage / 'etc/shadow', 0o640)
+        if args.restore_signed_x86_modes:
+            subprocess.run([sys.executable, str(TOP / 'scripts/alpine-userns-mode-repair.py'), str(stage),
+                            '--profile', args.profile, '--cache', str(cache)], check=True)
         configure_busybox_privileges(stage)
         manifest = {'profile': args.profile, 'alpine': VERSION, 'arch': arch, 'minirootfs_sha256': MINI[arch], 'packages': entries}
         if args.profile == 'desktop':
