@@ -81,6 +81,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-unpack-mode-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/m40-ci-gate-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-busybox-wrapper-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-security-preflight-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
@@ -140,6 +141,12 @@ jobs:
           scripts/ioctlwidth-host-tests.sh
           python3 scripts/rootfs-stamp-host-tests.py
           python3 scripts/fetch-host-tests.py
+
+      # Temporary M40 safety gate: not a guest test and not an approval mechanism.
+      - name: M40 independent review gate (guest runs blocked)
+        run: |
+          echo "::error::M40 guest execution blocked pending independent fixture, security and launcher review; guest tests are not run."
+          exit 1
 
       - name: Build userland (musl, BusyBox, Bash, ports)
         run: userland/build-all.sh

@@ -38,6 +38,11 @@ optimization. Tests use the usual passwordless root/test accounts: VM use only.
 
 ## Experimental x86 mode repair (review required; no boot approval)
 
+The draft workflows have an unconditional, visibly failing M40 gate before
+all guest lanes, including non-x86 and source-built lanes. It is not a CI pass.
+Older stacked PR heads do not inherit this gate; do not rerun them for guests
+before review. The gate cannot authorize or replace the agreed diagnostic protocol.
+
 The default CI ownership handoff strips privileged bits and capability xattrs;
 its narrow x86 preflight deliberately fails rather than boot a damaged image.
 Do not interpret this draft CI path as passing. The experimental opt-in

@@ -40,6 +40,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-unpack-mode-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/m40-ci-gate-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-busybox-wrapper-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-security-preflight-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
@@ -106,6 +107,12 @@ jobs:
           python3 scripts/qemu-type-host-tests.py
           python3 scripts/qemu-qmp-type-host-tests.py
           python3 scripts/alpine-async-image-host-tests.py
+      # Temporary M40 safety gate: not a guest test and not an approval mechanism.
+      - name: M40 independent review gate (guest runs blocked)
+        run: |
+          echo "::error::M40 guest execution blocked pending independent fixture, security and launcher review; guest tests are not run."
+          exit 1
+
       - name: Install signed prebuilt runtime
         # apk2 applies Sway's signed security.capability xattr. The runner needs
         # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
@@ -182,6 +189,12 @@ jobs:
       TOOLS_DIR: ${{ github.workspace }}/.tools
     steps:
       - uses: actions/checkout@v4
+      # Temporary M40 safety gate: not a guest test and not an approval mechanism.
+      - name: M40 independent review gate (guest runs blocked)
+        run: |
+          echo "::error::M40 guest execution blocked pending independent fixture, security and launcher review; guest tests are not run."
+          exit 1
+
       - name: Host tools only; signed prebuilt desktop dependencies
         run: |
           sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2 -o APT::Update::Error-Mode=any update -q
