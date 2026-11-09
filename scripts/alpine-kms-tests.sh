@@ -4,6 +4,10 @@
 set -eu
 cd "$(dirname "$0")/.."
 ARCH=${1:-x86_64}
+case ${M40_FROZEN_OFFLINE-0} in
+ 0|1) ;;
+ *) echo 'M40_FROZEN_OFFLINE must be 0 or 1' >&2; exit 2 ;;
+esac
 case ${ALPINE_QT_KEY_TRACE:-0} in
  0) service_command=alpine-desktop-services ;;
  1) service_command='export ALPINE_QT_KEY_TRACE=1; alpine-desktop-services' ;;
@@ -64,6 +68,9 @@ frozen=0
 if [ -n "${M40_FROZEN_MANIFEST:-}" ] || [ -n "${M40_FROZEN_DISK:-}" ];then
  [ -n "${M40_FROZEN_MANIFEST:-}" ] && [ -n "${M40_FROZEN_DISK:-}" ] || { echo 'Frozen manifest and disposable disk are both required' >&2;exit 2; }
  [ "$ARCH" = x86_64 ] && [ "$input_chain_diagnostics" = 1 ] || { echo 'Frozen mode requires x86_64 input-chain diagnostics' >&2;exit 2; }
+ # Paths used by frozen host: shell commands are interpolated unquoted below.
+ # Refuse unsafe workspace paths instead of interpreting them as shell syntax.
+ python3 -c 'import os,re,sys; sys.exit(not bool(re.fullmatch(r"/[A-Za-z0-9_./-]*", os.getcwd())))' || { echo 'Frozen mode requires a shell-safe workspace path' >&2;exit 2; }
  [ -z "${QEMU_EXTRA:-}" ] || { echo 'Frozen mode refuses QEMU_EXTRA overrides' >&2;exit 2; }
  [ "${ALPINE_QT_KEY_TRACE:-0}" = 0 ] && [ "${ALPINE_A11Y_DBUS_VALIDATE:-0}" = 0 ] && [ "${ALPINE_TERMINAL_QUERY:-atspi}" = atspi ] || { echo 'Frozen mode refuses alternate diagnostic options' >&2;exit 2; }
  command -v tesseract >/dev/null 2>&1 || { echo 'Frozen mode requires tesseract OCR with English data' >&2;exit 2; }
@@ -79,6 +86,7 @@ if [ -n "${M40_FROZEN_MANIFEST:-}" ] || [ -n "${M40_FROZEN_DISK:-}" ];then
  DISK=$M40_FROZEN_DISK
  frozen=1
 else
+ [ "${M40_FROZEN_OFFLINE-0}" = 0 ] || { echo 'Offline mode requires frozen manifest and disk' >&2; exit 2; }
  scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
  # Use a newly created directory rather than relying on date/PID uniqueness.
  mkdir -p build
@@ -89,6 +97,7 @@ else
 fi
 run_qemu_test() {
  if [ "$frozen" = 1 ];then
+  if [ "${M40_FROZEN_OFFLINE-0}" = 1 ]; then set -- --frozen-offline "$@"; fi
   python3 scripts/qemu-test.py "$ARCH" --userland alpine --memory 3072M \
    --disk "$DISK" --cmdline root=/dev/vda1 --boot-timeout 300 --timeout 780 --log "$L" \
    --frozen-manifest "$M40_FROZEN_MANIFEST" --monitor-socket "$S" --qmp-socket "$Q" "$@"

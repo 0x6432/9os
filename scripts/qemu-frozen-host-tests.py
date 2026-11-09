@@ -18,6 +18,7 @@ FROZEN = SourceFileLoader('qemu_frozen', str(ROOT / 'scripts/qemu-frozen.py')).l
 FAKE = '''#!/usr/bin/python3
 import os, re, sys
 open(os.environ['FAKE_CALLED'],'w').write(str(os.getpid()))
+if os.environ.get('FAKE_ARGV'): open(os.environ['FAKE_ARGV'],'w').write(__import__('json').dumps(sys.argv[1:]))
 if os.environ.get('FAKE_MUTATE'):
  open(os.environ['FAKE_MUTATE'],'wb').write(b'changed after preflight')
 print('Welcome to 9os\\n# ',end='',flush=True)
@@ -65,6 +66,56 @@ class Frozen(unittest.TestCase):
             f.golden.write_bytes(b'changed')
             with self.assertRaisesRegex(ValueError, 'golden_disk changed'):FROZEN.verify_after(state)
 
+    def test_offline_argv_removes_guest_network(self):
+        with tempfile.TemporaryDirectory() as td:
+            f=Fixture(Path(td))
+            cmd,_=FROZEN.load(str(f.manifest),str(f.disk),f.monitor,f.qmp,offline=True)
+            normal,_=f.load()
+            expected=normal.copy()
+            at=expected.index('-netdev')
+            self.assertEqual(expected[at:at+4],['-netdev','user,id=n0','-device','virtio-net-pci,netdev=n0'])
+            expected[at:at+4]=['-nic','none']
+            self.assertEqual(cmd,expected)
+            self.assertEqual(cmd.count('-nic'),1)
+            self.assertNotIn('-netdev',cmd);self.assertNotIn('-net',cmd)
+            self.assertFalse(any('virtio-net' in arg for arg in cmd))
+
+    def test_offline_refuses_bad_hash_alias_and_socket(self):
+        for case in ('hash','alias','socket'):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as td:
+                f=Fixture(Path(td))
+                if case=='hash': f.data['iso']['sha256']='0'*64; f.save()
+                if case=='alias': f.disk.unlink(); os.link(f.golden,f.disk)
+                if case=='socket': Path(f.monitor).write_text('occupied')
+                with self.assertRaises(ValueError):
+                    FROZEN.load(str(f.manifest),str(f.disk),f.monitor,f.qmp,offline=True)
+
+    def test_offline_option_requires_frozen_mode(self):
+        r=subprocess.run(['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64',
+                          '--frozen-offline','echo harmless'],capture_output=True,text=True,timeout=10)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('FAIL   frozen preflight',r.stdout)
+        self.assertIn('SKIP   echo harmless',r.stdout)
+
+    def test_offline_runner_passes_no_network_to_inert_executable(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);f=Fixture(root)
+            env=dict(os.environ,FAKE_CALLED=str(root/'fake-called'),FAKE_ARGV=str(root/'argv'))
+            for key in ('QEMU_EXTRA','FAKE_MUTATE','FAKE_ROOT_FAIL','FAKE_RC_FAIL'): env.pop(key,None)
+            args=['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
+                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
+                  '--frozen-manifest',str(f.manifest),'--frozen-offline','--monitor-socket',f.monitor,
+                  '--qmp-socket',f.qmp,'--log',str(root/'run.log'),'echo harmless']
+            r=subprocess.run(args,env=env,capture_output=True,text=True,timeout=30)
+            self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+            cmd=json.loads((root/'argv').read_text())
+            self.assertEqual(cmd[cmd.index('-nic')+1],'none')
+            self.assertNotIn('-netdev',cmd);self.assertNotIn('-net',cmd)
+            self.assertFalse(any('virtio-net' in arg for arg in cmd))
+            self.assertIn('PASS   echo harmless',r.stdout)
+            self.assertIn('FROZEN_NETWORK_MODE=no-guest-nic',r.stdout)
+            self.assertIn('FROZEN_NETWORK_MODE=no-guest-nic',(root/'run.log').read_text())
+
     def test_preflight_rejects_changed_aliases_and_bad_manifest(self):
         with tempfile.TemporaryDirectory() as td:
             f = Fixture(Path(td))
@@ -90,7 +141,7 @@ class Frozen(unittest.TestCase):
             f.data['iso']['path']=str(f.iso);f.data['version']=True;f.save()
             with self.assertRaisesRegex(ValueError, 'manifest shape'):f.load()
 
-    def run_runner(self, mutate=False, root_fail=False):
+    def run_runner(self, mutate=False, root_fail=False, offline=False):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); f=Fixture(root); fakebin=root/'bin';fakebin.mkdir()
             maker=fakebin/'make';maker.write_text('#!/bin/sh\ntouch "$MAKE_CALLED"\nexit 77\n');maker.chmod(0o755)
@@ -103,11 +154,66 @@ class Frozen(unittest.TestCase):
             args=['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
                   '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
                   '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor,'--qmp-socket',f.qmp,'--log',str(root/'run.log'),'echo harmless','host:touch '+str(root/'host-called')]
+            if offline: args.insert(args.index('--frozen-manifest'), '--frozen-offline')
             result=subprocess.run(args,env=env,capture_output=True,text=True,timeout=30)
             self.assertTrue((root/'fake-called').exists(), result.stdout+result.stderr)
             self.assertFalse((root/'make-called').exists())
             self.assertEqual((root/'host-called').exists(), not root_fail)
             return result
+
+    def test_offline_frozen_root_failure_skips_commands(self):
+        r=self.run_runner(root_fail=True,offline=True)
+        self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertIn('FROZEN_NETWORK_MODE=no-guest-nic',r.stdout)
+        self.assertIn('FAIL   frozen root preflight',r.stdout)
+        self.assertIn('SKIP   echo harmless',r.stdout)
+        self.assertIn('SKIP   host:touch ',r.stdout)
+
+    def test_offline_frozen_refuses_network_forwarding(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);f=Fixture(root);scripts=root/'scripts';scripts.mkdir()
+            controller=(ROOT/'scripts/qemu-test.py').read_text()
+            marker="ANSI = re.compile("
+            self.assertEqual(controller.count(marker),1)
+            interceptor="def forbidden_spawn(*args,**kwargs):\n    open("+repr(str(root/'spawn-called'))+",'w').close()\n    raise RuntimeError('unexpected spawn')\nsubprocess.Popen = forbidden_spawn\n\n"
+            (scripts/'qemu-test.py').write_text(controller.replace(marker,interceptor+marker))
+            (scripts/'net-host-server.py').write_text("from pathlib import Path\nPath("+repr(str(root/'server-called'))+").touch()\n")
+            env=dict(os.environ,FAKE_CALLED=str(root/'fake-called'))
+            env.pop('QEMU_EXTRA',None)
+            args=['python3',str(scripts/'qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
+                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
+                  '--frozen-manifest',str(f.manifest),'--frozen-offline','--net-test','--monitor-socket',f.monitor,
+                  '--qmp-socket',f.qmp,'--log',str(root/'run.log'),'echo harmless']
+            r=subprocess.run(args,env=env,capture_output=True,text=True,timeout=10)
+            self.assertNotEqual(r.returncode,0)
+            self.assertIn('FAIL   frozen preflight',r.stdout);self.assertIn('SKIP   echo harmless',r.stdout)
+            self.assertFalse((root/'fake-called').exists())
+            self.assertFalse((root/'server-called').exists())
+            self.assertFalse((root/'spawn-called').exists())
+
+    def test_offline_failed_host_or_guest_step_skips_rest(self):
+        for guest_fail in (False,True):
+            with self.subTest(guest_fail=guest_fail), tempfile.TemporaryDirectory() as td:
+                root=Path(td); f=Fixture(root)
+                env=dict(os.environ,FAKE_CALLED=str(root/'fake-called'))
+                for key in ('QEMU_EXTRA','FAKE_MUTATE','FAKE_ROOT_FAIL','FAKE_RC_FAIL'): env.pop(key,None)
+                if guest_fail: env['FAKE_RC_FAIL']='1'
+                step='echo harmless' if guest_fail else 'host:false'
+                later='host:touch '+str(root/'must-not-run')
+                args=['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
+                      '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
+                      '--frozen-manifest',str(f.manifest),'--frozen-offline','--monitor-socket',f.monitor,
+                      '--qmp-socket',f.qmp,'--log',str(root/'run.log'),step,later]
+                r=subprocess.run(args,env=env,capture_output=True,text=True,timeout=30)
+                self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+                self.assertIn('FROZEN_NETWORK_MODE=no-guest-nic',r.stdout)
+                self.assertIn('FAIL   '+step,r.stdout);self.assertIn('SKIP   '+later,r.stdout)
+                self.assertFalse((root/'must-not-run').exists())
+
+    def test_offline_detects_changed_golden(self):
+        r=self.run_runner(mutate=True,offline=True)
+        self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertIn('FAIL   frozen fixture verification: golden_disk changed',r.stdout)
 
     def test_frozen_runner_stops_after_failed_host_command(self):
         with tempfile.TemporaryDirectory() as td:
@@ -140,8 +246,8 @@ class Frozen(unittest.TestCase):
             self.assertFalse((root/'must-not-run').exists());self.assertFalse((root/'poweroff-sent').exists())
 
     def test_runner_rejects_bad_preflight_without_launch_or_make(self):
-        for mode in ('wrong-hash', 'extra', 'missing-qmp', 'wrong-architecture', 'existing-log', 'missing-log', 'boot-timeout', 'step-timeout'):
-            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as td:
+        for mode, offline in [(m,o) for m in ('wrong-hash', 'extra', 'missing-qmp', 'wrong-architecture', 'existing-log', 'missing-log', 'boot-timeout', 'step-timeout') for o in (False,True)]:
+            with self.subTest(mode=mode,offline=offline), tempfile.TemporaryDirectory() as td:
                 root=Path(td); f=Fixture(root); fakebin=root/'bin';fakebin.mkdir()
                 maker=fakebin/'make';maker.write_text('#!/bin/sh\ntouch "$MAKE_CALLED"\nexit 77\n');maker.chmod(0o755)
                 env=dict(os.environ,PATH=str(fakebin)+':/usr/bin:/bin',FAKE_CALLED=str(root/'fake-called'),MAKE_CALLED=str(root/'make-called'))
@@ -153,6 +259,7 @@ class Frozen(unittest.TestCase):
                       '--boot-timeout','301' if mode=='boot-timeout' else '300',
                       '--timeout','781' if mode=='step-timeout' else '780',
                       '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor]
+                if offline: args.append('--frozen-offline')
                 if mode!='missing-qmp': args.extend(['--qmp-socket',f.qmp])
                 if mode=='existing-log': (root/'run.log').write_text('must not be truncated')
                 if mode!='missing-log': args.extend(['--log',str(root/'run.log')])
@@ -311,6 +418,7 @@ class Frozen(unittest.TestCase):
         r=self.run_runner()
         self.assertEqual(r.returncode,0,r.stdout+r.stderr)
         self.assertIn('PASS   echo harmless',r.stdout)
+        self.assertIn('FROZEN_NETWORK_MODE=user-network',r.stdout)
 
     def test_failed_root_gate_skips_all_requested_steps(self):
         r=self.run_runner(root_fail=True)
@@ -352,9 +460,11 @@ class Frozen(unittest.TestCase):
 
 
 class FrozenKmsWrapper(unittest.TestCase):
-    def run_wrapper(self, manifest=True, disk=True, diagnostic=True, extra='', option=None, ocr=True):
+    def run_wrapper(self, manifest=True, disk=True, diagnostic=True, extra='', option=None, ocr=True, unsafe_workspace=False):
         with tempfile.TemporaryDirectory(prefix='frozen-kms-inert-') as td:
-            root=Path(td);scripts=root/'scripts';scripts.mkdir();(root/'build').mkdir()
+            root=Path(td)
+            if unsafe_workspace: root=root/unsafe_workspace;root.mkdir()
+            scripts=root/'scripts';scripts.mkdir();(root/'build').mkdir()
             shutil.copy2(ROOT/'scripts/alpine-kms-tests.sh', scripts/'alpine-kms-tests.sh')
             fake_runner=scripts/'qemu-test.py'
             fake_runner.write_text("import json,os,sys\nfrom pathlib import Path\na=sys.argv[1:]\nPath(os.environ['CAPTURE']).write_text(json.dumps(a))\np=Path(a[a.index('--log')+1]);p.write_text('')\n")
@@ -371,7 +481,7 @@ class FrozenKmsWrapper(unittest.TestCase):
                      DISK_CALLED=str(root/'disk-called'),QEMU_EXTRA=extra,
                      ALPINE_INPUT_CHAIN_DIAGNOSTICS='1' if diagnostic else '0',
                      ALPINE_QT_KEY_TRACE='0',ALPINE_A11Y_DBUS_VALIDATE='0',ALPINE_TERMINAL_QUERY='atspi')
-            env.pop('M40_FROZEN_MANIFEST',None);env.pop('M40_FROZEN_DISK',None)
+            env.pop('M40_FROZEN_MANIFEST',None);env.pop('M40_FROZEN_DISK',None);env.pop('M40_FROZEN_OFFLINE',None)
             if option:env.update(option)
             if manifest:env['M40_FROZEN_MANIFEST']=str(root/'manifest.json')
             if disk:env['M40_FROZEN_DISK']=str(root/'disposable.raw')
@@ -385,6 +495,7 @@ class FrozenKmsWrapper(unittest.TestCase):
         r,args,disk_called,runner_called=self.run_wrapper()
         self.assertEqual(r.returncode,0,r.stdout+r.stderr)
         self.assertTrue(runner_called);self.assertFalse(disk_called)
+        self.assertNotIn('--frozen-offline',args)
         for flag in ('--frozen-manifest','--monitor-socket','--qmp-socket'):
             self.assertEqual(args.count(flag),1)
         self.assertIn('--require-input-capture-ready',next(a for a in args if a.startswith('host:python3 scripts/qemu-ready-type.py')))
@@ -393,8 +504,34 @@ class FrozenKmsWrapper(unittest.TestCase):
         self.assertIn('INPUT_CHAIN_CHECK_RC=0',r.stdout)
         self.assertIn('FROZEN_OUTPUT_DIR=',r.stdout)
 
+    def test_zero_offline_option_retains_existing_default(self):
+        r,args,disk_called,runner_called=self.run_wrapper(option={'M40_FROZEN_OFFLINE':'0'})
+        self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertTrue(runner_called);self.assertFalse(disk_called)
+        self.assertNotIn('--frozen-offline',args)
+
+    def test_offline_wrapper_explicitly_selects_no_nic(self):
+        r,args,disk_called,runner_called=self.run_wrapper(option={'M40_FROZEN_OFFLINE':'1'})
+        self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertTrue(runner_called);self.assertFalse(disk_called)
+        self.assertEqual(args.count('--frozen-offline'),1)
+        self.assertEqual(args[args.index('--boot-timeout')+1],'300')
+        self.assertEqual(args[args.index('--timeout')+1],'780')
+
+    def test_frozen_rejects_each_unsafe_workspace_path(self):
+        for path in ('space name','semi;colon','trailing-newline\n'):
+            with self.subTest(path=repr(path)):
+                r,args,disk_called,runner_called=self.run_wrapper(unsafe_workspace=path, option={'M40_FROZEN_OFFLINE':'1'})
+                self.assertNotEqual(r.returncode,0)
+                self.assertIn('Frozen mode requires a shell-safe workspace path',r.stderr)
+                self.assertFalse(disk_called);self.assertFalse(runner_called)
+
     def test_incomplete_or_overridden_configuration_fails_before_disk_and_runner(self):
         for kwargs in ({'manifest':False},{'disk':False},{'diagnostic':False},{'extra':'-smp 8'},
+                       {'manifest':False,'disk':False,'option':{'M40_FROZEN_OFFLINE':'1'}},
+                       {'manifest':False,'option':{'M40_FROZEN_OFFLINE':'1'}},
+                       {'disk':False,'option':{'M40_FROZEN_OFFLINE':'1'}},
+                       {'option':{'M40_FROZEN_OFFLINE':'invalid'}},{'option':{'M40_FROZEN_OFFLINE':''}},
                        {'ocr':False},{'ocr':'bad-status'},{'option':{'ALPINE_QT_KEY_TRACE':'1'}},
                        {'option':{'ALPINE_A11Y_DBUS_VALIDATE':'1'}},
                        {'option':{'ALPINE_TERMINAL_QUERY':'live-dbus'}}):

@@ -29,6 +29,7 @@ def main():
     ap.add_argument('--cmdline', default=None, help='extra kernel command line')
     ap.add_argument('--net-test', action='store_true', help='host test server + port forwarding')
     ap.add_argument('--frozen-manifest', help='experimental x86 non-building fixture manifest')
+    ap.add_argument('--frozen-offline', action='store_true', help='disable guest NIC in frozen mode')
     ap.add_argument('--monitor-socket', help='fresh monitor socket for frozen mode')
     ap.add_argument('--qmp-socket', help='fresh QMP socket for frozen mode')
     a = ap.parse_intermixed_args()
@@ -44,6 +45,8 @@ def main():
     def refuse_frozen(reason):
         report_blocked('frozen preflight', reason)
         ap.error(reason)
+    if a.frozen_offline and not a.frozen_manifest:
+        refuse_frozen('offline option requires a frozen manifest')
     if a.frozen_manifest and (a.arch != 'x86_64' or a.userland != 'alpine' or a.smp != '4'
             or a.memory != '3072M' or a.sched or a.cmdline != 'root=/dev/vda1'
             or a.boot_timeout != 300 or a.timeout != 780
@@ -77,7 +80,7 @@ def main():
             spec = importlib.util.spec_from_file_location('qemu_frozen', os.path.join(os.path.dirname(__file__), 'qemu-frozen.py'))
             frozen = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(frozen)
-            make, frozen_state = frozen.load(a.frozen_manifest, a.disk[0], a.monitor_socket, a.qmp_socket)
+            make, frozen_state = frozen.load(a.frozen_manifest, a.disk[0], a.monitor_socket, a.qmp_socket, offline=a.frozen_offline)
         except (OSError, ValueError) as e:
             refuse_frozen('frozen preflight failed: ' + str(e))
     elif a.monitor_socket or a.qmp_socket:
@@ -90,6 +93,11 @@ def main():
             log = os.fdopen(fd, 'wb')
         except OSError as e:
             refuse_frozen('cannot create fresh frozen log: ' + str(e))
+        # Records selected initial argv, not a proof of host or guest isolation.
+        network_mode = 'no-guest-nic' if a.frozen_offline else 'user-network'
+        record = 'FROZEN_NETWORK_MODE=' + network_mode + '\n'
+        print(record, end='', flush=True)
+        log.write(record.encode()); log.flush()
     else:
         log = open(a.log, 'wb') if a.log else None
     try:

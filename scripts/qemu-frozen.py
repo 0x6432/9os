@@ -42,7 +42,7 @@ def socket_path(value, label):
     return value
 
 
-def load(manifest, disk, monitor, qmp):
+def load(manifest, disk, monitor, qmp, *, offline=False):
     mpath = regular(manifest, 'manifest')
     with mpath.open('rb') as source:
         raw = source.read(16385)
@@ -82,7 +82,7 @@ def load(manifest, disk, monitor, qmp):
     cmd = [str(paths['qemu']), '-M', 'q35', '-cpu', 'qemu64,+smep,+smap,+rdrand',
            '-m', '3072M', '-smp', '4', '-serial', 'stdio', '-no-reboot',
            '-device', 'virtio-keyboard-pci', '-device', 'virtio-tablet-pci',
-           '-netdev', 'user,id=n0', '-device', 'virtio-net-pci,netdev=n0',
+           *(['-nic', 'none'] if offline else ['-netdev', 'user,id=n0', '-device', 'virtio-net-pci,netdev=n0']),
            '-boot', 'd', '-cdrom', str(paths['iso']),
            '-audiodev', 'none,id=snd0', '-device', 'virtio-sound-pci,audiodev=snd0,streams=1',
            '-display', 'none', '-monitor', 'unix:' + monitor + ',server,nowait',
