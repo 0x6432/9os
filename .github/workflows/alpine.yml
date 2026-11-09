@@ -41,6 +41,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/evdev-linux-oracle-packages-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-unpack-mode-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-busybox-wrapper-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-security-preflight-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/input-chain-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/desktop-diagnostic-install-host-tests.py
@@ -120,6 +121,7 @@ jobs:
           chmod 4111 "userland/alpine-root-$ARCH/bin/bbsuid"
           test -r "userland/alpine-root-$ARCH/etc/shadow"
           test -x "userland/alpine-root-$ARCH/root"
+          if [ "$ARCH" = x86_64 ]; then sudo python3 scripts/alpine-security-preflight.py "userland/alpine-root-$ARCH" base; fi
       - name: Compile tiny syscall regression against prebuilt musl (not Qt)
         run: scripts/alpine-build-tests.sh "$ARCH"
       - name: Exact input consumer on signed x86 Linux reference kernel
@@ -201,6 +203,7 @@ jobs:
           sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --profile desktop --lock "userland/build/alpine-desktop-$ARCH.lock.json" --offline
           sudo chown -hR "$(id -u):$(id -g)" "userland/alpine-root-$ARCH" "userland/alpine-desktop-root-$ARCH" userland/build "$TOOLS_DIR/dl/alpine"
           chmod 4111 "userland/alpine-root-$ARCH/bin/bbsuid" "userland/alpine-desktop-root-$ARCH/bin/bbsuid"
+          if [ "$ARCH" = x86_64 ]; then sudo python3 scripts/alpine-security-preflight.py "userland/alpine-root-$ARCH" base; sudo python3 scripts/alpine-security-preflight.py "userland/alpine-desktop-root-$ARCH" desktop; fi
       - name: Independent AT-SPI real private-bus negative controls (synthetic server)
         if: matrix.arch == 'x86_64'
         run: |
