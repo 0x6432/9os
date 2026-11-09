@@ -205,9 +205,9 @@ def main():
                 if state['panic'] or p.poll() is not None: break
                 start = len(buf)
                 try:
-                    # Preserve the command status while forcing the marker onto
-                    # its own line, even if command output lacks a newline.
-                    send('%s; __qemu_test_rc=$?; echo; echo %s$__qemu_test_rc\n' % (cmd, mark))
+                    # Expand status before printf runs; no guest variable is
+                    # assigned, and the marker always starts on a new line.
+                    send('%s; printf "\\n%s%%s\\n" "$?"\n' % (cmd, mark))
                 except BrokenPipeError:
                     print('\n*** guest command aborted: serial pipe closed')
                     results.append((cmd, False))
@@ -226,7 +226,7 @@ def main():
                 body = out[:m.start()] if m else out
                 if m and b'\n' in body:
                     first, rest = body.split(b'\n', 1)
-                    echo = ('%s; __qemu_test_rc=$?; echo; echo %s$__qemu_test_rc' % (cmd, mark)).encode()
+                    echo = ('%s; printf \"\\n%s%%s\\n\" \"$?\"' % (cmd, mark)).encode()
                     if first == echo:
                         body = rest
                 passed = bool(m) and m.group(1) == b'0' and not re.search(rb'\bFAIL', body) and not state['panic']
