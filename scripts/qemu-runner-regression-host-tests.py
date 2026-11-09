@@ -22,7 +22,7 @@ for line in sys.stdin:
  if mode=='rc-prefix': print('prefix __RC%s=0' % m.group(1),flush=True); time.sleep(2); continue
  if mode=='no-newline':
   print('ready',end='',flush=True)
-  if '; printf ' in line: print('',flush=True)
+  if '; command printf ' in line: print('',flush=True)
   print('__RC%s=0\\n# ' % m.group(1),end='',flush=True); continue
  if mode=='panic': print('kernel panic: FAKE CONTROL',flush=True); break
  if mode in ('failword','echoed-failword'): print('FAKE FAIL diagnostic')

@@ -206,8 +206,8 @@ def main():
                 start = len(buf)
                 try:
                     # Expand status before printf runs; no guest variable is
-                    # assigned, and the marker always starts on a new line.
-                    send('%s; printf "\\n%s%%s\\n" "$?"\n' % (cmd, mark))
+                    # assigned, the printf function is bypassed, and the marker starts on a new line.
+                    send('%s; command printf "\\n%s%%s\\n" "$?"\n' % (cmd, mark))
                 except BrokenPipeError:
                     print('\n*** guest command aborted: serial pipe closed')
                     results.append((cmd, False))
@@ -226,7 +226,7 @@ def main():
                 body = out[:m.start()] if m else out
                 if m and b'\n' in body:
                     first, rest = body.split(b'\n', 1)
-                    echo = ('%s; printf \"\\n%s%%s\\n\" \"$?\"' % (cmd, mark)).encode()
+                    echo = ('%s; command printf \"\\n%s%%s\\n\" \"$?\"' % (cmd, mark)).encode()
                     if first == echo:
                         body = rest
                 passed = bool(m) and m.group(1) == b'0' and not re.search(rb'\bFAIL', body) and not state['panic']
