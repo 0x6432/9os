@@ -67,8 +67,21 @@ proposed supervisor must atomically create and durably retain an exclusive
 attempt ledger before the invocation; even a preflight refusal consumes that
 attempt. A further invocation requires new user agreement. It must confirm all
 descendants are stopped before post-run hashing; the existing process-group
-cleanup cannot guarantee this. These controls are not yet implemented. Software
-emulation and removal of the guest NIC can change timing or behavior; the result
+cleanup cannot guarantee this.
+
+`scripts/m40-attempt-ledger.py` is an isolated host-tested reservation primitive,
+not a supervisor, launch gate, or approval. It reserves once per stable, trusted,
+pre-provisioned directory, not once globally or per contract. It writes the
+independently supplied approved-contract digest and syncs the file and directory
+ancestry, but cannot validate agreement, prevent bypass or repeated execution,
+or establish that storage is persistent or cannot roll back. The supervisor
+must pin that directory and its ancestry, control all launch paths, bind the
+contract and limit one successful reservation to one launch. A crash or I/O
+error before confirmed durability requires external durable authorization records
+and manual reconciliation; absence of a marker is not permission to retry. Same-
+UID replacement, deletion, snapshots and volatile filesystems can defeat the
+primitive. Complete containment, launch integration and recovery are not yet
+implemented. Software emulation and removal of the guest NIC can change timing or behavior; the result
 is not an unchanged-timing reliability sample.
 
 Record complete host stdout/stderr, mode, controller and checker results, fresh
