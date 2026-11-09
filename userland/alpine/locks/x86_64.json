@@ -148,6 +148,10 @@
       "sha256": "ad33d8d799ed80eab45bb68d63c14062165d3653f4fb52e73959cd31d032210e"
     },
     {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-suid-1.37.0-r20.apk",
+      "sha256": "f139a0f28d40a3a183661ee1ad7a248fcf01e82b144114f86d3bc16cee990917"
+    },
+    {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk",
       "sha256": "9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97"
     },

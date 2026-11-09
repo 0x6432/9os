@@ -18,7 +18,7 @@ import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / 'userland/alpine/locks/x86_64-desktop.json'
-LOCK_SHA = '4d4953b7185d9915bd8681b0c850c1186588b3fbb95421ec3f4e659b891380cb'
+LOCK_SHA = 'c3665b496c3f3657a3290ee8d613c4513715827cf0d6c7e572debe21aa829ede'
 POLICY = (
     ('dbus-daemon-launch-helper-1.16.2-r1.apk', '8845aa8f7eb24b39cc91b9053bbb81c762f512a5ee4320a13f0c2e2bf06f4267',
      'usr/libexec/dbus-daemon-launch-helper', 'messagebus', 81, 0o4750),

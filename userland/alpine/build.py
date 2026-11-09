@@ -11,7 +11,7 @@ MINI = {
     'aarch64': '821565fa8f3953eefd12497b166b4b50add2f7c57fb312e75862f5867e06fefe',
     'riscv64': '72f7e69f6950c2799137a934fae61513016efa546afcb4a05540a505c4184150',
 }
-PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq', 'strace', 'musl-dev']
+PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq', 'strace', 'musl-dev', 'busybox-suid']
 PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['seatd', 'mesa-dri-gallium', 'kwin', 'plasma-workspace', 'plasma-desktop', 'breeze', 'plasma-workspace-wallpapers', 'kquickcharts', 'kpipewire', 'plasma-pa', 'tzdata', 'konsole', 'dolphin']}
 TOP = pathlib.Path(__file__).resolve().parents[2]
 
@@ -149,6 +149,30 @@ def install_desktop_accounts(stage):
             continue
         path.write_text(original.rstrip('\n') + '\n' + record + '\n')
 
+# Names accepted by Alpine's signed bbsuid wrapper. Preserve other binaries.
+BBSUID_LINKS = ('bin/mount', 'bin/umount', 'bin/su', 'usr/bin/crontab',
+                'usr/bin/passwd', 'usr/bin/traceroute', 'usr/bin/traceroute6',
+                'usr/bin/vlock')
+
+
+def configure_busybox_privileges(stage):
+    """Use the signed allowlisted wrapper, not setuid on every applet."""
+    busybox, wrapper = stage / 'bin/busybox', stage / 'bin/bbsuid'
+    for path, mode in ((busybox, 0o755), (wrapper, 0o4111)):
+        if path.is_symlink() or not path.is_file() or (path.stat().st_mode & 0o7777) != mode:
+            raise ValueError('Unexpected signed BusyBox file or mode: ' + str(path))
+    changes = []
+    for name in BBSUID_LINKS:
+        path = stage / name
+        if path.is_symlink() and os.readlink(path) == '/bin/busybox':
+            changes.append(path)
+    if stage / 'bin/su' not in changes:
+        raise ValueError('Expected Alpine /bin/su BusyBox link before restricted wrapper setup')
+    for path in changes:
+        path.unlink()
+        path.symlink_to('/bin/bbsuid')
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--arch', choices=MINI, default=os.environ.get('ARCH', 'x86_64'))
@@ -252,7 +276,7 @@ def main():
             shutil.copyfile(stage / 'usr/share/zoneinfo/UTC', stage / 'etc/localtime')
             (stage / 'etc/timezone').write_text('UTC\n')
         os.chmod(stage / 'etc/shadow', 0o640)
-        os.chmod(stage / 'bin/busybox', 0o4755)
+        configure_busybox_privileges(stage)
         manifest = {'profile': args.profile, 'alpine': VERSION, 'arch': arch, 'minirootfs_sha256': MINI[arch], 'packages': entries}
         if args.profile == 'desktop':
             manifest['generated_caches'] = {
