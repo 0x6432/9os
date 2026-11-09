@@ -20,6 +20,10 @@ for line in sys.stdin:
  if mode=='suffix': print(line.rstrip()+' FAIL after',flush=True)
  if mode=='timeout': time.sleep(2); continue
  if mode=='rc-prefix': print('prefix __RC%s=0' % m.group(1),flush=True); time.sleep(2); continue
+ if mode=='no-newline':
+  print('ready',end='',flush=True)
+  if '; echo; echo ' in line: print('',flush=True)
+  print('__RC%s=0\\n# ' % m.group(1),end='',flush=True); continue
  if mode=='panic': print('kernel panic: FAKE CONTROL',flush=True); break
  if mode in ('failword','echoed-failword'): print('FAKE FAIL diagnostic')
  if mode not in ('prefix','suffix'): print('FAKE CONTROL ONLY')
@@ -41,12 +45,12 @@ with tempfile.TemporaryDirectory(prefix='runner-inert-regression-') as td:
     assert launch not in text
     runner=p/'runner.py';runner.write_text(text)
     results=[]
-    modes=('success','nonzero','failword','panic','timeout','echoed','echoed-failword','prefix','suffix','rc-prefix','early-exit','boot-exit')
+    modes=('success','nonzero','failword','panic','timeout','echoed','echoed-failword','prefix','suffix','rc-prefix','no-newline','early-exit','boot-exit')
     def run_mode(mode):
         cmds=['echo FAIL' if mode=='echoed' else 'echo harmless']
         if mode in ('early-exit','boot-exit','panic'):cmds+=['echo second']
         r=subprocess.run([sys.executable,str(runner),'x86_64','--userland','alpine','--disk',str(disk),'--boot-timeout','10','--timeout','0.3',*cmds],env=dict(os.environ,INERT_MODE=mode),capture_output=True,timeout=40)
-        output=(r.stdout+r.stderr).decode(errors='replace'); expected=0 if mode in ('success','echoed') else 1
+        output=(r.stdout+r.stderr).decode(errors='replace'); expected=0 if mode in ('success','echoed','no-newline') else 1
         ok=r.returncode==expected
         if mode in ('early-exit','boot-exit','panic'):ok &= 'SKIP   echo second' in output
         if mode=='early-exit':ok &= 'FAIL   VM exited before requested shutdown' in output and 'PASS   echo harmless' in output
