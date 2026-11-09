@@ -211,8 +211,11 @@ def main():
                     results.append((cmd, False))
                     attempted_cmds += 1
                     unexpected_exit = True
+                    frozen_failed = frozen_state is not None
                     break
-                rx = re.compile(re.escape(mark.encode()) + rb'(\d+)\n')
+                # A prefixed marker is output, not command completion. A guest
+                # can still forge a complete marker line; this is not authentication.
+                rx = re.compile(rb'(?m)^' + re.escape(mark.encode()) + rb'(\d+)\n')
                 got = pump(time.time() + a.timeout, lambda: rx.search(bytes(buf[start:])) is not None)
                 out = bytes(buf[start:])
                 m = rx.search(out)
@@ -235,7 +238,7 @@ def main():
                 if state['panic'] or p.poll() is not None: break
             if p.poll() is not None:
                 unexpected_exit = True
-            elif frozen_failed:
+            elif frozen_failed or (frozen_state is not None and state['panic']):
                 print('FAIL   frozen failure: terminating without further guest commands')
             else:
                 try:

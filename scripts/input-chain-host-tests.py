@@ -522,7 +522,7 @@ class Wiring(unittest.TestCase):
                 'if os.environ.get("MOCK_SCREENSHOT_FAIL") == "1":\n'
                 ' for command in commands:\n'
                 '  if command.startswith("host:python3 scripts/qemu-screenshot.py") and "-before.png" in command:\n'
-                '   time.sleep(.05); events.append("pre_screenshot_delayed_failed"); screenshot_done=True\n'
+                '   time.sleep(.05); events.append("pre_screenshot_delayed_failed"); screenshot_done=True; break\n'
                 '  if "INPUT_CHAIN_CAPTURE_STARTED seconds=45" in command:\n'
                 '   events.append("capture_after_screenshot" if screenshot_done else "capture_before_screenshot")\n'
                 'json.dump({"argv": sys.argv[1:], "qemu_extra": os.environ.get("QEMU_EXTRA"), "events": events}, '
@@ -572,7 +572,8 @@ class Wiring(unittest.TestCase):
                 with self.subTest(qemu_rc=qemu_rc):
                     self.assertEqual(unset_args, zero_args)
                     self.assertEqual(unset_disk, zero_disk)
-                    self.assertEqual(unset_result.stdout, zero_result.stdout)
+                    self.assertEqual(re.sub(r'9os-kms-output-[^\s/]+', '9os-kms-output-<run>', unset_result.stdout),
+                                     re.sub(r'9os-kms-output-[^\s/]+', '9os-kms-output-<run>', zero_result.stdout))
                     self.assertEqual(unset_result.stderr, zero_result.stderr)
                     self.assertEqual(unset_result.returncode, qemu_rc)
                     self.assertEqual(zero_result.returncode, qemu_rc)
@@ -603,7 +604,7 @@ class Wiring(unittest.TestCase):
                 self.assertLess(capture_step, readiness_step)
                 self.assertLess(readiness_step, commands.index(sender[0]))
                 self.assertEqual(diag_args['events'],
-                                 ['pre_screenshot_delayed_failed', 'capture_after_screenshot'])
+                                 ['pre_screenshot_delayed_failed'])
                 logarg = diag_args['argv'][diag_args['argv'].index('--log') + 1]
                 self.assertIn('INPUT_CHAIN_CHECK_RC=1',
                               (tree / logarg).read_text())

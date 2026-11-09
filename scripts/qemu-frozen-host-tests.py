@@ -26,7 +26,7 @@ for line in sys.stdin:
   break
  m = re.search(r'__RC(\\d+)=', line)
  if '__FROZENROOT=' in line: print('\\n__FROZENROOT=%s\\n# ' % ('1' if os.environ.get('FAKE_ROOT_FAIL') else '0'),end='',flush=True)
- elif m: print('FAKE CONTROL ONLY\\n__RC%s=0\\n# ' % m.group(1),end='',flush=True)
+ elif m: print('FAKE CONTROL ONLY\\n__RC%s=%s\\n# ' % (m.group(1), '1' if os.environ.get('FAKE_RC_FAIL') else '0'),end='',flush=True)
  else: print('# ',end='',flush=True)
 '''
 
@@ -122,6 +122,21 @@ class Frozen(unittest.TestCase):
             self.assertFalse((root/'must-not-run').exists())
             self.assertFalse((root/'poweroff-sent').exists())
             self.assertIn('terminating without further guest commands',r.stdout)
+
+    def test_frozen_runner_stops_after_inert_guest_failure(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);f=Fixture(root)
+            env=dict(os.environ,FAKE_CALLED=str(root/'fake-called'), FAKE_POWER=str(root/'poweroff-sent'), FAKE_RC_FAIL='1')
+            for key in ('QEMU_EXTRA', 'FAKE_MUTATE', 'FAKE_ROOT_FAIL'): env.pop(key,None)
+            later='host:touch '+str(root/'must-not-run')
+            args=['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
+                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
+                  '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor,'--qmp-socket',f.qmp,
+                  '--log',str(root/'run.log'),'echo harmless',later]
+            r=subprocess.run(args,env=env,capture_output=True,text=True,timeout=30)
+            self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+            self.assertIn('FAIL   echo harmless',r.stdout);self.assertIn('SKIP   '+later,r.stdout)
+            self.assertFalse((root/'must-not-run').exists());self.assertFalse((root/'poweroff-sent').exists())
 
     def test_runner_rejects_bad_preflight_without_launch_or_make(self):
         for mode in ('wrong-hash', 'extra', 'missing-qmp', 'wrong-architecture', 'existing-log', 'missing-log', 'boot-timeout', 'step-timeout'):

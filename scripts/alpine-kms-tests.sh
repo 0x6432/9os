@@ -83,6 +83,7 @@ else
  # Use a newly created directory rather than relying on date/PID uniqueness.
  mkdir -p build
  output_dir=$(mktemp -d "$(pwd -P)/build/9os-kms-output-XXXXXXXX")
+ printf 'OUTPUT_DIR=%s\n' "$output_dir"
  P=$output_dir/capture
  export QEMU_EXTRA="${QEMU_EXTRA:-} -monitor unix:$S,server,nowait -qmp unix:$Q,server,nowait"
 fi

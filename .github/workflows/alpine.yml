@@ -44,6 +44,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-busybox-wrapper-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-security-preflight-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-runner-regression-host-tests.py
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-output-security-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/input-chain-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/desktop-diagnostic-install-host-tests.py
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/qemu-frozen-host-tests.py
@@ -246,7 +247,7 @@ jobs:
           path: |
             build/test-alpine-desktop-*.log
             build/test-alpine-kms-*.log
-            build/test-alpine-kms-*.png
-            build/test-alpine-kms-*.ocr.txt
+            build/9os-kms-output-*/capture-*.png
+            build/9os-kms-output-*/capture-*.ocr.txt
             userland/build/alpine-desktop-${{ matrix.arch }}.lock.json
           if-no-files-found: warn

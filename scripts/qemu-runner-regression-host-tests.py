@@ -19,6 +19,7 @@ for line in sys.stdin:
  if mode=='prefix': print('FAIL before '+line.rstrip(),flush=True)
  if mode=='suffix': print(line.rstrip()+' FAIL after',flush=True)
  if mode=='timeout': time.sleep(2); continue
+ if mode=='rc-prefix': print('prefix __RC%s=0' % m.group(1),flush=True); time.sleep(2); continue
  if mode=='panic': print('kernel panic: FAKE CONTROL',flush=True); break
  if mode in ('failword','echoed-failword'): print('FAKE FAIL diagnostic')
  if mode not in ('prefix','suffix'): print('FAKE CONTROL ONLY')
@@ -40,7 +41,7 @@ with tempfile.TemporaryDirectory(prefix='runner-inert-regression-') as td:
     assert launch not in text
     runner=p/'runner.py';runner.write_text(text)
     results=[]
-    modes=('success','nonzero','failword','panic','timeout','echoed','echoed-failword','prefix','suffix','early-exit','boot-exit')
+    modes=('success','nonzero','failword','panic','timeout','echoed','echoed-failword','prefix','suffix','rc-prefix','early-exit','boot-exit')
     def run_mode(mode):
         cmds=['echo FAIL' if mode=='echoed' else 'echo harmless']
         if mode in ('early-exit','boot-exit','panic'):cmds+=['echo second']
@@ -50,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix='runner-inert-regression-') as td:
         if mode in ('early-exit','boot-exit','panic'):ok &= 'SKIP   echo second' in output
         if mode=='early-exit':ok &= 'FAIL   VM exited before requested shutdown' in output and 'PASS   echo harmless' in output
         if mode=='boot-exit':ok &= 'FAIL   boot' in output and 'SKIP   echo harmless' in output
-        if mode in ('prefix','suffix','failword','echoed-failword'):ok &= 'FAIL   echo harmless' in output
+        if mode in ('prefix','suffix','rc-prefix','failword','echoed-failword'):ok &= 'FAIL   echo harmless' in output
         assert hashlib.sha256(disk.read_bytes()).hexdigest()==seed
         result={'mode':mode,'rc':r.returncode,'pass':bool(ok)}
         if not ok: result['failure_output']=output
