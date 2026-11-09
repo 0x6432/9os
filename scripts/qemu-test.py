@@ -173,6 +173,7 @@ def main():
                 except BrokenPipeError:
                     root_ok = False
                 results.append(('frozen root preflight', root_ok))
+            frozen_failed = frozen_state is not None and not root_ok
             for i, cmd in enumerate(a.cmds if root_ok else []):
                 # Never execute later guest or host steps after the VM dies.
                 if state['panic'] or p.poll() is not None: break
@@ -190,6 +191,12 @@ def main():
                     if log: log.write(b'\n[host] ' + cmd[5:].encode() + b'\n' + out); log.flush()
                     results.append((cmd, passed))
                     attempted_cmds += 1
+                    # Frozen diagnostics fail closed after any failed host
+                    # helper; all modes stop if the pre-type screenshot fails.
+                    if not passed and (frozen_state is not None or
+                            cmd.startswith('host:python3 scripts/qemu-screenshot.py ')):
+                        frozen_failed = frozen_state is not None
+                        break
                     continue
                 mark = '__RC%d=' % i
                 # wait for the prompt so the shell is reading (line editing in raw mode) before typing;
@@ -220,9 +227,16 @@ def main():
                 passed = bool(m) and m.group(1) == b'0' and not re.search(rb'\bFAIL', body) and not state['panic']
                 results.append((cmd, passed))
                 attempted_cmds += 1
+                # Do not send another command while a timed-out or otherwise
+                # failed frozen guest command may still be active.
+                if frozen_state is not None and not passed:
+                    frozen_failed = True
+                    break
                 if state['panic'] or p.poll() is not None: break
             if p.poll() is not None:
                 unexpected_exit = True
+            elif frozen_failed:
+                print('FAIL   frozen failure: terminating without further guest commands')
             else:
                 try:
                     send('poweroff\n')

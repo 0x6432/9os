@@ -64,6 +64,21 @@ with tempfile.TemporaryDirectory(prefix='runner-inert-regression-') as td:
     for extra in (['--net-test'], ['host:echo unsafe'], ['--disk','/dev/null']):
         r=subprocess.run([sys.executable,str(runner),'x86_64','--userland','alpine','--disk',str(disk),*extra],capture_output=True,timeout=10)
         ok=r.returncode!=0 and b'REFUSED:' in r.stderr
-        results.append({'negative':extra,'rc':r.returncode,'pass':ok});print('rejection',extra,'PASS' if ok else 'FAIL',flush=True)
+        results.append({'negative':extra,'rc':r.returncode,'pass':ok});print('INERT-ONLY test guard rejection',extra,'PASS' if ok else 'FAIL',flush=True)
+    # Inert-only non-frozen control: a failed pre-type screenshot must stop
+    # the next host command. Only these two exact host commands are permitted.
+    scripts=p/'scripts';scripts.mkdir();(scripts/'qemu-screenshot.py').write_text('raise SystemExit(7)\n')
+    shot='host:python3 scripts/qemu-screenshot.py unused unused'
+    later='host:touch '+str(p/'should-not-run')
+    guard2=('    if a.net_test or any(c.startswith("host:") and c not in '+repr([shot,later])+ ' for c in a.cmds):\n'
+            '        raise SystemExit("REFUSED: inert test permits only its two host controls")\n    server = None\n')
+    text2=source.replace('    server = None\n',guard2);a=text2.index(launch);b=text2.index(spawn,a);text2=text2[:a]+replacement+text2[b:]
+    assert launch not in text2
+    runner2=p/'runner-shot.py';runner2.write_text(text2)
+    r=subprocess.run([sys.executable,str(runner2),'x86_64','--userland','alpine','--disk',str(disk),'--boot-timeout','10','--timeout','3',shot,later],cwd=p,env=dict(os.environ,INERT_MODE='success'),capture_output=True,timeout=30)
+    output=(r.stdout+r.stderr).decode(errors='replace');ok=r.returncode!=0 and 'FAIL   '+shot in output and 'SKIP   '+later in output and not (p/'should-not-run').exists()
+    results.append({'mode':'failed-pretype-screenshot','rc':r.returncode,'pass':bool(ok)})
+    print('failed-pretype-screenshot', 'PASS' if ok else 'FAIL',flush=True)
+    if not ok:print(output,flush=True)
     print(json.dumps(results),flush=True)
     if not all(x['pass'] for x in results):raise SystemExit(1)

@@ -21,7 +21,9 @@ if os.environ.get('FAKE_MUTATE'):
  open(os.environ['FAKE_MUTATE'],'wb').write(b'changed after preflight')
 print('Welcome to 9os\\n# ',end='',flush=True)
 for line in sys.stdin:
- if line.strip() == 'poweroff': break
+ if line.strip() == 'poweroff':
+  if os.environ.get('FAKE_POWER'): open(os.environ['FAKE_POWER'],'w').write('poweroff')
+  break
  m = re.search(r'__RC(\\d+)=', line)
  if '__FROZENROOT=' in line: print('\\n__FROZENROOT=%s\\n# ' % ('1' if os.environ.get('FAKE_ROOT_FAIL') else '0'),end='',flush=True)
  elif m: print('FAKE CONTROL ONLY\\n__RC%s=0\\n# ' % m.group(1),end='',flush=True)
@@ -105,6 +107,21 @@ class Frozen(unittest.TestCase):
             self.assertFalse((root/'make-called').exists())
             self.assertEqual((root/'host-called').exists(), not root_fail)
             return result
+
+    def test_frozen_runner_stops_after_failed_host_command(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);f=Fixture(root)
+            env=dict(os.environ,FAKE_CALLED=str(root/'fake-called'),FAKE_POWER=str(root/'poweroff-sent'));env.pop('QEMU_EXTRA',None);env.pop('FAKE_MUTATE',None);env.pop('FAKE_ROOT_FAIL',None)
+            args=['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
+                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
+                  '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor,'--qmp-socket',f.qmp,
+                  '--log',str(root/'run.log'),'host:false','host:touch '+str(root/'must-not-run')]
+            r=subprocess.run(args,env=env,capture_output=True,text=True,timeout=30)
+            self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+            self.assertIn('FAIL   host:false',r.stdout);self.assertIn('SKIP   host:touch ',r.stdout)
+            self.assertFalse((root/'must-not-run').exists())
+            self.assertFalse((root/'poweroff-sent').exists())
+            self.assertIn('terminating without further guest commands',r.stdout)
 
     def test_runner_rejects_bad_preflight_without_launch_or_make(self):
         for mode in ('wrong-hash', 'extra', 'missing-qmp', 'wrong-architecture', 'existing-log', 'missing-log', 'boot-timeout', 'step-timeout'):
@@ -249,7 +266,7 @@ class FrozenKmsWrapper(unittest.TestCase):
                 f=fixture/name;f.write_text('inert');f.chmod(0o755)
             lib=fixture.parent/'lib';lib.mkdir();(lib/'lib9os-qt-key-observer.so').write_text('inert')
             bindir=root/'bin';bindir.mkdir();tesseract=bindir/'tesseract'
-            tesseract.write_text('#!/bin/sh\n'+('echo eng\n' if ocr else 'exit 1\n'));tesseract.chmod(0o755)
+            tesseract.write_text('#!/bin/sh\n'+('echo eng; exit 1\n' if ocr == 'bad-status' else 'echo eng\n' if ocr else 'exit 1\n'));tesseract.chmod(0o755)
             env=dict(os.environ,PATH=str(bindir)+':/usr/bin:/bin',CAPTURE=str(root/'capture.json'),
                      DISK_CALLED=str(root/'disk-called'),QEMU_EXTRA=extra,
                      ALPINE_INPUT_CHAIN_DIAGNOSTICS='1' if diagnostic else '0',
@@ -278,7 +295,7 @@ class FrozenKmsWrapper(unittest.TestCase):
 
     def test_incomplete_or_overridden_configuration_fails_before_disk_and_runner(self):
         for kwargs in ({'manifest':False},{'disk':False},{'diagnostic':False},{'extra':'-smp 8'},
-                       {'ocr':False},{'option':{'ALPINE_QT_KEY_TRACE':'1'}},
+                       {'ocr':False},{'ocr':'bad-status'},{'option':{'ALPINE_QT_KEY_TRACE':'1'}},
                        {'option':{'ALPINE_A11Y_DBUS_VALIDATE':'1'}},
                        {'option':{'ALPINE_TERMINAL_QUERY':'live-dbus'}}):
             with self.subTest(kwargs=kwargs):

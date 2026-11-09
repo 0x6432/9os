@@ -31,7 +31,9 @@ D=$(mktemp -d /tmp/9os-kms-XXXXXX)
 trap 'rm -rf "$D"' EXIT HUP INT TERM
 S=$D/monitor.sock
 Q=$D/qmp.sock
-P=$(pwd -P)/build/test-alpine-kms-$ARCH
+# Each run gets fresh screenshot names, including non-diagnostic reruns.
+run_id=$(date +%Y%m%d%H%M%S)-$$
+P=$(pwd -P)/build/test-alpine-kms-$ARCH-$run_id
 # A directly invoked physical test may not have run the desktop suite first.
 # Fail before packing/booting if its same-source consumers were not installed.
 for helper in desktopframecheck desktopa11y desktopa11y-dbus;do
@@ -53,7 +55,6 @@ if [ "$input_chain_diagnostics" = 1 ];then
  }
 fi
 if [ "$input_chain_diagnostics" = 1 ];then
- run_id=$(date +%Y%m%d%H%M%S)-$$
  L=build/test-alpine-kms-$ARCH-input-chain-$run_id.log
  P=$(pwd -P)/build/test-alpine-kms-$ARCH-input-chain-$run_id
 fi
@@ -65,7 +66,9 @@ if [ -n "${M40_FROZEN_MANIFEST:-}" ] || [ -n "${M40_FROZEN_DISK:-}" ];then
  [ "$ARCH" = x86_64 ] && [ "$input_chain_diagnostics" = 1 ] || { echo 'Frozen mode requires x86_64 input-chain diagnostics' >&2;exit 2; }
  [ -z "${QEMU_EXTRA:-}" ] || { echo 'Frozen mode refuses QEMU_EXTRA overrides' >&2;exit 2; }
  [ "${ALPINE_QT_KEY_TRACE:-0}" = 0 ] && [ "${ALPINE_A11Y_DBUS_VALIDATE:-0}" = 0 ] && [ "${ALPINE_TERMINAL_QUERY:-atspi}" = atspi ] || { echo 'Frozen mode refuses alternate diagnostic options' >&2;exit 2; }
- command -v tesseract >/dev/null 2>&1 && tesseract --list-langs 2>/dev/null | grep -qx eng || { echo 'Frozen mode requires tesseract OCR with English data' >&2;exit 2; }
+ command -v tesseract >/dev/null 2>&1 || { echo 'Frozen mode requires tesseract OCR with English data' >&2;exit 2; }
+ ocr_languages=$(tesseract --list-langs 2>/dev/null) || { echo 'Frozen mode could not inspect OCR languages' >&2;exit 2; }
+ printf '%s\n' "$ocr_languages" | grep -qx eng || { echo 'Frozen mode requires tesseract OCR with English data' >&2;exit 2; }
  # Private, fresh output directory; it is retained even after a failure.
  # Same-UID interference is still outside this pathname-level protection.
  umask 077
@@ -77,6 +80,10 @@ if [ -n "${M40_FROZEN_MANIFEST:-}" ] || [ -n "${M40_FROZEN_DISK:-}" ];then
  frozen=1
 else
  scripts/mkdisk.sh "$DISK" 3584 "$ROOT"
+ # Use a newly created directory rather than relying on date/PID uniqueness.
+ mkdir -p build
+ output_dir=$(mktemp -d "$(pwd -P)/build/9os-kms-output-XXXXXXXX")
+ P=$output_dir/capture
  export QEMU_EXTRA="${QEMU_EXTRA:-} -monitor unix:$S,server,nowait -qmp unix:$Q,server,nowait"
 fi
 run_qemu_test() {

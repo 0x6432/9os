@@ -117,10 +117,15 @@ output directory, never appends checker results to the controller log, and
 prints the orchestrated-controller and checker return codes separately on
 stdout. Capture stdout independently. Screenshots refuse existing output paths
 and use private intermediate files. This freshness rule also applies outside
-frozen mode: a repeated non-diagnostic run must use fresh paths rather than
+frozen mode: each wrapper run chooses fresh screenshot names rather than
 silently deleting earlier screenshots. These pathname checks do not prevent
 same-UID interference, bind firmware, host libraries or scripts, establish host
 isolation, or prevent initramfs userspace from running before the root gate.
+The direct frozen controller accepts caller-supplied host shell commands: it is
+not a host-command allowlist or a security boundary. Inert test-only guard
+rejections are not production restrictions. Frozen runs stop on a failed host or
+guest step, then terminate without issuing another guest command; unattempted
+steps are skipped. All modes stop on a failed pre-type screenshot. This cannot contain same-UID races or escaped descendants.
 The cmdline argument is a guard, not injection: independently inspect
 the ISO to verify its embedded `root=/dev/vda1` before launching. After the
 shell starts, frozen mode also requires exactly one `/` mount from

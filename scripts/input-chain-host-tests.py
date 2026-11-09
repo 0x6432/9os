@@ -558,7 +558,10 @@ class Wiring(unittest.TestCase):
                                         cwd=tree, env=env, capture_output=True, text=True, timeout=10)
                 captured = json.loads(capture.read_text())
                 mkdisk_args = mkdisk_capture.read_text().splitlines()
-                normalize = lambda value: re.sub(r'/tmp/9os-kms-[^/]+/', '/tmp/9os-kms-<run>/', value)
+                def normalize(value):
+                    value = re.sub(r'/tmp/9os-kms-[^/]+/', '/tmp/9os-kms-<run>/', value)
+                    value = re.sub(r'test-alpine-kms-x86_64-[0-9]{14}-[0-9]+', 'test-alpine-kms-x86_64-<run>', value)
+                    return re.sub(r'/build/9os-kms-output-[^/]+/', '/build/9os-kms-output-<run>/', value)
                 captured['argv'] = [normalize(value) for value in captured['argv']]
                 captured['qemu_extra'] = normalize(captured['qemu_extra'])
                 return result, captured, mkdisk_args
