@@ -104,7 +104,12 @@ not `make` or `mkdisk.sh`. It rejects alternate architecture, memory, CPU
 count, cmdline, QEMU_EXTRA, network forwarding, additional disks and changed 300s boot/780s per-command
 deadlines in this mode. Host helpers run in a separate process group, with partial
 output retained on timeout and group cleanup attempted on exit or interruption.
-Descendants that deliberately create new sessions are not contained. Frozen mode requires a new, exclusively created host log. The cmdline argument is a guard, not injection: independently inspect
+Descendants that deliberately create new sessions are not contained. Frozen mode requires a new, exclusively created host log. Config, manifest and
+log refusals report a preflight failure and explicitly mark the parsed requested
+steps skipped. If QEMU cannot start, the launcher reports that failure and skips
+on stdout and in the fresh host log. A refusal before log creation has no log.
+This does not guarantee a complete summary for arbitrary host exceptions.
+The cmdline argument is a guard, not injection: independently inspect
 the ISO to verify its embedded `root=/dev/vda1` before launching. After the
 shell starts, frozen mode also requires exactly one `/` mount from
 `/dev/vda1` of type `ext2`, and checks the two corrected helper owners and

@@ -32,11 +32,23 @@ def main():
     ap.add_argument('--monitor-socket', help='fresh monitor socket for frozen mode')
     ap.add_argument('--qmp-socket', help='fresh QMP socket for frozen mode')
     a = ap.parse_intermixed_args()
+    def report_blocked(label, reason, target=None):
+        # These are explicit non-results, never guest passes. A failure before
+        # log creation remains visible on stdout/stderr instead.
+        lines = ['FAIL   ' + label + ': ' + str(reason)] + ['SKIP   ' + cmd for cmd in a.cmds]
+        text = '\n'.join(lines) + '\n'
+        print(text, end='', flush=True)
+        if target is not None:
+            target.write(text.encode('utf-8', errors='replace')); target.flush()
+
+    def refuse_frozen(reason):
+        report_blocked('frozen preflight', reason)
+        ap.error(reason)
     if a.frozen_manifest and (a.arch != 'x86_64' or a.userland != 'alpine' or a.smp != '4'
             or a.memory != '3072M' or a.sched or a.cmdline != 'root=/dev/vda1'
             or a.boot_timeout != 300 or a.timeout != 780
             or a.net_test or len(a.disk) != 1 or not a.log or os.environ.get('QEMU_EXTRA')):
-        ap.error('frozen mode requires the fixed x86 KMS configuration')
+        refuse_frozen('frozen mode requires the fixed x86 KMS configuration')
     import socket as _s
     def free_port():
         k = _s.socket(); k.bind(('127.0.0.1', 0)); n = k.getsockname()[1]; k.close(); return n
@@ -67,9 +79,9 @@ def main():
             spec.loader.exec_module(frozen)
             make, frozen_state = frozen.load(a.frozen_manifest, a.disk[0], a.monitor_socket, a.qmp_socket)
         except (OSError, ValueError) as e:
-            ap.error('frozen preflight failed: ' + str(e))
+            refuse_frozen('frozen preflight failed: ' + str(e))
     elif a.monitor_socket or a.qmp_socket:
-        ap.error('frozen sockets require --frozen-manifest')
+        refuse_frozen('frozen sockets require --frozen-manifest')
     # In frozen mode, never start a guest unless a fresh host log can be
     # created without following or truncating an existing fixture or log.
     if frozen_state is not None:
@@ -77,11 +89,24 @@ def main():
             fd = os.open(a.log, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
             log = os.fdopen(fd, 'wb')
         except OSError as e:
-            ap.error('cannot create fresh frozen log: ' + str(e))
+            refuse_frozen('cannot create fresh frozen log: ' + str(e))
     else:
         log = open(a.log, 'wb') if a.log else None
-    p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                         start_new_session=True)
+    try:
+        p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             start_new_session=True)
+    except OSError as e:
+        if frozen_state is None:
+            raise
+        report_blocked('launcher startup', e, log)
+        try:
+            frozen.verify_after(frozen_state)
+        except (OSError, ValueError) as check_error:
+            message = 'FAIL   frozen fixture verification: ' + str(check_error) + '\n'
+            print(message, end='', flush=True)
+            if log: log.write(message.encode('utf-8', errors='replace')); log.flush()
+        if log: log.close()
+        raise SystemExit(1) from None
     try:
         buf = bytearray()
         state = {'panic': False}

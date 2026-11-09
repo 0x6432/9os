@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 source = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[1] / 'scripts/qemu-test.py').read_text()
 launch = "    make = ['make',"
-spawn = '    p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,\n'
+spawn = '    try:\n        p = subprocess.Popen(make, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,\n'
 assert source.count(launch) == source.count(spawn) == source.count('    server = None\n') == 1
 stub = '''import os,sys,re,time
 mode=os.environ.get('INERT_MODE','success')

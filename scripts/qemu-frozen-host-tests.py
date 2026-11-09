@@ -126,9 +126,31 @@ class Frozen(unittest.TestCase):
                 args.append('echo harmless')
                 r=subprocess.run(args,env=env,capture_output=True,text=True,timeout=10)
                 self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+                self.assertIn('FAIL   frozen preflight',r.stdout)
+                self.assertIn('SKIP   echo harmless',r.stdout)
                 self.assertFalse((root/'fake-called').exists(),r.stdout+r.stderr)
                 self.assertFalse((root/'make-called').exists(),r.stdout+r.stderr)
                 if mode=='existing-log':self.assertEqual((root/'run.log').read_text(),'must not be truncated')
+
+    def test_startup_failure_marks_every_step_skipped_and_keeps_log(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);f=Fixture(root)
+            # A regular executable with a missing interpreter passes file/hash
+            # preflight but cannot execute. It never starts a guest or stub.
+            f.qemu.write_text('#!/definitely-missing-m40-interpreter\n');f.qemu.chmod(0o755)
+            f.data['qemu']['sha256']=hashlib.sha256(f.qemu.read_bytes()).hexdigest();f.save()
+            log=root/'run.log'
+            args=['python3',str(ROOT/'scripts/qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
+                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
+                  '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor,'--qmp-socket',f.qmp,'--log',str(log),
+                  'echo harmless','host:touch '+str(root/'host-called')]
+            env=dict(os.environ);env.pop('QEMU_EXTRA',None)
+            r=subprocess.run(args,env=env,capture_output=True,text=True,timeout=10)
+            self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+            for phrase in ('FAIL   launcher startup','SKIP   echo harmless','SKIP   host:touch '):
+                self.assertIn(phrase,r.stdout);self.assertIn(phrase,log.read_text())
+            self.assertFalse((root/'host-called').exists())
+            self.assertEqual(f.disk.read_bytes(),b'INERT DISK')
 
     def test_host_helper_timeout_kills_group_and_keeps_partial_output(self):
         with tempfile.TemporaryDirectory() as td:
