@@ -106,7 +106,10 @@ not `make` or `mkdisk.sh`. It rejects alternate architecture, memory, CPU
 count, cmdline, QEMU_EXTRA, network forwarding, additional disks and changed 300s boot/780s per-command
 deadlines in this mode. Host helpers run in a separate process group, with partial
 output retained on timeout and group cleanup attempted on exit or interruption.
-Descendants that deliberately create new sessions are not contained. Frozen mode requires a new, exclusively created host log. Config, manifest and
+If a descendant retains the helper output pipe after the group kill, the helper
+reports failure with the available cumulative output and an incomplete-pipe
+marker after a bounded drain attempt. Cleanup errors are reported as failures;
+cleanup still is not guaranteed. Descendants that deliberately create new sessions are not contained. Frozen mode requires a new, exclusively created host log. Config, manifest and
 log refusals report a preflight failure and explicitly mark the parsed requested
 steps skipped. If QEMU cannot start, the launcher reports that failure and skips
 on stdout and in the fresh host log. A refusal before log creation has no log.

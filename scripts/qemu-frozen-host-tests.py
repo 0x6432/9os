@@ -11,6 +11,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 FROZEN = SourceFileLoader('qemu_frozen', str(ROOT / 'scripts/qemu-frozen.py')).load_module()
@@ -196,6 +197,90 @@ class Frozen(unittest.TestCase):
             deadline=time.monotonic()+3
             while proc.exists() and proc.read_text().split()[2] != 'Z' and time.monotonic()<deadline:time.sleep(.05)
             self.assertTrue(not proc.exists() or proc.read_text().split()[2]=='Z','timed-out child still executing')
+
+    def test_escaped_descendant_pipe_timeout_returns_failure(self):
+        # This test explicitly kills the intentionally escaped inert child.
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); child=root/'escaped.py'; pidfile=root/'pid'
+            child.write_text("import subprocess,sys,time\ncode = " + repr("import os,time\npath="+repr(str(pidfile))+"\nopen(path+'.tmp','w').write(str(os.getpid()))\nos.replace(path+'.tmp',path)\nprint('ESCAPED PARTIAL',flush=True)\ntime.sleep(1.5)\nprint('ESCAPED LATE',flush=True)\ntime.sleep(60)\n") + "\nsubprocess.Popen([sys.executable, '-c', code], start_new_session=True)\ntime.sleep(60)\n")
+            start=time.monotonic()
+            def watchdog(signum, frame): raise TimeoutError('host control watchdog')
+            previous=signal.signal(signal.SIGALRM, watchdog)
+            signal.alarm(16)
+            try:
+                out,passed=FROZEN.run_host('python3 '+str(child), .8)
+                self.assertFalse(passed)
+                self.assertEqual(out.count(b'ESCAPED PARTIAL'),1)
+                self.assertEqual(out.count(b'ESCAPED LATE'),1)
+                self.assertIn(b'timeout; output pipe still open, incomplete',out)
+                self.assertLess(time.monotonic()-start,15)
+            finally:
+                signal.alarm(0); signal.signal(signal.SIGALRM, previous)
+                if pidfile.exists():
+                    try: os.kill(int(pidfile.read_text()), signal.SIGKILL)
+                    except ProcessLookupError: pass
+
+    def test_escaped_pipe_failure_stops_inert_controller(self):
+        # Copy the real controller and launcher; only shorten the helper timeout
+        # inside this disposable test copy, never the production deadline.
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); f=Fixture(root); scripts=root/'scripts'; scripts.mkdir()
+            shutil.copy(ROOT/'scripts/qemu-test.py', scripts/'qemu-test.py')
+            original=(ROOT/'scripts/qemu-frozen.py').read_text()
+            (scripts/'qemu-frozen.py').write_text(original + "\n_real_run_host = run_host\ndef run_host(command, timeout): return _real_run_host(command, .8)\n")
+            child=root/'escaped.py'; pidfile=root/'pid'
+            child.write_text("import subprocess,sys,time\ncode = " + repr("import os,time\npath="+repr(str(pidfile))+"\nopen(path+'.tmp','w').write(str(os.getpid()))\nos.replace(path+'.tmp',path)\nprint('ESCAPED PARTIAL',flush=True)\ntime.sleep(1.5)\nprint('ESCAPED LATE',flush=True)\ntime.sleep(60)\n") + "\nsubprocess.Popen([sys.executable, '-c', code], start_new_session=True)\ntime.sleep(60)\n")
+            later='host:touch '+str(root/'must-not-run')
+            args=['python3',str(scripts/'qemu-test.py'),'x86_64','--userland','alpine','--memory','3072M',
+                  '--disk',str(f.disk),'--cmdline','root=/dev/vda1','--boot-timeout','300','--timeout','780',
+                  '--frozen-manifest',str(f.manifest),'--monitor-socket',f.monitor,'--qmp-socket',f.qmp,
+                  '--log',str(root/'run.log'),'host:python3 '+str(child),later]
+            env=dict(os.environ, FAKE_CALLED=str(root/'fake-called'))
+            for key in ('QEMU_EXTRA','FAKE_MUTATE','FAKE_ROOT_FAIL','FAKE_RC_FAIL'): env.pop(key,None)
+            try:
+                r=subprocess.run(args,env=env,capture_output=True,text=True,timeout=25)
+                self.assertNotEqual(r.returncode,0,r.stdout+r.stderr)
+                self.assertEqual(r.stdout.count('ESCAPED PARTIAL'),1)
+                self.assertEqual(r.stdout.count('ESCAPED LATE'),1)
+                self.assertIn('timeout; output pipe still open, incomplete',r.stdout)
+                self.assertIn('FAIL   host:python3 ',r.stdout);self.assertIn('SKIP   '+later,r.stdout)
+                self.assertFalse((root/'must-not-run').exists())
+                log=(root/'run.log').read_text()
+                self.assertEqual(log.count('ESCAPED PARTIAL'),1)
+                self.assertIn('timeout; output pipe still open, incomplete',log)
+            finally:
+                if pidfile.exists():
+                    try: os.kill(int(pidfile.read_text()), signal.SIGKILL)
+                    except ProcessLookupError: pass
+
+    def test_cleanup_errors_cannot_hide_timeout(self):
+        pipe=mock.Mock()
+        proc=mock.Mock(pid=12345, stdout=pipe)
+        proc.communicate.side_effect=[subprocess.TimeoutExpired('helper',1,output=b'part'),
+                                      subprocess.TimeoutExpired('helper',10,output=b'partial')]
+        proc.poll.return_value=None
+        proc.wait.side_effect=subprocess.TimeoutExpired('helper',10)
+        with mock.patch.object(FROZEN.subprocess,'Popen',return_value=proc), \
+             mock.patch.object(FROZEN.os,'killpg',side_effect=[PermissionError('denied'),ProcessLookupError()]):
+            out,passed=FROZEN.run_host('inert',1)
+        self.assertFalse(passed)
+        self.assertEqual(out.count(b'partial'),1)
+        self.assertIn(b'timeout; output pipe still open, incomplete',out)
+        self.assertIn(b'initial group kill',out);self.assertIn(b'helper reap',out)
+        pipe.close.assert_called_once()
+
+    def test_pipe_close_error_preserves_timeout_output(self):
+        pipe=mock.Mock(); pipe.close.side_effect=OSError('close denied')
+        proc=mock.Mock(pid=12345,stdout=pipe)
+        proc.communicate.side_effect=[subprocess.TimeoutExpired('helper',1,output=b'part'),
+                                      subprocess.TimeoutExpired('helper',10,output=b'partial')]
+        proc.poll.return_value=0
+        with mock.patch.object(FROZEN.subprocess,'Popen',return_value=proc), \
+             mock.patch.object(FROZEN.os,'killpg'):
+            out,passed=FROZEN.run_host('inert',1)
+        self.assertFalse(passed);self.assertIn(b'partial',out)
+        self.assertIn(b'timeout; output pipe still open, incomplete',out)
+        self.assertIn(b'output pipe close',out)
 
     def test_host_helper_status_is_not_hidden(self):
         out,passed=FROZEN.run_host("printf success",2);self.assertTrue(passed);self.assertEqual(out,b'success')

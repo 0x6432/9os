@@ -108,21 +108,50 @@ def run_host(command, timeout):
     """
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          start_new_session=True)
+    cleanup_errors = []
+    signalled = False
+    output, passed = b'', False
     try:
         try:
             output, _ = p.communicate(timeout=timeout)
-            return output, p.returncode == 0
+            passed = p.returncode == 0
         except subprocess.TimeoutExpired:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+                signalled = True
+            except ProcessLookupError:
+                signalled = True
+            except OSError as e:
+                cleanup_errors.append('initial group kill: ' + str(e))
+            try:
+                output, _ = p.communicate(timeout=10)
+                output += b'\n(timeout)\n'
+            except subprocess.TimeoutExpired as e:
+                # A descendant can keep the pipe open after group kill. This
+                # exception carries cumulative bytes, not just the last read.
+                output = (e.output or b'') + b'\n(timeout; output pipe still open, incomplete)\n'
+                try: p.stdout.close()
+                except OSError as e: cleanup_errors.append('output pipe close: ' + str(e))
+    finally:
+        # Do not mask an earlier exception or silently claim cleanup succeeded.
+        if not signalled:
             try: os.killpg(p.pid, signal.SIGKILL)
             except ProcessLookupError: pass
-            output, _ = p.communicate(timeout=10)
-            return output + b'\n(timeout)\n', False
-    finally:
-        # Also kill children left behind by a successful shell or interrupted
-        # parent; never leave the host helper running as if it had completed.
-        try: os.killpg(p.pid, signal.SIGKILL)
-        except ProcessLookupError: pass
-        if p.poll() is None: p.wait(timeout=10)
+            except OSError as e: cleanup_errors.append('final group kill: ' + str(e))
+        try:
+            if p.poll() is None: p.wait(timeout=10)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            cleanup_errors.append('helper reap: ' + str(e))
+        if cleanup_errors:
+            # If an exception is already propagating, preserve it while making
+            # cleanup errors visible; otherwise attach them to the failed step.
+            import sys
+            if sys.exc_info()[0] is not None:
+                print('host helper cleanup failed: ' + '; '.join(cleanup_errors), file=sys.stderr)
+    if cleanup_errors:
+        output += ('\n(host helper cleanup failed: ' + '; '.join(cleanup_errors) + ')\n').encode('utf-8', errors='replace')
+        passed = False
+    return output, passed
 
 
 def root_gate_command(mounts='/proc/mounts', dbus='/usr/libexec/dbus-daemon-launch-helper',
