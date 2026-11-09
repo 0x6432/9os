@@ -176,7 +176,8 @@ mandatory before any boot; this option is off by default.
 
 The kernel also offers an experimental `root_required=1` option. With that
 exact token, it requires one nonempty, untruncated `root=` token and panics if
-configuration is malformed, ambiguous, or the ext2 root mount fails, before
+a recognized option is malformed, recognized root tokens are ambiguous, or
+the ext2 root mount fails, before
 `process_create_init`. Recognized `root_required` tokens with missing or
 unsupported values fail closed. A missing or misspelled option, including
 `root_required_extra`, is not recognized and leaves legacy fallback unchanged.
@@ -191,7 +192,7 @@ requires a changed, rebuilt ISO and launch contract, fresh exact-input review,
 and explicit agreement on the revised protocol. It does not establish host
 isolation, audit disk security, prove guest behavior, prevent kernel execution
 before the root mount, or replace the postboot root gate. Successful mounts
-retain initramfs-derived `/dev`, `/tmp`, `/proc`, and `/sys`, and the option
+may retain initramfs-derived `/dev`, `/tmp`, `/proc`, and `/sys`, and the option
 does not constrain `init=` or disk-root symlinks. Archive collision handling,
 partial mount transitions, read-only and unclean filesystems remain separate
 concerns. Exact embedded option delivery must be verified before any future use.

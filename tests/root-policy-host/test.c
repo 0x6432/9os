@@ -41,12 +41,15 @@ int main(void) {
     strcpy(args,"root_required=1 root=");memset(args+21,'a',63);args[84]='\0';
     if (root_policy_parse(args,root)!=1 || strlen(root)!=63) return 3;
     args[84]='a';args[85]='\0';if (root_policy_parse(args,root)!=-1) return 4;
-    calls=0;mock_error=0;
-    if (root_policy_mount("root=/dev/vda1",root,mount_mock,&error)!=0 || calls) return 5;
-    if (root_policy_mount("root_required=1",root,mount_mock,&error)!=-1 || calls) return 6;
+    calls=0;mock_error=0;error=123;
+    if (root_policy_mount("root=/dev/vda1",root,mount_mock,&error)!=0 || calls || error) return 5;
+    error=123;
+    if (root_policy_mount("root_required=1",root,mount_mock,&error)!=-1 || calls || error) return 6;
     if (root_policy_mount("root_required=1 root=/dev/vda1",root,mount_mock,&error)!=1 || calls!=1 || error || strcmp(observed,"/dev/vda1")) return 7;
     mock_error=-5;
     if (root_policy_mount("root_required=1 root=/dev/vda1",root,mount_mock,&error)!=-2 || calls!=2 || error!=-5) return 8;
+    mock_error=5;
+    if (root_policy_mount("root_required=1 root=/dev/vda1",root,mount_mock,&error)!=-2 || calls!=3 || error!=5) return 9;
     puts("strict root policy parser and mock mount controls PASS; no guest evidence");
     return 0;
 }

@@ -122,12 +122,14 @@ void kmain(void) {
     vfs_mount("/sys", sysfs_create_root());
     input_init();
     /* Opt-in only: do not start initramfs userspace if the requested root
-     * cannot be unambiguously selected and mounted. Legacy fallback is unchanged. */
+     * has no single recognized root= token or its mount fails. Legacy fallback is unchanged. */
     static char required_root[64];
     int mount_error = 0;
     int strict_root = root_policy_mount(boot_cmdline(), required_root, vfs_mount_root, &mount_error);
-    if (strict_root == -1) panic("vfs: invalid required root configuration");
-    if (strict_root == -2) panic("vfs: required root %s failed (%d)", required_root, mount_error);
+    if (strict_root < 0) {
+        if (strict_root == -2) panic("vfs: required root %s failed (%d)", required_root, mount_error);
+        panic("vfs: invalid required root configuration");
+    }
     const char *ra = strict_root ? nullptr : strstr_simple(boot_cmdline(), "root=");
     if (ra) {               /* legacy root=/dev/vdXN behaviour */
         static char rootdev[64];
