@@ -13,11 +13,14 @@ spec=importlib.util.spec_from_file_location('owner_repair',ROOT/'scripts/alpine-
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 
 class Image:
-    def __init__(self, base, *, bad_group=False, bad_mode=False, symlink=False, hardlink=False, wrong_bytes=False):
+    def __init__(self, base, *, bad_group=False, bad_mode=False, symlink=False, hardlink=False, wrong_bytes=False, bad_shadow=False, shadow_symlink=False, bad_shadow_mode=False, shadow_hardlink=False, shadow_uid=False):
         self.root=base/'root';self.work=base/'work';self.work.mkdir();self.root.mkdir()
         for d in ('etc','usr/libexec','usr/sbin'): (self.root/d).mkdir(parents=True,exist_ok=True)
         (self.root/'etc/group').write_text('root:x:0:\nmessagebus:x:81:\nshadow:x:'+('0' if bad_group else '42')+':\n')
-        a=self.root/'usr/libexec/dbus-daemon-launch-helper';b=self.root/'usr/sbin/unix_chkpwd'
+        a=self.root/'usr/libexec/dbus-daemon-launch-helper';b=self.root/'usr/sbin/unix_chkpwd';shadow=self.root/'etc/shadow'
+        if shadow_symlink:shadow.symlink_to('group')
+        else:shadow.write_bytes(b'WRONG' if bad_shadow else b'INERT GENERATED SHADOW');shadow.chmod(0o644 if bad_shadow_mode else 0o640)
+        if shadow_hardlink:(self.root/'etc/shadow-alias').hardlink_to(shadow)
         a.write_bytes(b'INERT SIGNED DBUS PAYLOAD');a.chmod(0o4750)
         if symlink:b.symlink_to('../libexec/dbus-daemon-launch-helper')
         else:
@@ -25,25 +28,30 @@ class Image:
         if hardlink:(self.root/'usr/libexec/extra-link').hardlink_to(a)
         self.image=base/'image.part';self.image.touch();subprocess.run(['truncate','-s','32M',str(self.image)],check=True)
         subprocess.run(['mke2fs','-q','-F','-t','ext2','-d',str(self.root),str(self.image)],check=True,capture_output=True)
-        for p in ('/usr/libexec/dbus-daemon-launch-helper','/usr/sbin/unix_chkpwd'):
+        for p in ('/usr/libexec/dbus-daemon-launch-helper','/usr/sbin/unix_chkpwd','/etc/shadow'):
             m.debugfs(self.image,'set_inode_field '+p+' uid 0',True);m.debugfs(self.image,'set_inode_field '+p+' gid 0',True)
+        if shadow_uid:m.debugfs(self.image,'set_inode_field /etc/shadow uid 1',True)
         self.contracts=[('/usr/libexec/dbus-daemon-launch-helper',81,0o4750,hashlib.sha256(b'INERT SIGNED DBUS PAYLOAD').hexdigest()),
-                        ('/usr/sbin/unix_chkpwd',42,0o2755,hashlib.sha256(b'INERT SIGNED PAM PAYLOAD').hexdigest())]
+                        ('/usr/sbin/unix_chkpwd',42,0o2755,hashlib.sha256(b'INERT SIGNED PAM PAYLOAD').hexdigest()),
+                        ('/etc/shadow',42,0o640,hashlib.sha256(b'INERT GENERATED SHADOW').hexdigest())]
     def gids(self):return tuple(m.inode(self.image,c[0])[4] for c in self.contracts)
 
 class Repair(unittest.TestCase):
-    def test_repairs_both_groups_and_retains_mode_and_content(self):
+    def test_repairs_three_file_groups_and_retains_mode_and_content(self):
         with tempfile.TemporaryDirectory() as td:
-            f=Image(Path(td));self.assertEqual(f.gids(),(0,0));result=m.repair(f.image,f.contracts,f.work)
-            self.assertEqual(f.gids(),(81,42));self.assertEqual(len(result),2)
+            f=Image(Path(td));self.assertEqual(f.gids(),(0,0,0));result=m.repair(f.image,f.contracts,f.work)
+            self.assertEqual(f.gids(),(81,42,42));self.assertEqual(len(result),3)
             self.assertEqual(m.inode(f.image,f.contracts[0][0])[2],0o4750)
             self.assertEqual(m.inode(f.image,f.contracts[1][0])[2],0o2755)
+            self.assertEqual(m.inode(f.image,f.contracts[2][0])[2],0o640)
+            m.repair(f.image,f.contracts,f.work);self.assertEqual(f.gids(),(81,42,42))
     def test_incorrect_prerequisites_fail_before_any_group_change(self):
-        for kwargs in ({'bad_group':True},{'bad_mode':True},{'symlink':True},{'hardlink':True},{'wrong_bytes':True}):
+        for kwargs in ({'bad_group':True},{'bad_mode':True},{'symlink':True},{'hardlink':True},{'wrong_bytes':True},{'bad_shadow':True},{'shadow_symlink':True},{'bad_shadow_mode':True},{'shadow_hardlink':True},{'shadow_uid':True}):
             with self.subTest(kwargs=kwargs),tempfile.TemporaryDirectory() as td:
                 f=Image(Path(td),**kwargs)
                 with self.assertRaises(ValueError):m.repair(f.image,f.contracts,f.work)
                 self.assertEqual(m.inode(f.image,f.contracts[0][0])[4],0)
+                self.assertEqual(m.inode(f.image,f.contracts[1][0])[4],0)
     def test_rejects_shared_and_non_temporary_images(self):
         with tempfile.TemporaryDirectory() as td:
             base=Path(td);f=Image(base);(base/'alias').hardlink_to(f.image)

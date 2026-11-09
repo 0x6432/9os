@@ -62,6 +62,12 @@ def inner(cache, work):
     if m.mode != 0o4111 or hashlib.sha256(bbsuid).hexdigest() != BBSUID_SHA:
         raise ValueError('unexpected signed wrapper contents or mode')
     put('bin/busybox', busybox, 0o755); put('bin/bbsuid', bbsuid, 0o4111)
+    _, mini_shadow = read_member(mini, './etc/shadow')
+    build = load('alpine_build', 'userland/alpine/build.py')
+    shadow = (build.merge_named_records(mini_shadow.decode(), (ROOT/'userland/skel/etc/shadow').read_text()).rstrip('\n')
+              + '\nmessagebus:!:0:0:99999:7:::\n').encode()
+    if hashlib.sha256(shadow).hexdigest() != owner.SHADOW_SHA: raise ValueError('generated shadow mismatch')
+    put('etc/shadow', shadow, 0o640)
     put('etc/group', b'root:x:0:\nmessagebus:x:81:\nshadow:x:42:\n', 0o644)
     put('bin/captest', b'not executable\n', 0o755)
     call(['setcap', 'cap_net_raw+ep', stage/'bin/captest'])
@@ -82,7 +88,7 @@ def inner(cache, work):
     if '01 00 00 02 00 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00' not in cap:
         raise ValueError('synthetic capability did not survive as expected')
     call(['e2fsck', '-fn', part], stdout=subprocess.DEVNULL)
-    print('PASS: signed helper group repair and wrapper; synthetic capability preserved in tiny ext2. No guest boot.', flush=True)
+    print('PASS: signed helper and generated shadow group repair and wrapper; synthetic capability preserved in tiny ext2. No guest boot.', flush=True)
 
 def main():
     if len(sys.argv) == 4 and sys.argv[1] == '--inner':

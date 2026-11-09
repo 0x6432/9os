@@ -63,7 +63,7 @@ user/network namespace support and never boot a guest. This remains a proposed
 host packaging approach, not independently reviewed or integrated into CI.
 It does not fix initramfs ownership/capability loss, review the entire overlay,
 verify 9os privilege semantics, approve the launcher or provide guest evidence.
-The disk's two non-root groups still require the separate opt-in owner repair.
+The disk's three non-root file groups still require the separate opt-in owner repair.
 
 ## Provenance and replay
 

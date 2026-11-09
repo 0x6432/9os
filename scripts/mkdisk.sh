@@ -4,7 +4,7 @@
 #   INODE_SIZE=256 in the environment: large inodes (in-inode xattrs, M33)
 #   ROOTDIR: directory copied into the filesystem (mke2fs -d), e.g. userland/root-x86_64
 # ALPINE_DESKTOP_OWNER_POLICY=x86_64 and ALPINE_DESKTOP_APK_CACHE=DIR:
-#   opt in to a narrow, signed-APK-verified two-group repair before publishing.
+#   opt in to a narrow verified three-file group repair before publishing.
 #   This is not complete fixture or security-policy verification.
 # needs sfdisk (util-linux) and mke2fs (e2fsprogs)
 set -e

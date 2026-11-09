@@ -109,8 +109,7 @@ the ISO to verify its embedded `root=/dev/vda1` before launching. After the
 shell starts, frozen mode also requires exactly one `/` mount from
 `/dev/vda1` of type `ext2`, and checks the two corrected helper owners and
 modes. It additionally requires a regular, non-symlink `/etc/shadow` with
-mode 0640 and root:shadow (0:42), because early init must correct the
-root:root group left by offline packaging. If this preflight fails, all
+mode 0640 and root:shadow (0:42), including after early init. If this preflight fails, all
 requested diagnostic steps are skipped and the run fails. This post-boot
 check does not replace fixture review or a complete security audit.
 
@@ -130,13 +129,17 @@ For a **new disposable image only**, `mkdisk.sh` supports the explicit setting
 x86 Alpine 3.22.6 mini and the two APKs named in
 `scripts/alpine-desktop-owner-repair.py`. The helper verifies the exact desktop
 lock, pinned bootstrap and trust keys, both APK checksums and signatures, signed
-archive ownership/modes and installed file bytes. It checks the disk's group
+archive ownership/modes and installed file bytes, plus the pinned generated
+shadow-file digest. It checks the disk's group
 identities, file types, inode links, original owners and modes before changing
-only the two groups (DBus helper 81 and unix_chkpwd 42), and rechecks both.
+only the three file groups (DBus helper 81, unix_chkpwd 42, and the
+known generated `/etc/shadow` fixture 42), and rechecks all three. The shadow
+content must exactly match the pinned mini plus repository account overlay;
+changed accounts are refused and need separate review.
 Any refusal aborts packing before the partition is copied into the image.
 Do not use a failed or partially created image; keep the error visible.
 
-This narrowly corrects two observed discrepancies. It does not approve setuid
+This narrowly corrects three observed discrepancies. It does not approve setuid
 policy, check all overlay/generated-file metadata, implement file capabilities,
 fix newc ownership/xattr limitations, or verify other architectures. The repair
 has time-of-check races and assumes exclusive control of an unmounted disposable
