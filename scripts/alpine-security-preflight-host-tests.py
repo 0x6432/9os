@@ -19,7 +19,17 @@ class Controls(unittest.TestCase):
    name=str(p.relative_to(self.root))
    if name not in values:raise OSError('missing xattr')
    return values[name]
-  with patch.object(m,'HASHES',self.hashes),patch.object(m.os,'getxattr',side_effect=xattr):return m.inspect(self.root,profile)
+  # Production CI invokes this checker via sudo because bbsuid is 04111.
+  # The unprivileged synthetic test emulates a privileged read of this one
+  # private temporary file, restoring its exact mode immediately afterwards.
+  original_read=pathlib.Path.read_bytes
+  def read(path):
+   if path == self.root/'bin/bbsuid' and not path.is_symlink():
+    mode=path.stat().st_mode & 0o7777;path.chmod(mode|0o400)
+    try:return original_read(path)
+    finally:path.chmod(mode)
+   return original_read(path)
+  with patch.object(m,'HASHES',self.hashes),patch.object(m.os,'getxattr',side_effect=xattr),patch.object(pathlib.Path,'read_bytes',read):return m.inspect(self.root,profile)
  def test_valid_and_base_scope(self):
   self.assertEqual(self.inspect(),[])
   (self.root/'usr/sbin/unix_chkpwd').unlink()
@@ -30,7 +40,7 @@ class Controls(unittest.TestCase):
     self.setUp();p=self.root/'bin/bbsuid'
     caps=m.CAPS|m.DESKTOP_CAPS
     if field=='mode':p.chmod(0o111)
-    if field=='content':p.write_bytes(b'changed')
+    if field=='content':p.chmod(0o4311);p.write_bytes(b'changed');p.chmod(0o4111)
     if field=='link':(self.root/'bin/su').unlink();(self.root/'bin/su').symlink_to('/bin/busybox')
     if field=='xattr':caps={}
     if field=='symlink':p.unlink();p.symlink_to('busybox')
