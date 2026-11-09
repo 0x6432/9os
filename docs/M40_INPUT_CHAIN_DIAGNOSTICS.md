@@ -185,6 +185,13 @@ A previously ignored `root_required=0` token now fails closed. The parser checks
 one root-value token, not device identity: aliases and relative paths are not
 excluded, and a bare `root` token is not counted.
 
+The host controls include the actual production `kmain` dispatch on x86-64,
+with inert boot, mount, panic and init stubs and a test-only no-op in place of
+interrupt enable. They check strict failures, legacy fallback and a deliberately
+broken fallthrough mutation. Non-x86-64 hosts explicitly skip this control;
+other-architecture checks are syntax-only. This does not execute a real mount,
+panic, guest or userspace init and is not guest or isolation evidence.
+
 This is a host-tested source proposal only. The currently frozen launcher and
 ISO still use `root=/dev/vda1` without this option: they remain exposed to
 initramfs fallback and are not approved for a boot. Adopting the safeguard
