@@ -1,0 +1,8 @@
+New native command-mock baseline, NOT original PR42 guest evidence.
+consumer sha256=42ffa23a3d6a2054d84ca165a186b543a0f43d2efe096ed0df76ff1ddffccafa
+checker sha256=ae344e61a221d7c0d222cc3a6c711ef9bb639ed44562da5bdd7237d7c3049bc7
+exit=0
+stdout='alpine-udisks: real disk/partition/root filesystem enumerated uid=1000\n'
+stderr=''
+ordered calls=[["--system", "--print-reply", "--reply-timeout=30000", "--dest=org.freedesktop.UDisks2", "/org/freedesktop/UDisks2", "org.freedesktop.DBus.ObjectManager.GetManagedObjects"], ["--system", "--print-reply", "--reply-timeout=4000", "--dest=org.freedesktop.UDisks2", "/org/freedesktop/UDisks2/block_devices/vda", "org.freedesktop.DBus.Properties.Get", "string:org.freedesktop.UDisks2.Block", "string:Device"], ["--system", "--print-reply", "--reply-timeout=4000", "--dest=org.freedesktop.UDisks2", "/org/freedesktop/UDisks2/block_devices/vda1", "org.freedesktop.DBus.Properties.Get", "string:org.freedesktop.UDisks2.Block", "string:Device"], ["--system", "--print-reply", "--reply-timeout=4000", "--dest=org.freedesktop.UDisks2", "/org/freedesktop/UDisks2/block_devices/vda1", "org.freedesktop.DBus.Properties.Get", "string:org.freedesktop.UDisks2.Filesystem", "string:MountPoints"]]
+CONFIRMED GAP: all three typed Gets required, but no individual reply bytes emitted.

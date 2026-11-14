@@ -1,0 +1,14 @@
+source_base=07fda66bd9a7904e77b7f3e1051df243ee1e4d21
+unfixed_checkpoint=3796b4711a37866f0e07c5bff63049935e9b7167
+synthetic production-loop shell_rc=0
+queries=2
+strict_source_bound_parser_accepts=True
+all_emitted_slots_roundtrip_exact=True
+full_twelve_5120_byte_slot_wire_bytes=124381
+wire_hard_bound=131072 (history only, not acceptance budget or whole output)
+raw_retained_storage_bound=62464 (unchanged; includes scratch)
+unchanged_qemu_test_sha256=172d1bc45c8c7994f2e54793f51d48d61d03ca9d49280cc5189559638e6f66fb
+first_decoded_sha256=87d780f68857db8740d018068adee08652590c898f9fefe70e866bd25be2f258
+last_decoded_sha256=53cfa1b13e40a99e2a7789247819c1d87af5bc011ef85c5ba502279d77041639
+NOT a VM/controller execution, actual guest failure, cold reliability, or original-state proof
+Inherited final raw replay remains unchanged and can still collide; negative test preserves rejection

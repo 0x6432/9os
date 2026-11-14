@@ -1,0 +1,27 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2921379754886
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2921380215466
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2921380673390
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2921381098170
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2921381109609
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=2921381253012
+DBUS_A11Y_OWNER bus=:1.13 pid=54019 target=54019
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.13 path=/org/a11y/atspi/accessible/app mono_ns=2921381260268
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.13 path=/org/a11y/atspi/accessible/app mono_ns=2921381289424
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2921381575714
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2921381607643
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.13 path=/org/a11y/atspi/accessible/frame mono_ns=2921381629385
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.13 path=/org/a11y/atspi/accessible/frame mono_ns=2921381661703
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2921381948841
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2921381984627
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.13 path=/org/a11y/atspi/accessible/terminal mono_ns=2921382009262
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.13 path=/org/a11y/atspi/accessible/terminal mono_ns=2921382037692
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2921382301635
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2921382335319
+DBUS_A11Y_NODE depth=2 node=3 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.13 path=/org/a11y/atspi/accessible/terminal mono_ns=2921382344830
+DBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=2921382576764
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=54019 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=54019 applications=1 models=1 visited=3 OBSERVED (diagnostic only)

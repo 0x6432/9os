@@ -19,82 +19,10 @@ jobs:
       ARCH: ${{ matrix.arch }}
       TOOLS_DIR: ${{ github.workspace }}/.tools
     steps:
-      - uses: actions/checkout@v4
-      - name: Host tools only (no Qt compiler/toolchain build)
+      - name: M40 independent review gate (execution blocked)
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio python3-pil
-          scripts/install-qemu-alpine.sh
-          echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
-          scripts/fetch-deps.sh
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.TOOLS_DIR }}/dl/alpine
-          key: alpine-v3.22-${{ matrix.arch }}-${{ hashFiles('userland/alpine/locks/*.json') }}
-          restore-keys: alpine-v3.22-${{ matrix.arch }}-
-      - name: Lock/checksum negative controls
-        if: matrix.arch == 'x86_64'
-        run: |
-          scripts/fallocate-host-tests.sh
-          scripts/ptracestop-host-tests.sh
-          scripts/unixcred-host-tests.sh
-          scripts/procinfo-host-tests.sh
-          scripts/pimutex-host-tests.sh
-          scripts/ioctlwidth-host-tests.sh
-          python3 scripts/rootfs-stamp-host-tests.py
-          python3 scripts/alpine-host-tests.py
-          python3 scripts/alpine-wayland-host-tests.py
-          python3 scripts/alpine-plasma-host-tests.py
-          python3 scripts/desktopframe-host-tests.py
-      - name: Install signed prebuilt runtime
-        # apk2 applies Sway's signed security.capability xattr. The runner needs
-        # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
-        run: sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH"
-      - name: Prove exact offline replay (no index/network)
-        # apk2 applies Sway's signed security.capability xattr. The runner needs
-        # CAP_SETFCAP even with --no-chown; don't bypass signatures or ignore errors.
-        run: sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --lock "userland/build/alpine-$ARCH.lock.json" --offline
-      - name: Return image and cache ownership to the runner
-        run: |
-          sudo chown -hR "$(id -u):$(id -g)" "userland/alpine-root-$ARCH" userland/build "$TOOLS_DIR/dl/alpine"
-          # chown clears setuid. Restore the intentional VM-only BusyBox login bit.
-          chmod 4755 "userland/alpine-root-$ARCH/bin/busybox"
-          test -r "userland/alpine-root-$ARCH/etc/shadow"
-          test -x "userland/alpine-root-$ARCH/root"
-      - name: Compile tiny syscall regression against prebuilt musl (not Qt)
-        run: scripts/alpine-build-tests.sh "$ARCH"
-      - name: Build 9os kernel and isolated image
-        run: make -j2 ARCH=$ARCH USERLAND=alpine iso
-      - name: Prebuilt DBus and Qt Quick offscreen/Wayland, root/non-root pixels
-        run: scripts/alpine-tests.sh "$ARCH"
-      - name: Uniprocessor Quick offscreen and Wayland
-        run: >-
-          python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 1
-          --boot-timeout 300 --log build/test-alpine-up-$ARCH.log alpine-qtsmoke
-          "su user -s /bin/sh -c alpine-qtsmoke"
-          "host:python3 scripts/alpine-pixel-check.py build/test-alpine-up-$ARCH.log"
-          alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"
-          "host:python3 scripts/alpine-wayland-check.py build/test-alpine-up-$ARCH.log"
-          "grep -q '^violations 0' /proc/lockdep"
-      - name: Eight-CPU Quick offscreen and Wayland
-        if: matrix.arch == 'x86_64'
-        run: >-
-          python3 scripts/qemu-test.py $ARCH --userland alpine --memory 2048M --smp 8
-          --boot-timeout 300 --log build/test-alpine-smp8-$ARCH.log alpine-qtsmoke
-          "su user -s /bin/sh -c alpine-qtsmoke"
-          "host:python3 scripts/alpine-pixel-check.py build/test-alpine-smp8-$ARCH.log"
-          alpine-wayland-smoke "ALPINE_WAYLAND_USER=user alpine-wayland-smoke"
-          "host:python3 scripts/alpine-wayland-check.py build/test-alpine-smp8-$ARCH.log"
-          "grep -q '^violations 0' /proc/lockdep"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: alpine-evidence-${{ matrix.arch }}
-          path: |
-            build/test-alpine*.log
-            userland/build/alpine-${{ matrix.arch }}.lock.json
-          if-no-files-found: warn
-
+          echo "::error::M40 execution blocked pending independent review; tests were not run."
+          exit 1
   desktop:
     runs-on: ubuntu-24.04
     timeout-minutes: 55
@@ -106,43 +34,7 @@ jobs:
       ARCH: ${{ matrix.arch }}
       TOOLS_DIR: ${{ github.workspace }}/.tools
     steps:
-      - uses: actions/checkout@v4
-      - name: Host tools only; signed prebuilt desktop dependencies
+      - name: M40 independent review gate (execution blocked)
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm make gcc git curl xorriso mtools cpio python3-pil e2fsprogs fdisk libglib2.0-bin shared-mime-info
-          scripts/install-qemu-alpine.sh
-          echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
-          scripts/fetch-deps.sh
-      - uses: actions/cache@v4
-        with:
-          path: ${{ env.TOOLS_DIR }}/dl/alpine
-          key: alpine-desktop-v3.22-${{ matrix.arch }}-${{ hashFiles('userland/alpine/locks/*.json') }}
-          restore-keys: |
-            alpine-desktop-v3.22-${{ matrix.arch }}-
-            alpine-v3.22-${{ matrix.arch }}-
-      - name: Signed base and desktop assembly, then exact offline desktop replay
-        run: |
-          sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH"
-          sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --profile desktop
-          sudo env TOOLS_DIR="$TOOLS_DIR" python3 userland/alpine/build.py --arch "$ARCH" --profile desktop --lock "userland/build/alpine-desktop-$ARCH.lock.json" --offline
-          sudo chown -hR "$(id -u):$(id -g)" "userland/alpine-root-$ARCH" "userland/alpine-desktop-root-$ARCH" userland/build "$TOOLS_DIR/dl/alpine"
-          chmod 4755 "userland/alpine-root-$ARCH/bin/busybox" "userland/alpine-desktop-root-$ARCH/bin/busybox"
-      - name: Build kernel/image and tiny ABI tests only; never compile desktop libraries
-        run: |
-          scripts/alpine-build-tests.sh "$ARCH"
-          make -j2 ARCH=$ARCH USERLAND=alpine iso
-      - name: Real EGL Quick pixels, KWin, Konsole and Plasma on disk root
-        run: scripts/alpine-desktop-tests.sh "$ARCH"
-      - name: Physical KMS keyboard to real Konsole PTY, then clean shutdown
-        run: scripts/alpine-kms-tests.sh "$ARCH"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: alpine-desktop-evidence-${{ matrix.arch }}
-          path: |
-            build/test-alpine-desktop-*.log
-            build/test-alpine-kms-*.log
-            build/test-alpine-kms-*.png
-            userland/build/alpine-desktop-${{ matrix.arch }}.lock.json
-          if-no-files-found: warn
+          echo "::error::M40 execution blocked pending independent review; tests were not run."
+          exit 1

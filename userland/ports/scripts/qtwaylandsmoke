@@ -1,5 +1,5 @@
 #!/bin/sh
-# Actual xdg-shell Qt raster or explicit EGL/GLES window under Sway. No Quick.
+# Actual xdg-shell Qt raster, EGL/GLES or Quick software window under Sway.
 set -u
 unset SWAYSOCK WAYLAND_DISPLAY
 D=/tmp/qtwayland-$$; mkdir -m700 "$D" || exit 1
@@ -31,6 +31,7 @@ if [ -z "${WAYLAND_DISPLAY:-}" ]; then cat "$D/sway.log"; echo 'qtwaylandsmoke: 
 case ${QTWAYLAND_TEST_CLIENT:-qtwaylandtest} in
     qtwaylandtest) CLIENT=qtwaylandtest; export QT_QPA_PLATFORM=wayland ;;
     qtgltest) CLIENT=qtgltest; export QT_QPA_PLATFORM=wayland-egl ;;
+    qtquickwaylandtest) CLIENT=qtquickwaylandtest; export QT_QPA_PLATFORM=wayland ;;
     *) echo 'qtwaylandsmoke: FAILED unsupported client'; exit 1 ;;
 esac
 export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/plugins/platforms

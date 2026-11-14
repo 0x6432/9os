@@ -136,8 +136,8 @@
       "sha256": "88982a7710f506bf4ee52ac4f7f681c129ce098df225e54887a95aa2ae199f16"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/brotli-libs-1.1.0-r2.apk",
-      "sha256": "a693524543421b3a90f163ccb48d5ad0f5fd773b5c3b640acc461eace2cb01b6"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/brotli-libs-1.1.1-r0.apk",
+      "sha256": "9e52618457762f65bf273f42d71db8084633a1e9d938ff2611015ba20d44a8cf"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-1.37.0-r20.apk",
@@ -148,12 +148,16 @@
       "sha256": "ad33d8d799ed80eab45bb68d63c14062165d3653f4fb52e73959cd31d032210e"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.8-r0.apk",
-      "sha256": "1397ec9682ff6153e5d037965c76408e570ae6535ce479cc2af37436fdea52ce"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-suid-1.37.0-r20.apk",
+      "sha256": "f139a0f28d40a3a183661ee1ad7a248fcf01e82b144114f86d3bc16cee990917"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20260909-r0.apk",
-      "sha256": "9cbf2fd3bcbad4a73d6e2c5a2d5cfea176ce01790d8ae8bb1796ba4e64d6c48b"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk",
+      "sha256": "9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97"
+    },
+    {
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/ca-certificates-bundle-20261020-r0.apk",
+      "sha256": "d35216a0a9adde79031df246759bad03f235cf201bf0aff8436b88bff59594eb"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/cairo-1.18.4-r0.apk",
@@ -300,8 +304,8 @@
       "sha256": "3f5825ced5fde1c66a5376a3f6076b3c08538ad52d9ef23f069857e212d9175a"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libcurl-8.14.1-r3.apk",
-      "sha256": "249e5a3a50558cdb3ce1bab1619b15d88243a628d878700c8d05878c2e71ed71"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libcurl-8.14.1-r4.apk",
+      "sha256": "3887f3b2e66b513cb0f8211af6369a0ffaf87270c05ed1f18f7313eddc6b3660"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libdrm-2.4.124-r0.apk",
@@ -324,8 +328,8 @@
       "sha256": "8fca3a5186fce76a4e037a4ec97f03fc7d93cd8f342d045e50d2d5730f97e3e2"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libexpat-2.8.5-r0.apk",
-      "sha256": "771c18e6f7891a503a4664cfc09a3c4fb35a9b2fd2d4a643caf7206b792f5444"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libexpat-2.10.0-r0.apk",
+      "sha256": "8ff83a897b5393832edbd2a7500c37bab685a17d7821925d95460f01747dbac2"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libffi-3.4.8-r0.apk",
@@ -376,8 +380,8 @@
       "sha256": "cc1f2697e70ee0eedc57f7de863a21b605445ef82412975d84c6a404a2f5b59c"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r0.apk",
-      "sha256": "3e0e70688c2f8410896a760705bbc887f6c9b1b8e6bb510ab1847f1261b13a3e"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpcre2-16-10.46-r1.apk",
+      "sha256": "63fb6e08815d6b72bc2792cce9fb8dd5b1c5952e0624915ca8324919dd50e497"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libpng-1.6.59-r0.apk",
@@ -536,12 +540,12 @@
       "sha256": "04ed90a420ea1ce77fc2ea0c7f883c8b33128c4dbcac3a0aece0e69b018ff1f5"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r12.apk",
-      "sha256": "4990a5e0ba312e478f94cfe431a70efef1538004eb361c8ae424516848be45bb"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk",
+      "sha256": "359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-dev-1.2.5-r12.apk",
-      "sha256": "1c2068d910cfdbbcb4eb107a5a478f8b48edf3a6311953c8fa5180c5190efab3"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-dev-1.2.5-r13.apk",
+      "sha256": "2ca496dd68c0b340b50cf9940bc2f3312eac8b56ec2d3284a621be6f0c09ffb1"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-fts-1.2.7-r6.apk",
@@ -568,8 +572,8 @@
       "sha256": "c7d0e67a543942e79d8eaa86a57017ca8cb6bcd883042c55cc27dee2965e8ded"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r0.apk",
-      "sha256": "cfb8ad103a101fa6a31769e50e188dab9c60124705682d01b3de268795db58ad"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pcre2-10.46-r1.apk",
+      "sha256": "e0e0e3c5f3b4a37a77799a7367bb40dd38596be55f56f3bc60f2cb4b584f842c"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/pixman-0.46.4-r0.apk",
@@ -600,8 +604,8 @@
       "sha256": "6af6a6b7df561b9206886c0a79c90a4b1e63113000d1bb592c2397add388b2d0"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/tzdata-2026e-r0.apk",
-      "sha256": "f99e81b17a364688f1a953766e1357db83a144a610e7f145e6d0267a84bbd091"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/tzdata-2026f-r0.apk",
+      "sha256": "cf2a759aa58e439061227ff1be1e43bfd91c11367f2da5f0ae82463d83a1ed03"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/vulkan-loader-1.4.313.0-r0.apk",
@@ -636,8 +640,8 @@
       "sha256": "37e169b7b400304fa7027cab79f9c1c7a280e83acf6c95463384b8abb7ebb254"
     },
     {
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.3.2-r1.apk",
-      "sha256": "af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216"
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.4-r0.apk",
+      "sha256": "a271d6491037f7037010ac98b40f7d2b81c733f425b20294ee771b6ed7571038"
     },
     {
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zstd-libs-1.5.7-r0.apk",

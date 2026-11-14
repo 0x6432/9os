@@ -1,0 +1,6 @@
+pre-syscall (includes full scanner/filter/ET/ONESHOT) : byte-identical; sha256 206833adda43ce03bdaa1a08f9e2a8bf264d0050ee87a3ac3bc24c388e5f5b1d
+post-syscall (memfd onward) : byte-identical; sha256 502336ff0ec6bedf52f202bc730388ba359a24e7b32a8c91f9893f35ada131b2
+kernel/fs/vfs.c : byte-identical; sha256 e9a3091f6e883a6f3aeb345c3cd846da608b471dc5626cb1049012407a0103d2
+kernel/core/sched.c : byte-identical; sha256 2a74cc08a48def80da05cf2defb00effc684f26f9ece67de916527e8a99b629c
+kernel/core/sys_fs.c : byte-identical; sha256 3fb51839bb89c79578a48a54276d7710eaa76e246785cb03468b2f753d535fd9
+This is a source-scope audit, not guest runtime validation.

@@ -1,0 +1,242 @@
+#!/usr/bin/python3
+"""Select KWin's frame-callback fallback for nested wlroots 0.18 sessions.
+
+This is a compatibility transport, not a security boundary. Only the optional
+wp_presentation registry advertisement is hidden. All other wire messages and
+SCM_RIGHTS descriptors remain ordered and unchanged; pixels are never inspected.
+The packaged Qt/KDE libraries and the inner KWin application protocol are intact.
+"""
+import array
+import os
+import signal
+import socket
+import struct
+import subprocess
+import sys
+import threading
+import time
+
+
+class KeyboardTrace:
+    """Opt-in observation of outer compositor -> KWin keyboard wire events.
+
+    Not a Wayland validator: unknown messages are forwarded, not interpreted.
+    Never changes key/repeat configuration or injects events. Clock records are
+    proxy receipt time, NOT hardware latency or downstream Qt delivery proof.
+    """
+    def __init__(self, emit=None):
+        self.seats = set()
+        self.keyboards = set()
+        self.count = 0
+        self.emit = emit or (lambda line: print(line, file=sys.stderr, flush=True))
+
+    def record(self, obj, event, fields):
+        if self.count >= 4096:
+            if self.count == 4096:
+                self.emit('WAYLAND_KEY_TRACE truncated=1')
+            self.count += 1
+            return
+        self.count += 1
+        self.emit('WAYLAND_KEY_TRACE object=%d event=%s received_ns=%d %s' %
+                  (obj, event, time.monotonic_ns(), fields))
+
+    def inspect(self, message, client, registries):
+        obj, header = struct.unpack_from('=II', message)
+        opcode, size = header & 65535, header >> 16
+        if client and obj in registries and opcode == 0 and size >= 24:
+            length = struct.unpack_from('=I', message, 12)[0]
+            padded = (length + 3) & ~3
+            if length == 8 and size == 24 + padded and message[16:24] == b'wl_seat\0':
+                self.seats.add(struct.unpack_from('=I', message, 20 + padded)[0])
+        if client and obj in self.seats:
+            if opcode == 1 and size == 12:
+                self.keyboards.add(struct.unpack_from('=I', message, 8)[0])
+            elif opcode == 3 and size == 8:
+                self.seats.discard(obj)
+        if client and obj in self.keyboards and opcode == 0 and size == 8:
+            self.keyboards.discard(obj)
+        if not client and obj == 1 and opcode == 1 and size == 12:
+            removed = struct.unpack_from('=I', message, 8)[0]
+            self.seats.discard(removed)
+            self.keyboards.discard(removed)
+        if client or obj not in self.keyboards:
+            return
+        if opcode == 3 and size == 24:
+            serial, stamp, key, state = struct.unpack_from('=IIII', message, 8)
+            self.record(obj, 'key', 'serial=%d time_ms=%d key=%d state=%d' %
+                        (serial, stamp, key, state))
+        elif opcode == 5 and size == 16:
+            rate, delay = struct.unpack_from('=ii', message, 8)
+            self.record(obj, 'repeat_info', 'rate=%d delay=%d' % (rate, delay))
+        elif opcode == 2 and size == 16:
+            serial, surface = struct.unpack_from('=II', message, 8)
+            self.record(obj, 'leave', 'serial=%d surface=%d' % (serial, surface))
+        elif opcode == 1 and size >= 20:
+            serial, surface, length = struct.unpack_from('=III', message, 8)
+            if length % 4 == 0 and size == 20 + length:
+                self.record(obj, 'enter', 'serial=%d surface=%d held_keys=%d' %
+                            (serial, surface, length // 4))
+
+
+class RegistryFilter:
+    def __init__(self, hide=True, keyboard_trace=None):
+        self.keyboard_trace = keyboard_trace
+        self.registries = set()
+        self.hidden_globals = {}
+        self.lock = threading.Lock()
+        self.hidden = 0
+        self.hide = hide
+
+    def drop(self, message, client):
+        obj, header = struct.unpack_from('=II', message)
+        opcode, size = header & 65535, header >> 16
+        with self.lock:
+            if self.keyboard_trace is not None:
+                self.keyboard_trace.inspect(message, client, self.registries)
+            if client and obj == 1 and opcode == 1 and size == 12:
+                self.registries.add(struct.unpack_from('=I', message, 8)[0])
+            if not client and obj == 1 and opcode == 1 and size == 12:
+                removed = struct.unpack_from('=I', message, 8)[0]
+                self.registries.discard(removed)
+                self.hidden_globals.pop(removed, None)
+            if not client and obj in self.registries and opcode == 0 and size >= 20:
+                length = struct.unpack_from('=I', message, 12)[0]
+                if (self.hide and 1 <= length <= size - 20
+                        and message[16:16 + length] == b'wp_presentation\0'):
+                    self.hidden += 1
+                    name = struct.unpack_from('=I', message, 8)[0]
+                    self.hidden_globals.setdefault(obj, set()).add(name)
+                    return True
+            if not client and obj in self.registries and opcode == 1 and size == 12:
+                name = struct.unpack_from('=I', message, 8)[0]
+                hidden = self.hidden_globals.get(obj, set())
+                if name in hidden:
+                    hidden.remove(name)
+                    return True
+        return False
+
+
+def relay(src, dst, state, client, fail):
+    pending = bytearray()
+    fds = []
+    try:
+        while True:
+            data, ancillary, flags, _ = src.recvmsg(65536, socket.CMSG_SPACE(256 * 4))
+            for level, kind, raw in ancillary:
+                if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS:
+                    received = array.array('i')
+                    received.frombytes(raw[:len(raw) // received.itemsize * received.itemsize])
+                    fds.extend(received)
+            if len(fds) > 512:
+                raise RuntimeError('too many pending descriptors')
+            if flags & socket.MSG_CTRUNC:
+                raise RuntimeError('truncated SCM_RIGHTS data')
+            if not data:
+                if pending or fds:
+                    raise RuntimeError('incomplete message or unforwarded descriptors at EOF')
+                break
+            pending.extend(data)
+            while len(pending) >= 8:
+                _, header = struct.unpack_from('=II', pending)
+                size = header >> 16
+                if size < 8 or size % 4:
+                    raise RuntimeError('invalid Wayland message size')
+                if len(pending) < size:
+                    break
+                message = bytes(pending[:size])
+                del pending[:size]
+                if state.drop(message, client):
+                    continue
+                control = [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', fds))] if fds else []
+                sent = dst.sendmsg([message], control)
+                if sent <= 0:
+                    raise RuntimeError('zero-length send')
+                # Rights were transferred by the first successful write only.
+                for fd in fds:
+                    os.close(fd)
+                fds.clear()
+                while sent < len(message):
+                    count = dst.send(message[sent:])
+                    if count <= 0:
+                        raise RuntimeError('zero-length continuation')
+                    sent += count
+    except Exception as error:
+        fail(error)
+    finally:
+        for fd in fds:
+            os.close(fd)
+        try:
+            dst.shutdown(socket.SHUT_WR)
+        except OSError:
+            pass
+
+
+def main(args):
+    hide, trace_keyboard = True, False
+    while args and args[0] in ('--passthrough', '--trace-keyboard'):
+        if args[0] == '--passthrough':
+            hide = False
+        else:
+            trace_keyboard = True
+        args = args[1:]
+    if args and args[0] == '--':
+        args = args[1:]
+    if not args:
+        print('usage: wayland-presentation-proxy [--passthrough] [--trace-keyboard] -- command [args...]', file=sys.stderr)
+        return 2
+    display = os.environ.get('WAYLAND_DISPLAY', 'wayland-0')
+    if not os.path.isabs(display):
+        display = os.path.join(os.environ['XDG_RUNTIME_DIR'], display)
+    upstream = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    upstream.connect(display)
+    local, child = socket.socketpair()
+    try:
+        process = subprocess.Popen(args, env=dict(os.environ, WAYLAND_SOCKET=str(child.fileno())),
+                                   pass_fds=(child.fileno(),))
+    except BaseException:
+        upstream.close()
+        local.close()
+        child.close()
+        raise
+    child.close()
+    # Failure diagnostics must attach to KWin, not only this transport process.
+    print('wayland-presentation-proxy: child_pid=%d' % process.pid, file=sys.stderr, flush=True)
+    state = RegistryFilter(hide, KeyboardTrace() if trace_keyboard else None)
+    errors = []
+
+    def fail(error):
+        if process.poll() is None:
+            errors.append(str(error))
+            process.terminate()
+
+    def forward_signal(signum, frame):
+        if process.poll() is None:
+            process.send_signal(signum)
+
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(sig, forward_signal)
+    threads = []
+    for src, dst, client in ((local, upstream, True), (upstream, local, False)):
+        thread = threading.Thread(target=relay, args=(src, dst, state, client, fail), daemon=True)
+        thread.start()
+        threads.append(thread)
+    result = process.wait()
+    for stream in (local, upstream):
+        try:
+            stream.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+    for thread in threads:
+        thread.join(2)
+    local.close()
+    upstream.close()
+    print('wayland-presentation-proxy: hidden=%d child=%d' % (state.hidden, result), file=sys.stderr)
+    for error in errors:
+        print('wayland-presentation-proxy: ' + error, file=sys.stderr)
+    if errors and result == 0:
+        return 1
+    return result if result >= 0 else 128 - result
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

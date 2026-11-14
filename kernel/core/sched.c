@@ -405,6 +405,7 @@ struct thread *thread_alloc(const char *name) {
     if (!stk) { kmem_cache_free(thread_cache, t); return nullptr; }
     t->kstack = PHYS_TO_VIRT(page_to_phys(stk));
     t->tid = next_tid++;
+    t->start_ticks = jiffies;
     strlcpy(t->name, name, sizeof t->name);
     t->level = 0;
     t->bkl_depth = 0;
@@ -627,7 +628,11 @@ bool sched_tick_fast(bool from_user) {
     rq_lock(c->id);
     cur->quantum -= account_tick(c, cur);
     if (cur->quantum <= 0) { quantum_expired(cur); c->resched = true; }
-    bool slow = c->resched || (from_user && (signal_pending(cur) || (cur->proc && cur->proc->alarm_ns)));
+    /* A future alarm needs no signal work yet. Forcing every AP user tick
+     * through the BKL until it expires creates needless global contention. */
+    uint64_t alarm = cur->proc ? __atomic_load_n(&cur->proc->alarm_ns, __ATOMIC_RELAXED) : 0;
+    bool alarm_due = alarm && time_ns() >= alarm;
+    bool slow = c->resched || (from_user && (signal_pending(cur) || alarm_due));
     rq_unlock(c->id);
     if (slow) return false;
     c->tick_accounted = false;
@@ -772,6 +777,16 @@ void wake_up(struct wait_queue *q) {
     list_for_each_safe(it, tmp, &q->head) {
         struct thread *t = list_entry(it, struct thread, run_node);
         wake_thread_locked(t);
+    }
+    sl_unlock_irqrestore(f);
+}
+
+/* Unfiltered waiters include select, nested/unknown epoll and blocking I/O. */
+void wake_up_poll(struct wait_queue *q, uint64_t key) {
+    uint64_t f = sl_lock_irqsave();
+    list_for_each_safe(it, tmp, &q->head) {
+        struct thread *t = list_entry(it, struct thread, run_node);
+        if (!t->poll_filtered || (t->poll_filter & key)) wake_thread_locked(t);
     }
     sl_unlock_irqrestore(f);
 }

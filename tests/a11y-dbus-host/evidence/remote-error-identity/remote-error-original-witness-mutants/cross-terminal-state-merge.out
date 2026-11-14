@@ -1,0 +1,47 @@
+PASS optional diagnostic symbol absent valid g_error_matches
+PASS optional diagnostic symbol absent valid g_io_error_quark
+PASS optional diagnostic symbol absent valid g_dbus_error_is_remote_error
+PASS optional diagnostic symbol absent valid g_dbus_error_get_remote_error
+PASS optional diagnostic symbol absent valid g_free
+PASS synthetic protocol valid
+PASS synthetic protocol paired-valid
+PASS synthetic protocol wrong-pid
+PASS synthetic protocol unfocused
+PASS synthetic protocol hidden
+PASS synthetic protocol invisible
+PASS synthetic protocol wrong-role
+PASS synthetic protocol short-state
+PASS synthetic protocol long-state
+PASS synthetic protocol bad-address
+PASS synthetic protocol empty
+PASS synthetic protocol duplicate-app
+PASS synthetic protocol many-apps
+PASS synthetic protocol many-children
+PASS synthetic protocol bad-path
+PASS synthetic protocol foreign-child
+PASS synthetic protocol cycle
+PASS synthetic protocol menu-decoy
+PASS optional diagnostic symbol absent remote-error g_error_matches
+PASS optional diagnostic symbol absent remote-error g_io_error_quark
+PASS optional diagnostic symbol absent remote-error g_dbus_error_is_remote_error
+PASS optional diagnostic symbol absent remote-error g_dbus_error_get_remote_error
+PASS optional diagnostic symbol absent remote-error g_free
+PASS synthetic protocol remote-error
+PASS synthetic protocol blocked-role
+PASS synthetic protocol address-signature
+PASS synthetic protocol children-signature
+PASS synthetic protocol role-signature
+PASS synthetic protocol state-signature
+PASS synthetic protocol paired-role-error
+PASS synthetic protocol paired-children-error
+PASS synthetic protocol blocked-children
+PASS synthetic protocol unfocused-then-error
+PASS synthetic protocol terminal-state-error
+Traceback (most recent call last):
+  File "/tmp/9os-witness-mutant-afvja1eg/tests/a11y-dbus-host/test-native.py", line 243, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/9os-witness-mutant-afvja1eg/tests/a11y-dbus-host/test-native.py", line 106, in main
+    assert result.returncode == (0 if mode in positives else 1), (mode, result.returncode, result.stdout[-3000:], result.stderr[-1000:])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('split-state', 0, 'DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2936074639408\nDBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2936075007816\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2936075432613\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2936075746489\nDBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2936075760114\nDBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=2936075877642\nDBUS_A11Y_OWNER bus=:1.105 pid=54859 target=54859\nDBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/app mono_ns=2936075882264\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/app mono_ns=2936075899959\nDBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2936076224145\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2936076255862\nDBUS_A11Y_NODE depth=0 node=1 role=75\nDBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/frame mono_ns=2936076264086\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/frame mono_ns=2936076284547\nDBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2936076491219\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2936076518961\nDBUS_A11Y_NODE depth=1 node=2 role=23\nDBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/terminal mono_ns=2936076526009\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/terminal mono_ns=2936076548328\nDBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2936076745850\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2936076767794\nDBUS_A11Y_NODE depth=2 node=3 role=60\nDBUS_A11Y_QUERY method=GetState phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/terminal mono_ns=2936076774016\nDBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=2936076999250\nDBUS_A11Y_TERMINAL focused=1 showing=0 visible=1\nDBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/later mono_ns=2936077005888\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/later mono_ns=2936077026456\nDBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2936077248440\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2936077270876\nDBUS_A11Y_NODE depth=2 node=4 role=60\nDBUS_A11Y_QUERY method=GetState phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/later mono_ns=2936077287571\nDBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=2936077470609\nDBUS_A11Y_TERMINAL focused=0 showing=1 visible=1\nDBUS_A11Y_WITNESS pid=54859 terminals=2 valid_states=2 focused_states=1 showing_states=1 visible_states=2 qualified=1 protocol_error=0\nterminal-dbus: pid=54859 applications=1 models=1 visited=4 OBSERVED (diagnostic only)\n', '')

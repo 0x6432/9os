@@ -1,0 +1,10 @@
+original_checkpoint=c1cf999c857f9b32b5a2fdc9def397a53f694529
+replacement_checkpoint=3796b4711a37866f0e07c5bff63049935e9b7167
+Copied verbatim using git show; historical fixture error intentionally preserved.
+
+64ad39ef758c94f8c012eab1b84182cdad553162d936215a363de8a7c18e71a5  terminal-history-transport-host-tests.py  (original: scripts/terminal-history-transport-host-tests.py)
+df3827afd8607f11d863095e3dd6c5d2cf8ed515dc41a96e081318afd62b5411  README.md  (original: tests/terminal-history-transport/README.md)
+5db8de5e87c511bcdac1c2c211865133d6a1185f54e172b3a7544c585d1ea57a  unfixed-production-loop.stdout  (original: tests/terminal-history-transport/evidence/unfixed-production-loop.stdout)
+624a9544e15ecf439024b175c2ff98b209599a70697d17349efe137162435dac  unfixed-production-loop-result.txt  (original: tests/terminal-history-transport/evidence/unfixed-production-loop-result.txt)
+b4f8b5204b9f42a6c735f50847ca6d5a6157900c99c97e8eb1c534c2264be6f4  unfixed-regression.log  (original: tests/terminal-history-transport/evidence/unfixed-regression.log)
+febcc1d5a24884261c0d56dd7fee3723976e0a3105e9f9caf7ebef84619fa06a  c1cf999-to-3796b47.patch

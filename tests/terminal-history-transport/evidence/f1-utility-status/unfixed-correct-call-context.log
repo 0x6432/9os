@@ -1,0 +1,10 @@
+Unfixed source SHA256: dc7307afc192e0eed28b5bc33f7bce91f69bb80c190ac5c4946af8a85efe4d55
+test_complete_correct_od_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_od_bytes_then_nonzero_remain_unobserved) ... ok
+test_complete_correct_tr_bytes_then_nonzero_remain_unobserved (__main__.OriginalF1.test_complete_correct_tr_bytes_then_nonzero_remain_unobserved) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.010s
+
+OK
+PRESERVED F1: od emitted exact bytes then exit7; emitter rc0, decoder accepted, no transport status
+PRESERVED F1: tr emitted exact bytes then exit9; emitter rc0, decoder accepted, no transport status

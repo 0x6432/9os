@@ -1,0 +1,15 @@
+emit_terminal_attempts() {
+ # Transport ONLY, after the original loop. Lowercase hex is reversible and
+ # cannot inject arbitrary historical FAIL/panic/return-code text into logs.
+ # Raw slot storage stays <=62464 bytes including scratch. Twelve <=5120-byte
+ # payloads plus fixed framing emit <128KiB. No extra files or query-loop I/O.
+ echo "KONSOLE_QUERY_HISTORY attempts=$query_attempt recording_failed=$query_recording_failed raw=prefix2048+suffix2048 encoding=hex timing_perturbed=1"
+ for query_slot in first last terminal-first terminal-last remote-first remote-last incomplete-first incomplete-last witness-first witness-last alarm-first alarm-last;do
+  [ -f "$D/konsole-attempt-$query_slot" ] || continue
+  query_bytes=$(wc -c < "$D/konsole-attempt-$query_slot") || return 1
+  printf 'KONSOLE_QUERY_ATTEMPT_BEGIN slot=%s encoding=hex bytes=%d\n' "$query_slot" "$query_bytes"
+  LC_ALL=C od -An -v -tx1 "$D/konsole-attempt-$query_slot" | LC_ALL=C tr -d '[:space:]'
+  printf '\nKONSOLE_QUERY_ATTEMPT_END slot=%s\n' "$query_slot"
+ done
+ echo KONSOLE_QUERY_HISTORY_END
+}

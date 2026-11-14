@@ -40,6 +40,9 @@ struct thread {
     struct cred *cred;             /* subjective credentials (M31, kernel/cred.h) */
     bool interrupted;              /* woken by signal */
     void *wait_chan;
+    /* Valid while linked on poll_wq, protected by the scheduler wait lock. */
+    bool poll_filtered;
+    uint64_t poll_filter;
     int *clear_child_tid;
     /* signals */
     uint64_t sig_mask, sig_pending, saved_mask;
@@ -84,6 +87,7 @@ struct thread {
     int nice, policy, rt_prio;     /* SCHED_OTHER(0)/FIFO(1)/RR(2)/BATCH(3)/IDLE(5) */
     int rq_cpu;                    /* run queue it is (or was last) queued on */
     uint64_t utime_ns, stime_ns, sum_exec_ns, exec_start_ns, acct_ns, nvcsw, nivcsw;
+    uint64_t start_ticks, min_flt; /* genuine per-task /proc stat, not leader aliases */
     struct rusage_k reaped_ru;     /* last child reaped by do_wait (wait4 rusage) */
     volatile int on_cpu;           /* context still live on some CPU (cleared after switch-out) */
     int handoff_refs;              /* pins saved contexts until all finish-switch readers retire */
@@ -139,6 +143,7 @@ int wait_event(struct wait_queue *q);
 /* 0 on wakeup, -ETIMEDOUT on timeout, -EINTR on signal. ns == UINT64_MAX means no timeout. */
 int wait_event_timeout(struct wait_queue *q, uint64_t ns);
 void wake_up(struct wait_queue *q);
+void wake_up_poll(struct wait_queue *q, uint64_t key);
 void wake_up_one(struct wait_queue *q);
 
 /* Lost-wakeup-free waits for waiters/wakers that do not share the BKL: take sched_lock,

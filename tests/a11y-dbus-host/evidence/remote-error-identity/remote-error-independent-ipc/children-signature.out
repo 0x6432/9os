@@ -1,0 +1,7 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=3050922044643
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=3050922341134
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=3050922724449
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3050923036240
+DBUS_A11Y_ERROR reason=reply-signature
+DBUS_A11Y_WITNESS pid=55192 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=55192 applications=0 models=0 visited=0 NOT_OBSERVED (diagnostic only)

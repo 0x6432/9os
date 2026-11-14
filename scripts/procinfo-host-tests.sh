@@ -1,4 +1,5 @@
 #!/bin/sh
+# Run the exact guest procfs identity/zombie contract against real host Linux.
 set -eu
 cd "$(dirname "$0")/.."
 D=$(mktemp -d)

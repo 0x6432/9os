@@ -1,0 +1,10 @@
+{
+  "observed_at": "2026-10-22T14:58:24.793475+00:00",
+  "source_commit": "e0521e7d5b36540c5b0806d11cc8cae81a476d09",
+  "entry": {
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libexpat-2.8.5-r0.apk",
+    "sha256": "771c18e6f7891a503a4664cfc09a3c4fb35a9b2fd2d4a643caf7206b792f5444"
+  },
+  "head_http_status": 404,
+  "original_build_log": "signed-base-restore.log"
+}

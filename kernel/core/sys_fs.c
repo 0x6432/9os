@@ -401,14 +401,15 @@ int64_t sys_statx(int dirfd, const char *upath, int flags, unsigned mask, void *
 }
 
 struct gd_ctx { uint8_t *buf; size_t size, used; bool full; bool old; };
-static int gd_fill(void *c, const char *name, size_t len, uint64_t ino, unsigned type) {
+static int gd_fill(void *c, const char *name, size_t len, uint64_t ino, unsigned type, uint64_t next_cookie) {
     struct gd_ctx *g = c;
     size_t reclen = ALIGN_UP((g->old ? 18 + 2 : 19) + len + 1, 8);
     if (g->used + reclen > g->size) { g->full = true; return 1; }
     uint8_t rec[512];
     memset(rec, 0, reclen);
     *(uint64_t *)rec = ino;
-    *(int64_t *)(rec + 8) = g->used + reclen;
+    /* telldir/seekdir must resume in the filesystem, not in this batch buffer. */
+    *(int64_t *)(rec + 8) = (int64_t)next_cookie;
     *(uint16_t *)(rec + 16) = reclen;
     if (g->old) { memcpy(rec + 18, name, len); rec[reclen - 1] = type; }
     else { rec[18] = type; memcpy(rec + 19, name, len); }
@@ -437,7 +438,11 @@ int64_t sys_getdents(int fd, void *buf, size_t size) { return do_getdents(fd, bu
 /* Linux's request parameter is unsigned int, even on a 64-bit syscall ABI.
  * musl can sign-extend its public int request; discard the upper bits once at
  * this boundary so read-direction requests reach PTY/input/DRM drivers. */
-int64_t sys_ioctl(int fd, uint32_t cmd, uint64_t arg) {
+int64_t sys_ioctl(int fd, uint64_t cmd, uint64_t arg) {
+    /* The dispatcher calls through a raw 64-bit signature. Mask explicitly
+     * instead of relying on a narrower C parameter: some 64-bit ABIs require
+     * canonical upper argument bits that a raw syscall need not provide. */
+    cmd = (uint32_t)cmd;
     struct file *f = fd_get(fd);
     if (!f) return -EBADF;
     if (cmd == 0x5421) {           /* FIONBIO */
@@ -959,7 +964,8 @@ struct pollfd { int fd; int16_t events, revents; };
  * the BKL; the first fd whose poll still needs it takes the BKL for the rest of this scan.
  * Callers sleep on poll_seq, which every wake-up source bumps.
  */
-static int poll_once(struct pollfd *pf, size_t n) {
+static int poll_once(struct pollfd *pf, size_t n, uint64_t *filter) {
+    if (filter) *filter = 0;
     int count = 0;
     bool took = false;
     for (size_t i = 0; i < n; i++) {
@@ -967,6 +973,10 @@ static int poll_once(struct pollfd *pf, size_t n) {
         if (pf[i].fd < 0) continue;
         struct file *f = fd_get_ref(pf[i].fd);
         if (!f) { pf[i].revents = POLLNVAL; count++; continue; }
+        if (filter) {
+            if (f->fops && f->fops->poll_leaf) *filter |= poll_file_key(f);
+            else *filter = UINT64_MAX;
+        }
         unsigned ev = POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM;
         if (f->fops && f->fops->poll) {
             if (!f->fops->nobkl && !took && !bkl_held()) { bkl_enter(); took = true; }
@@ -995,11 +1005,12 @@ static int64_t do_poll(struct pollfd *upf, size_t n, int64_t timeout_ns) {
     int64_t r;
     for (;;) {
         uint64_t pseq = poll_seq_read();
-        r = poll_once(pf, n);
+        uint64_t filter;
+        r = poll_once(pf, n, &filter);
         if (r || timeout_ns == 0) break;
         uint64_t now = time_ns();
         if (now >= deadline) { r = 0; break; }
-        int w = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        int w = poll_wait_seq_masked(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now, filter);
         if (w == -EINTR) { r = -EINTR; break; }
     }
     if (r >= 0 && copy_to_user(upf, pf, sizeof(*pf) * n)) r = -EFAULT;
@@ -1052,7 +1063,7 @@ static int64_t do_select(int nfds, uint64_t *ur, uint64_t *uw, uint64_t *ue, int
     int64_t res;
     for (;;) {
         uint64_t pseq = poll_seq_read();
-        res = poll_once(pf, n);
+        res = poll_once(pf, n, nullptr);
         if (res || timeout_ns == 0) break;
         uint64_t now = time_ns();
         if (now >= deadline) { res = 0; break; }

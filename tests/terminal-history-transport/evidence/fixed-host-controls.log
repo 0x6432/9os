@@ -1,0 +1,46 @@
+$ python3 scripts/terminal-attempt-history-host-tests.py
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 2.304s
+
+OK
+exit=0
+
+$ python3 scripts/terminal-history-transport-host-tests.py
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 0.638s
+
+OK
+exit=0
+
+$ python3 scripts/terminal-backend-host-tests.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.028s
+
+OK
+exit=0
+
+$ python3 scripts/a11y-dbus-integration-host-tests.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.027s
+
+OK
+exit=0
+
+$ python3 scripts/plasma-readiness-host-tests.py
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.123s
+
+OK
+exit=0
+
+$ sh -n userland/alpine/desktop-overlay/usr/bin/alpine-plasma-probe
+exit=0
+
+$ git diff --check
+exit=0
+

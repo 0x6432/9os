@@ -306,8 +306,31 @@ static void kernel_progress_test(void) {
     test_current = cpus[0].idle; CHECK(sched_kernel_preemptible());
     test_current = nullptr; CHECK(sched_kernel_preemptible());
 }
+static void future_alarm_fast_tick_test(void) {
+    reset(2);
+    sched_test_cpu = 1;
+    test_current = &running[1];
+    struct process process = {0};
+    running[1].proc = &process;
+    running[1].exec_start_ns = fake_now;
+    process.alarm_ns = fake_now + 1000000;
+    CHECK(sched_tick_fast(true)); /* future alarm, no pending signal/resched */
+    CHECK(!cpus[1].tick_accounted && running[1].quantum == 6);
+    fake_now = process.alarm_ns;
+    CHECK(!sched_tick_fast(true)); /* exact expiry still takes slow signal path */
+    CHECK(cpus[1].tick_accounted && running[1].quantum == 5);
+    cpus[1].tick_accounted = false;
+    CHECK(sched_tick_fast(false)); /* kernel entry cannot deliver a user alarm */
+    process.alarm_ns = 0;
+    cpus[1].resched = true;
+    CHECK(!sched_tick_fast(true)); /* real preemption is never suppressed */
+    cpus[1].resched = false;
+    sched_test_cpu = 0;
+    test_current = &running[0];
+    CHECK(!sched_tick_fast(true)); /* CPU0 retains global timer work */
+}
 int main(void) {
-    affinity_test(); steal_test(); balance_test(); churn_test();
+    future_alarm_fast_tick_test(); affinity_test(); steal_test(); balance_test(); churn_test();
     local_switch_test(); handoff_wake_test(); deadline_test(); independent_locks_test(); kernel_progress_test();
     printf("sched-host: %d checks passed (%s)\n", checks, sched_policy_name());
     return 0;

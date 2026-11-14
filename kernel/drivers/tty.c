@@ -322,7 +322,7 @@ static int tty_open(struct inode *ino, struct file *f) {
 static void tty_release(struct file *f) { vt_close(tty_of(f)); }
 
 static const struct file_ops tty_ops = {
-    .nobkl = true, .open = tty_open, .release = tty_release, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll,
+    .nobkl = true, .poll_leaf = true, .open = tty_open, .release = tty_release, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll,
 };
 
 #include "pty.inc"

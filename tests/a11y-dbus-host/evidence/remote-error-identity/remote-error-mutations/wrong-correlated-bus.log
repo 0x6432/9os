@@ -1,0 +1,40 @@
+consumer_source_sha256=50e81a0da848e6bb3e2cb30e9a7d0e3c3efcb2a8854f29363bfdc5d66262eda6
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... FAIL
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... FAIL
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... ok
+test_other_local_error (__main__.Identity.test_other_local_error) ... ok
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... FAIL
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... ok
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... ok
+
+======================================================================
+FAIL: test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 118, in test_both_async_callbacks_correlate_and_drain_in_reverse_order
+    self.assertEqual(bytes.fromhex(record['bus_hex']), b':1.42')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'org.wrong' != b':1.42'
+
+======================================================================
+FAIL: test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 129, in test_caps_truncation_and_direct_reference
+    self.assertEqual(bytes.fromhex(second['bus_hex']), b'B' * 255)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'org.wrong' != b'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB[210 chars]BBBB'
+
+======================================================================
+FAIL: test_real_local_timeout (__main__.Identity.test_real_local_timeout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 83, in test_real_local_timeout
+    self.assertEqual(bytes.fromhex(record['bus_hex']), b'org.a11y.Bus')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'org.wrong' != b'org.a11y.Bus'
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.296s
+
+FAILED (failures=3)

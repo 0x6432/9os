@@ -1,0 +1,3 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=3049257577411
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=3049257935199
+DBUS_A11Y_ERROR reason=accessibility-connect

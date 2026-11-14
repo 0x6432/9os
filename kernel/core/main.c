@@ -15,6 +15,7 @@
 #include <kernel/pagecache.h>
 #include <kernel/process.h>
 #include <kernel/string.h>
+#include <kernel/root_policy.h>
 #include <kernel/syscall.h>
 
 void input_init(void);
@@ -120,8 +121,18 @@ void kmain(void) {
     vfs_mkdir_at(nullptr, "/sys", 0555);
     vfs_mount("/sys", sysfs_create_root());
     input_init();
-    const char *ra = strstr_simple(boot_cmdline(), "root=");
-    if (ra) {               /* root=/dev/vdXN [rootfstype=ext2]: boot from a disk */
+    /* Opt-in only: do not start initramfs userspace if the requested root
+     * has no single recognized root= token or its mount fails. Without a
+     * recognized root_required token, legacy fallback is unchanged. */
+    static char required_root[64];
+    int mount_error = 0;
+    int strict_root = root_policy_mount(boot_cmdline(), required_root, vfs_mount_root, &mount_error);
+    if (strict_root < 0) {
+        if (strict_root == -2) panic("vfs: required root %s failed (%d)", required_root, mount_error);
+        panic("vfs: invalid required root configuration");
+    }
+    const char *ra = strict_root ? nullptr : strstr_simple(boot_cmdline(), "root=");
+    if (ra) {               /* legacy root=/dev/vdXN behaviour */
         static char rootdev[64];
         size_t n = 0;
         for (ra += 5; *ra && *ra != ' ' && n < sizeof rootdev - 1; ra++) rootdev[n++] = *ra;

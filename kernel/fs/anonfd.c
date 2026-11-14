@@ -46,9 +46,10 @@ static int anon_fd(const struct file_ops *ops, void *priv, int flags, unsigned m
 /* ------------------------------------------------------------------ eventfd */
 /* eventfd runs without the BKL (file_ops.nobkl): the counter is updated with compare-and-swap,
  * the 8-byte value is copied with copy_{to,from}_user (or memcpy for kernel buffers), and
- * blocking uses wait_until_sl() on poll_wq, whose condition is re-checked under sched_lock;
- * every counter change is followed by poll_notify(), so no wakeup can be lost. */
-struct eventfd { uint64_t count; bool semaphore; };
+ * blocking re-checks conditions under sched_lock. Overflow writers have their own
+ * queue: a non-saturated drain must wake large-value writers too, but need not
+ * broadcast to unrelated pollers. A saturated drain also makes POLLOUT ready. */
+struct eventfd { uint64_t count; bool semaphore; struct wait_queue writers; };
 
 static int efd_copy_out(void *dst, const void *src) {
     if ((vaddr_t)dst >= USER_TOP) { memcpy(dst, src, 8); return 0; }
@@ -68,7 +69,8 @@ static ssize_t efd_read(struct file *f, void *buf, size_t n, off_t *off) {
         if (c) {
             uint64_t v = e->semaphore ? 1 : c;
             if (!__atomic_compare_exchange_n(&e->count, &c, c - v, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) continue;
-            poll_notify();
+            wake_up(&e->writers);
+            if (c == UINT64_MAX - 1) poll_notify_file(f);
             return efd_copy_out(buf, &v) ?: 8;
         }
         if (f->flags & O_NONBLOCK) return -EAGAIN;
@@ -86,11 +88,11 @@ static ssize_t efd_write(struct file *f, const void *buf, size_t n, off_t *off) 
         uint64_t c = efd_count(e);
         if (UINT64_MAX - 1 - c >= v) {
             if (!__atomic_compare_exchange_n(&e->count, &c, c + v, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) continue;
-            if (v) poll_notify();
+            if (v) poll_notify_file(f);
             return 8;
         }
         if (f->flags & O_NONBLOCK) return -EAGAIN;
-        int r = wait_until_sl(&poll_wq, UINT64_MAX - 1 - efd_count(e) >= v);
+        int r = wait_until_sl(&e->writers, UINT64_MAX - 1 - efd_count(e) >= v);
         if (r) return r;
     }
 }
@@ -100,13 +102,14 @@ static unsigned efd_poll(struct file *f) {
     return (c ? POLLIN | POLLRDNORM : 0) | (c < UINT64_MAX - 1 ? POLLOUT | POLLWRNORM : 0);
 }
 static void priv_release(struct file *f) { kfree(f->priv); f->priv = nullptr; }
-static const struct file_ops eventfd_fops = { .nobkl = true, .read = efd_read, .write = efd_write, .poll = efd_poll, .release = priv_release };
+static const struct file_ops eventfd_fops = { .nobkl = true, .poll_leaf = true, .read = efd_read, .write = efd_write, .poll = efd_poll, .release = priv_release };
 
 #define EFD_SEMAPHORE 1
 int64_t sys_eventfd2(unsigned initval, int flags) {
     struct eventfd *e = kzalloc(sizeof *e);
     if (!e) return -ENOMEM;
     e->count = initval; e->semaphore = flags & EFD_SEMAPHORE;
+    wait_queue_init(&e->writers);
     int fd = anon_fd(&eventfd_fops, e, flags, 0600);
     if (fd < 0) kfree(e);
     return fd;
@@ -177,7 +180,7 @@ static void tfd_release(struct file *f) {
     arch_irq_restore(fl);
     kfree(t);
 }
-static const struct file_ops timerfd_fops = { .read = tfd_read, .poll = tfd_poll, .release = tfd_release };
+static const struct file_ops timerfd_fops = { .poll_leaf = true, .read = tfd_read, .poll = tfd_poll, .release = tfd_release };
 
 int64_t sys_timerfd_create(int clock, int flags) {
     if (clock != 0 && clock != 1 && clock != 7 && clock != 8 && clock != 9) return -EINVAL;
@@ -271,7 +274,7 @@ static ssize_t sfd_read(struct file *f, void *buf, size_t n, off_t *off) {
     return done;
 }
 static unsigned sfd_poll(struct file *f) { return sfd_pending(f->priv) ? POLLIN | POLLRDNORM : 0; }
-static const struct file_ops signalfd_fops = { .read = sfd_read, .poll = sfd_poll, .release = priv_release };
+static const struct file_ops signalfd_fops = { .poll_leaf = true, .read = sfd_read, .poll = sfd_poll, .release = priv_release };
 
 int64_t sys_signalfd4(int fd, const uint64_t *umask, size_t sz, int flags) {
     uint64_t mask;
@@ -324,8 +327,17 @@ static const struct lock_class epoll_class = { "epoll", LR_MUTEX_EPOLL, true };
 
 static const struct file_ops epoll_fops;
 
-/* scan state: whether this scan took the BKL for a non-nobkl ->poll */
-struct ep_scan_ctx { bool took_bkl; int depth; };
+/* Keys are captured only while item_get() pins each file under the instance
+ * mutex. No file/inode pointer survives into a wait filter. Nested/unknown
+ * sources force a sticky global fallback; collisions only add wakeups. */
+struct ep_scan_ctx { bool took_bkl; int depth; uint64_t filter; };
+
+static uint64_t ep_wait_filter(const struct ep_scan_ctx *x) {
+    /* Empty/all-disabled lists retain conservative global waits. epoll_ctl
+     * still notifies globally; close/reuse is revalidated by item_get().
+     * This adds no new fd-close wake or registration-lifetime semantics. */
+    return x->filter ? x->filter : UINT64_MAX;
+}
 
 static unsigned ep_file_poll(struct file *f, struct ep_scan_ctx *x);
 
@@ -336,29 +348,34 @@ static struct file *item_get(struct epitem *it) {
     return f;
 }
 
-/* Collect ready events. Edge-triggered items are level-triggered for input (consumers drain
- * to EAGAIN anyway) but only report EPOLLOUT on a not-writable -> writable transition.
- * out == nullptr: peek only (no edge/oneshot state change), stop at the first ready item. */
+/* Collect ready events. Permanently asserted readiness must be latched for ET:
+ * GLib drains initial procfs EPOLLIN edges and otherwise loops forever. Dynamic
+ * input still uses the historical level approximation; it needs producer-side
+ * edge tracking before it can safely suppress drain/refill events between scans.
+ * out == nullptr: peek only (no edge/oneshot state change), using the SAME edge
+ * eligibility as delivery so a consumed inner ET event cannot keep an outer
+ * epoll readable forever. */
 static int ep_scan_locked(struct epoll *ep, struct epoll_event_u *out, int max, struct ep_scan_ctx *x) {
     int n = 0;
     list_for_each_safe(i, tmp, &ep->items) {
+        if (out && n >= max) break; /* never acknowledge an undeliverable event */
         struct epitem *it = list_entry(i, struct epitem, node);
         struct file *f = item_get(it);
         if (!f) { list_del(&it->node); kfree(it); continue; }
         if (it->disabled) { vfs_close(f); continue; }
-        unsigned ready = ep_file_poll(f, x) & (it->events | EPOLLERR | EPOLLHUP);
+        if (f->fops && f->fops->poll_leaf) x->filter |= poll_file_key(f);
+        else x->filter = UINT64_MAX;
+        unsigned raw = ep_file_poll(f, x) & (it->events | EPOLLERR | EPOLLHUP);
+        unsigned latch = EPOLLOUT | (f->fops ? f->fops->poll_always : 0);
         vfs_close(f);
+        unsigned ready = raw;
+        if (it->events & EPOLLET) ready &= ~(it->last & latch);
         if (!out) {
-            if (ready & ~EPOLLET) { n = 1; break; }
+            if (ready) { n = 1; break; }
             continue;
         }
-        if (it->events & EPOLLET) {
-            unsigned prev = it->last;
-            it->last = ready;
-            if ((ready & EPOLLOUT) && (prev & EPOLLOUT)) ready &= ~EPOLLOUT;
-        }
+        if (it->events & EPOLLET) it->last = raw;
         if (!ready) continue;
-        if (n >= max) break;
         out[n] = (struct epoll_event_u){ ready, it->data };
         if (it->events & EPOLLONESHOT) it->disabled = true;
         n++;
@@ -385,7 +402,7 @@ static unsigned ep_file_poll(struct file *f, struct ep_scan_ctx *x) {
 static unsigned ep_poll(struct file *f) {
     struct epoll *ep = f->priv;
     if (mutex_owned(&ep->mtx)) return 0;
-    struct ep_scan_ctx x = { false, 1 };
+    struct ep_scan_ctx x = { .depth = 1 };
     mutex_lock(&ep->mtx);
     int n = ep_scan_locked(ep, nullptr, 0, &x);
     mutex_unlock(&ep->mtx);
@@ -483,10 +500,16 @@ static void ep_set_mask(uint64_t m) {     /* signal_send() samples sig_mask unde
     bkl_exit();
 }
 
-int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms, const uint64_t *usig, size_t sz) {
-    if (max <= 0 || max > 4096) return -EINVAL;
+/* UINT64_MAX denotes an infinite wait; finite timeouts/deadlines saturate at
+ * Linux's signed nanosecond horizon instead of wrapping through int milliseconds.
+ * Keep the original deadline across scans, spurious wakes and epoch retries. */
+static int64_t ep_pwait(int epfd, struct epoll_event_u *uev, int max, uint64_t timeout_ns, const uint64_t *usig, size_t sz) {
     uint64_t m = 0;
-    if (usig && copy_from_user(&m, usig, 8)) return -EFAULT;
+    if (usig) {
+        if (sz != sizeof m) return -EINVAL;
+        if (copy_from_user(&m, usig, sizeof m)) return -EFAULT;
+    }
+    if (max <= 0 || max > 4096) return -EINVAL;
     struct file *ef = fd_get_ref(epfd);
     if (!ef) return -EBADF;
     if (ef->fops != &epoll_fops) { vfs_close(ef); return -EINVAL; }
@@ -495,19 +518,25 @@ int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeou
     if (!ev) { vfs_close(ef); return -ENOMEM; }
     uint64_t oldmask = current->sig_mask;
     if (usig) ep_set_mask(m & ~(SIGBIT(SIGKILL) | SIGBIT(SIGSTOP)));
-    uint64_t deadline = timeout_ms < 0 ? UINT64_MAX : time_ns() + (uint64_t)timeout_ms * 1000000ull;
+    uint64_t deadline = UINT64_MAX;
+    if (timeout_ns != UINT64_MAX) {
+        uint64_t now = time_ns();
+        deadline = now >= INT64_MAX || timeout_ns > INT64_MAX - now
+                 ? INT64_MAX : now + timeout_ns;
+    }
     int64_t r;
     for (;;) {
         uint64_t pseq = poll_seq_read();
-        struct ep_scan_ctx x = { false, 1 };
+        struct ep_scan_ctx x = { .depth = 1 };
         mutex_lock(&ep->mtx);
         r = ep_scan_locked(ep, ev, max, &x);
         mutex_unlock(&ep->mtx);
         if (x.took_bkl) bkl_exit();
-        if (r || timeout_ms == 0) break;
+        if (r || timeout_ns == 0) break;
         uint64_t now = time_ns();
         if (now >= deadline) { r = 0; break; }
-        int w = poll_wait_seq(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now);
+        int w = poll_wait_seq_masked(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now,
+                                    ep_wait_filter(&x));
         if (w == -EINTR) { r = -EINTR; break; }
     }
     if (r > 0 && copy_to_user(uev, ev, sizeof *ev * r)) r = -EFAULT;
@@ -519,13 +548,23 @@ int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeou
     }
     return r;
 }
+int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms, const uint64_t *usig, size_t sz) {
+    uint64_t ns = timeout_ms < 0 ? UINT64_MAX : (uint64_t)timeout_ms * 1000000ull;
+    return ep_pwait(epfd, uev, max, ns, usig, sz);
+}
 int64_t sys_epoll_wait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms) {
     return sys_epoll_pwait(epfd, uev, max, timeout_ms, nullptr, 8);
 }
 int64_t sys_epoll_pwait2(int epfd, struct epoll_event_u *uev, int max, const struct timespec *uts, const uint64_t *usig, size_t sz) {
-    int ms = -1;
-    if (uts) { struct timespec ts; if (copy_from_user(&ts, uts, sizeof ts)) return -EFAULT; ms = ts.tv_sec * 1000 + (ts.tv_nsec + 999999) / 1000000; }
-    return sys_epoll_pwait(epfd, uev, max, ms, usig, sz);
+    uint64_t ns = UINT64_MAX;
+    if (uts) {
+        struct timespec ts;
+        if (copy_from_user(&ts, uts, sizeof ts)) return -EFAULT;
+        if (ts.tv_sec < 0 || ts.tv_nsec < 0 || ts.tv_nsec >= 1000000000) return -EINVAL;
+        ns = (uint64_t)ts.tv_sec > (INT64_MAX - (uint64_t)ts.tv_nsec) / 1000000000ull
+           ? INT64_MAX : (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+    }
+    return ep_pwait(epfd, uev, max, ns, usig, sz);
 }
 
 /* ------------------------------------------------------------------ memfd */
@@ -704,7 +743,9 @@ static void in_release(struct file *f) {
     list_for_each_safe(it, tmp, &in->events) kfree(list_entry(it, struct inotify_ev, node));
     kfree(in);
 }
-static const struct file_ops inotify_fops = { .read = in_read, .poll = in_poll, .ioctl = in_ioctl, .release = in_release };
+/* Queue readiness depends only on its own notification records, not on any
+ * other inode's eventfd. File mutations still issue global poll_notify(). */
+static const struct file_ops inotify_fops = { .poll_leaf = true, .read = in_read, .poll = in_poll, .ioctl = in_ioctl, .release = in_release };
 
 int64_t sys_inotify_init1(int flags) {
     if (flags & ~(O_NONBLOCK | O_CLOEXEC)) return -EINVAL;

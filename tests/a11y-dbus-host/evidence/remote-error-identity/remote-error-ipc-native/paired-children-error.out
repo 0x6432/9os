@@ -1,0 +1,15 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2886244632791
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2886244893400
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2886245217905
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2886245486188
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2886245494411
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=2886245595427
+DBUS_A11Y_OWNER bus=:1.93 pid=53851 target=53851
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.93 path=/org/a11y/atspi/accessible/app mono_ns=2886245599736
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.93 path=/org/a11y/atspi/accessible/app mono_ns=2886245616336
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=0 mono_ns=2886245835123
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_ERROR_IDENTITY class=remote-dbus method_hex=4765744368696c6472656e method_truncated=0 bus_hex=3a312e3933 bus_truncated=0 path_hex=2f6f72672f613131792f61747370692f61636365737369626c652f617070 path_truncated=0 remote_name_hex=6f72672e746573742e506169724368696c6472656e4572726f72 remote_name_truncated=0 remote_name_status=present
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2886245851616
+DBUS_A11Y_WITNESS pid=53851 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=53851 applications=1 models=0 visited=1 NOT_OBSERVED (diagnostic only)

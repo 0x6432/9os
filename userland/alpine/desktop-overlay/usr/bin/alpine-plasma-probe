@@ -1,6 +1,16 @@
 #!/bin/sh
 # Experimental real Plasma shell nested under Sway for compositor-side evidence.
 set -eu
+# Explicit candidate selection before any attempt. No fallback between backends.
+case ${ALPINE_TERMINAL_QUERY:-atspi} in
+ atspi|live-dbus) ;;
+ *) echo 'ALPINE_TERMINAL_QUERY must be atspi or live-dbus' >&2;exit 2 ;;
+esac
+# Incidental GL/effect work may still create llvmpipe workers with a software
+# scene graph. Bound oversubscription on small TCG hosts; keep an explicit user
+# override. This resource policy does not change any readiness/pixel deadline.
+export LP_NUM_THREADS="${LP_NUM_THREADS:-1}"
+# Set before the bus starts so activated helpers inherit the same policy.
 if [ "${1:-}" != --session ]; then
     # Activated helpers inherit the bus stderr. Keep their asynchronous output
     # out of base64 PNG framing, but replay ALL diagnostics after the session.
@@ -19,8 +29,163 @@ cleanup() {
  done
  rm -rf "$D"
 }
+# Independent real PID/role/state observation. No acceptance substitution.
+# Failure-only calls cannot rescue the already failed original readiness gate.
+focused_terminal_query() {
+ case ${ALPINE_TERMINAL_QUERY:-atspi} in
+  atspi) timeout -k 2 -s TERM 8 desktopa11y --terminal "$1" ;;
+  live-dbus) timeout -k 2 -s TERM 8 desktopa11y-dbus "$1" ;;
+  *) return 2 ;;
+ esac
+}
+# Retain only existing query output, never issue another acceptance query.
+# Recording itself perturbs timing: NOT a startup cure or original-state proof.
+# Twelve fixed slots, each <= 5120 bytes (1024-byte classification + <=4096 raw).
+# The original last-query file/exit status remain authoritative for the gate.
+record_terminal_attempt() {
+ query_attempt=$((query_attempt+1))
+ # Exact lines only. Absence is unknown, NOT zero terminal/state/error counts.
+ # Keep first/last terminal lines even if raw head/tail clipping omits them.
+ query_flags=$(awk -v pid="$client" -v backend="${ALPINE_TERMINAL_QUERY:-atspi}" '
+  BEGIN { complete="unknown"; witness="unknown"; terminal="unknown"; remote="unknown" }
+  (backend=="atspi" && /^A11Y_TERMINAL focused=[01] showing=[01] visible=[01]$/) || (backend=="live-dbus" && /^DBUS_A11Y_TERMINAL focused=[01] showing=[01] visible=[01]$/) {
+   terminal="present"; if (first=="") first=$0; last=$0
+  }
+  /^DBUS_A11Y_ERROR reason=remote-call$/ { if (backend=="live-dbus") remote="present" }
+  $0 ~ "^DBUS_A11Y_WITNESS pid=" pid " terminals=[0-9]+ valid_states=[0-9]+ focused_states=[0-9]+ showing_states=[0-9]+ visible_states=[0-9]+ qualified=[0-9]+ protocol_error=[01]$" {
+   if (backend=="live-dbus") { witness="present"; witness_line=substr($0,1,512) }
+  }
+  $0 ~ "^terminal-dbus: pid=" pid " applications=[0-9]+ models=[0-9]+ visited=[0-9]+ (OBSERVED|NOT_OBSERVED) \\(diagnostic only\\)$" {
+   if (backend=="live-dbus") complete="present"
+  }
+  $0 ~ "^desktopa11y: pid=" pid " application=[0-9]+ models=[0-9]+ visited=[0-9]+ (PASSED|NOT_READY)$" {
+   if (backend=="atspi") complete="present"
+  }
+  END {
+   print "completion=" complete " witness=" witness " terminal_line=" terminal " remote_line=" remote
+   if (first!="") { print "terminal_first=" first; print "terminal_last=" last }
+   if (witness_line!="") print "witness_line=" witness_line
+  }' "$D/konsole-focus") || return 1
+ case $query_rc in
+  142) query_end=alarm-status ;; # status convention, not proof of signal cause
+  124) query_end=timeout-status ;;
+  137|143) query_end=signal-status ;;
+  *) query_end=exit-status ;;
+ esac
+ # Bound metadata even for malformed/unexpected helper output.
+ { printf 'attempt=%s rc=%s termination=%s backend=%s pid=%s\n%s\n' "$query_attempt" "$query_rc" "$query_end" "${ALPINE_TERMINAL_QUERY:-atspi}" "$client" "$query_flags"; } |
+  head -c 1024 > "$D/konsole-attempt-meta" || return 1
+ query_slots='first last'
+ case $query_flags in *terminal_line=present*) query_slots="$query_slots terminal-first terminal-last" ;; esac
+ case $query_flags in *remote_line=present*) query_slots="$query_slots remote-first remote-last" ;; esac
+ case $query_flags in *completion=unknown*) query_slots="$query_slots incomplete-first incomplete-last" ;; esac
+ case $query_flags in *witness=present*) query_slots="$query_slots witness-first witness-last" ;; esac
+ [ "$query_rc" != 142 ] || query_slots="$query_slots alarm-first alarm-last"
+ for query_slot in $query_slots;do
+  case $query_slot in first|*-first) [ ! -f "$D/konsole-attempt-$query_slot" ] || continue ;; esac
+  # Prefix and suffix deliberately overlap for short logs; at most4096 raw
+  # bytes regardless of query size/line length. No pipeline on the query itself.
+  { cat "$D/konsole-attempt-meta" && head -c 2048 "$D/konsole-focus" && tail -c 2048 "$D/konsole-focus"; } > "$D/konsole-attempt-$query_slot" || return 1
+ done
+}
+emit_terminal_attempts() {
+ # Transport ONLY, after the original loop. Lowercase hex is reversible and
+ # cannot inject arbitrary historical FAIL/panic/return-code text into logs.
+ # Raw slot storage stays <=62464 bytes including scratch. Twelve <=5120-byte
+ # payloads plus fixed framing emit <128KiB. No extra files or query-loop I/O.
+ echo "KONSOLE_QUERY_HISTORY attempts=$query_attempt recording_failed=$query_recording_failed raw=prefix2048+suffix2048 encoding=hex timing_perturbed=1" || return 1
+ for query_slot in first last terminal-first terminal-last remote-first remote-last incomplete-first incomplete-last witness-first witness-last alarm-first alarm-last;do
+  [ -f "$D/konsole-attempt-$query_slot" ] || continue
+  query_bytes=$(wc -c < "$D/konsole-attempt-$query_slot") || {
+   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=wc\n' "$query_slot"
+   return 1
+  }
+  # The caller is an OR-list: errexit is NOT active inside this function.
+  # Check each utility separately, including complete output followed by a
+  # nonzero exit. Bounded shell variables avoid any extra on-disk files.
+  query_hex=$(LC_ALL=C od -An -v -tx1 "$D/konsole-attempt-$query_slot") || {
+   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=od\n' "$query_slot"
+   return 1
+  }
+  query_hex=$(printf '%s' "$query_hex" | LC_ALL=C tr -d '[:space:]') || {
+   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=tr\n' "$query_slot"
+   return 1
+  }
+  # A successful utility status alone does not prove a complete encoding.
+  # Normal wc output has a decimal count; reject malformed/unbounded metadata
+  # before arithmetic, then require exact lowercase hex and twice that count.
+  case $query_bytes in
+   ''|*[!0-9]*|?????*)
+    printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=hex\n' "$query_slot";return 1 ;;
+  esac
+  case $query_bytes in
+   0|[1-9]*) ;;
+   *) printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=hex\n' "$query_slot";return 1 ;;
+  esac
+  case $query_hex in
+   *[!0123456789abcdef]*)
+    printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=hex\n' "$query_slot";return 1 ;;
+  esac
+  if [ "$query_bytes" -gt 5120 ] || [ "${#query_hex}" -ne "$((query_bytes * 2))" ];then
+   printf 'KONSOLE_QUERY_TRANSPORT_UNKNOWN slot=%s stage=hex\n' "$query_slot";return 1
+  fi
+  printf 'KONSOLE_QUERY_ATTEMPT_BEGIN slot=%s encoding=hex bytes=%d\n' "$query_slot" "$query_bytes" || return 1
+  printf '%s\nKONSOLE_QUERY_ATTEMPT_END slot=%s\n' "$query_hex" "$query_slot" || return 1
+ done
+ echo KONSOLE_QUERY_HISTORY_END
+}
+# Diagnostic only: all samples are AFTER the immutable failure witness. Raw
+# stack words are not unwind frames. Each attach perturbs scheduling explicitly.
+register_failure_diagnostic() {
+ command -v trace-snapshot >/dev/null 2>&1 || { echo KONSOLE_SNAPSHOT_UNAVAILABLE;return 1; }
+ for sample in 1 2 3;do
+  echo "KONSOLE_FAILURE_SNAPSHOT_BEGIN sample=$sample pid=$client"
+  if timeout -k 1 -s TERM 4 trace-snapshot "$client" > "$D/register-snapshot.log" 2>&1;then snapshot_rc=0;else snapshot_rc=$?;fi
+  cat "$D/register-snapshot.log"
+  echo "KONSOLE_FAILURE_SNAPSHOT_END sample=$sample rc=$snapshot_rc"
+  [ "$sample" = 3 ] || sleep 1
+ done
+}
+terminal_dbus_diagnostic() {
+ echo "KONSOLE_${1}_DBUS_BULK_BEGIN"
+ if timeout -k 2 -s TERM 8 desktopa11y-dbus "$client" > "$D/bulk-a11y.log" 2>&1;then bulk_rc=0;else bulk_rc=$?;fi
+ cat "$D/bulk-a11y.log"
+ echo "KONSOLE_${1}_DBUS_BULK_END rc=$bulk_rc"
+ return "$bulk_rc"
+}
+# Run only AFTER a gate has irrevocably failed. Attaching may alter timing;
+# diagnostics can never rescue or reclassify that attempt as successful.
+blocked_diagnostics() {
+ real_kwin=$(sed -n 's/^wayland-presentation-proxy: child_pid=\([0-9][0-9]*\)$/\1/p' "$D/kwin.log" | tail -n 1)
+ [ -n "$real_kwin" ] || real_kwin=$kwin
+ grep -E 'plasmashell|QQuick|QQml|QDBus|QThread|QSG|Thread' /proc/sched || true
+ for entry in "plasma:$plasma" "kwin:$real_kwin" "sway:$swaypid";do
+  role=${entry%%:*};p=${entry#*:}
+  [ -n "$p" ] || continue
+  echo "PLASMA_BLOCKED_PROCESS_DIAGNOSTIC role=$role pid=$p"
+  cat "/proc/$p/status" 2>/dev/null || true
+  ls -l "/proc/$p/fd" 2>/dev/null || true
+  timeout -k 2 -s TERM 8 strace -f -tt -T -p "$p" -o "$D/$role-blocked.trace" 2>&1 || true
+  tail -n 160 "$D/$role-blocked.trace" 2>/dev/null || true
+ done
+}
 finish() {
  r=$?
+ if [ "${ALPINE_PLASMA_KEY_TRACE:-0}" = 1 ];then
+  echo OUTER_KEYBOARD_TRACE_BEGIN
+  grep '^WAYLAND_KEY_TRACE ' "$D/kwin.log" 2>/dev/null || true
+  echo OUTER_KEYBOARD_TRACE_END
+ fi
+ if [ "${ALPINE_KONSOLE_INPUT_TRACE:-0}" = 1 ];then
+  echo INNER_KEYBOARD_DISPATCH_TRACE_BEGIN
+  grep 'wl_keyboard' "$D/konsole.log" 2>/dev/null || true
+  echo INNER_KEYBOARD_DISPATCH_TRACE_END
+ fi
+ if [ "${ALPINE_QT_KEY_TRACE:-0}" = 1 ];then
+  echo QT_PLATFORM_KEY_TRACE_BEGIN
+  grep '^QT_KEY_TRACE' "$D/konsole.log" 2>/dev/null || true
+  echo QT_PLATFORM_KEY_TRACE_END
+ fi
  if [ "$r" != 0 ];then
   for f in plasma kwin sway seat konsole;do [ ! -f "$D/$f.log" ] || { echo "PLASMA_DIAGNOSTIC=$f";cat "$D/$f.log"; };done
  fi
@@ -74,8 +239,11 @@ export SWAYSOCK
 if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
  input_ready=0
  for i in $(seq 100);do
-  swaymsg -t get_inputs > "$D/inputs.json"
-  if jq -e '[.[]|select(.type=="keyboard")]|length>0' "$D/inputs.json" >/dev/null;then input_ready=1;break;fi
+  # Socket creation precedes backend initialization. A transient IPC failure
+  # must remain a not-ready poll, not let set -e bypass the existing loop.
+  if swaymsg -t get_inputs > "$D/inputs.json" &&
+     jq -e '[.[]|select(.type=="keyboard")]|length>0' "$D/inputs.json" >/dev/null;then input_ready=1;break;fi
+  kill -0 "$swaypid" 2>/dev/null || break
   sleep .1
  done
  cat "$D/inputs.json"
@@ -88,7 +256,19 @@ for f in "$D"/wayland-*;do [ ! -S "$f" ] || parent="$f";done
 # Supply the live outer display before KWin activates portal helpers.
 export WAYLAND_DISPLAY="$parent" QT_QPA_PLATFORM=wayland
 dbus-update-activation-environment WAYLAND_DISPLAY QT_QPA_PLATFORM XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QUICK_BACKEND QV4_FORCE_INTERPRETER XDG_RUNTIME_DIR XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_MENU_PREFIX LANG
-kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
+# KWin6.3.6 + wlroots0.18.2 can leave a no-damage presentation request
+# pending forever (also reproduced on Linux). Select KWin's existing frame
+# callback fallback on THIS outer connection only, without library/QML patches.
+# Keep native mode for upstream/kernel comparison; neither mode waives pixels.
+case ${ALPINE_PLASMA_PRESENTATION:-callback} in
+ callback) set -- wayland-presentation-proxy --
+  # Diagnostic only; default transport/input behavior remains unchanged.
+  [ "${ALPINE_PLASMA_KEY_TRACE:-0}" != 1 ] || set -- wayland-presentation-proxy --trace-keyboard -- ;;
+ native) set -- ;;
+ *) echo 'Unknown presentation mode';exit 1 ;;
+esac
+echo "PLASMA_PRESENTATION_MODE=${ALPINE_PLASMA_PRESENTATION:-callback}"
+"$@" kwin_wayland --wayland-display "$parent" --width 800 --height 600 --socket 9os-plasma --no-lockscreen --no-global-shortcuts --no-kactivities > "$D/kwin.log" 2>&1 & kwin=$!
 for i in $(seq 300);do [ ! -S "$D/9os-plasma" ] || break;kill -0 "$kwin" 2>/dev/null || break;sleep .1;done
 [ -S "$D/9os-plasma" ] || { cat "$D/kwin.log";exit 1; }
 export WAYLAND_DISPLAY="$D/9os-plasma" QT_QPA_PLATFORM=wayland
@@ -103,17 +283,21 @@ if [ "${ALPINE_PLASMA_RENDERER:-software}" = opengl ];then
 fi
 plasmashell --replace --no-respawn > "$D/plasma.log" 2>&1 & plasma=$!
 ready=0
+: > "$D/desktops"
 deadline=$(( $(date +%s) + 180 ))
 while [ "$(date +%s)" -lt "$deadline" ];do
- if timeout -s KILL 5 /usr/lib/qt6/bin/qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript  'print("desktops="+desktops().length+" panels="+panels().length)'  > "$D/desktops" 2> "$D/bus.log";then
-  if grep -Eq 'desktops=[1-9][0-9]* panels=[1-9][0-9]*' "$D/desktops";then ready=1;break;fi
+ # Avoid loading Qt and performing introspection in a new qdbus process on
+ # every poll. Ask the same real method directly with bounded libdbus tooling.
+ if timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'print("desktops="+desktops().length+" panels="+panels().length)' > "$D/reply" 2> "$D/bus.log";then
+  sed -n 's/.*string "\(desktops=[0-9]* panels=[0-9]*\)".*/\1/p' "$D/reply" > "$D/desktops"
+  if grep -Eq '^desktops=[1-9][0-9]* panels=[1-9][0-9]*$' "$D/desktops";then ready=1;break;fi
  fi
  kill -0 "$plasma" 2>/dev/null || break
- sleep .2
+ sleep .5
 done
 if [ "$ready" != 1 ];then
  if ! kill -0 "$plasma" 2>/dev/null;then if wait "$plasma";then r=0;else r=$?;fi;plasma=;echo "PLASMA_EARLY_EXIT=$r";fi
- cat "$D/desktops" "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';exit 1
+ cat "$D/desktops" "$D/bus.log" "$D/plasma.log" "$D/kwin.log" "$D/sway.log";echo 'alpine-plasma: FAIL shell readiness';blocked_diagnostics;exit 1
 fi
 printf PLASMA_DESKTOPS=;cat "$D/desktops"
 dbus-send --session --print-reply --reply-timeout=120000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].wallpaperPlugin="org.kde.image";ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];ds[i].writeConfig("Image","file:///usr/share/wallpapers/Next/contents/images/1024x768.png");}print("PLASMA_WALLPAPER_CONFIGURED="+ds.length);'
@@ -133,22 +317,86 @@ while [ "$(date +%s)" -lt "$deadline" ];do
  sleep 3
 done
 cat "$D/frame.log"
-[ "$frame_ready" = 1 ] || { echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness';exit 1; }
+if [ "$frame_ready" != 1 ];then
+ echo 'alpine-plasma: FAIL rendered wallpaper/panel readiness'
+ blocked_diagnostics
+ # Preserve real failure pixels and configuration, never substitute a background.
+ timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript string:'var ds=desktops();for(var i=0;i<ds.length;i++){ds[i].currentConfigGroup=["Wallpaper","org.kde.image","General"];print("WALLPAPER_DIAGNOSTIC id="+ds[i].id+" plugin="+ds[i].wallpaperPlugin+" image="+ds[i].readConfig("Image"));}' || true
+ WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/failure.png" || true
+ if [ -f "$D/failure.png" ];then echo ALPINE_PLASMA_FAILURE_PNG_BEGIN;base64 "$D/failure.png";echo ALPINE_PLASMA_FAILURE_PNG_END;fi
+ exit 1
+fi
 WAYLAND_DISPLAY="$parent" grim -o "$output" "$D/plasma.png"
-echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+# Headless gates need the serialized image for their independent host checker.
+# Physical gates already capture the actual QEMU scanout as separate PNGs.
+if [ "${ALPINE_PLASMA_SERIAL_PNG:-1}" = 1 ];then
+ echo ALPINE_PLASMA_PNG_BEGIN;base64 "$D/plasma.png";echo ALPINE_PLASMA_PNG_END
+fi
 cat "$D/plasma.log" "$D/kwin.log"
 if [ "${ALPINE_PLASMA_INTERACTIVE:-0}" = 1 ];then
- konsole --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty';echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
- for i in $(seq 1200);do
-  [ ! -f "$D/interactive-pty" ] || break
+ # The child PTY can start before KWin maps/focuses Konsole. Observe the real
+ # terminal's accessibility state instead of guessing with a startup sleep.
+ export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 QT_ACCESSIBILITY=1
+ timeout -s KILL 6 dbus-send --session --print-reply --reply-timeout=4000 --dest=org.a11y.Bus /org/a11y/bus org.a11y.Bus.GetAddress > "$D/konsole-a11y-bus"
+ konsole_command=konsole
+ if [ "${ALPINE_QT_KEY_TRACE:-0}" = 1 ];then konsole_command=konsole-key-trace;fi
+ if [ "${ALPINE_KONSOLE_INPUT_TRACE:-0}" = 1 ];then
+ WAYLAND_DEBUG=client "$konsole_command" --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ else
+ "$konsole_command" --separate --nofork -e /bin/sh -c "tty > '$D/interactive-pty.tmp' && echo KDE_INTERACTIVE_PTY >> '$D/interactive-pty.tmp' && mv '$D/interactive-pty.tmp' '$D/interactive-pty';exec /bin/sh" > "$D/konsole.log" 2>&1 & client=$!
+ fi
+ [ "${ALPINE_TERMINAL_QUERY:-atspi}" = atspi ] || echo KONSOLE_READINESS_BACKEND=live-dbus
+ query_attempt=0;query_recording_failed=0
+ pty_ready=0;terminal_ready=0;deadline=$(( $(date +%s) + 120 ))
+ while [ "$(date +%s)" -lt "$deadline" ];do
+  if grep -q '^/dev/pts/' "$D/interactive-pty" 2>/dev/null && grep -qx KDE_INTERACTIVE_PTY "$D/interactive-pty";then
+   pty_ready=1
+   if focused_terminal_query "$client" > "$D/konsole-focus" 2>&1;then query_rc=0;else query_rc=$?;fi
+   query_in_deadline=0
+   if [ "$query_rc" = 0 ];then
+    if query_now=$(date +%s) && [ "$query_now" -lt "$deadline" ];then query_in_deadline=1;fi
+   fi
+   record_terminal_attempt || query_recording_failed=1
+   if [ "$query_in_deadline" = 1 ];then terminal_ready=1;break;fi
+  fi
   kill -0 "$client" 2>/dev/null || break
   sleep .1
  done
- if [ ! -f "$D/interactive-pty" ] || ! grep -q /dev/pts/ "$D/interactive-pty";then
-  cat "$D/konsole.log";echo 'alpine-plasma: FAIL interactive Konsole PTY readiness';exit 1
+ emit_terminal_attempts || true
+ cat "$D/konsole-focus" 2>/dev/null || true
+ if [ "$pty_ready" != 1 ] || [ "$terminal_ready" != 1 ];then
+  echo 'alpine-plasma: FAIL interactive Konsole PTY/focused terminal readiness'
+  # Freeze the reason before any observer/trace can alter scheduling. Missing
+  # PTY publication is different from a published but unfocused terminal.
+  echo "KONSOLE_READINESS pty=$pty_ready terminal=$terminal_ready pid=$client"
+  for f in interactive-pty interactive-pty.tmp konsole-focus;do
+   [ ! -f "$D/$f" ] || { echo "KONSOLE_READINESS_FILE=$f";head -n 20 "$D/$f"; }
+  done
+  register_failure_diagnostic || true
+  terminal_dbus_diagnostic FAILURE_ONLY || true
+  # Genuine failure pixels only, taken AFTER failure is irrevocable and before
+  # cleanup destroys the window. They can never satisfy an acceptance gate.
+  if WAYLAND_DISPLAY="$parent" timeout -k 2 -s TERM 8 grim -o "$output" "$D/konsole-failure.png";then
+   echo ALPINE_PLASMA_FAILURE_PNG_BEGIN;base64 "$D/konsole-failure.png";echo ALPINE_PLASMA_FAILURE_PNG_END
+  fi
+  echo "KONSOLE_BLOCKED_PROCESS_DIAGNOSTIC pid=$client"
+  cat "$D/konsole.log"
+  ps -o pid,ppid,stat,args | head -n 120 || true
+  ls -l "/proc/$client/fd" 2>/dev/null || true
+  cat "/proc/$client/status" 2>/dev/null || true
+  cat /proc/sched || true
+  # Failure is already decided; attaching may change timing and NEVER rescues it.
+  timeout -k 2 -s TERM 8 strace -f -tt -T -p "$client" -o "$D/konsole-blocked.trace" 2>&1 || true
+  tail -n 120 "$D/konsole-blocked.trace" 2>/dev/null || true
+  exit 1
  fi
  cat "$D/interactive-pty"
- sleep 3
+ echo KONSOLE_FOCUSED_TERMINAL_READY
+ # Explicit CI validation is an ADDITIONAL observation after original success.
+ # Any failure exits; it cannot convert old readiness failure into success.
+ if [ "${ALPINE_A11Y_DBUS_VALIDATE:-0}" = 1 ];then
+  terminal_dbus_diagnostic POST_READY || exit 1
+ fi
 fi
 echo 'alpine-plasma: real wallpaper/panel rendered; independent host acceptance required'
 if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
@@ -157,4 +405,14 @@ if [ "${ALPINE_PLASMA_OUTPUT:-headless}" = kms ];then
 fi
 [ ! -f "$D/konsole.log" ] || cat "$D/konsole.log"
 echo ALPINE_PLASMA_INPUT_READY
-sleep "${ALPINE_PLASMA_HOLD:-0}"
+if [ -n "${ALPINE_PLASMA_INPUT_DONE_FILE:-}" ];then
+ deadline=$(( $(date +%s) + 180 ))
+ while [ ! -f "$ALPINE_PLASMA_INPUT_DONE_FILE" ] && [ "$(date +%s)" -lt "$deadline" ];do sleep .2;done
+ [ -f "$ALPINE_PLASMA_INPUT_DONE_FILE" ] || { echo 'alpine-plasma: FAIL input acknowledgement timeout';exit 1; }
+else
+ sleep "${ALPINE_PLASMA_HOLD:-0}"
+fi
+if [ "${ALPINE_PLASMA_FILEMANAGER:-0}" = 1 ];then
+ ALPINE_DOLPHIN_CAPTURE_DISPLAY="$parent" ALPINE_DOLPHIN_CAPTURE_OUTPUT="$output" \
+ ALPINE_DOLPHIN_HOLD="${ALPINE_DOLPHIN_HOLD:-30}" alpine-dolphin-probe
+fi

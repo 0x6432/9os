@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build an isolated, signed Alpine runtime; never execute target package scripts."""
 import argparse, concurrent.futures, fcntl, hashlib, json, os, pathlib, platform, re
-import shutil, subprocess, tempfile, time, urllib.request
+import shutil, subprocess, sys, tempfile, time, urllib.request
 
 VERSION = '3.22.6'
 BRANCH = 'v3.22'
@@ -11,7 +11,7 @@ MINI = {
     'aarch64': '821565fa8f3953eefd12497b166b4b50add2f7c57fb312e75862f5867e06fefe',
     'riscv64': '72f7e69f6950c2799137a934fae61513016efa546afcb4a05540a505c4184150',
 }
-PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq', 'strace', 'musl-dev']
+PACKAGES = ['qt6-qtdeclarative', 'dbus', 'font-dejavu', 'sway', 'grim', 'jq', 'strace', 'musl-dev', 'busybox-suid']
 PROFILES = {'base': PACKAGES, 'desktop': PACKAGES + ['seatd', 'mesa-dri-gallium', 'kwin', 'plasma-workspace', 'plasma-desktop', 'breeze', 'plasma-workspace-wallpapers', 'kquickcharts', 'kpipewire', 'plasma-pa', 'tzdata', 'konsole', 'dolphin']}
 TOP = pathlib.Path(__file__).resolve().parents[2]
 
@@ -25,7 +25,17 @@ def download(url, path, sha=None, offline=False):
     if offline:
         raise ValueError('Offline cache missing or checksum mismatch: ' + str(path))
     part = path.with_suffix(path.suffix + '.part')
+    failures = []
     for attempt in range(3):
+        # Diagnostic clocks must not change acquisition or mask its exception.
+        try:
+            utc_start = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time()))
+        except Exception:
+            utc_start = 'unknown'
+        try:
+            started = time.monotonic()
+        except Exception:
+            started = None
         try:
             with urllib.request.urlopen(url, timeout=60) as r, open(part, 'wb') as f:
                 shutil.copyfileobj(r, f)
@@ -33,9 +43,36 @@ def download(url, path, sha=None, offline=False):
                 raise ValueError('checksum mismatch: ' + url)
             part.replace(path)
             return
-        except Exception:
+        except Exception as error:
             part.unlink(missing_ok=True)
+            if isinstance(error, urllib.error.HTTPError):
+                kind = 'HTTPError'
+            elif isinstance(error, TimeoutError):
+                kind = 'TimeoutError'
+            elif isinstance(error, urllib.error.URLError):
+                kind = 'URLError'
+            elif isinstance(error, OSError):
+                kind = 'OSError'
+            else:
+                kind = 'other'
+            status = error.code if kind == 'HTTPError' else None
+            try:
+                elapsed = round(time.monotonic() - started, 3) if started is not None else 'unknown'
+            except Exception:
+                elapsed = 'unknown'
+            failures.append({'attempt': attempt + 1, 'utc_start': utc_start,
+                             'elapsed_s': elapsed,
+                             'class': kind,
+                             'http_status': status if type(status) is int and 100 <= status <= 599 else 'unknown'})
             if attempt == 2:
+                error.add_note('Download failed: ' + url)
+                # This optional diagnostic must never mask the original error.
+                try:
+                    summary = 'Download attempts: ' + json.dumps(failures, separators=(',', ':'), allow_nan=False)
+                    if len(summary.encode('utf-8')) <= 1024:
+                        error.add_note(summary)
+                except Exception:
+                    pass  # Omit only the new diagnostic on formatting/attachment failure.
                 raise
             time.sleep(attempt + 1)
 
@@ -73,7 +110,7 @@ def mini(arch, cache, offline=False):
     return path
 
 def unpack(archive, root):
-    subprocess.run(['tar', 'xzf', str(archive), '--no-same-owner', '-C', str(root)], check=True)
+    subprocess.run(['tar', 'xzf', str(archive), '--no-same-owner', '--same-permissions', '-C', str(root)], check=True)
 
 def merge_named_records(original, overlay):
     """Preserve distro account/group names while installing explicit VM users."""
@@ -96,13 +133,45 @@ def install_desktop_accounts(stage):
         path = stage / 'etc' / name
         original = path.read_text()
         lines = [line.split(':') for line in original.splitlines() if line]
-        if any(line[0] == 'messagebus' for line in lines):
-            if name in ('passwd', 'group') and any(line[0] == 'messagebus' and int(line[2]) == 0 for line in lines):
-                raise ValueError('messagebus must not be privileged')
-            continue
-        if name in ('passwd', 'group') and any(line[2] == '81' for line in lines):
+        existing = [line for line in lines if line[0] == 'messagebus']
+        if name in ('passwd', 'group') and any(line[0] != 'messagebus' and line[2] == '81' for line in lines):
             raise ValueError('VM messagebus id81 already in use')
+        if existing:
+            if len(existing) != 1:
+                raise ValueError('Duplicate VM messagebus identity')
+            row = existing[0]
+            if name == 'passwd' and (len(row) != 7 or row[2:4] != ['81', '81'] or row[6] not in ('/sbin/nologin', '/bin/false')):
+                raise ValueError('messagebus must use the unprivileged nologin VM identity')
+            if name == 'group' and (len(row) != 4 or row[2] != '81'):
+                raise ValueError('messagebus must use the unprivileged VM group')
+            if name == 'shadow' and (len(row) != 9 or not row[1].startswith(('!', '*'))):
+                raise ValueError('messagebus password must be locked')
+            continue
         path.write_text(original.rstrip('\n') + '\n' + record + '\n')
+
+# Names accepted by Alpine's signed bbsuid wrapper. Preserve other binaries.
+BBSUID_LINKS = ('bin/mount', 'bin/umount', 'bin/su', 'usr/bin/crontab',
+                'usr/bin/passwd', 'usr/bin/traceroute', 'usr/bin/traceroute6',
+                'usr/bin/vlock')
+
+
+def configure_busybox_privileges(stage):
+    """Use the signed allowlisted wrapper, not setuid on every applet."""
+    busybox, wrapper = stage / 'bin/busybox', stage / 'bin/bbsuid'
+    for path, mode in ((busybox, 0o755), (wrapper, 0o4111)):
+        if path.is_symlink() or not path.is_file() or (path.stat().st_mode & 0o7777) != mode:
+            raise ValueError('Unexpected signed BusyBox file or mode: ' + str(path))
+    changes = []
+    for name in BBSUID_LINKS:
+        path = stage / name
+        if path.is_symlink() and os.readlink(path) == '/bin/busybox':
+            changes.append(path)
+    if stage / 'bin/su' not in changes:
+        raise ValueError('Expected Alpine /bin/su BusyBox link before restricted wrapper setup')
+    for path in changes:
+        path.unlink()
+        path.symlink_to('/bin/bbsuid')
+
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
@@ -111,10 +180,13 @@ def main():
     ap.add_argument('--lock', type=pathlib.Path, help='Replay exact signed APK URLs/hashes; no index refresh')
     ap.add_argument('--offline', action='store_true', help='Require locked, cached artifacts; never contact repositories')
     ap.add_argument('--resolve', action='store_true', help='Explicitly refresh dependency resolution instead of a checked-in lock')
+    ap.add_argument('--restore-signed-x86-modes', action='store_true', help='Experimental: restore a pinned subset of signed modes inside a single-ID user namespace; not a boot approval')
     args = ap.parse_args()
     suffix = '' if args.profile == 'base' else '-desktop'
     image = 'alpine' + suffix
     checked = TOP / f'userland/alpine/locks/{args.arch}{suffix}.json'
+    if args.restore_signed_x86_modes and (args.arch != 'x86_64' or args.resolve):
+        ap.error('signed mode restoration requires a locked x86_64 profile')
     if args.resolve and args.lock:
         ap.error('--resolve and --lock are mutually exclusive')
     if args.lock is None and not args.resolve and checked.exists():
@@ -154,6 +226,12 @@ def main():
             if lock.get('profile', 'base') != args.profile:
                 raise ValueError('lock profile mismatch')
             entries = lock['packages']
+            if args.restore_signed_x86_modes:
+                expected = json.loads(checked.read_text())
+                actual_pins = sorted((e['url'], e['sha256']) for e in entries)
+                expected_pins = sorted((e['url'], e['sha256']) for e in expected['packages'])
+                if actual_pins != expected_pins:
+                    raise ValueError('Signed mode restoration requires the exact checked-in package closure')
         else:
             cmd = apk + ['--root', str(host), '--arch', arch] + trust + [
                 '--repositories-file', str(repos), '--no-cache', 'fetch', '--simulate', '--recursive', '--url'] + PROFILES[args.profile]
@@ -207,7 +285,10 @@ def main():
             shutil.copyfile(stage / 'usr/share/zoneinfo/UTC', stage / 'etc/localtime')
             (stage / 'etc/timezone').write_text('UTC\n')
         os.chmod(stage / 'etc/shadow', 0o640)
-        os.chmod(stage / 'bin/busybox', 0o4755)
+        if args.restore_signed_x86_modes:
+            subprocess.run([sys.executable, str(TOP / 'scripts/alpine-userns-mode-repair.py'), str(stage),
+                            '--profile', args.profile, '--cache', str(cache)], check=True)
+        configure_busybox_privileges(stage)
         manifest = {'profile': args.profile, 'alpine': VERSION, 'arch': arch, 'minirootfs_sha256': MINI[arch], 'packages': entries}
         if args.profile == 'desktop':
             manifest['generated_caches'] = {

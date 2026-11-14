@@ -15,7 +15,7 @@ on:
         default: true
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -28,10 +28,11 @@ jobs:
       ts: ${{ steps.ts.outputs.ts }}
     steps:
       - id: ts
-        run: echo "ts=$(date -u +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
-
+        name: M40 independent review gate (execution blocked)
+        run: |
+          echo "::error::M40 execution blocked pending independent review; tests were not run."
+          exit 1
   build:
-    needs: stamp
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     strategy:
@@ -43,131 +44,16 @@ jobs:
       TOOLS_DIR: ${{ github.workspace }}/.tools
       NO_PORTS: ${{ (github.event_name == 'workflow_dispatch' && !inputs.ports) && '1' || '' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install host packages
+      - name: M40 independent review gate (execution blocked)
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q clang lld llvm xorriso mtools cpio make gcc gperf cmake git curl bzip2 xz-utils e2fsprogs fdisk \
-            bison flex pkg-config libexpat1-dev libffi-dev libxml2-dev python3-pip ninja-build libglib2.0-dev-bin \
-            qemu-system-x86 qemu-system-misc qemu-system-arm qemu-efi-aarch64 qemu-efi-riscv64
-          pip3 install --break-system-packages 'meson>=1.3' Mako PyYAML packaging
-          clang --version | head -1
-
-      - name: Install QEMU (Alpine edge, same as the dev sandbox)
-        run: |
-          scripts/install-qemu-alpine.sh
-          echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
-
-      - name: Cache downloads
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.TOOLS_DIR }}/dl
-            ${{ env.TOOLS_DIR }}/host
-          key: dl-${{ matrix.arch }}-${{ hashFiles('userland/*.sh', 'userland/ports/*.sh') }}
-          restore-keys: dl-${{ matrix.arch }}-
-
-      - name: Fetch Limine + uACPI
-        run: |
-          mkdir -p "$TOOLS_DIR/dl"
-          scripts/fetch-deps.sh
-
-      - name: Allocator and scheduler host regressions
-        if: matrix.arch == 'x86_64'
-        run: |
-          scripts/pmm-host-tests.sh
-          scripts/slab-host-tests.sh
-          scripts/sched-host-tests.sh
-          scripts/rbtree-host-tests.sh
-          scripts/net-ring-host-tests.sh
-          scripts/snd-host-tests.sh
-          scripts/futex-host-tests.sh
-          scripts/fallocate-host-tests.sh
-          scripts/ptracestop-host-tests.sh
-          scripts/unixcred-host-tests.sh
-          scripts/procinfo-host-tests.sh
-          scripts/pimutex-host-tests.sh
-          scripts/ioctlwidth-host-tests.sh
-          python3 scripts/rootfs-stamp-host-tests.py
-          python3 scripts/fetch-host-tests.py
-
-      - name: Build userland (musl, BusyBox, Bash, ports)
-        run: userland/build-all.sh
-
-      - name: Build kernel + ISO
-        run: |
-          make ARCH=$ARCH iso
-          mkdir -p out
-          cp build/$ARCH/9os.iso "out/9os-${{ needs.stamp.outputs.ts }}-$ARCH.iso"
-          sha256sum out/*.iso
-
-      - name: Boot tests in QEMU
-        run: scripts/ci-tests.sh $ARCH --boot-timeout 300
-
-      - name: Uniprocessor M25 regressions
-        run: >-
-          python3 scripts/qemu-test.py $ARCH --smp 1 --boot-timeout 300
-          --log build/test-up-$ARCH.log slabtest idletest nicetest pcputest balancetest vforktest orphantest
-          "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
-
-      - name: MLFQ M25 regressions
-        run: |
-          make ARCH=$ARCH SCHED=mlfq iso
-          python3 scripts/qemu-test.py $ARCH --smp 2 --sched mlfq --boot-timeout 300 \
-            --log build/test-mlfq-$ARCH.log slabtest idletest nicetest afftest \
-            balancetest pcputest smptest timetest vforktest orphantest \
-            "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
-
-      - name: Eight-CPU scheduler and allocator stress
-        if: matrix.arch == 'x86_64'
-        run: >-
-          python3 scripts/qemu-test.py $ARCH --smp 8 --sched mlfq --boot-timeout 300
-          --log build/test-smp8-$ARCH.log slabtest idletest pcputest smptest afftest balancetest vforktest orphantest
-          "if [ -x /usr/bin/qmlsmoke ]; then qmlsmoke; fi"
-
-      - name: Upload test log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-log-${{ matrix.arch }}
-          path: build/test*${{ matrix.arch }}.log
-          if-no-files-found: ignore
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: iso-${{ matrix.arch }}
-          path: out/*.iso
-          retention-days: 14
-
+          echo "::error::M40 execution blocked pending independent review; tests were not run."
+          exit 1
   release:
     needs: [stamp, build]
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: iso-*
-          merge-multiple: true
-          path: out
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TS: ${{ needs.stamp.outputs.ts }}
+      - name: M40 independent review gate (execution blocked)
         run: |
-          cd out
-          sha256sum *.iso > SHA256SUMS
-          cat > notes.md <<NOTES
-          Automated build of \`${GITHUB_SHA::7}\` (${GITHUB_REF_NAME}) at ${TS} UTC.
-
-          | File | Boot with |
-          |------|-----------|
-          | 9os-${TS}-x86_64.iso | \`qemu-system-x86_64 -M q35 -m 512M -smp 4 -serial stdio -cdrom 9os-${TS}-x86_64.iso\` (BIOS or UEFI) |
-          | 9os-${TS}-riscv64.iso | UEFI (edk2 RISC-V) on \`qemu-system-riscv64 -M virt\` |
-          | 9os-${TS}-aarch64.iso | UEFI (edk2 AArch64) on \`qemu-system-aarch64 -M virt -cpu cortex-a72\` |
-
-          See docs/HANDOFF.md for the exact QEMU command lines (\`make ARCH=<arch> run\`).
-          NOTES
-          gh release create "9os-${TS}" *.iso SHA256SUMS \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "9os ${TS}" --notes-file notes.md
+          echo "::error::M40 execution blocked pending independent review; tests were not run."
+          exit 1

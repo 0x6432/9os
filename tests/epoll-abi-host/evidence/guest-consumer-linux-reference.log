@@ -1,0 +1,88 @@
+host: Linux-6.18.49-x86_64-with-glibc2.34
+compiler: cc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)
+source: userland/tests/epollabitest.c
+source sha256: 73f2714d5c39b744a2c6fee1432b5c01e9992462fd66fc5c84a17203805953cc
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -D_FORTIFY_SOURCE=2 userland/tests/epollabitest.c -o <tmp>/epollabitest
+compile exit: 0
+PASS pwait nonnull sigset size=0 got=-22 want=-22
+PASS pwait2 nonnull sigset size=0 got=-22 want=-22
+PASS pwait null sigset ignores size=0 got=0 want=0
+PASS pwait2 null sigset ignores size=0 got=0 want=0
+PASS pwait nonnull sigset size=1 got=-22 want=-22
+PASS pwait2 nonnull sigset size=1 got=-22 want=-22
+PASS pwait null sigset ignores size=1 got=0 want=0
+PASS pwait2 null sigset ignores size=1 got=0 want=0
+PASS pwait nonnull sigset size=7 got=-22 want=-22
+PASS pwait2 nonnull sigset size=7 got=-22 want=-22
+PASS pwait null sigset ignores size=7 got=0 want=0
+PASS pwait2 null sigset ignores size=7 got=0 want=0
+PASS pwait nonnull sigset size=9 got=-22 want=-22
+PASS pwait2 nonnull sigset size=9 got=-22 want=-22
+PASS pwait null sigset ignores size=9 got=0 want=0
+PASS pwait2 null sigset ignores size=9 got=0 want=0
+PASS pwait nonnull sigset size=16 got=-22 want=-22
+PASS pwait2 nonnull sigset size=16 got=-22 want=-22
+PASS pwait null sigset ignores size=16 got=0 want=0
+PASS pwait2 null sigset ignores size=16 got=0 want=0
+PASS pwait nonnull sigset size=128 got=-22 want=-22
+PASS pwait2 nonnull sigset size=128 got=-22 want=-22
+PASS pwait null sigset ignores size=128 got=0 want=0
+PASS pwait2 null sigset ignores size=128 got=0 want=0
+PASS pwait nonnull sigset size=18446744073709551615 got=-22 want=-22
+PASS pwait2 nonnull sigset size=18446744073709551615 got=-22 want=-22
+PASS pwait null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait2 null sigset ignores size=18446744073709551615 got=0 want=0
+PASS pwait inaccessible mask got=-14 want=-14
+PASS pwait bad size before inaccessible mask got=-22 want=-22
+PASS pwait2 inaccessible timespec got=-14 want=-14
+PASS pwait2 negative seconds got=-22 want=-22
+PASS pwait2 negative nanoseconds got=-22 want=-22
+PASS pwait2 billion nanoseconds got=-22 want=-22
+PASS pwait2 INT64_MAX nanoseconds got=-22 want=-22
+PASS pwait2 invalid time before bad fd got=-22 want=-22
+PASS pwait2 time copy before mask size got=-14 want=-14
+PASS pwait sigset before bad fd got=-22 want=-22
+PASS pwait sigset before max zero got=-14 want=-14
+PASS pwait bad size before max zero got=-22 want=-22
+PASS pwait2 sigset before max zero got=-14 want=-14
+PASS pwait2 bad timespec before max zero got=-22 want=-22
+PASS pwait2 inaccessible mask got=-14 want=-14
+PASS pwait2 bad size before inaccessible mask got=-22 want=-22
+PASS pwait2 INT64_MIN seconds got=-22 want=-22
+PASS pwait2 INT64_MIN nanoseconds got=-22 want=-22
+PASS pwait valid zero got=0 want=0
+PASS pwait2 valid zero got=0 want=0
+PASS pwait max zero got=-22 want=-22
+PASS pwait2 max zero got=-22 want=-22
+PASS pwait invalid fd got=-9 want=-9
+PASS pwait2 invalid timespec even ready got=-22 want=-22
+PASS pwait2 huge valid ready got=1 want=1
+PASS pwait2 wrap-zero valid ready got=1 want=1
+PASS pwait2 wrap-negative valid ready got=1 want=1
+PASS pwait2 null timeout ready got=1 want=1
+PASS boundary calls preserve original signal mask got=1 want=1
+PASS pwait2 huge valid interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 int-ms-wrap-zero interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 int-ms-wrap-negative interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait2 null timeout interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait INT_MAX milliseconds interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS pwait negative other than -1 interrupted got=-4 want=-4
+PASS interrupt handler ran got=1 want=1
+PASS original signal mask restored got=1 want=1
+PASS finite nanosecond timeout got=0 want=0
+PASS timeout cannot expire before requested duration got=1 want=1
+PASS finite timeout preserves original signal mask got=1 want=1
+epollabitest: 78 checks, 0 failures
+runtime exit: 0
+Internal five-second watchdog; six-second outer harness is cleanup-only, not a test deadline change.
+Linux native reference only. No 9os guest or non-x86 execution.

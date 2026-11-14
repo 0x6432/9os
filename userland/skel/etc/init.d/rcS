@@ -1,6 +1,12 @@
 #!/bin/sh
 # 9os early userspace init (run by busybox init as sysinit)
 hostname -F /etc/hostname 2>/dev/null
+# Runtime sockets/PID files must not survive an ext2 root reboot. Mount before
+# creating user runtime directories; never unlink possibly live daemon state.
+mkdir -p /run
+if ! grep -q ' /run tmpfs ' /proc/mounts;then
+    mount -t tmpfs tmpfs /run || exit 1
+fi
 mkdir -p /tmp /var/log /home /run/user
 chmod 1777 /tmp
 chmod 755 /run /run/user 2>/dev/null

@@ -1,0 +1,95 @@
+KONSOLE_QUERY_HISTORY attempts=2 recording_failed=0 raw=prefix2048+suffix2048 timing_perturbed=1
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=first
+attempt=1 rc=1 termination=exit-status backend=live-dbus pid=777
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/FAIL mono_ns=1
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+terminal-dbus: pid=777 applications=1 models=0 visited=12 NOT_OBSERVED (diagnostic only)
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/FAIL mono_ns=1
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+terminal-dbus: pid=777 applications=1 models=0 visited=12 NOT_OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=first
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=last
+attempt=2 rc=0 termination=exit-status backend=live-dbus pid=777
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=last
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=terminal-first
+attempt=1 rc=1 termination=exit-status backend=live-dbus pid=777
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/FAIL mono_ns=1
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+terminal-dbus: pid=777 applications=1 models=0 visited=12 NOT_OBSERVED (diagnostic only)
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/FAIL mono_ns=1
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+terminal-dbus: pid=777 applications=1 models=0 visited=12 NOT_OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=terminal-first
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=terminal-last
+attempt=2 rc=0 termination=exit-status backend=live-dbus pid=777
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=terminal-last
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=witness-first
+attempt=1 rc=1 termination=exit-status backend=live-dbus pid=777
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/FAIL mono_ns=1
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+terminal-dbus: pid=777 applications=1 models=0 visited=12 NOT_OBSERVED (diagnostic only)
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.2 path=/org/a11y/atspi/accessible/FAIL mono_ns=1
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=0 showing_states=1 visible_states=1 qualified=0 protocol_error=1
+terminal-dbus: pid=777 applications=1 models=0 visited=12 NOT_OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=witness-first
+KONSOLE_QUERY_ATTEMPT_BEGIN slot=witness-last
+attempt=2 rc=0 termination=exit-status backend=live-dbus pid=777
+completion=present witness=present terminal_line=present remote_line=unknown
+terminal_first=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+terminal_last=DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+witness_line=DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+
+KONSOLE_QUERY_ATTEMPT_END slot=witness-last
+DBUS_A11Y_TERMINAL focused=1 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=777 terminals=1 valid_states=1 focused_states=1 showing_states=1 visible_states=1 qualified=1 protocol_error=0
+terminal-dbus: pid=777 applications=1 models=1 visited=12 OBSERVED (diagnostic only)
+RESULT pty=1 terminal=1

@@ -1,0 +1,312 @@
+#!/usr/bin/env python3
+"""Native mocks for the actual Alpine strace argv; never invokes QEMU/strace.
+
+A temporary fixture stands in for the guest's /tmp/alpine-strace.log. Refuse
+an existing host file rather than overwrite it. Semantic mutants must parse
+before an assertion can count as a kill. No compiler or guest is required.
+"""
+import ast
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+ORIGINAL = 'timeout -s KILL 20 strace -f -o /tmp/alpine-strace.log /bin/sh -c "echo native-trace-ok; /bin/true" && grep -q execve /tmp/alpine-strace.log'
+BEFORE_SOURCE_SHA = '46912aa2dfe6212ce3df4884fd1975cc396732c681b8acca3999442909b54246'
+BEFORE_ARGV_SHA = '2e27f3b20ec25de1e6d083c5425fb2e2ba29e01226827eea0dfb601a6f86f3dc'
+TRACE = Path('/tmp/alpine-strace.log')
+SHELLS = [shutil.which('bash')]
+DASH = os.environ.get('STRACE_TEST_DASH') or shutil.which('dash')
+if DASH:
+    SHELLS.append(DASH)
+if not SHELLS[0]:
+    raise RuntimeError('native bash required')
+
+
+def capture_argv(text):
+    with tempfile.TemporaryDirectory(prefix='strace-argv-') as tmp:
+        p = Path(tmp)
+        (p / 'scripts').mkdir()
+        (p / 'bin').mkdir()
+        script = p / 'scripts/alpine-tests.sh'
+        script.write_text(text)
+        stub = p / 'bin/python3'
+        stub.write_text('#!' + sys.executable + '\nimport json,os,sys\n'
+                        'open(os.environ["ARGV_OUT"],"w").write(json.dumps(sys.argv[1:]))\n')
+        stub.chmod(0o755)
+        result = subprocess.run([SHELLS[0], str(script), 'riscv64'],
+                                env={**os.environ, 'PATH': str(p / 'bin') + ':' + os.environ['PATH'],
+                                     'ARGV_OUT': str(p / 'argv.json')}, capture_output=True, timeout=5)
+        if result.returncode:
+            raise RuntimeError('argv interception setup failed: ' + repr(result.stderr))
+        return json.loads((p / 'argv.json').read_text())
+
+
+def runner_expressions():
+    tree = ast.parse((ROOT / 'scripts/qemu-test.py').read_text())
+    values = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id in ('PANIC', 'rx', 'passed'):
+                    # The guest passed assignment contains m/body/state; host passed does not.
+                    if target.id != 'passed' or 'body' in ast.unparse(node.value):
+                        values[target.id] = compile(ast.Expression(node.value), '<actual runner>', 'eval')
+    if set(values) != {'PANIC', 'rx', 'passed'}:
+        raise RuntimeError('actual runner expressions not found')
+    return values
+
+
+class StraceTail(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if TRACE.exists() or TRACE.is_symlink():
+            raise RuntimeError('refusing existing host fixture path ' + str(TRACE))
+        cls.source = (ROOT / 'scripts/alpine-tests.sh').read_text()
+        cls.argv = capture_argv(cls.source)
+        cls.cmd = cls.argv[63]
+        cls.runner = runner_expressions()
+        print('Native shells:', ', '.join(SHELLS), flush=True)
+        if not DASH:
+            print('NOTE: native dash unavailable; bash-only results, not dash proof', flush=True)
+
+    def run_command(self, shell, payload=b'execve native\n', rc=137, grep_rc=0,
+                    override='', missing=False, closed=False, cmd=None):
+        if TRACE.exists() or TRACE.is_symlink():
+            raise RuntimeError('fixture collision')
+        with tempfile.TemporaryDirectory(prefix='strace-tail-') as tmp:
+            p = Path(tmp)
+            if not missing:
+                TRACE.write_bytes(payload)
+            (p / 'badhex').write_bytes(b'__RC51=0\nFAIL\x1b[2J\x00panic:\n')
+            mocks = ('timeout(){ command printf "timeout:%s\\n" "$*" >>"$EVENT"; return "$SIM_RC"; }; '
+                     'grep(){ command printf "grep:%s\\n" "$*" >>"$EVENT"; return "$GREP_RC"; }; ')
+            script = mocks + override + (cmd or self.cmd)
+            if closed:
+                script = mocks + override + 'exec 1>&-; ' + (cmd or self.cmd)
+            else:
+                script += '; echo __RC51=$?; command printf "SHELL_ALIVE\\n"'
+            try:
+                result = subprocess.run([shell, '-u', '-c', script], capture_output=True, timeout=5,
+                                        env={**os.environ, 'EVENT': str(p / 'events'),
+                                             'SIM_RC': str(rc), 'GREP_RC': str(grep_rc),
+                                             'TMPDIR': tmp, 'BADHEX': str(p / 'badhex')})
+                events = (p / 'events').read_text()
+            finally:
+                TRACE.unlink(missing_ok=True)
+        return result, events
+
+    def assert_status(self, result, expected):
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, b'')
+        self.assertTrue(result.stdout.endswith(f'__RC51={expected}\nSHELL_ALIVE\n'.encode()), result.stdout)
+        self.assertEqual(result.stdout.count(b'__RC51='), 1, result.stdout)
+        rx = eval(self.runner['rx'], {'re': re, 'mark': '__RC51='})
+        m = rx.search(result.stdout)
+        self.assertIsNotNone(m)
+        body = result.stdout[:m.start()]
+        panic = eval(self.runner['PANIC'], {'re': re})
+        self.assertFalse(panic.search(body), body)
+        passed = eval(self.runner['passed'], {'bool': bool, 're': re, 'm': m, 'body': body,
+                                             'state': {'panic': bool(panic.search(body))}})
+        self.assertEqual(passed, expected == 0)
+        return body
+
+    def assert_tail(self, result, payload, expected=137):
+        body = self.assert_status(result, expected)
+        match = re.fullmatch(rb'ALPINE_STRACE_TAIL bytes=(\d+) truncated=([01]) hex=([0-9a-f]*)\n', body)
+        self.assertIsNotNone(match, body)
+        self.assertEqual(int(match[1]), min(len(payload), 1024))
+        self.assertEqual(int(match[2]), int(len(payload) > 1024))
+        self.assertEqual(bytes.fromhex(match[3].decode()), payload[-1024:])
+        self.assertLessEqual(len(body), 2150)
+
+    def assert_unknown(self, result, expected=137):
+        self.assertEqual(self.assert_status(result, expected), b'ALPINE_STRACE_TAIL unknown\n')
+
+    def test_actual_argv_source_and_transport_bound(self):
+        self.assertEqual(len(self.argv), 74)
+        self.assertEqual(len(ORIGINAL.encode()), 140)
+        self.assertTrue(self.cmd.startswith('(if ' + ORIGINAL + '; then '))
+        self.assertEqual(self.cmd.count(ORIGINAL), 1)
+        self.assertNotIn('\n', self.cmd)
+        restored = self.source.replace(shlex.quote(self.cmd), shlex.quote(ORIGINAL))
+        self.assertEqual(hashlib.sha256(restored.encode()).hexdigest(), BEFORE_SOURCE_SHA)
+        original_argv = self.argv.copy()
+        original_argv[63] = ORIGINAL
+        self.assertEqual(hashlib.sha256(json.dumps(original_argv, separators=(',', ':')).encode()).hexdigest(), BEFORE_ARGV_SHA)
+        # --timeout90, command count/order, memory and boot timeout are in this frozen vector.
+        line = (self.cmd + '; echo __RC51=$?\n').encode()
+        self.assertLessEqual(len(line[:-1]), 1023)
+        self.assertLessEqual(len(line), 1023)
+        self.assertNotRegex(self.cmd, r'__RC\d+=\d|\bFAIL|(?i:kernel panic|panic:|oops|unhandled exception|double fault)')
+        print('Exact command bytes:', len(self.cmd.encode()), 'pre-newline:', len(line)-1,
+              'including newline:', len(line), flush=True)
+        for shell in SHELLS:
+            check = subprocess.run([shell, '-n', '-c', self.cmd], capture_output=True, timeout=5)
+            self.assertEqual(check.returncode, 0, check.stderr)
+
+    def test_original_status_and_grep_sequence(self):
+        for shell in SHELLS:
+            for rc, grc in [(137, 0), (23, 0), (1, 0), (0, 1), (0, 0)]:
+                with self.subTest(shell=shell, rc=rc, grep=grc):
+                    result, events = self.run_command(shell, rc=rc, grep_rc=grc)
+                    expected = grc if rc == 0 else rc
+                    self.assert_status(result, expected)
+                    timeout_args = 'timeout:-s KILL 20 strace -f -o /tmp/alpine-strace.log /bin/sh -c echo native-trace-ok; /bin/true\n'
+                    self.assertEqual(events, timeout_args + ('grep:-q execve /tmp/alpine-strace.log\n' if rc == 0 else ''))
+
+    def test_success_is_quiet_and_no_diagnostic_utilities(self):
+        override = ''.join(name + '(){ command printf unexpected-utility >&2; return 9; }; '
+                           for name in ['mktemp', 'tail', 'wc', 'od', 'tr', 'rm'])
+        for shell in SHELLS:
+            result, _ = self.run_command(shell, rc=0, override=override)
+            self.assertEqual(self.assert_status(result, 0), b'')
+
+    def test_binary_caps_and_lookahead(self):
+        seed = b'__RC51=0\nFAIL\n# \r\x1b[2J\x00kernel panic\noops\n' + bytes(range(256))
+        for shell in SHELLS:
+            for size in [0, 1, 1023, 1024, 1025, 16000]:
+                with self.subTest(shell=shell, size=size):
+                    payload = (seed * 80)[:size]
+                    self.assert_tail(self.run_command(shell, payload=payload)[0], payload)
+
+    def test_complete_valid_utility_output_then_nonzero(self):
+        for shell in SHELLS:
+            for utility in ['tail', 'wc', 'od', 'tr', 'rm']:
+                with self.subTest(shell=shell, utility=utility):
+                    override = utility + '(){ command ' + utility + ' "$@"; return 7; }; '
+                    self.assert_unknown(self.run_command(shell, override=override)[0])
+
+    def test_missing_trace_and_mktemp_failure(self):
+        for shell in SHELLS:
+            self.assert_unknown(self.run_command(shell, missing=True)[0])
+            for override in ['mktemp(){ return 7; }; ',
+                             'mktemp(){ command mktemp "$@"; return 7; }; ',
+                             'mktemp(){ command printf /does/not/exist/scratch; }; ']:
+                self.assert_unknown(self.run_command(shell, override=override)[0])
+
+    def test_malformed_count_is_unknown(self):
+        for shell in SHELLS:
+            for value in ['', '-1', '00', '09', '1026', '9999999999999', '1;exit 0']:
+                override = 'wc(){ command printf %s ' + shlex.quote(value) + '; }; '
+                self.assert_unknown(self.run_command(shell, override=override)[0])
+
+    def test_invalid_hex_or_wrong_length_is_unknown(self):
+        for shell in SHELLS:
+            for override in ['tr(){ command printf ff; }; ',
+                             'tr(){ command printf FF; }; ',
+                             'tr(){ command cat "$BADHEX"; }; ',
+                             'od(){ command printf zz; }; ']:
+                self.assert_unknown(self.run_command(shell, override=override)[0])
+
+    def test_transfer_printf_failure_is_unknown(self):
+        override = 'printf(){ if [ "$1" = %s ]; then command printf "$@"; return 7; fi; command printf "$@"; }; '
+        for shell in SHELLS:
+            self.assert_unknown(self.run_command(shell, override=override)[0])
+
+    def test_closed_stdout_fallback_and_trap_errors_are_quiet(self):
+        for shell in SHELLS:
+            for missing in [True, False]:
+                result, _ = self.run_command(shell, closed=True, missing=missing)
+                self.assertEqual(result.returncode, 137)
+                self.assertEqual(result.stdout, b'')
+                self.assertEqual(result.stderr, b'')
+            override = 'printf(){ command printf raw-print-error >&2; return 88; }; '
+            result, _ = self.run_command(shell, missing=True, override=override)
+            self.assertEqual(self.assert_status(result, 137), b'')
+            for prefix in ['', 'tail(){ return 7; }; ']:
+                override = prefix + 'rm(){ command printf raw-cleanup-error >&2; return 89; }; '
+                self.assert_unknown(self.run_command(shell, override=override)[0])
+
+    def test_read_failure_and_final_print_failures_preserve_status(self):
+        for shell in SHELLS:
+            # Simulate an unreadable trace even when running tests as host root.
+            self.assert_unknown(self.run_command(shell, override='tail(){ return 1; }; ')[0])
+            override = (r'printf(){ case "$1" in ALPINE_STRACE_TAIL\ bytes=*) '
+                        'command printf "$@"; command printf print-error >&2; return 7;; '
+                        '*) command printf "$@";; esac; }; ')
+            result, _ = self.run_command(shell, override=override)
+            body = self.assert_status(result, 137)
+            # A completed stdout write cannot be rolled back. The subsequent
+            # UNKNOWN disclaims the optional diagnostic; the failure stays 137.
+            self.assertTrue(body.endswith(b'ALPINE_STRACE_TAIL unknown\n'), body)
+            self.assertEqual(body.count(b'ALPINE_STRACE_TAIL bytes='), 1)
+            self.assertLessEqual(len(body), 2200)
+
+    def test_workflow_gate_wiring(self):
+        invocation = 'PYTHONDONTWRITEBYTECODE=1 python3 scripts/alpine-strace-tail-host-tests.py'
+        for name in ['alpine.yml', 'release.yml']:
+            source = (ROOT / '.github/workflows' / name).read_text()
+            self.assertEqual(source.count(invocation), 1)
+            self.assertIn('python3 scripts/alpine-download-host-tests.py\n          ' + invocation, source)
+
+    def test_semantic_mutants(self):
+        def replace_once(before, after):
+            if self.cmd.count(before) != 1:
+                raise RuntimeError('mutant source mismatch: ' + before)
+            return self.cmd.replace(before, after, 1)
+        specs = [
+            ('od-status', 'h=$(LC_ALL=C od -An -v -tx1 -j "$s" "$t") || return 1', 'h=$(LC_ALL=C od -An -v -tx1 -j "$s" "$t") || :', 'utility-od'),
+            ('tr-status', "h=$(LC_ALL=C tr -d '[:space:]' <\"$t\") || return 1", "h=$(LC_ALL=C tr -d '[:space:]' <\"$t\") || :", 'utility-tr'),
+            ('tail-status', 'tail -c1025 /tmp/alpine-strace.log >"$t" || return 1', 'tail -c1025 /tmp/alpine-strace.log >"$t" || :', 'utility-tail'),
+            ('wc-status', 'n=$(wc -c <"$t") || return 1', 'n=$(wc -c <"$t") || :', 'utility-wc'),
+            ('printf-status', 'printf %s "$h" >"$t" || return 1', 'printf %s "$h" >"$t" || :', 'utility-printf'),
+            ('wrong-rc', 'exit "$r")', 'exit 0)', 'rc'),
+            ('weaken-grep', '&& grep -q execve /tmp/alpine-strace.log', '&& :', 'grep'),
+            ('lost-lookahead', 'od -An -v -tx1 -j "$s"', 'od -An -v -tx1 -j 0', 'cap'),
+            ('raw-trace', 'printf %s "$h" >"$t"', 'cat /tmp/alpine-strace.log', 'raw'),
+            ('lost-hex-validation', 'case $h in *[!0-9a-f]*) return 1;; esac;', ':;', 'hex'),
+            ('stderr-boundary', ") 2>/dev/null; exit", "); exit", 'stderr'),
+        ]
+        for name, before, after, witness in specs:
+            mutant = replace_once(before, after)
+            for shell in SHELLS:
+                # Setup/syntax failures MUST NOT be counted as semantic kills.
+                parsed = subprocess.run([shell, '-n', '-c', mutant], capture_output=True, timeout=5)
+                if parsed.returncode:
+                    raise RuntimeError('mutant syntax/setup failure: ' + name + repr(parsed.stderr))
+                with self.subTest(mutant=name, shell=shell):
+                    override = ''
+                    payload = b'__RC51=0\nFAIL\x1b[2J\x00panic:\n' + bytes(range(256)) * 8
+                    kwargs = {'payload': payload, 'cmd': mutant}
+                    if witness.startswith('utility-'):
+                        utility = witness.split('-', 1)[1]
+                        if utility == 'printf':
+                            override = 'printf(){ if [ "$1" = %s ]; then command printf "$@"; return 7; fi; command printf "$@"; }; '
+                        else:
+                            override = utility + '(){ command ' + utility + ' "$@"; return 7; }; '
+                    elif witness == 'grep':
+                        kwargs.update(rc=0, grep_rc=1)
+                    elif witness == 'hex':
+                        # Same encoded length, invalid alphabet; length guard alone must not suffice.
+                        override = 'tr(){ command tr -d "[:space:]" | command tr abcdef ABCDEF; }; '
+                    elif witness == 'stderr':
+                        kwargs.update(closed=True, missing=True)
+                    result, _ = self.run_command(shell, override=override, **kwargs)
+                    try:
+                        if witness.startswith('utility-') or witness == 'hex':
+                            self.assert_unknown(result)
+                        elif witness == 'grep':
+                            self.assert_status(result, 1)
+                        elif witness == 'stderr':
+                            self.assertEqual(result.returncode, 137)
+                            self.assertEqual(result.stderr, b'')
+                        else:
+                            self.assert_tail(result, payload)
+                    except AssertionError:
+                        print('KILLED semantic mutant:', name, 'shell:', shell, flush=True)
+                    else:
+                        self.fail('semantic mutant survived: ' + name)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

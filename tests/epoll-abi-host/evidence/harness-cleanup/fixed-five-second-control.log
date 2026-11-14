@@ -1,0 +1,10 @@
+host: Linux-6.18.49-x86_64-with-glibc2.34
+source sha256: 73f2714d5c39b744a2c6fee1432b5c01e9992462fd66fc5c84a17203805953cc
+temporary negative-control sha256: 6642fcd66c13740f11b6c2bda04dad74e0e8a5edbbf3c70d477c5103602c4076
+mutation: replace child run_tests with block-all-signals + permanent pause
+compile: cc -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-function -D_FORTIFY_SOURCE=2 <tmp>/watchdog-control.c -o <tmp>/watchdog-control
+epollabitest: FAIL five-second process watchdog
+exit=124; observed elapsed=5.002170s
+PASS: original five-second supervisor rejected signal-blocked child hang
+Six-second outer timeout remains a failure; isolated group kill/reap runs before re-raising exceptions.
+Native Linux control only; NOT 9os guest runtime validation.

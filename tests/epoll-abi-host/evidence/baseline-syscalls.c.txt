@@ -1,0 +1,53 @@
+static void ep_set_mask(uint64_t m) {     /* signal_send() samples sig_mask under the BKL */
+    bkl_enter();
+    current->sig_mask = m;
+    bkl_exit();
+}
+
+int64_t sys_epoll_pwait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms, const uint64_t *usig, size_t sz) {
+    if (max <= 0 || max > 4096) return -EINVAL;
+    uint64_t m = 0;
+    if (usig && copy_from_user(&m, usig, 8)) return -EFAULT;
+    struct file *ef = fd_get_ref(epfd);
+    if (!ef) return -EBADF;
+    if (ef->fops != &epoll_fops) { vfs_close(ef); return -EINVAL; }
+    struct epoll *ep = ef->priv;
+    struct epoll_event_u *ev = kmalloc(sizeof *ev * max);
+    if (!ev) { vfs_close(ef); return -ENOMEM; }
+    uint64_t oldmask = current->sig_mask;
+    if (usig) ep_set_mask(m & ~(SIGBIT(SIGKILL) | SIGBIT(SIGSTOP)));
+    uint64_t deadline = timeout_ms < 0 ? UINT64_MAX : time_ns() + (uint64_t)timeout_ms * 1000000ull;
+    int64_t r;
+    for (;;) {
+        uint64_t pseq = poll_seq_read();
+        struct ep_scan_ctx x = { .depth = 1 };
+        mutex_lock(&ep->mtx);
+        r = ep_scan_locked(ep, ev, max, &x);
+        mutex_unlock(&ep->mtx);
+        if (x.took_bkl) bkl_exit();
+        if (r || timeout_ms == 0) break;
+        uint64_t now = time_ns();
+        if (now >= deadline) { r = 0; break; }
+        int w = poll_wait_seq_masked(pseq, deadline == UINT64_MAX ? UINT64_MAX : deadline - now,
+                                    ep_wait_filter(&x));
+        if (w == -EINTR) { r = -EINTR; break; }
+    }
+    if (r > 0 && copy_to_user(uev, ev, sizeof *ev * r)) r = -EFAULT;
+    kfree(ev);
+    vfs_close(ef);
+    if (usig) {
+        if (r == -EINTR) { current->saved_mask = oldmask; current->restore_mask = true; }
+        else ep_set_mask(oldmask);
+    }
+    return r;
+}
+int64_t sys_epoll_wait(int epfd, struct epoll_event_u *uev, int max, int timeout_ms) {
+    return sys_epoll_pwait(epfd, uev, max, timeout_ms, nullptr, 8);
+}
+int64_t sys_epoll_pwait2(int epfd, struct epoll_event_u *uev, int max, const struct timespec *uts, const uint64_t *usig, size_t sz) {
+    int ms = -1;
+    if (uts) { struct timespec ts; if (copy_from_user(&ts, uts, sizeof ts)) return -EFAULT; ms = ts.tv_sec * 1000 + (ts.tv_nsec + 999999) / 1000000; }
+    return sys_epoll_pwait(epfd, uev, max, ms, usig, sz);
+}
+
+/* ------------------------------------------------------------------ memfd */

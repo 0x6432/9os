@@ -487,8 +487,10 @@ bool mm_handle_fault(struct mm *mm, vaddr_t addr, bool write, bool exec) {
         int r = !v || !vma_allows(v, write, exec) ? FLT_SEGV : fault_page_locked(mm, v, ALIGN_DOWN(addr, PAGE_SIZE), write);
         mm_unlock(mm);
         if (r == FLT_OK) {
-            if (current && current->proc && current->proc->mm == mm)
+            if (current && current->proc && current->proc->mm == mm) {
                 __atomic_fetch_add(&current->proc->min_flt, 1, __ATOMIC_RELAXED);
+                __atomic_fetch_add(&current->min_flt, 1, __ATOMIC_RELAXED);
+            }
             return true;
         }
         if (r == FLT_SEGV) return false;

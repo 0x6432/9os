@@ -1,0 +1,35 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=3052501064781
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=3052501488169
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=3052501957925
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3052502403322
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=3052502418012
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=3052502572178
+DBUS_A11Y_OWNER bus=:1.105 pid=55256 target=55256
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/app mono_ns=3052502579250
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/app mono_ns=3052502608228
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3052502906601
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3052502945799
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/frame mono_ns=3052502958135
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/frame mono_ns=3052502990986
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3052503245186
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3052503338745
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/terminal mono_ns=3052503354801
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/terminal mono_ns=3052503391962
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3052503700374
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3052503735545
+DBUS_A11Y_NODE depth=2 node=3 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/terminal mono_ns=3052503764778
+DBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=3052504063541
+DBUS_A11Y_TERMINAL focused=1 showing=0 visible=1
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/later mono_ns=3052504074181
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/later mono_ns=3052504106324
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=3052504404691
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=3052504419326
+DBUS_A11Y_NODE depth=2 node=4 role=60
+DBUS_A11Y_QUERY method=GetState phase=begin bus=:1.105 path=/org/a11y/atspi/accessible/later mono_ns=3052504429164
+DBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=3052504682783
+DBUS_A11Y_TERMINAL focused=0 showing=1 visible=1
+DBUS_A11Y_WITNESS pid=55256 terminals=2 valid_states=2 focused_states=1 showing_states=1 visible_states=2 qualified=0 protocol_error=0
+terminal-dbus: pid=55256 applications=1 models=0 visited=4 NOT_OBSERVED (diagnostic only)

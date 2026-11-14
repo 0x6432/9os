@@ -8,12 +8,13 @@ musl or BusyBox. Only the kernel/image packaging is built locally.
 
 Host prerequisites: Python >=3.11, GNU tar/cpio, clang/lld, xorriso, make, and the
 repository's normal Limine/uACPI/QEMU setup. The image builder currently requires
-an x86_64 host; aarch64/riscv64 are cross-installed and tested by PR CI, not locally.
+an x86_64 host; aarch64/riscv64 have CI lanes, but the current draft is not validated.
 Pillow is needed only by the host pixel checker. Alpine Sway carries a signed
 `security.capability` xattr: apk2 extraction needs host `CAP_SETFCAP` (the sandbox
 has it; ordinary GitHub runners do not). CI uses sudo **only for signed assembly**,
-then returns cache/image ownership to the runner and restores the VM BusyBox
-setuid bit before ordinary unprivileged kernel/image builds. No signature bypass,
+then returns cache/image ownership to the runner. This ownership handoff strips
+security metadata: the x86 preflight intentionally fails until a reviewed packaging
+solution is integrated. The main BusyBox binary is not setuid. No signature bypass,
 ignored install failure, target script execution or host capability is required
 inside the guest. The newc initramfs does not preserve file capability xattrs;
 these headless tests do not exercise privileged DRM/seat access.
@@ -34,6 +35,35 @@ The full Alpine dependency closure is substantially larger than the tailored
 source image (~502 MiB installed in the current x86 package set). Tests request
 2 GiB guest RAM; this is a development/compatibility lane, not an image-size
 optimization. Tests use the usual passwordless root/test accounts: VM use only.
+
+## Experimental x86 mode repair (review required; no boot approval)
+
+The draft workflows have an unconditional, visibly failing M40 gate before
+all guest lanes, including non-x86 and source-built lanes. It is not a CI pass.
+Older stacked PR heads do not inherit this gate; do not rerun them for guests
+before review. The gate cannot authorize or replace the agreed diagnostic protocol.
+
+The default CI ownership handoff strips privileged bits and capability xattrs;
+its narrow x86 preflight deliberately fails rather than boot a damaged image.
+Do not interpret this draft CI path as passing. The experimental opt-in
+`--restore-signed-x86-modes` is for a private build inside a single-ID,
+non-host-root user namespace, with the locked package cache available offline.
+It verifies the exact x86 package closure, mini bootstrap, APK hashes and
+signatures, and the signed header and bytes of ten explicit privileged files
+(two for base), then restores only their signed modes after validating all ten.
+It refuses unexpected owners, links, symlinks, modes or content. Keep the stage
+and cache private: concurrent writers can race the checks. Do not run staged
+executables on the host.
+
+The namespace must also be used for packaging execute-only `bbsuid` and for
+retaining namespaced capability xattrs; the tiny offline host controls are
+`scripts/alpine-userns-mode-repair-host-tests.py CACHE` and
+`scripts/alpine-userns-packaging-host-test.py CACHE`. They require unprivileged
+user/network namespace support and never boot a guest. This remains a proposed
+host packaging approach, not independently reviewed or integrated into CI.
+It does not fix initramfs ownership/capability loss, review the entire overlay,
+verify 9os privilege semantics, approve the launcher or provide guest evidence.
+The disk's three non-root file groups still require the separate opt-in owner repair.
 
 ## Provenance and replay
 
@@ -123,8 +153,8 @@ eudev trigger/settle, stock Plasma desktop/panel readiness and strict compositor
 capture including the genuine packaged wallpaper. Cold initialization and image
 loading are bounded, not replaced with a test background. `alpine-desktop-services`
 starts the real system bus as a locked messagebus identity and real eudev; it is
-not a logind/udisks/FUSE/PipeWire implementation. Physical KMS/input and updated
-three-architecture validation remain pending. **M40 is not complete.**
+not a logind/udisks/FUSE/PipeWire implementation. Physical UID1000 KMS/input and ALL3 fast/full-source validation subsequently
+passed at PR17 (see integrated checkpoint below). **M40 is not complete.**
 
 The experimental desktop additionally needs host `glib-compile-schemas` and
 `update-mime-database` (Ubuntu packages `libglib2.0-bin shared-mime-info`). Since
@@ -152,4 +182,141 @@ and its black-background negative controls remain mandatory and unchanged.
 Physical KMS diagnostics now require wlroots' actual `drm,libinput` backends
 and an enumerated keyboard. A real PTY and rendered physical display alone
 do NOT prove that keyboard input reaches Konsole; that end-to-end test remains
-a separate gate. M40 is NOT complete.
+a separate gate, now passed at PR17. M40 is NOT complete.
+
+Local x86 physical KMS input now passes the diagnostic11/11 gate: real QEMU
+key events enter Konsole on `/dev/pts/0`, create the expected file, and appear
+in a visually reviewed1280x800 physical screenshot. This is Sway DRM scanout
+with nested KWin/QPainter and stock Plasma, not direct KWin DRM or accelerated
+GPU rendering. The permanent gate additionally requires UID1000: a genuine
+root `seatd -g video` broker grants device access to the existing video group;
+KWin, Plasma and Konsole run as the normal VM user. That stronger test and
+ALL3 validation passed at PR17; no complete-M40 claim.
+
+At75e3d01, fast CI38817891542 passes all three architectures: base19/19,
+UP8/8 (x86SMP8 8/8), desktop18/18 and physical UID1000 KMS/keyboard11/11.
+These updated results include the strengthened genuine-PTY check, real stock
+wallpaper/panel captures and typed `id -u == 1000` proof. Full source-regression
+CI38817891502 also passed ALL3: main115/115, disk20+6, clean fscks/shutdown,
+audio2+2, UP9 and MLFQ12 (x86SMP8 10). PR17 was reviewed and merged at
+1d2a11d8a823e0601968704994ac8aaa24a7f4bc, retaining its branch.
+One local normal-user repeat timed out during Plasma initialization; follow-up
+work removes repeated heavyweight Qt bus-query processes while preserving the
+same deadline/acceptance, and isolates the normal user's bus environment.
+
+### Real Dolphin file-model follow-up (not yet integrated)
+
+The normal user's genuine Dolphin window is queried through its packaged
+AT-SPI accessibility bridge, using a tiny `desktopa11y` C consumer and the
+existing signed libatspi binary. No Qt, KDE or accessibility library is rebuilt.
+The observer matches the real application's PID and exact directory List
+role/name/description, then enumerates every direct ListItem model row. It
+prunes unrelated menus and fails on remote errors, oversized/cyclic trees,
+missing required names or present forbidden names. Seventeen host mock controls
+validate rejection logic only; they are explicitly NOT desktop evidence.
+
+An isolated x86 UID1000 KWin/QPainter session passed the real before/after
+model check: before.txt present initially, after.txt/new.txt absent; after
+rename/create, after.txt/new.txt present and before.txt absent. Dolphin's real
+window is active and exits cleanly through its public DBus quit method. The first combined physical KMS run passed16/16 at7857039, including the
+actual UID1000 keyboard/Konsole PTY, genuine UDisks disk/partition/root
+filesystem enumeration, both model states, a visually reviewed QEMU screenshot
+showing after.txt/new.txt, clean application exit/shutdown and lockdep0. A
+second cold-boot repeat and broader updated suites are in progress. Non-x86
+validation of this follow-up remains pending PR CI. `isItemVisibleInAnyView` is not used
+as a file-existence oracle: upstream intentionally checks the containing
+folder even when a child is nonexistent or not loaded.
+
+### Mountinfo and GLib epoll compatibility
+
+Real packaged UDisks exposed two kernel gaps rather than a KDE build problem:
+missing /proc/self/mountinfo caused its fatal startup error, then repeatedly
+delivered procfs EPOLLIN|EPOLLET caused GLib's initial-event drain to spin.
+Mount snapshots now report actual mount topology, IDs, paths, devices, rw/ro
+flags and filesystem sources without fixed-buffer truncation. Mount changes
+wake poll with Linux's per-open POLLPRI|POLLERR acknowledgment behavior. A
+fresh tmpfs /run prevents stale service sockets/PIDs across disk-root reboots.
+
+Epoll now latches permanently readable procfs bits for ET registrations and
+uses the same eligibility for nested peeks. This is NOT complete dynamic-input
+EPOLLET parity: that historical level approximation still needs producer-side
+edge tracking. Mountinfo describes the current single global namespace, not
+bind mounts, private namespaces or a chroot-relative view. The same C test
+runs on Linux and 9os, including real mount mutations in an isolated host
+namespace; guest root and UID1000 checks plus source disk reboot tests pass.
+UDisks acceptance is read-only enumeration, not privileged mounting, formatting
+or authorization. Direct KWin DRM, hardware acceleration, logind and the
+remaining source Qt Quick rendering scope are not claimed. M40 remains open.
+
+### Nested presentation-feedback compatibility (validation in progress)
+
+The packaged KWin6.3.6 / wlroots0.18.2 nested stack can stop rendering after
+KWin commits a buffer with no damage and requests `wp_presentation` feedback.
+A real failing 9os protocol trace has an outstanding feedback request, idle
+compositors and Qt frame-callback timeouts. The same unmodified packaged stack
+also failed the unchanged150-second wallpaper/panel gate on REAL HOST LINUX
+(headless Sway); it is not evidence of a new 9os syscall failure. An earlier
+Linux run reached the actual Dolphin model but its immediate outer capture
+still showed only Konsole; that immediate image alone is not a full35-second
+presentation-deadline negative control.
+
+The Plasma harness now explicitly defaults to `ALPINE_PLASMA_PRESENTATION=callback`.
+`wayland-presentation-proxy` hides only the optional presentation-time registry
+advertisement on KWin's OUTER connection, selecting KWin's existing standard
+`wl_surface.frame` fallback. It does not patch packaged libraries/QML, change
+images, alter the inner KWin application connection or weaken any readiness,
+model, physical typing, fresh-image/OCR or cleanup gate. Native protocol mode
+remains available as `ALPINE_PLASMA_PRESENTATION=native` for comparisons.
+This is a userland compatibility workaround, NOT a claim that the upstream
+presentation implementation or all kernel ABIs are fixed.
+
+The proxy preserves ordered Wayland byte messages and SCM_RIGHTS, handles
+fragmentation/short writes, closes transferred rights and propagates signals
+and child status. It is NOT a security boundary. `--passthrough` is a transport
+control. Same-source `python3 /usr/share/9os/wayland-proxy-selftest.py` runs16
+wire/FD/process controls; these are NOT GUI proof. Root and UID1000 controls
+are added to the desktop suite (28 gates). Historical971 and432 ALL3 fast
+runs passed desktop28/28 and physical16/16;971 also passed the full-source
+ALL3 regression gate. Actual physical Dolphin filename PNGs were independently
+checked. These results do not prove universal cold-start reliability: later
+local boots still fail (see the cold-start caveat below). Current9ebf9e4 source
+and fast PR18 checks must pass separately. M40 remains open.
+
+For a reproducible Linux comparison in a disposable x86_64 sandbox:
+
+```sh
+sudo scripts/alpine-linux-oracle.sh userland/alpine-desktop-root-x86_64 native > linux-native.log 2>&1
+python3 scripts/alpine-linux-oracle-check.py linux-native.log
+sudo scripts/alpine-linux-oracle.sh userland/alpine-desktop-root-x86_64 callback > linux-callback.log 2>&1
+python3 scripts/alpine-linux-oracle-check.py linux-callback.log
+```
+
+The harness uses private PID/mount namespaces, a read-only packaged root, fresh
+runtime directories and a real UID1000 session on the HOST LINUX KERNEL. It
+captures fresh outer-compositor frames for35 seconds after the genuine Dolphin
+model is ready. The checker reuses the unchanged wallpaper and filename/OCR
+oracles, and requires real Konsole PTY/model/clean-exit markers. It cannot prove
+9os syscall correctness or physical input. The checked-in read-only-root wrapper
+passed three real callback cold sessions with33/31/31 fresh captures; native mode
+reached the model but failed filename visibility over26 fresh captures. A fourth
+callback session with the WIP terminal-focus observer also passed33 fresh
+captures. Do not replace the 9os QEMU gates with Linux results.
+
+### Cold-start and physical keyboard caveat (still open)
+
+Explicit QMP down/up events replace HMP's virtual-time key-release timer, but
+monitor acknowledgements still cannot prove a terminal is mapped and focused.
+Three private local LP_NUM_THREADS=1 cold boots produced16/16,16/16, then11/16:
+the last actual terminal PNG reads `y` instead of `tty`, and later Dolphin URL
+readiness/pixels failed too. The renderer thread cap is an overridable resource
+policy, not a proven general cold-start fix. No failed attempt is reclassified.
+
+The separate terminal-focus WIP adds `desktopa11y --terminal PID`, observing the
+real application's Terminal role plus focused/showing/visible states through
+packaged AT-SPI. It never sets focus or sends input. PTY publication alone can
+precede window mapping, so the guessed3-second sleep is replaced by this stronger
+check within the existing120-second PTY readiness budget. Mock negative controls
+and real Linux observation pass; production-default9os physical validation is
+in progress. Qt/KDE libraries are unmodified, no timeout or pixel threshold is
+relaxed, and physical tty/UID/marker plus real Dolphin model/OCR/exit gates remain
+mandatory. M40 is not complete.

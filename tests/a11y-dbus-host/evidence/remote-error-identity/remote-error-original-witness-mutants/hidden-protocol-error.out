@@ -1,0 +1,20 @@
+PASS optional diagnostic symbol absent valid g_error_matches
+PASS optional diagnostic symbol absent valid g_io_error_quark
+PASS optional diagnostic symbol absent valid g_dbus_error_is_remote_error
+PASS optional diagnostic symbol absent valid g_dbus_error_get_remote_error
+PASS optional diagnostic symbol absent valid g_free
+PASS synthetic protocol valid
+PASS synthetic protocol paired-valid
+PASS synthetic protocol wrong-pid
+PASS synthetic protocol unfocused
+PASS synthetic protocol hidden
+PASS synthetic protocol invisible
+PASS synthetic protocol wrong-role
+Traceback (most recent call last):
+  File "/tmp/9os-witness-mutant-2kt92frx/tests/a11y-dbus-host/test-native.py", line 243, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/9os-witness-mutant-2kt92frx/tests/a11y-dbus-host/test-native.py", line 140, in main
+    assert values == expected, (mode, values, expected, result.stdout[-3000:])
+           ^^^^^^^^^^^^^^^^^^
+AssertionError: ('short-state', (1, 0, 0, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0, 1), 'DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2932134444729\nDBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2932134830323\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2932135276220\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2932135643965\nDBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2932135654951\nDBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=2932135797817\nDBUS_A11Y_OWNER bus=:1.31 pid=54560 target=54560\nDBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.31 path=/org/a11y/atspi/accessible/app mono_ns=2932135802679\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.31 path=/org/a11y/atspi/accessible/app mono_ns=2932135820257\nDBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2932136168537\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2932136212823\nDBUS_A11Y_NODE depth=0 node=1 role=75\nDBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.31 path=/org/a11y/atspi/accessible/frame mono_ns=2932136225490\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.31 path=/org/a11y/atspi/accessible/frame mono_ns=2932136260895\nDBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2932136625871\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2932136668334\nDBUS_A11Y_NODE depth=1 node=2 role=23\nDBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.31 path=/org/a11y/atspi/accessible/terminal mono_ns=2932136682089\nDBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.31 path=/org/a11y/atspi/accessible/terminal mono_ns=2932136711658\nDBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2932137058862\nDBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2932137099015\nDBUS_A11Y_NODE depth=2 node=3 role=60\nDBUS_A11Y_QUERY method=GetState phase=begin bus=:1.31 path=/org/a11y/atspi/accessible/terminal mono_ns=2932137117629\nDBUS_A11Y_QUERY method=GetState phase=end ok=1 mono_ns=2932137388465\nDBUS_A11Y_ERROR reason=state-width\nDBUS_A11Y_WITNESS pid=54560 terminals=1 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=0\nterminal-dbus: pid=54560 applications=1 models=0 visited=3 NOT_OBSERVED (diagnostic only)\n')

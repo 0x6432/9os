@@ -595,7 +595,8 @@ int64_t sys_reboot(uint64_t m1_, uint64_t m2_, uint64_t cmd_, void *arg) {
  * before returning, so a waker that still holds the lock never touches a dead stack frame. */
 #define FUTEX_BUCKETS 64
 struct futex_bucket;
-struct futex_waiter { struct list_node node; struct mm *mm; uint32_t *addr; struct wait_queue wq; bool woken; struct futex_bucket *bucket; };
+/* The nonzero waiter mask is immutable, including across requeue. */
+struct futex_waiter { struct list_node node; struct mm *mm; uint32_t *addr; uint32_t bitset; struct wait_queue wq; bool woken; struct futex_bucket *bucket; };
 struct futex_bucket { spinlock_t lock; struct list_node head; } __attribute__((aligned(64)));
 static struct futex_bucket futex_buckets[FUTEX_BUCKETS];
 static volatile bool futex_ready;
@@ -619,13 +620,13 @@ static struct futex_bucket *futex_bucket(struct mm *mm, uint32_t *uaddr) {
 static uint64_t fb_lock(struct futex_bucket *b) { uint64_t f = arch_irq_save(); spin_lock_ipi(&b->lock); return f; }
 static void fb_unlock(struct futex_bucket *b, uint64_t f) { spin_unlock(&b->lock); arch_irq_restore(f); }
 
-static int futex_wake_locked(struct futex_bucket *b, struct mm *mm, uint32_t *uaddr, int n) {
+static int futex_wake_locked(struct futex_bucket *b, struct mm *mm, uint32_t *uaddr, int n, uint32_t bitset) {
     if (n <= 0) return 0;
     int woken = 0;
     list_for_each_safe(it, tmp, &b->head) {
         if (woken >= n) break;
         struct futex_waiter *w = list_entry(it, struct futex_waiter, node);
-        if (w->addr != uaddr || w->mm != mm) continue;
+        if (w->addr != uaddr || w->mm != mm || !(w->bitset & bitset)) continue;
         list_del(&w->node);
         __atomic_store_n(&w->woken, true, __ATOMIC_RELEASE);
         wake_up(&w->wq);            /* under the bucket lock: w stays alive until we drop it */
@@ -634,12 +635,16 @@ static int futex_wake_locked(struct futex_bucket *b, struct mm *mm, uint32_t *ua
     __atomic_fetch_add(&futex_wakes, (uint64_t)woken, __ATOMIC_RELAXED);
     return woken;
 }
-static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
+static int futex_wake_mask(struct mm *mm, uint32_t *uaddr, int n, uint32_t bitset) {
     struct futex_bucket *b = futex_bucket(mm, uaddr);
     uint64_t f = fb_lock(b);
-    int r = futex_wake_locked(b, mm, uaddr, n);
+    int r = futex_wake_locked(b, mm, uaddr, n, bitset);
     fb_unlock(b, f);
     return r;
+}
+/* Ordinary wake, WAKE_OP and robust-owner exit match every waiter bitset. */
+static int futex_wake_mm(struct mm *mm, uint32_t *uaddr, int n) {
+    return futex_wake_mask(mm, uaddr, n, UINT32_MAX);
 }
 int futex_wake(uint32_t *uaddr, int n) { return futex_wake_mm(curproc->mm, uaddr, n); }
 
@@ -732,8 +737,8 @@ static int futex_wake_op(uint32_t *addr, uint32_t *addr2, bool shared, int n, in
             default: r = -ENOSYS; break;
             }
             if (!r) {
-                r = futex_wake_locked(ba, a.mm, a.addr, n);
-                if (match) r += futex_wake_locked(bb, b.mm, b.addr, n2);
+                r = futex_wake_locked(ba, a.mm, a.addr, n, UINT32_MAX);
+                if (match) r += futex_wake_locked(bb, b.mm, b.addr, n2, UINT32_MAX);
             }
         }
         if (l2 != l1) spin_unlock(&l2->lock);
@@ -743,31 +748,48 @@ static int futex_wake_op(uint32_t *addr, uint32_t *addr2, bool shared, int n, in
     }
 }
 
-/* move up to n waiters from key a to key b (FUTEX_REQUEUE): a waiter's bucket may change, so
- * it records which bucket currently holds it (w->bucket) and re-checks that when it leaves */
-static int futex_requeue(struct futex_key a, struct futex_key b, int n) {
+/* Compare, wake and move form one transaction against waiter enqueue/removal.
+ * In particular the comparison must use the resolved shared key's bucket, not
+ * a process-private hash of the user VA. A waiter records its current bucket
+ * and re-checks it when leaving, including after a move to a different key. */
+static int futex_requeue(struct futex_key a, struct futex_key b, int nwake, int n,
+                         bool compare, const uint32_t *compare_addr, uint32_t compare_val) {
     struct futex_bucket *ba = futex_bucket(a.mm, a.addr), *bb = futex_bucket(b.mm, b.addr);
-    if (n <= 0) return 0;
     /* lock both buckets in address order */
     struct futex_bucket *l1 = ba < bb ? ba : bb, *l2 = ba < bb ? bb : ba;
     uint64_t f = arch_irq_save();
     spin_lock_ipi(&l1->lock);
     if (l2 != l1) spin_lock_ipi(&l2->lock);
+    int r = 0;
+    if (compare) {
+        uint32_t cur;
+        if (copy_from_user(&cur, compare_addr, sizeof cur)) r = -EFAULT;
+        else if (cur != compare_val) r = -EAGAIN;
+        if (r) goto out;
+    }
+    r = futex_wake_locked(ba, a.mm, a.addr, nwake, UINT32_MAX);
     int moved = 0;
     list_for_each_safe(it, tmp, &ba->head) {
         if (moved >= n) break;
         struct futex_waiter *w = list_entry(it, struct futex_waiter, node);
         if (w->addr != a.addr || w->mm != a.mm) continue;
-        list_del(&w->node);
-        w->mm = b.mm; w->addr = b.addr;
-        __atomic_store_n(&w->bucket, bb, __ATOMIC_RELEASE);
-        list_add_tail(&bb->head, &w->node);
+        /* Equal keys (including different shared aliases) still count each
+         * waiter once. Rotating them to this same list's tail revisits earlier
+         * nodes until n, potentially INT_MAX, instead of its original length. */
+        if (a.mm != b.mm || a.addr != b.addr) {
+            list_del(&w->node);
+            w->mm = b.mm; w->addr = b.addr;
+            __atomic_store_n(&w->bucket, bb, __ATOMIC_RELEASE);
+            list_add_tail(&bb->head, &w->node);
+        }
         moved++;
     }
+    r += moved;
+out:
     if (l2 != l1) spin_unlock(&l2->lock);
     spin_unlock(&l1->lock);
     arch_irq_restore(f);
-    return moved;
+    return r;
 }
 
 /* lock the bucket that currently holds w (it can be requeued concurrently) */
@@ -780,12 +802,12 @@ static struct futex_bucket *fw_lock(struct futex_waiter *w, uint64_t *f) {
     }
 }
 
-static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns, bool shared) {
+static int futex_wait(uint32_t *uaddr, uint32_t val, uint64_t ns, bool shared, uint32_t bitset) {
     if ((uintptr_t)uaddr & 3) return -EINVAL;
     struct futex_key key = futex_key_of(uaddr, shared);
     struct mm *mm = key.mm;
     struct futex_bucket *b = futex_bucket(mm, key.addr);
-    struct futex_waiter w = { .mm = mm, .addr = key.addr, .bucket = b };
+    struct futex_waiter w = { .mm = mm, .addr = key.addr, .bitset = bitset, .bucket = b };
     wait_queue_init(&w.wq);
     uint64_t f = fb_lock(b);
     uint32_t cur;
@@ -833,11 +855,11 @@ int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *
                 ns = ns > now ? ns - now : 0;
             }
         }
-        return futex_wait(uaddr, val, ns, shared);
+        return futex_wait(uaddr, val, ns, shared, cmd == 9 ? val3 : UINT32_MAX);
     }
     case 1: case 10:     /* FUTEX_WAKE(_BITSET) */
         if (cmd == 10 && !val3) return -EINVAL;
-        { struct futex_key k = futex_key_of(uaddr, shared); return futex_wake_mm(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX)); }
+        { struct futex_key k = futex_key_of(uaddr, shared); return futex_wake_mask(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX), cmd == 10 ? val3 : UINT32_MAX); }
     /* PI locks are not implemented. Report the unsupported capability rather
      * than an unknown command: musl exposes this result from setprotocol and
      * consumers such as PulseAudio fall back only on ENOTSUP. No fake lock. */
@@ -847,20 +869,12 @@ int64_t sys_futex(uint32_t *uaddr, int op, uint32_t val, const struct timespec *
         /* Linux checks each limit after waking the first waiter: even <= 0 wakes one. */
         return futex_wake_op(uaddr, uaddr2, shared, MAX((int32_t)val, 1),
                              MAX((int32_t)(uintptr_t)uts, 1), val3);
-    case 3: case 4: {    /* FUTEX_REQUEUE / CMP_REQUEUE: wake val, then wake (instead of move) the rest */
-        if (cmd == 4) {
-            struct futex_bucket *b = futex_bucket(curproc->mm, uaddr);
-            uint64_t f = fb_lock(b);
-            uint32_t cur;
-            int e = copy_from_user(&cur, uaddr, 4) ? -EFAULT : cur != val3 ? -EAGAIN : 0;
-            fb_unlock(b, f);
-            if (e) return e;
-        }
+    case 3: case 4: {    /* FUTEX_REQUEUE / CMP_REQUEUE: atomic compare, wake and move */
+        if (((uintptr_t)uaddr | (uintptr_t)uaddr2) & 3) return -EINVAL;
         struct futex_key k = futex_key_of(uaddr, shared), k2 = futex_key_of(uaddr2, shared);
-        if ((uintptr_t)uaddr2 & 3) return -EINVAL;
-        int n = futex_wake_mm(k.mm, k.addr, (int)MIN(val, (uint32_t)INT32_MAX));
+        int nwake = (int)MIN(val, (uint32_t)INT32_MAX);
         int lim = (int)MIN((uint64_t)(uintptr_t)uts, (uint64_t)INT32_MAX);    /* val2 travels in the timeout slot */
-        return n + futex_requeue(k, k2, lim);
+        return futex_requeue(k, k2, nwake, lim, cmd == 4, uaddr, val3);
     }
     default: return -ENOSYS;
     }

@@ -80,7 +80,8 @@ struct timespec { int64_t tv_sec, tv_nsec; };
 struct inode;
 struct file;
 
-typedef int (*filldir_t)(void *ctx, const char *name, size_t len, uint64_t ino, unsigned type);
+/* next_cookie is the filesystem's opaque position immediately after this entry. */
+typedef int (*filldir_t)(void *ctx, const char *name, size_t len, uint64_t ino, unsigned type, uint64_t next_cookie);
 
 struct inode_ops {
     int (*lookup)(struct inode *dir, const char *name, struct inode **out);
@@ -109,11 +110,17 @@ struct inode_ops {
 
 struct file_ops {
     bool nobkl;             /* read/write are safe without the BKL (see pipe.c) */
+    /* Opt-in: no readiness dependency on another inode's eventfd. Wrappers
+     * (notably nested epoll) and unknown implementations stay conservative. */
+    bool poll_leaf;
     int (*open)(struct inode *ino, struct file *f);
     ssize_t (*read)(struct file *f, void *buf, size_t n, off_t *off);
     ssize_t (*write)(struct file *f, const void *buf, size_t n, off_t *off);
     int (*ioctl)(struct file *f, uint64_t cmd, uint64_t arg);
     unsigned (*poll)(struct file *f);
+    /* Readiness bits that are permanently asserted (e.g. procfs even at EOF).
+     * EPOLLET reports these once per registration/rearm, not once per scan. */
+    unsigned poll_always;
     void (*release)(struct file *f);
     /* device memory mapping: physical address backing [off, off+len), or -errno */
     int (*mmap)(struct file *f, uint64_t off, size_t len, paddr_t *pa);
@@ -214,7 +221,9 @@ void fs_register(const struct fs_type *t);
 int vfs_do_mount(const char *source, const char *target, const char *type, uint64_t flags, const char *data);
 int vfs_do_umount(const char *target, int flags);
 int vfs_mount_root(const char *source, const char *type);   /* root=: switch / to a disk */
-int vfs_proc_mounts(char *buf, size_t max);
+/* Allocated complete snapshot; caller kfree. */
+char *vfs_proc_mount_snapshot(size_t *len, uint64_t *event, bool info);
+uint64_t vfs_mount_event(void);
 int vfs_proc_filesystems(char *buf, size_t max);
 void ext2_init(void);
 
@@ -246,8 +255,14 @@ extern struct inode *vfs_root;
 /* global wait queue for poll/select: woken on any I/O readiness change */
 extern struct wait_queue poll_wq;
 void poll_notify(void);
+/* Targeted notifications cover eventfd and connected AF_UNIX data changes.
+ * Include every affected inode; unknown dependencies require global fallback. */
+void poll_notify_file(struct file *f);
+void poll_notify_mask(uint64_t mask);
+uint64_t poll_file_key(struct file *f);
 extern uint64_t poll_seq;
 int poll_wait_seq(uint64_t seq, uint64_t ns);
+int poll_wait_seq_masked(uint64_t seq, uint64_t ns, uint64_t filter);
 #define poll_seq_read() __atomic_load_n(&poll_seq, __ATOMIC_SEQ_CST)
 
 /* inotify hooks (kernel/fs/anonfd.c); free while nobody watches anything */

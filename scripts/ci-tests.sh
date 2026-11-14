@@ -40,6 +40,12 @@ if [ -e userland/build/ports-root-$ARCH/usr/bin/qmlsmoke ]; then
     QML="qmlsmoke && qmlsmoke"
     QMLUSER="su user -s /bin/sh -c qmlsmoke"
 fi
+QTQUICK=; QTQUICKUSER=; QTQUICKPIXELS=
+if [ -e userland/build/ports-root-$ARCH/usr/bin/qtquicksmoke ]; then
+    QTQUICK=qtquicksmoke
+    QTQUICKUSER="su user -s /bin/sh -c qtquicksmoke"
+    QTQUICKPIXELS="host:python3 scripts/alpine-pixel-check.py build/test-$ARCH.log --prefix SOURCE_QUICK --expected-count 2"
+fi
 QTGUI=; QTGUIUSER=
 if [ -e userland/build/ports-root-$ARCH/usr/bin/qtguismoke ]; then
     QTGUI="qtguismoke && qtguismoke"
@@ -49,6 +55,14 @@ QTWAYLAND=; QTWAYLANDUSER=
 if [ -e userland/build/ports-root-$ARCH/usr/bin/qtwaylandsmoke ]; then
     QTWAYLAND=qtwaylandsmoke
     QTWAYLANDUSER="QTWAYLAND_CLIENT_USER=user qtwaylandsmoke"
+fi
+QTQUICKWL=; QTQUICKWLUSER=; QTQUICKWLNEG=
+if [ -e userland/build/ports-root-$ARCH/usr/bin/qtquickwaylandsmoke ]; then
+    QTQUICKWL=qtquickwaylandsmoke
+    QTQUICKWLUSER="QTWAYLAND_CLIENT_USER=user qtquickwaylandsmoke"
+    # Expected failures stay in a private log: the runner must still reject any
+    # unexpected FAIL on the serial console, even when a shell returns zero.
+    QTQUICKWLNEG='QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software qtquickwaylandtest >/tmp/quick-wayland-negative.log 2>&1; r=$?; test "$r" = 1 && grep -q platformName /tmp/quick-wayland-negative.log && grep -q "native && native->display" /tmp/quick-wayland-negative.log && echo EXPECTED_OFFSCREEN_REJECTION'
 fi
 QTGL=; QTGLUSER=; QTLLGL=; QTLLGLUSER=
 if [ -e userland/build/ports-root-$ARCH/usr/bin/qtglsmoke ]; then
@@ -88,14 +102,14 @@ fsck_img() {   # e2fsck the partition at 1 MiB
 rc=0
 BIGMD5=$(python3 scripts/net-host-server.py --md5)
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-$ARCH.log" --disk "$B/ext2.img" --disk "$B/scratch.img" --net-test "$@" \
-    libctest cowtest vforktest orphantest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest futexoptest efdtest socktest polltest fdtest filetest vfstest vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest fallocatetest ptracestoptest unixcredtest procinfotest pimutextest ioctlwidthtest locktest leasetest asynctest xattrtest acltest sigqtest sysfstest "sysfstest -u" uinputtest vttest looptest sndtest \
+    libctest cowtest vforktest orphantest ipctest ptytest inotifytest dyntest mapprivtest smptest faulttest pcputest slabtest idletest pipetest futextest futexoptest "timeout 30 futexbitsettest" 'su user -s /bin/sh -c "timeout 30 futexbitsettest"' "timeout 30 futexrequeuetest" 'su user -s /bin/sh -c "timeout 30 futexrequeuetest"' efdtest "timeout 30 eventfdwaketest" 'su user -s /bin/sh -c "timeout 30 eventfdwaketest"' "timeout 35 pollfiltertest" 'su user -s /bin/sh -c "timeout 35 pollfiltertest"' "timeout 10 epollabitest" 'su user -s /bin/sh -c "timeout 10 epollabitest"' "timeout 10 epollrestarttest" 'su user -s /bin/sh -c "timeout 10 epollrestarttest"' "timeout 45 unixpolltest" 'su user -s /bin/sh -c "timeout 45 unixpolltest"' socktest polltest "timeout 10 alarmcputest" 'su user -s /bin/sh -c "timeout 10 alarmcputest"' pollwakebench "pollwakebench --inotify" "pollwakebench --unix" "pollwakebench --unix-inotify" "pollwakebench --epoll" "pollwakebench --epoll-inotify" "pollwakebench --epoll-unix" "pollwakebench --epoll-unix-inotify" 'su user -s /bin/sh -c "pollwakebench --epoll"' 'su user -s /bin/sh -c "pollwakebench --epoll-inotify"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix"' 'su user -s /bin/sh -c "pollwakebench --epoll-unix-inotify"' 'su user -s /bin/sh -c "pollwakebench --unix"' 'su user -s /bin/sh -c "pollwakebench --unix-inotify"' 'su user -s /bin/sh -c "pollwakebench --inotify"' fdtest filetest vfstest "dircookietest /proc/self /proc/self/fd /proc/self/task /sys/class" 'su user -s /bin/sh -c "dircookietest /proc/self /sys/class"' vmtest timetest afftest nicetest balancetest hardentest irqtest permtest logintest ptracetest fallocatetest ptracestoptest unixcredtest procinfotest proctasktest "mountinfotest --mutate" pimutextest ioctlwidthtest locktest leasetest asynctest xattrtest acltest sigqtest sysfstest "sysfstest -u" uinputtest "timeout 35 evdevframetest" vttest looptest sndtest \
     "udevshim -c && grep -q E:ID_INPUT_KEYBOARD=1 \$(grep -l ID_INPUT_KEY= /run/udev/data/c13:*) && udevshim -q /dev/input/event0 | grep -qx ID_INPUT=1" \
     "bash -c 'a=(1 2 3); s=0; for i in \${a[@]}; do s=\$((s+i)); done; [ \$s = 6 ]'" \
     "echo hello | gzip | gunzip | grep -q hello" \
     "touch /tmp/fa && setfacl -m u:1000:r,g:2000:rw /tmp/fa && getfacl -n /tmp/fa | grep -q '^user:1000:r--' && getfacl -c /tmp/fa | grep -q '^mask::rw-' && setfacl -x u:1000 /tmp/fa && setfacl -b /tmp/fa && ! getfacl -c /tmp/fa | grep -q mask && mkdir /tmp/fd && setfacl -d -m u:1000:rwx /tmp/fd && getfacl -cdn /tmp/fd | grep -q '^user:1000:rwx' && touch /tmp/fd/x && getfacl -cn /tmp/fd/x | grep -q '^user:1000:rwx' && rm -rf /tmp/fa /tmp/fd" \
-    ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${QT:+"$QT"} ${QTUSER:+"$QTUSER"} ${QTCLEAN:+"$QTCLEAN"} ${QML:+"$QML"} ${QMLUSER:+"$QMLUSER"} ${QTGUI:+"$QTGUI"} ${QTGUIUSER:+"$QTGUIUSER"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
+    ${DBUS:+"$DBUS"} ${DBUSCLI:+"$DBUSCLI"} ${DBUSUSER:+"$DBUSUSER"} ${DBUSCLEAN:+"$DBUSCLEAN"} ${QT:+"$QT"} ${QTUSER:+"$QTUSER"} ${QTCLEAN:+"$QTCLEAN"} ${QML:+"$QML"} ${QMLUSER:+"$QMLUSER"} ${QTQUICK:+"$QTQUICK"} ${QTQUICKUSER:+"$QTQUICKUSER"} ${QTQUICKPIXELS:+"$QTQUICKPIXELS"} ${QTGUI:+"$QTGUI"} ${QTGUIUSER:+"$QTGUIUSER"} ${CXX} ${JIT} ${LLEGL:+"$LLEGL"} ${LLEGLGBM:+"$LLEGLGBM"} ${LLEGLDMA:+"$LLEGLDMA"} ${EGL} ${EGLGBM:+"$EGLGBM"} ${EGLDMA:+"$EGLDMA"} ${WL} ${IN} ${KMS2:+"$KMS2"} \
     "T=/usr/libexec/libinput/libinput-test-suite; [ ! -x \$T ] || { udevshim -d; chvt 2; \$T -j1 --filter-group=udev > /tmp/li.log 2>&1; r=\$?; chvt 1; kill \$(cat /run/udev/udevshim.pid); [ \$r = 0 ] || grep -A12 'failed:' /tmp/li.log; [ \$r = 0 ]; }" \
-    drmdemo ${SW1:+"$SW1"} ${SW2:+"$SW2"} ${GLSMOKE:+"$GLSMOKE"} ${LLGLSMOKE:+"$LLGLSMOKE"} ${QTWAYLAND:+"$QTWAYLAND"} ${QTWAYLANDUSER:+"$QTWAYLANDUSER"} ${QTGL:+"$QTGL"} ${QTGLUSER:+"$QTGLUSER"} ${QTLLGL:+"$QTLLGL"} ${QTLLGLUSER:+"$QTLLGLUSER"} \
+    drmdemo ${SW1:+"$SW1"} ${SW2:+"$SW2"} ${GLSMOKE:+"$GLSMOKE"} ${LLGLSMOKE:+"$LLGLSMOKE"} ${QTWAYLAND:+"$QTWAYLAND"} ${QTWAYLANDUSER:+"$QTWAYLANDUSER"} ${QTQUICKWL:+"$QTQUICKWL"} ${QTQUICKWLUSER:+"$QTQUICKWLUSER"} ${QTQUICKWLNEG:+"$QTQUICKWLNEG"} ${QTGL:+"$QTGL"} ${QTGLUSER:+"$QTGLUSER"} ${QTLLGL:+"$QTLLGL"} ${QTLLGLUSER:+"$QTLLGLUSER"} \
     nettest net2test "ping -c 2 -W 2 127.0.0.1" \
     "for i in 1 2 3 4 5 6 7 8 9 10; do ifconfig eth0 | grep -q 'inet addr:10.0.2.15' && break; sleep 1; done; ifconfig eth0 | grep -q 'inet addr:10.0.2.15'" \
     "route -n | grep -q '^0.0.0.0 *10.0.2.2'" "grep -q nameserver /etc/resolv.conf" \
@@ -114,12 +128,13 @@ fsck_img "$B/ext2.img" || rc=1
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot-$ARCH.log" --disk "$B/root.img" --disk "$B/scratch.img" \
     --cmdline "root=/dev/vda1" "$@" \
     "grep -q '^/dev/vda1 / ext2 rw' /proc/mounts" "blktest -v /dev/vdb 77" \
-    libctest dyntest mapprivtest filetest vfstest vmtest sysfstest "permtest /tmp" logintest "mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2" \
+    "mountinfotest --mutate" "su user -s /bin/sh -c mountinfotest" "grep -q ' /run tmpfs ' /proc/mounts && touch /run/9os-runtime-stale" \
+    libctest dyntest mapprivtest filetest vfstest "TMPDIR=/root dircookietest /proc/self /sys/class" vmtest sysfstest "permtest /tmp" logintest "mkdir /root/e2 && ext2test -d /root/e2 && rmdir /root/e2" \
     "xattrtest /root" "mkdir -p -m 755 /aclt && acltest /aclt" "locktest /root/lockf" "xattrtest -w /root" "acltest -w /aclt" "cp -a /usr /root/usr2 && echo persist > /root/keep && sync" \
     "grep -q '^violations 0' /proc/lockdep" || rc=1
 python3 scripts/qemu-test.py "$ARCH" --log "build/test-diskroot2-$ARCH.log" --disk "$B/root.img" \
     --cmdline "root=/dev/vda1" "$@" \
-    "grep -qx persist /root/keep" "xattrtest -r /root" "acltest -r /aclt && rmdir /aclt" "diff -r /usr /root/usr2" "rm -rf /root/usr2 /root/keep" || rc=1
+    "test ! -e /run/9os-runtime-stale && grep -q ' /run tmpfs ' /proc/mounts" "grep -qx persist /root/keep" "xattrtest -r /root" "acltest -r /aclt && rmdir /aclt" "diff -r /usr /root/usr2" "rm -rf /root/usr2 /root/keep" || rc=1
 if grep -aq "not cleanly unmounted" "build/test-diskroot2-$ARCH.log"; then echo "FAIL   clean shutdown of the disk root"; rc=1
 else echo "PASS   clean shutdown of the disk root"; fi
 fsck_img "$B/root.img" || rc=1

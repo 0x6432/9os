@@ -1,0 +1,23 @@
+DBUS_A11Y_QUERY method=GetAddress phase=begin bus=org.a11y.Bus path=/org/a11y/bus mono_ns=2921521184704
+DBUS_A11Y_QUERY method=GetAddress phase=end ok=1 mono_ns=2921521630630
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=org.a11y.atspi.Registry path=/org/a11y/atspi/accessible/root mono_ns=2921522101886
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2921522511118
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2921522539988
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=1 mono_ns=2921522696058
+DBUS_A11Y_OWNER bus=:1.54 pid=54131 target=54131
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.54 path=/org/a11y/atspi/accessible/app mono_ns=2921522702243
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.54 path=/org/a11y/atspi/accessible/app mono_ns=2921522732156
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2921523041867
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2921523089236
+DBUS_A11Y_NODE depth=0 node=1 role=75
+DBUS_A11Y_QUERY method=GetRole phase=begin bus=:1.54 path=/org/a11y/atspi/accessible/frame mono_ns=2921523099251
+DBUS_A11Y_QUERY method=GetChildren phase=begin bus=:1.54 path=/org/a11y/atspi/accessible/frame mono_ns=2921523123424
+DBUS_A11Y_QUERY method=GetRole phase=end ok=1 mono_ns=2921523379652
+DBUS_A11Y_QUERY method=GetChildren phase=end ok=1 mono_ns=2921523413885
+DBUS_A11Y_NODE depth=1 node=2 role=23
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=begin bus=org.freedesktop.DBus path=/org/freedesktop/DBus mono_ns=2921523426181
+DBUS_A11Y_QUERY method=GetConnectionUnixProcessID phase=end ok=0 mono_ns=2921523579708
+DBUS_A11Y_ERROR reason=remote-call
+DBUS_A11Y_ERROR_IDENTITY class=remote-dbus method_hex=476574436f6e6e656374696f6e556e697850726f636573734944 method_truncated=0 bus_hex=6f72672e667265656465736b746f702e44427573 bus_truncated=0 path_hex=2f6f72672f667265656465736b746f702f44427573 path_truncated=0 remote_name_hex=6f72672e667265656465736b746f702e444275732e4572726f722e4e616d654861734e6f4f776e6572 remote_name_truncated=0 remote_name_status=present
+DBUS_A11Y_WITNESS pid=54131 terminals=0 valid_states=0 focused_states=0 showing_states=0 visible_states=0 qualified=0 protocol_error=1
+terminal-dbus: pid=54131 applications=1 models=0 visited=2 NOT_OBSERVED (diagnostic only)

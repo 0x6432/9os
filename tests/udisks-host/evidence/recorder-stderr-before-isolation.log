@@ -1,0 +1,6 @@
+Expected new diagnostic-transport gap control at commit ad8a931; native mock only.
+original_acceptance_status=0
+original_calls_preserved=True
+recorder_stderr='FAIL diagnostic fixture only\nFAIL diagnostic fixture only\nFAIL diagnostic fixture only\n'
+combined_guest_body_sentinel_hit=True
+Gap exposed: hostile/broken recorder stderr must be isolated; original DBus/checker stderr must NOT be isolated.

@@ -1,0 +1,40 @@
+#!/bin/sh
+# Genuine packaged strace/elfutils, not a synthetic stack or mocked proc tree.
+set -eu
+D=$(mktemp -d /tmp/alpine-proctask-XXXXXX)
+p=
+cleanup() {
+ r=$?
+ if [ -n "$p" ];then kill -KILL "$p" 2>/dev/null || true;wait "$p" 2>/dev/null || true;fi
+ if [ "$r" != 0 ];then
+  for f in target attach trace;do [ ! -f "$D/$f" ] || { echo "PROCTASK_DIAGNOSTIC=$f";tail -n 60 "$D/$f"; };done
+ fi
+ rm -rf "$D"
+ exit "$r"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+proctasktest --pause >"$D/target" 2>&1 & p=$!
+ready=0
+for i in $(seq 50);do
+ if grep -q '^PROCTASK_READY ' "$D/target";then ready=1;break;fi
+ kill -0 "$p" 2>/dev/null || break
+ sleep .1
+done
+[ "$ready" = 1 ] || { echo 'alpine-proctask: FAIL target readiness';exit 1; }
+r=0
+timeout -k 3 -s TERM 2 strace -f -k -p "$p" -o "$D/trace" >"$D/attach" 2>&1 || r=$?
+# BusyBox timeout reports the terminating signal (143); GNU reports124.
+case $r in 124|143) ;; *) echo "alpine-proctask: FAIL tracer status=$r";exit 1;; esac
+if wait "$p";then p=;else p=;echo 'alpine-proctask: FAIL target after detach';exit 1;fi
+cat "$D/target" "$D/attach"
+! grep -q 'dwfl_linux_proc_attach returned an error' "$D/attach"
+grep -q '^ > /' "$D/trace"
+! grep -q '^ > No such process' "$D/trace"
+tids=$(sed -n 's/^PROCTASK_READY pid=\([0-9]*\) tids=\([0-9]*\),\([0-9]*\)$/\1 \2 \3/p' "$D/target")
+[ "$(printf '%s\n' "$tids" | wc -w)" = 3 ]
+for tid in $tids;do grep -Eq "^$tid[[:space:]]" "$D/trace";done
+# Stripped musl lacks DWARF CFI; a real module frame is required, not a claim
+# that every call chain is recoverable. Optional process_vm_readv may fall back.
+head -n 24 "$D/trace"
+echo 'alpine-proctask: PASSED real three-thread attach, module frame and clean detach'

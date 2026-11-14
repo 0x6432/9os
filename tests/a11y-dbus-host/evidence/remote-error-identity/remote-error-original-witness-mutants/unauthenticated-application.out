@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/tmp/9os-witness-mutant-6i_rrhlf/tests/a11y-dbus-host/test-native.py", line 243, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/9os-witness-mutant-6i_rrhlf/tests/a11y-dbus-host/test-native.py", line 110, in main
+    assert f'pid={pid} target={pid}' in result.stdout
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

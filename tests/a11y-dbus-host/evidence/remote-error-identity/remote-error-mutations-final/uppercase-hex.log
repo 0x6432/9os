@@ -1,0 +1,247 @@
+consumer_source_sha256=d61d706531932a893efcf5a5a2243d97f3d0231ce9e37584669df5125cb6b15d
+test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order) ... FAIL
+test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference) ... FAIL
+test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) ... 
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_error_matches') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_io_error_quark') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_is_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_get_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_free') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_error_matches') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_io_error_quark') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_is_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_get_remote_error') ... FAIL
+  test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_free') ... FAIL
+test_other_local_error (__main__.Identity.test_other_local_error) ... FAIL
+test_real_local_timeout (__main__.Identity.test_real_local_timeout) ... FAIL
+test_real_remote_name (__main__.Identity.test_real_remote_name) ... FAIL
+test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout) ... FAIL
+
+======================================================================
+FAIL: test_both_async_callbacks_correlate_and_drain_in_reverse_order (__main__.Identity.test_both_async_callbacks_correlate_and_drain_in_reverse_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 112, in test_both_async_callbacks_correlate_and_drain_in_reverse_order
+    children, role = self.run_model('async-both')
+                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'remote-dbus', 'method_hex': '4765744368696C6472656E', 'method_truncated': '0', 'bus_hex': '3A312E3432', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F61747370692F61636365737369626C652F4641494C', 'path_truncated': '0', 'remote_name_hex': '6F72672E746573742E4641494C', 'remote_name_truncated': '0', 'remote_name_status': 'present'}
+
+======================================================================
+FAIL: test_caps_truncation_and_direct_reference (__main__.Identity.test_caps_truncation_and_direct_reference)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 122, in test_caps_truncation_and_direct_reference
+    first, second = self.run_model('long')
+                    ~~~~~~~~~~~~~~^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'remote-dbus', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '6F72672E746573742E4641494C414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141', 'remote_name_truncated': '1', 'remote_name_status': 'present'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_error_matches')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_io_error_quark')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_is_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_dbus_error_get_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='remote', symbol='g_free')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_error_matches')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_io_error_quark')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_is_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_dbus_error_get_remote_error')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_each_missing_optional_symbol_preserves_error_as_unknown (__main__.Identity.test_each_missing_optional_symbol_preserves_error_as_unknown) (mode='local-timeout', symbol='g_free')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 106, in test_each_missing_optional_symbol_preserves_error_as_unknown
+    record, = self.run_model(mode, symbol)
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'unknown', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'unknown'}
+
+======================================================================
+FAIL: test_other_local_error (__main__.Identity.test_other_local_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 98, in test_other_local_error
+    record, = self.run_model('other')
+              ~~~~~~~~~~~~~~^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'other', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'absent'}
+
+======================================================================
+FAIL: test_real_local_timeout (__main__.Identity.test_real_local_timeout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 78, in test_real_local_timeout
+    record, = self.run_model('local-timeout')
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'local-timeout', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '', 'remote_name_truncated': '0', 'remote_name_status': 'absent'}
+
+======================================================================
+FAIL: test_real_remote_name (__main__.Identity.test_real_remote_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 87, in test_real_remote_name
+    record, = self.run_model('remote')
+              ~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'remote-dbus', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '6F72672E746573742E4641494C', 'remote_name_truncated': '0', 'remote_name_status': 'present'}
+
+======================================================================
+FAIL: test_remote_noreply_is_not_local_timeout (__main__.Identity.test_remote_noreply_is_not_local_timeout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 93, in test_remote_noreply_is_not_local_timeout
+    record, = self.run_model('remote-noreply')
+              ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 67, in run_model
+    identities = parse_records(r.stdout)
+  File "/vercel/sandbox/data/m40-remote-errors/tests/a11y-dbus-host/test-error-identity.py", line 35, in parse_records
+    assert re.fullmatch(r'[0-9a-f]*', value) and len(value) % 2 == 0, fields
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'class': 'remote-dbus', 'method_hex': '47657441646472657373', 'method_truncated': '0', 'bus_hex': '6F72672E613131792E427573', 'bus_truncated': '0', 'path_hex': '2F6F72672F613131792F627573', 'path_truncated': '0', 'remote_name_hex': '6F72672E667265656465736B746F702E444275732E4572726F722E4E6F5265706C79', 'remote_name_truncated': '0', 'remote_name_status': 'present'}
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.306s
+
+FAILED (failures=16)

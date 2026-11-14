@@ -165,7 +165,7 @@ static int ptm_open(struct inode *ino, struct file *f) {
     return 0;
 }
 static const struct file_ops ptmx_ops = {
-    .nobkl = true, .open = ptm_open, .read = ptm_read, .write = ptm_write, .poll = ptm_poll, .ioctl = ptm_ioctl, .release = ptm_release,
+    .nobkl = true, .poll_leaf = true, .open = ptm_open, .read = ptm_read, .write = ptm_write, .poll = ptm_poll, .ioctl = ptm_ioctl, .release = ptm_release,
 };
 
 /* ---- slave (/dev/pts/N) */
@@ -186,7 +186,7 @@ static void pts_release(struct file *f) {
     pty_maybe_free(p);
 }
 static const struct file_ops pts_ops = {
-    .nobkl = true, .open = pts_open, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll, .release = pts_release,
+    .nobkl = true, .poll_leaf = true, .open = pts_open, .read = tty_read, .write = tty_write, .ioctl = tty_ioctl, .poll = tty_poll, .release = pts_release,
 };
 
 static int pts_open_peer(struct pty *p, int flags) {

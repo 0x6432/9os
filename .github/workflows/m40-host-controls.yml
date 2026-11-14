@@ -1,0 +1,21 @@
+name: M40 isolated host controls
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+permissions:
+  contents: read
+jobs:
+  host-controls:
+    if: ${{ github.event.pull_request.number == 63 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'notion/m40-consolidated-review' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Test strict-root prototype without a guest
+        run: |
+          python3 scripts/disk-root-prototype-host-tests.py -v
+          python3 scripts/disk-root-extracted-host-tests.py -v
